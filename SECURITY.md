@@ -67,6 +67,30 @@ verificada. A chave pública está no perfil do mantenedor no GitHub.
 Se você encontrar um commit sem assinatura verificada em `main`, isso é por si
 só um incidente: relate.
 
+## Configuração do repositório
+
+O que está ligado, e o princípio por trás:
+
+- **Dependabot alerts** e **security updates**, com **nenhuma regra de
+  auto-triagem ativa**. As duas presets do GitHub que descartam alertas
+  automaticamente estão desligadas, e `.github/dependabot.yml` não tem regra
+  `ignore`. O critério é único: alerta de segurança chega inteiro, e o
+  julgamento sobre ele é humano. Filtro que economiza pouco e que é preciso
+  lembrar que existe não se paga;
+- **Secret scanning** com **push protection** — a única proteção desta lista
+  que age *antes* do fato. Em repositório público, chave commitada conta como
+  vazada no instante do push, e reescrever histórico não desfaz o que já foi
+  indexado;
+- **Private vulnerability reporting**, que é o canal citado em *Como relatar*;
+- `main` protegida por ruleset: assinatura verificada obrigatória, sem force
+  push e sem deleção.
+
+**Não há CodeQL**, e não é esquecimento. O *default setup* precisa compilar o
+código, e compilar aqui exige DPDK instalado — ele falharia. Além disso,
+`pipeline_ring_vazado` vaza de propósito e seria apontado como defeito a cada
+execução; supressão mal feita em ferramenta de segurança é o começo de
+ignorá-la inteira. É item de ROADMAP, não configuração às pressas.
+
 ---
 
 ## Security policy (English)
@@ -91,3 +115,12 @@ vulnerability reporting* for those.
 
 All commits are GPG-signed and `main` requires verified signatures. An unsigned
 commit on `main` is itself an incident worth reporting.
+
+**Repository configuration:** Dependabot alerts and security updates are on,
+with **no auto-triage rules** — both GitHub presets that auto-dismiss alerts are
+disabled and `dependabot.yml` carries no `ignore` rule, so every security alert
+arrives intact and is judged by a human. Secret scanning with push protection is
+on; private vulnerability reporting is on; `main` is protected by a ruleset
+requiring verified signatures and rejecting force pushes and deletion. CodeQL is
+deliberately absent: its default setup must build the code, which requires DPDK,
+and `pipeline_ring_vazado` leaks on purpose and would be flagged every run.

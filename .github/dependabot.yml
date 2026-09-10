@@ -34,3 +34,38 @@ updates:
     # Um PR por vez: com uma única ação monitorada, mais que isso é sinal de
     # que algo está errado, não de que há trabalho a fazer.
     open-pull-requests-limit: 1
+
+    # POR QUE NAO HA REGRA `ignore` AQUI
+    #
+    # A tentacao e obvia: horas depois deste arquivo existir, o Dependabot abriu
+    # o PR #1 levando `actions/checkout` de v4 para v7 -- tres majors de salto,
+    # sem label de seguranca. Um `ignore` de `version-update:semver-major`
+    # calaria esse tipo de PR.
+    #
+    # Foi escrito e removido, e a razao vale registrar.
+    #
+    # A documentacao do GitHub nao e conclusiva sobre `ignore` filtrar tambem os
+    # SECURITY updates. Uma fonte afirma que filtra os dois; a pagina especifica
+    # de security updates nao trata do caso. Num controle de seguranca, essa
+    # incerteza e ela propria o defeito: silenciar por regra que talvez silencie
+    # mais do que se pretende e pior do que nao silenciar.
+    #
+    # O que se perde sem a regra e pequeno: major de `actions/checkout` sai
+    # raramente, e o PR #1 so apareceu porque comecamos agora, com o pin tres
+    # versoes atras. O que se ganha e que nenhuma correcao de vulnerabilidade
+    # depende de eu ter acertado a semantica de uma opcao ambigua.
+    #
+    # O canal de seguranca fica, entao, inteiro fora deste arquivo: `Dependabot
+    # alerts` e `Dependabot security updates` estao ligados no repositorio, e
+    # nenhum dos dois consulta esta configuracao para decidir o que e
+    # vulnerabilidade. Este arquivo cuida de VERSAO; advisory nao passa por aqui.
+    #
+    # A protecao contra merge de major sem revisao nao mora aqui, e sim em:
+    #
+    #   1. PR e PROPOSTA -- nada entra na main sem merge deliberado;
+    #   2. `scripts/pre-commit.sh` avisa quando o SHA fixado deixa de ser o topo
+    #      do major declarado no workflow, que e exatamente o caso do PR #1;
+    #   3. a `main` exige assinatura verificada e recusa force push.
+    #
+    # Ruido de um PR raro se fecha em um clique. Correcao de seguranca que nao
+    # chega nao se percebe.
