@@ -4,6 +4,13 @@ on:
   push:
   pull_request:
 
+# Menor privilegio para o GITHUB_TOKEN. Sem este bloco ele herda o padrao da
+# conta, que pode ser escrita -- e este workflow so compila e testa: nao cria
+# release, nao comenta em PR, nao empurra nada. Se uma acao de terceiros for
+# comprometida um dia, o estrago fica limitado ao que ela pode ler.
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     # Imagem FIXA, nao 'ubuntu-latest': o compilador padrao muda quando a
@@ -11,7 +18,11 @@ jobs:
     # 'latest' a CI quebraria num dia em que ninguem tocou no codigo.
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      # Fixada por SHA, nao por tag: `v4` e um ponteiro movel, e quem controla
+      # o repositorio da acao pode reaponta-lo. O SHA e imutavel. Corresponde a
+      # v4 em 2026-09-10; para atualizar, resolva a tag de novo:
+      #   gh api repos/actions/checkout/git/ref/tags/v4 --jq '.object.sha'
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       # DPDK e dependencia de AMBIENTE (bibliotecas + hugepages + drivers), por
       # isso vem da distribuicao e nao de um gerenciador de pacotes C++.
