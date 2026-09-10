@@ -23,7 +23,7 @@
  *   3. CONTAGEM DE REFERÊNCIA — quem libera o mbuf, e por que liberar duas
  *      vezes é fácil.
  *
- * USO: ./anatomia-mbuf -l 0 --in-memory --no-huge
+ * USO: ./anatomia-mbuf -l 0 --no-huge --file-prefix=meu_teste
  */
 #define _GNU_SOURCE
 #include <stddef.h>

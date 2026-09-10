@@ -47,7 +47,7 @@ else
 endif
 
 test('03-nivel4 - L2 (custo de alocacao)', custo_alocacao,
-     args : ['-l', '0', '--in-memory', '--no-huge'],
+     args : ['-l', '0', '--no-huge', '--file-prefix=academy_custo_alocacao'],
      suite : ['l2', 'nivel4'], timeout : 300)
 
 # --- Eixo de falha (ROADMAP, Etapa 7.5) -----------------------------------
@@ -64,7 +64,7 @@ pool_esgotado = executable(
   install : false,
 )
 test('03-nivel4 - L2 (pool esgotado e regra 4)', pool_esgotado,
-     args : ['-l', '0', '--in-memory', '--no-huge'],
+     args : ['-l', '0', '--no-huge', '--file-prefix=academy_pool_esgotado'],
      suite : ['l2', 'nivel4'], timeout : 60)
 
 anatomia_mbuf = executable(
@@ -75,7 +75,7 @@ anatomia_mbuf = executable(
 )
 
 test('03-nivel4 - L2 (anatomia do mbuf)', anatomia_mbuf,
-     args : ['-l', '0', '--in-memory', '--no-huge'],
+     args : ['-l', '0', '--no-huge', '--file-prefix=academy_anatomia_mbuf'],
      suite : ['l2', 'nivel4'], timeout : 120)
 
 custo_anel = executable(
@@ -87,7 +87,7 @@ custo_anel = executable(
 )
 
 test('03-nivel4 - L2 (custo do anel)', custo_anel,
-     args : ['-l', '0', '--in-memory', '--no-huge'],
+     args : ['-l', '0', '--no-huge', '--file-prefix=academy_custo_anel'],
      suite : ['l2', 'nivel4'], timeout : 300)
 
 # --- O regime em que o mempool ganha: contenção entre núcleos --------------

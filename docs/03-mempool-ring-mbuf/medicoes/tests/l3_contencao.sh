@@ -27,4 +27,4 @@ if [ "$CPUS" -lt "$NECESSARIAS" ]; then
     exit 77   # 77 = PULADO para o Meson, nao sucesso
 fi
 
-exec "$BIN" -l "0-$((NECESSARIAS - 1))" --in-memory --no-huge --no-pci 64
+exec "$BIN" -l "0-$((NECESSARIAS - 1))" --no-huge --file-prefix=academy_contencao_$$ --no-pci 64

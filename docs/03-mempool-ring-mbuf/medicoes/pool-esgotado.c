@@ -35,7 +35,10 @@
  * de contagem são exatos e reprodutíveis; por isso este programa não usa
  * statistics.h e não aceita DPDK_ACADEMY_AMOSTRAS.
  *
- * USO: ./pool-esgotado -l 0 --in-memory --no-huge
+ * USO: ./pool-esgotado -l 0 --no-huge --file-prefix=meu_teste
+ *
+ * NAO use `--in-memory --no-huge` juntos: antes do DPDK 24, `--no-huge` liga
+ * `--legacy-mem`, que e incompativel com `--in-memory`, e a EAL aborta.
  */
 #define _GNU_SOURCE
 #include <inttypes.h>

@@ -13,12 +13,22 @@
 # diferente: argumento desconhecido encerra o processo dentro da própria EAL,
 # enquanto valor inválido devolve -1 e deixa o programa tratar.
 #
-# Roda sem hugepages e sem NIC: --in-memory --no-huge.
+# Roda sem hugepages e sem NIC: --no-huge com prefixo proprio.
 #
 # Uso: l2_run.sh <caminho-do-binario>
 set -u
 BIN=${1:?uso: l2_run.sh <caminho-do-binario>}
-EAL_ARGS=${EAL_ARGS:--l 0 --in-memory --no-huge}
+# `--no-huge` com prefixo proprio, e NAO `--in-memory --no-huge`.
+#
+# A combinacao anterior e rejeitada pelo DPDK 23.11: `--no-huge` liga
+# `--legacy-mem` por dentro, e `--legacy-mem` e incompativel com `--in-memory`.
+# A EAL responde "Option --legacy-mem is not compatible with --in-memory" e
+# aborta. No 25.11 a restricao nao existe -- o defeito so aparecia na CI.
+#
+# O `--file-prefix` com $$ substitui o isolamento que `--in-memory` dava: sem
+# ele, execucoes concorrentes disputam /run/user/*/dpdk/rte/config e uma falha
+# com "Is another primary process running?".
+EAL_ARGS=${EAL_ARGS:--l 0 --no-huge --file-prefix=academy_eal_$$}
 falhas=0
 
 check() { if [ "$2" -eq 0 ]; then echo "  ok    - $1"; else echo "  FALHA - $1"; falhas=$((falhas + 1)); fi; }

@@ -28,11 +28,26 @@ project(
 # Por isso vem do sistema (via pkg-config), e não de um gerenciador de pacotes.
 # Use scripts/check-env.sh para diagnosticar o que falta.
 # ---------------------------------------------------------------------------
+# VERSAO MINIMA: 23.11.
+#
+# Nao e chute: e a release que a CI usa (dpdk-dev do Ubuntu 24.04) e onde a
+# suite passa de ponta a ponta. A maquina de referencia roda 25.11, e a
+# diferenca entre as duas ja produziu dois defeitos que so apareceram no par:
+#
+#   - `--in-memory --no-huge` juntos: rejeitado ate o 23.11, aceito no 25.11,
+#     porque `--no-huge` ligava `--legacy-mem`;
+#   - codigo de saida e mensagem de argumento desconhecido: vem de
+#     `librte_argparse`, que so existe a partir do 24.03.
+#
+# Declarar o minimo transforma "nao compila" numa mensagem util em vez de num
+# erro de simbolo ausente no meio do build. Abaixo de 23.11 nao foi testado --
+# pode funcionar, e nao afirmamos que funciona.
 dpdk_dep = dependency(
   'libdpdk',
   method : 'pkg-config',
+  version : '>=23.11',
   required : true,
-  not_found_message : 'DPDK nao encontrado. Instale o pacote de desenvolvimento (Debian/Ubuntu: dpdk-dev; Fedora/RHEL: dpdk-devel) e confirme com "pkg-config --modversion libdpdk". Veja scripts/check-env.sh.',
+  not_found_message : 'DPDK nao encontrado, ou anterior a 23.11 (minimo testado). Instale o pacote de desenvolvimento (Debian/Ubuntu: dpdk-dev; Fedora/RHEL: dpdk-devel) e confirme com "pkg-config --modversion libdpdk". Veja scripts/check-env.sh.',
 )
 
 # GTest sustenta os testes L1 (lógica pura). É opcional de propósito: sem rede

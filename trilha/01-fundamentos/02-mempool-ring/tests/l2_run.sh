@@ -24,7 +24,17 @@
 set -u
 BIN=${1:?uso: l2_run.sh <binario> <binario-com-vazamento>}
 BIN_VAZADO=${2:-}
-EAL_ARGS=${EAL_ARGS:--l 0 --in-memory --no-huge}
+# `--no-huge` com prefixo proprio, e NAO `--in-memory --no-huge`.
+#
+# A combinacao anterior e rejeitada pelo DPDK 23.11: `--no-huge` liga
+# `--legacy-mem` por dentro, e `--legacy-mem` e incompativel com `--in-memory`.
+# A EAL responde "Option --legacy-mem is not compatible with --in-memory" e
+# aborta. No 25.11 a restricao nao existe -- o defeito so aparecia na CI.
+#
+# O `--file-prefix` com $$ substitui o isolamento que `--in-memory` dava: sem
+# ele, execucoes concorrentes disputam /run/user/*/dpdk/rte/config e uma falha
+# com "Is another primary process running?".
+EAL_ARGS=${EAL_ARGS:--l 0 --no-huge --file-prefix=academy_ring_$$}
 falhas=0
 
 # Segundo lcore do modo de dois nucleos. NAO pode ser fixo: numa maquina de duas
@@ -87,7 +97,7 @@ grep -q "^Lote (burst): 64 " <<<"$saida"; check "n=100000: tamanho de lote aplic
 if [ "$CPUS" -lt 2 ]; then
     echo "  PULADO - modo de dois lcores (maquina com $CPUS CPU)"
 else
-    DOIS="-l 0,$LCORE_CONSUMIDOR --in-memory --no-huge"
+    DOIS="-l 0,$LCORE_CONSUMIDOR --no-huge --file-prefix=academy_ring2_$$"
     # shellcheck disable=SC2086
     saida=$("$BIN" $DOIS -- -n 10 2>&1); rc=$?
     ultima_saida="$saida"
@@ -126,7 +136,7 @@ if [ -n "$BIN_VAZADO" ] && [ -x "$BIN_VAZADO" ]; then
     forcou=0
     for tentativa in "-n 500000 -b 256" "-n 2000000 -b 256" "-n 5000000 -b 256"; do
         # shellcheck disable=SC2086
-        saida=$("$BIN_VAZADO" -l 0,"$LCORE_CONSUMIDOR" --in-memory --no-huge -- $tentativa 2>&1)
+        saida=$("$BIN_VAZADO" -l 0,"$LCORE_CONSUMIDOR" --no-huge --file-prefix=academy_leak_$$ -- $tentativa 2>&1)
         rc=$?
         ultima_saida="$saida"
         cheia=$(grep -o 'nao couberam na fila: [0-9]\+' <<<"$saida" | grep -o '[0-9]\+')

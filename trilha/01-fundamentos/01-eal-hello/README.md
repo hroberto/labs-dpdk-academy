@@ -80,7 +80,7 @@ ramo existe — mas há uma classe de falha que nunca o alcança: **argumento
 desconhecido encerra o processo dentro da própria EAL**, sem retornar:
 
 ```console
-$ ./build/trilha/01-fundamentos/01-eal-hello/hello_dpdk -l 0 --opcao-inexistente --in-memory --no-huge
+$ ./build/trilha/01-fundamentos/01-eal-hello/hello_dpdk -l 0 --opcao-inexistente --no-huge
 ARGPARSE: unknown argument --opcao-inexistente!
 $ echo $?
 234
@@ -111,13 +111,44 @@ duração**, nunca algo que se sobe por requisição.
 O comando de estudo é:
 
 ```bash
-./build/trilha/01-fundamentos/01-eal-hello/hello_dpdk -l 0 --in-memory --no-huge
+./build/trilha/01-fundamentos/01-eal-hello/hello_dpdk -l 0 --no-huge --file-prefix=estudo
 ```
 
 | Opção | O que faz | Custo |
 |---|---|---|
 | `-l 0` | usa apenas o lcore 0 | nenhum, para este exemplo |
 | [`--in-memory`][optmem] | não grava arquivos de runtime em disco | impede processos secundários |
+
+> **As duas juntas não funcionam antes do DPDK 24, e a mensagem não ajuda.**
+>
+> Este documento publicava `-l 0 --in-memory --no-huge` como comando de estudo,
+> e ele funciona no DPDK 25.11 da máquina de referência. Na CI, com o 23.11 do
+> Ubuntu, a EAL responde:
+>
+> ```
+> EAL: Option --legacy-mem is not compatible with --in-memory
+> EAL: FATAL: Invalid 'command line' arguments.
+> ```
+>
+> Repare no que a mensagem cita: **`--legacy-mem`, que ninguém passou.** Ela é
+> ligada por dentro pelo `--no-huge` naquela release — uma opção que aciona
+> outra, e o conflito aparece com o nome da opção implícita, não da que você
+> escreveu. É o tipo de erro que faz procurar no lugar errado.
+>
+> **O que fazer:** use uma de cada vez. Para rodar sem hugepages e sem
+> privilégio, `--no-huge` basta. O que se perde é o isolamento que
+> `--in-memory` dava — sem arquivos de runtime em disco —, e ele se recupera com
+> `--file-prefix` — que é o que o comando desta página e os testes deste projeto
+> passaram a usar.
+>
+> Sem prefixo distinto, duas execuções simultâneas colidem em
+> `/run/user/<uid>/dpdk/rte/config` com *"Is another primary process running?"* —
+> o que importa porque o Meson roda os testes em paralelo.
+>
+> **Como isso foi descoberto:** a primeira execução da CI na história do projeto
+> falhou, e o teste não mostrava a mensagem da EAL. Só depois de fazer o teste
+> imprimir a saída capturada é que a causa apareceu. Um defeito de release nunca
+> teria sido encontrado rodando só na máquina de referência.
 | `--no-huge` | usa memória anônima de 4 KB | **mais falhas de TLB; impede processos secundários; nem todo [PMD][cPMD] aceita** |
 
 > **PMD** (*Poll Mode Driver*) é o driver de NIC do DPDK, que roda em user-space
@@ -187,7 +218,7 @@ Compile e execute:
 
 ```bash
 ./scripts/build-all.sh
-./build/trilha/01-fundamentos/01-eal-hello/hello_dpdk -l 0 --in-memory --no-huge
+./build/trilha/01-fundamentos/01-eal-hello/hello_dpdk -l 0 --no-huge --file-prefix=estudo
 ```
 
 Saída esperada:
@@ -215,11 +246,15 @@ o que existe; usa o que foi pedido.
 2. Rode com `-- a b c`. O que muda na última linha, e por quê?
 3. Rode com uma opção inexistente. Qual o código de saída — e por que a mensagem
    de erro **da aplicação** não aparece?
-4. Remova `--no-huge`, mantendo `--in-memory`. Funciona na sua máquina? Se sim,
-   de onde veio a memória?
-5. Remova as duas opções. Agora a EAL provavelmente falha. A mensagem fala de
-   hugepage **ausente** ou de hugepage **inacessível**? As duas exigem correções
-   diferentes.
+4. Troque `--no-huge` por `--in-memory`. Funciona na sua máquina? Se sim, de
+   onde veio a memória — e por que ela não precisou de `/dev/hugepages`?
+5. Agora passe **as duas juntas**: `--in-memory --no-huge`. Numa release
+   anterior ao DPDK 24 isso falha, e a mensagem cita `--legacy-mem`, que você
+   não passou. Confira sua versão com `pkg-config --modversion libdpdk` antes
+   de concluir qualquer coisa sobre o resultado.
+6. Remova todas as opções de memória, deixando só `-l 0`. A EAL provavelmente
+   falha. A mensagem fala de hugepage **ausente** ou de hugepage
+   **inacessível**? As duas exigem correções diferentes.
 
 ## 5. Validação
 

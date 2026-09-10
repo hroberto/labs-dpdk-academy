@@ -449,9 +449,9 @@ livre: é o `rte_mbuf`, com o layout que a NIC e os drivers esperam.
 ```bash
 ./scripts/build-all.sh
 
-./build/docs/03-mempool-ring-mbuf/medicoes/custo-alocacao -l 0 --in-memory --no-huge
-./build/docs/03-mempool-ring-mbuf/medicoes/anatomia-mbuf  -l 0 --in-memory --no-huge
-./build/docs/03-mempool-ring-mbuf/medicoes/custo-anel     -l 0 --in-memory --no-huge
+./build/docs/03-mempool-ring-mbuf/medicoes/custo-alocacao -l 0 --no-huge --file-prefix=alocacao
+./build/docs/03-mempool-ring-mbuf/medicoes/anatomia-mbuf  -l 0 --no-huge --file-prefix=mbuf
+./build/docs/03-mempool-ring-mbuf/medicoes/custo-anel     -l 0 --no-huge --file-prefix=anel
 ```
 
 Os três entram na suíte L2, e as regras de dimensionamento têm teste L1:
@@ -497,7 +497,7 @@ O programa é
 mede **comportamento na fronteira**, e contagem não precisa de mediana.
 
 ```bash
-./build/docs/03-mempool-ring-mbuf/medicoes/pool-esgotado -l 0 --in-memory --no-huge
+./build/docs/03-mempool-ring-mbuf/medicoes/pool-esgotado -l 0 --no-huge --file-prefix=pool
 ```
 
 ### 6.1 O degrau: `get_bulk` não entrega lote parcial
