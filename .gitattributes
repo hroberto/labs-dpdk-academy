@@ -1,0 +1,41 @@
+# Normalização de fim de linha e classificação de linguagem.
+
+# --- Fim de linha ---------------------------------------------------------
+#
+# LF no repositório, sempre. O projeto é Linux-only, mas quem clonar no Windows
+# com `core.autocrlf=true` receberia CRLF nos scripts — e um `.sh` com CRLF
+# falha com "bad interpreter: /usr/bin/env bash^M", erro que não diz o que é.
+# Fixar aqui vale mais que documentar depois.
+* text=auto eol=lf
+
+# Arquivos que nunca devem ser tocados pela normalização.
+*.png  binary
+*.jpg  binary
+*.pdf  binary
+*.tar.gz binary
+*.zip  binary
+
+# --- Classificação de linguagem -------------------------------------------
+#
+# POR QUE ISTO É NECESSÁRIO
+#
+# O linguist do GitHub trata `docs/` como documentação POR CONVENÇÃO, e exclui
+# tudo que está lá das estatísticas de linguagem. A convenção é razoável na
+# maioria dos projetos e está errada neste: `docs/*/medicoes/` contém **217 KB
+# de C e C++** — os programas de medição que produzem todo número publicado —,
+# mais `meson.build` e 16 dos 23 testes. É árvore de build, não prosa.
+#
+# O efeito era concreto: com 217 KB de C/C++ invisíveis e 80 KB de shell
+# contados, o repositório aparecia como **Shell 54,5%**. Um projeto de DPDK
+# rotulado como Shell diz a coisa errada para quem chega pela busca.
+#
+# Isto NÃO é maquiagem: é corrigir uma premissa da ferramenta que não vale aqui.
+# Os `.md` de `docs/` continuam sendo documentação, como devem.
+docs/**/medicoes/**  linguist-documentation=false
+
+# --- O que legitimamente não conta -----------------------------------------
+#
+# Subprojetos baixados pelo Meson são código de terceiros: os `.wrap` são
+# versionados, o código não, mas a regra fica declarada para o caso de alguém
+# commitar o diretório por engano.
+subprojects/*/  linguist-vendored
