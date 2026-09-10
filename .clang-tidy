@@ -1,0 +1,15 @@
+Checks: >
+  -*,
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  readability-*,
+  cppcoreguidelines-*,
+  misc-*,
+  google-*,
+  llvm-namespace-comment,
+  cert-*
+WarningsAsErrors: ''
+FormatStyle: file
+HeaderFilterRegex: '.*'

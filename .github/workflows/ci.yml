@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    # Imagem FIXA, nao 'ubuntu-latest': o compilador padrao muda quando a
+    # imagem muda, e este projeto exige C++23 com <print> (GCC 14+). Com
+    # 'latest' a CI quebraria num dia em que ninguem tocou no codigo.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # DPDK e dependencia de AMBIENTE (bibliotecas + hugepages + drivers), por
+      # isso vem da distribuicao e nao de um gerenciador de pacotes C++.
+      # Os testes rodam com --no-huge, entao o runner nao precisa de hugepages.
+      - name: Instalar DPDK e ferramentas de build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpdk-dev pkg-config ninja-build python3-pip g++-14
+          # GCC 14 e o minimo para <print>/<expected>, que check-env.sh exige.
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          python3 -m pip install --upgrade meson
+          pkg-config --modversion libdpdk
+
+      - name: Diagnosticar ambiente
+        run: ./scripts/check-env.sh
+
+      # GTest vem do subprojeto do Meson (subprojects/gtest.wrap), com hash fixo.
+      - name: Configurar
+        run: meson setup build
+
+      - name: Compilar
+        run: meson compile -C build
+
+      - name: Testes L1 (logica pura, sem EAL)
+        run: meson test -C build --suite l1 --print-errorlogs
+
+      # Os programas de medicao dos fundamentos coletam 25 amostras por padrao,
+      # o que leva minutos. No CI o objetivo e apenas verificar que executam,
+      # entao o numero minimo basta.
+      - name: Testes L2 (EAL real, sem hugepages e sem NIC)
+        env:
+          DPDK_ACADEMY_AMOSTRAS: "3"
+        run: meson test -C build --suite l2 --print-errorlogs
+
+      # L3 exige do HOST o que o runner nao tem: hugetlbfs gravavel, dois
+      # dominios de cache L3, varios nucleos fisicos. Roda mesmo assim, e o
+      # esperado e que a maioria seja PULADA (codigo 77).
+      #
+      # Rodar e ver "Skipped" NAO e desperdicio: e o que garante que o caminho
+      # de pulo continua funcionando. Antes desta secao, estes testes saiam com
+      # 0 e apareciam como OK sem ter verificado nada -- o falso verde durou
+      # todo o tempo em que estiveram no CI.
+      - name: Testes L3 (dependem do host; PULAR aqui e o esperado)
+        env:
+          DPDK_ACADEMY_AMOSTRAS: "3"
+        run: meson test -C build --suite l3 --print-errorlogs
