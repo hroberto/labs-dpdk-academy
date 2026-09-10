@@ -24,7 +24,7 @@
  * A escolha errada aqui não aparece como lentidão: aparece como vazamento, no
  * dia em que a fila enche.
  *
- * USO: ./custo-anel -l 0 --in-memory --no-huge
+ * USO: ./custo-anel -l 0 --no-huge --file-prefix=meu_teste
  */
 #define _GNU_SOURCE
 #include <stdio.h>

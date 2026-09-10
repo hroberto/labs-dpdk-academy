@@ -21,7 +21,11 @@
  *
  * USO: os argumentos da EAL são os deste próprio programa.
  *   ./custo-init -l 0 --in-memory
- *   ./custo-init -l 0 --no-huge --in-memory
+ *   ./custo-init -l 0 --no-huge --file-prefix=meu_teste
+ *
+ * NAO combine `--in-memory` com `--no-huge`: antes do DPDK 24 a segunda liga
+ * `--legacy-mem`, incompativel com a primeira, e a EAL aborta citando uma
+ * opcao que voce nao passou.
  */
 #define _GNU_SOURCE
 #include <stdio.h>
@@ -155,8 +159,9 @@ int main(int argc, char **argv)
         printf("    ./build/trilha/01-fundamentos/01-eal-hello/hello_dpdk");
         for (int i = 1; i < argc; i++)
             printf(" %s", argv[i]);
-        printf("\n\n  Causas comuns: sem hugepages reservadas (use --no-huge --in-memory),\n");
-        printf("  ou sem permissao de escrita em /dev/hugepages (use --in-memory).\n\n");
+        printf("\n\n  Causas comuns: sem hugepages reservadas (use --no-huge), ou sem\n");
+        printf("  permissao de escrita em /dev/hugepages (use --in-memory, sozinho).\n");
+        printf("  As duas juntas falham antes do DPDK 24: --no-huge liga --legacy-mem.\n\n");
         return 0; /* ambiente, não defeito: o teste L2 continua valido */
     }
 

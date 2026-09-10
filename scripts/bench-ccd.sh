@@ -26,7 +26,7 @@ echo
 
 melhor() {  # $1 = args da EAL, $2 = lote
     for _ in 1 2 3; do
-        $BIN $1 --in-memory --no-huge -- -n "$PACOTES" -b "$2" 2>/dev/null |
+        $BIN $1 --no-huge --file-prefix=academy_ccd_$$ -- -n "$PACOTES" -b "$2" 2>/dev/null |
             awk '/Tempo medio/{print $3}'
     done | sort -n | head -1
 }

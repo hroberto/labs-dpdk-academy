@@ -81,12 +81,23 @@ endif
 
 # --- L2: o runtime de verdade ---------------------------------------------
 
-# Sem hugepages graváveis, --in-memory ainda sobe a EAL: este teste vale em
-# qualquer máquina, inclusive no CI.
+# `--no-huge` com prefixo próprio, e NÃO `--in-memory --no-huge`.
+#
+# A combinação que estava aqui é rejeitada pelo DPDK 23.11, que a CI usa:
+# `--no-huge` liga `--legacy-mem` por dentro, e `--legacy-mem` é incompatível
+# com `--in-memory`. A EAL responde "Option --legacy-mem is not compatible with
+# --in-memory" e aborta. No 25.11 da máquina de referência a restrição não
+# existe, então o defeito só aparecia no runner.
+#
+# `--in-memory` também servia para evitar arquivos de runtime em disco, o que
+# importa porque o Meson roda os testes em PARALELO: sem isolamento, dois
+# processos disputam /run/user/*/dpdk/rte/config e um deles falha com "Is
+# another primary process running?". O `--file-prefix` distinto resolve isso
+# sem depender de uma opção que não é portável.
 test(
   '02-runtime - L2 (custo de init)',
   custo_init,
-  args : ['-l', '0', '--in-memory', '--no-huge'],
+  args : ['-l', '0', '--no-huge', '--file-prefix=academy_custo_init'],
   suite : ['l2', 'runtime'],
   timeout : 300,
 )
@@ -94,7 +105,7 @@ test(
 test(
   '02-runtime - L2 (estados do lcore)',
   estado_lcore,
-  args : ['-l', '0-1', '--in-memory', '--no-huge'],
+  args : ['-l', '0-1', '--no-huge', '--file-prefix=academy_estado_lcore'],
   suite : ['l2', 'runtime'],
   timeout : 120,
 )

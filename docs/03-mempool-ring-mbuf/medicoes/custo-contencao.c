@@ -20,7 +20,7 @@
  *
  * O lado do malloc usa pthreads porque é o que um programa comum faria.
  *
- * USO: ./custo-contencao -l 0-7 --in-memory --no-huge --no-pci <cache_size>
+ * USO: ./custo-contencao -l 0-7 --no-huge --file-prefix=meu_teste --no-pci <cache_size>
  */
 #define _GNU_SOURCE
 #include <pthread.h>

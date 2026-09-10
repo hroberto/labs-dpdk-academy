@@ -205,7 +205,7 @@ então não deve depender dele para ser testada. É o que torna possível o test
 ```bash
 ./scripts/build-all.sh
 ./build/trilha/01-fundamentos/02-mempool-ring/pipeline_ring \
-    -l 0 --in-memory --no-huge -- -n 10
+    -l 0 --no-huge --file-prefix=topico02 -- -n 10
 ```
 
 Saída esperada (omitindo as linhas `EAL:`):
@@ -305,7 +305,7 @@ O tópico compila o **mesmo fonte** duas vezes. `pipeline_ring_vazado` é
 
 ```bash
 ./build/trilha/01-fundamentos/02-mempool-ring/pipeline_ring_vazado \
-    -l 0,2 --in-memory --no-huge -- -n 2000000 -b 256
+    -l 0,2 --no-huge --file-prefix=topico02 -- -n 2000000 -b 256
 ```
 
 ```

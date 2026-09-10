@@ -93,8 +93,19 @@ A lista completa, com o que é ensinado e o que não é, está em
 - Linux x86_64 ou arm64
 - GCC 14+ ou Clang 18+ (C11 e C++23; as declarações POSIX vêm de `_GNU_SOURCE`,
   declarado por arquivo — ver [ferramental §2.2](docs/00-visao-geral/ferramental.md))
-- DPDK instalado, com `pkg-config --modversion libdpdk` funcionando
+- **DPDK 23.11 ou mais novo**, com `pkg-config --modversion libdpdk` funcionando
   (Debian/Ubuntu: `dpdk-dev`; Fedora/RHEL: `dpdk-devel`)
+
+  | Release | Estado |
+  |---|---|
+  | 25.11 | máquina de referência — todos os números publicados vêm dela |
+  | 23.11 | CI (Ubuntu 24.04); suíte passa |
+  | < 23.11 | não testado; o `meson setup` recusa |
+
+  A faixa não é decorativa: a diferença entre 23.11 e 25.11 já produziu dois
+  defeitos que só aparecem em uma das duas — `--in-memory --no-huge` juntos, e
+  o código de saída de argumento desconhecido. Ambos estão documentados no
+  [tópico 01](trilha/01-fundamentos/01-eal-hello/README.md).
 - Meson 1.1+ e Ninja
 
 Opcionais, e só a partir da etapa de benchmarking e qualidade: clang-format,
