@@ -19,8 +19,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       # Fixada por SHA, nao por tag: `v4` e um ponteiro movel, e quem controla
-      # o repositorio da acao pode reaponta-lo. O SHA e imutavel. Corresponde a
-      # v4 em 2026-09-10; para atualizar, resolva a tag de novo:
+      # o repositorio da acao pode reaponta-lo. O SHA e imutavel.
+      #
+      # Corresponde a v4. Essa linha nao e decorativa: `scripts/pre-commit.sh`
+      # a le para resolver o SHA de volta e avisar se ele deixou de ser o topo
+      # do major declarado -- foi assim que apareceu um PR do Dependabot
+      # propondo saltar de v4 para v7 sem revisao.
+      #
+      # Para atualizar dentro do mesmo major:
       #   gh api repos/actions/checkout/git/ref/tags/v4 --jq '.object.sha'
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
