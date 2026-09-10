@@ -118,6 +118,36 @@ if [ -f .github/workflows/ci.yml ]; then
     grep -q '^permissions:' .github/workflows/ci.yml \
         && ok "GITHUB_TOKEN com permissões declaradas" \
         || falha "ci.yml sem bloco 'permissions:' (o token herda escrita)"
+
+    # INCIDENTE: fixar por SHA impede que a TAG seja reapontada, mas nao diz
+    # QUAL versao o SHA e. Horas depois de ligar o Dependabot, ele abriu um PR
+    # levando actions/checkout de v4 para v7 -- tres versoes maiores de salto --
+    # e a verificacao acima aprovaria, porque continua sendo um SHA valido.
+    #
+    # Esta checagem resolve o SHA de volta para a tag e compara com o major que
+    # o workflow declara no comentario ao lado do pin. E AVISO, nao falha:
+    # depende de rede e de `gh`, e um pre-commit que exige os dois nao roda em
+    # aviao nem em maquina de terceiros.
+    if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+        while read -r acao sha; do
+            [ -n "$sha" ] || continue
+            major=$(grep -oE "# *Corresponde a v[0-9]+" .github/workflows/ci.yml | grep -oE 'v[0-9]+' | head -1)
+            [ -n "$major" ] || { aviso "pin de $acao sem 'Corresponde a vN' no comentario"; continue; }
+            esperado=$(timeout 20 gh api "repos/$acao/git/ref/tags/$major" --jq '.object.sha' 2>/dev/null || echo "")
+            if [ -z "$esperado" ]; then
+                aviso "nao consegui resolver $acao@$major (offline?)"
+            elif [ "$esperado" = "$sha" ]; then
+                ok "$acao fixada em $major (SHA confere com a tag)"
+            else
+                aviso "$acao: o SHA fixado NAO e mais o topo de $major"
+                printf '          fixado:  %s\n          %s hoje: %s\n' "$sha" "$major" "$esperado"
+                printf '          Se veio de um PR do Dependabot, confira se e salto de major.\n'
+            fi
+        done < <(grep -oE 'uses: [a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+@[0-9a-f]{40}' .github/workflows/ci.yml \
+                 | sed 's/uses: //' | tr '@' ' ')
+    else
+        aviso "gh ausente ou nao autenticado: versao do SHA fixado nao verificada"
+    fi
 fi
 
 # --- 3. Nada sensível ------------------------------------------------------
