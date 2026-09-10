@@ -149,6 +149,13 @@ O projeto busca formar uma base técnica sólida para quem quer:
 
 Sugestões de módulos, estudos, exemplos e melhorias na didática são bem-vindas.
 
+## Segurança
+
+Como relatar problema, e o que conta como problema neste contexto:
+[SECURITY.md](SECURITY.md). Resumo: o ativo a proteger é a **procedência do
+conteúdo**, não sigilo — não há segredo aqui. Todo commit é assinado, e a
+`main` exige assinatura verificada.
+
 ## Licença
 
 Conteúdo publicado para fins educacionais e de estudo.
