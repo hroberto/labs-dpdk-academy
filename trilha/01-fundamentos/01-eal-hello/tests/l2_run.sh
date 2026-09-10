@@ -23,7 +23,24 @@ falhas=0
 
 check() { if [ "$2" -eq 0 ]; then echo "  ok    - $1"; else echo "  FALHA - $1"; falhas=$((falhas + 1)); fi; }
 
+# Guarda a ultima saida capturada, para poder mostra-la se algo falhar.
+#
+# POR QUE ISTO EXISTE: a primeira execucao desta suite na CI falhou com "EAL
+# inicializa e reporta sucesso: FALHA" e MAIS NADA. O teste dizia qual asserção
+# quebrou e escondia a razao -- a mensagem da EAL, que e justamente o que se
+# precisa para diagnosticar. Um teste que falha sem mostrar a evidencia obriga
+# quem investiga a reproduzir o ambiente, o que num runner de CI e caro.
+ultima_saida=""
+mostrar_diagnostico() {
+    [ -n "$ultima_saida" ] || return 0
+    echo ""
+    echo "  --- saida do programa na ultima execucao (diagnostico) ---"
+    sed 's/^/    | /' <<<"$ultima_saida"
+}
+
 saida=$("$BIN" $EAL_ARGS -- a b c 2>&1); rc=$?
+
+ultima_saida="$saida"
 check "codigo de saida 0" "$([ $rc -eq 0 ]; echo $?)"
 grep -q "EAL inicializada com sucesso" <<<"$saida"; check "EAL inicializa e reporta sucesso" $?
 grep -q "Versao do DPDK: DPDK" <<<"$saida"; check "rte_version() reportada" $?
@@ -48,6 +65,7 @@ grep -q "Argumentos restantes para a aplicacao: 3" <<<"$saida"; check "argumento
 #    ESTRUTURAL -- o ramo de erro da aplicacao NAO executa -- vale em qualquer
 #    release e continua sendo exigida.
 saida=$("$BIN" --opcao-inexistente 2>&1); rc=$?
+ultima_saida="$saida"
 if ldconfig -p 2>/dev/null | grep -q 'librte_argparse'; then
     check "opcao desconhecida encerra o processo com 234 (nao 1)" "$([ $rc -eq 234 ]; echo $?)"
     grep -q "unknown argument" <<<"$saida"; check "a EAL identifica o argumento desconhecido" $?
@@ -55,14 +73,33 @@ else
     echo "  PULADO - codigo 234 e mensagem da argparse (DPDK < 24.03 nesta maquina)"
 fi
 check "opcao desconhecida nao sai com sucesso" "$([ $rc -ne 0 ]; echo $?)"
-! grep -q "Erro ao inicializar a EAL" <<<"$saida"
-check "o ramo de erro da APLICACAO nao executa nesse caso" $?
+
+# Esta tambem depende da release, e a primeira execucao na CI mostrou por que:
+# COM argparse (>= 24.03) a EAL encerra o processo e o ramo de erro da aplicacao
+# NAO roda; SEM argparse, rte_eal_init() devolve -1 e o ramo de erro RODA. Sao
+# comportamentos opostos, e ambos corretos para a sua release. Afirmar so um
+# deles falha em vermelho na outra.
+if ldconfig -p 2>/dev/null | grep -q 'librte_argparse'; then
+    ! grep -q "Erro ao inicializar a EAL" <<<"$saida"
+    check "o ramo de erro da APLICACAO nao executa (a EAL encerra antes)" $?
+else
+    grep -q "Erro ao inicializar a EAL" <<<"$saida"
+    check "o ramo de erro da APLICACAO executa (rte_eal_init devolveu -1)" $?
+fi
 
 # 2. ARGUMENTO VÁLIDO COM VALOR IMPOSSÍVEL: aí sim rte_eal_init() devolve -1, e
 #    quem trata o erro é o programa. É o único ramo que exercita hello_dpdk.c.
 saida=$("$BIN" -l 999 2>&1); rc=$?
+ultima_saida="$saida"
 check "lcore inexistente faz a aplicacao sair com codigo != 0" "$([ $rc -ne 0 ]; echo $?)"
 grep -q "Erro ao inicializar a EAL" <<<"$saida"
 check "o ramo de erro da APLICACAO executa nesse caso" $?
 
-if [ $falhas -eq 0 ]; then echo "L2: todos os testes passaram"; else echo "L2: $falhas falha(s)"; exit 1; fi
+if [ $falhas -eq 0 ]; then
+    echo "L2: todos os testes passaram"
+else
+    mostrar_diagnostico
+    echo ""
+    echo "L2: $falhas falha(s)"
+    exit 1
+fi

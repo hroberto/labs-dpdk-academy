@@ -38,8 +38,10 @@
 
 namespace {
 
-constexpr int rodadas_primitivo = 2'000'000;
-constexpr int rodadas_repasse = 200'000;
+// Tetos vindos do ambiente, iguais aos do lado C -- a simetria e o ponto: um
+// espelho que mede quantidade diferente de trabalho nao e espelho.
+const int rodadas_primitivo = rounds(2'000'000);
+const int rodadas_repasse = rounds(200'000);
 constexpr int amostras_repasse_fixo = 15;
 #define amostras_repasse samples(amostras_repasse_fixo)
 constexpr int aquecimento_ms = 60;
