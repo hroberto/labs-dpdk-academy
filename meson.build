@@ -2,7 +2,7 @@ project(
   'dpdk-academy',
   'c',
   'cpp',
-  version : '0.01.00',
+  version : '1.00.00',
   meson_version : '>=1.1',
   default_options : [
     'warning_level=3',
