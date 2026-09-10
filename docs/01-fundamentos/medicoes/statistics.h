@@ -115,6 +115,28 @@ static STAT_MAYBE_UNUSED int samples(int padrao)
 
 #define DEFAULT_SAMPLES samples(DEFAULT_SAMPLES_FIXED)
 
+/* Teto de RODADAS por amostra, análogo ao de amostras acima.
+ *
+ * POR QUE EXISTE: reduzir amostras não basta em máquina lenta. `custo-espera`
+ * mede repasse entre threads -- condvar e semáforo passam pelo futex e por
+ * troca de contexto --, e num runner de CI de 2 núcleos isso é uma ordem de
+ * grandeza mais caro que na máquina de referência de 24. A primeira execução
+ * da CI estourou o limite de 300 s com `DPDK_ACADEMY_AMOSTRAS=3` já aplicado:
+ * o custo estava nas 200 000 rodadas POR amostra, que a variável não tocava.
+ *
+ * Só faz sentido como TETO, nunca como padrão: baixar rodadas piora a
+ * resolução da medida, então quem quer número publicável não define a variável.
+ * Na CI, onde o objetivo é apenas verificar que o programa executa, define. */
+static STAT_MAYBE_UNUSED int rounds(int padrao)
+{
+    const char *e = getenv("DPDK_ACADEMY_RODADAS");
+    if (e == NULL)
+        return padrao;
+    const int n = atoi(e);
+    const int teto = n >= 1000 ? n : 1000; /* abaixo disso o relógio domina */
+    return padrao < teto ? padrao : teto;
+}
+
 static int cmp_double(const void *a, const void *b)
 {
     const double x = *(const double *)a, y = *(const double *)b;

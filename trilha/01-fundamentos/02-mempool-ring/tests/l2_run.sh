@@ -37,6 +37,21 @@ LCORE_CONSUMIDOR=${LCORE_CONSUMIDOR:-$([ "$CPUS" -ge 3 ] && echo 2 || echo 1)}
 
 check() { if [ "$2" -eq 0 ]; then echo "  ok    - $1"; else echo "  FALHA - $1"; falhas=$((falhas + 1)); fi; }
 
+# Guarda a ultima saida capturada, para poder mostra-la se algo falhar.
+#
+# POR QUE ISTO EXISTE: a primeira execucao desta suite na CI falhou com "EAL
+# inicializa e reporta sucesso: FALHA" e MAIS NADA. O teste dizia qual asserção
+# quebrou e escondia a razao -- a mensagem da EAL, que e justamente o que se
+# precisa para diagnosticar. Um teste que falha sem mostrar a evidencia obriga
+# quem investiga a reproduzir o ambiente, o que num runner de CI e caro.
+ultima_saida=""
+mostrar_diagnostico() {
+    [ -n "$ultima_saida" ] || return 0
+    echo ""
+    echo "  --- saida do programa na ultima execucao (diagnostico) ---"
+    sed 's/^/    | /' <<<"$ultima_saida"
+}
+
 # Invariante do pool sem depender do numero exato nem do formato do printf:
 # extrai o par "livres de total" e exige que sejam iguais. Um pool de outro
 # tamanho continua valido; um vazamento, nao. Linha ausente conta como falha --
@@ -50,6 +65,8 @@ pool_integro() { # <saida-do-programa>
 }
 
 saida=$("$BIN" $EAL_ARGS -- -n 10 2>&1); rc=$?
+
+ultima_saida="$saida"
 check "n=10: codigo de saida 0" "$([ $rc -eq 0 ]; echo $?)"
 grep -q "^Pacotes processados: 10$" <<<"$saida"; check "n=10: processa exatamente 10 pacotes" $?
 grep -q "^Total de bytes: 695$" <<<"$saida"; check "n=10: 695 bytes (mesmo contrato da alternativa C++23)" $?
@@ -58,6 +75,7 @@ pool_integro "$saida"; check "n=10: pool integro, sem vazamento de objetos" $?
 # Volume alto com lote maior: o pool tem 4095 objetos para 100k pacotes, ou seja,
 # só termina se a devolução ao pool estiver correta a cada ciclo.
 saida=$("$BIN" $EAL_ARGS -- -n 100000 -b 64 2>&1); rc=$?
+ultima_saida="$saida"
 check "n=100000 b=64: codigo de saida 0" "$([ $rc -eq 0 ]; echo $?)"
 grep -q "^Pacotes processados: 100000$" <<<"$saida"; check "n=100000: contagem exata sob reuso do pool" $?
 pool_integro "$saida"; check "n=100000: pool integro apos ~25x de reuso" $?
@@ -72,6 +90,7 @@ else
     DOIS="-l 0,$LCORE_CONSUMIDOR --in-memory --no-huge"
     # shellcheck disable=SC2086
     saida=$("$BIN" $DOIS -- -n 10 2>&1); rc=$?
+    ultima_saida="$saida"
     check "2 lcores: codigo de saida 0" "$([ $rc -eq 0 ]; echo $?)"
     grep -q "^Modo: 2 lcores (produtor 0, consumidor $LCORE_CONSUMIDOR)$" <<<"$saida"
     check "2 lcores: consumidor no lcore $LCORE_CONSUMIDOR" $?
@@ -81,6 +100,7 @@ else
 
     # shellcheck disable=SC2086
     saida=$("$BIN" $DOIS -- -n 200000 -b 32 2>&1)
+    ultima_saida="$saida"
     grep -q "^Pacotes processados: 200000$" <<<"$saida"; check "2 lcores: 200k pacotes sem perda entre nucleos" $?
     pool_integro "$saida"; check "2 lcores: sem vazamento sob concorrencia" $?
 fi
@@ -108,6 +128,7 @@ if [ -n "$BIN_VAZADO" ] && [ -x "$BIN_VAZADO" ]; then
         # shellcheck disable=SC2086
         saida=$("$BIN_VAZADO" -l 0,"$LCORE_CONSUMIDOR" --in-memory --no-huge -- $tentativa 2>&1)
         rc=$?
+        ultima_saida="$saida"
         cheia=$(grep -o 'nao couberam na fila: [0-9]\+' <<<"$saida" | grep -o '[0-9]\+')
         if [ -n "$cheia" ] && [ "$cheia" -gt 0 ]; then forcou=1; break; fi
     done
@@ -126,4 +147,11 @@ else
     echo "  PULADO - teste negativo (binario com vazamento nao informado)"
 fi
 
-if [ $falhas -eq 0 ]; then echo "L2: todos os testes passaram"; else echo "L2: $falhas falha(s)"; exit 1; fi
+if [ $falhas -eq 0 ]; then
+    echo "L2: todos os testes passaram"
+else
+    mostrar_diagnostico
+    echo ""
+    echo "L2: $falhas falha(s)"
+    exit 1
+fi

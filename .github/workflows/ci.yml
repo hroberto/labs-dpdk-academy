@@ -56,6 +56,10 @@ jobs:
       - name: Testes L2 (EAL real, sem hugepages e sem NIC)
         env:
           DPDK_ACADEMY_AMOSTRAS: "3"
+          # Teto de rodadas POR amostra. Reduzir amostras nao bastava: o custo
+          # de `custo-espera` esta nas 200 000 rodadas de repasse entre threads,
+          # que num runner de 2 nucleos estouraram os 300 s do timeout.
+          DPDK_ACADEMY_RODADAS: "20000"
         run: meson test -C build --suite l2 --print-errorlogs
 
       # L3 exige do HOST o que o runner nao tem: hugetlbfs gravavel, dois
@@ -69,4 +73,5 @@ jobs:
       - name: Testes L3 (dependem do host; PULAR aqui e o esperado)
         env:
           DPDK_ACADEMY_AMOSTRAS: "3"
+          DPDK_ACADEMY_RODADAS: "20000"
         run: meson test -C build --suite l3 --print-errorlogs
