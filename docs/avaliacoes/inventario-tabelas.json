@@ -451,46 +451,46 @@
       "linha": 125,
       "secao": "Dois dos três fatores voltam sem hardware nenhum",
       "tipo": "tabela_markdown",
-      "sha256": "07b2a9ed9fc5bb5ea47b4c0c0587d608815cddc51a1639475c4b90fc733cfa8b"
+      "sha256": "cae2465532402a57914a14ed2dfd11f0e9e989250b26db21377b81ae72e91c4f"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
       "linha": 182,
       "secao": "Dois dos três fatores voltam sem hardware nenhum",
       "tipo": "tabela_markdown",
-      "sha256": "30777845bf2206a14dff934d2b0afb6ec12abbb0e265c1408f81e1469d21460f"
+      "sha256": "0c17a616e22e57820b47df0a3f426f82bcc6e6b19bf6293bdaf3f44f7be042cd"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 225,
+      "linha": 251,
       "secao": "Dois dos três fatores voltam sem hardware nenhum",
       "tipo": "tabela_markdown",
       "sha256": "9473650589542a2c7e893ecad14e3e1a87768ad9cc21d94cc0e3c62e3f062fa4"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 240,
+      "linha": 266,
       "secao": "Dois dos três fatores voltam sem hardware nenhum",
       "tipo": "tabela_markdown",
       "sha256": "06cf61fb335ab2bb8bddea29ffee8856928c5f79e8ba0705f6ab35fd3f362589"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 301,
+      "linha": 327,
       "secao": "4. Outros eixos de comparação",
       "tipo": "tabela_markdown",
       "sha256": "10ff1ac81624e7808ff33e4e21176bf9b52ca1223c5323cc9b31e72e0eb778a0"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 344,
+      "linha": 370,
       "secao": "5. Implementação e validação",
       "tipo": "tabela_markdown",
       "sha256": "87fd8f01987d348ad69eab30f6c9e963f152177f7167f945586d2c13d26b2216"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 353,
+      "linha": 379,
       "secao": "5. Implementação e validação",
       "tipo": "bloco_numerico",
       "sha256": "e7b5090690b491edf520380a90d23050d025628e6d104991c22aba7623c2ee4e"

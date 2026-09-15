@@ -46,14 +46,29 @@
 #include <stdlib.h>
 #include <time.h>
 
+/* O caminho de erro sai de linha, e isto foi MEDIDO.
+ *
+ * Com o `abort()` embutido na funcao inline, o compilador degrada a otimizacao
+ * do laco que a chama: `custo-anel.c` ficou 17% mais lento no lote 32 e 28% no
+ * lote 128, em 10 execucoes por ponto, contra a versao anterior sem verificacao
+ * nenhuma. Nao e o custo do carimbo -- ele e amortizado sobre 200 000 operacoes
+ * e seria invisivel.
+ *
+ * `cold` diz ao compilador que este caminho nao acontece, e `noinline` o tira
+ * do corpo da funcao. A verificacao continua existindo; o que sai do caminho
+ * quente e o tratamento dela. */
+__attribute__((cold, noinline)) static void academy_clock_falhou(void)
+{
+    fprintf(stderr, "clock_gettime(CLOCK_MONOTONIC) falhou: "
+                    "nao ha medicao possivel sem relogio\n");
+    abort();
+}
+
 static inline uint64_t academy_now_ns(void)
 {
     struct timespec t;
-    if (clock_gettime(CLOCK_MONOTONIC, &t) != 0) {
-        fprintf(stderr, "clock_gettime(CLOCK_MONOTONIC) falhou: "
-                        "nao ha medicao possivel sem relogio\n");
-        abort();
-    }
+    if (clock_gettime(CLOCK_MONOTONIC, &t) != 0)
+        academy_clock_falhou();
     return (uint64_t)t.tv_sec * 1000000000ULL + (uint64_t)t.tv_nsec;
 }
 

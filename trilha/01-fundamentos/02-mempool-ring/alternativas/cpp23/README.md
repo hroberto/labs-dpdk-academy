@@ -125,7 +125,7 @@ devolve um fator que o anterior removia:
 | nível | o que o teste **devolve** | medido (ns/operação) | veredito |
 |---:|---|---|---|
 | 1 | nada — um núcleo, em memória | DPDK 1,8 · C++ 1,1 | DPDK **1,6× mais lento** |
-| 2 | + troca entre núcleos | anel: DPDK 0,37 · C++ 1,05 (lote 128) | DPDK **2,9× mais rápido** |
+| 2 | + troca entre núcleos | anel: DPDK 0,371 · C++ 1,037 (lote 128) | DPDK **2,8× mais rápido** |
 | 3 | + disputa entre núcleos | DPDK 0,41 · `malloc` 13,0 | DPDK **32× mais rápido** |
 | 4 | + rede real (DMA, descritores) | — não medido — | falta hardware |
 
@@ -141,7 +141,7 @@ flowchart LR
     N3 -->|"exige NIC"| N4
 
     V1["DPDK <b>1,6× mais lento</b>"]
-    V2["DPDK <b>2,9× mais rápido</b>"]
+    V2["DPDK <b>2,8× mais rápido</b>"]
     V3["DPDK <b>32× mais rápido</b>"]
     V4["não medido nesta máquina"]
 
@@ -181,10 +181,36 @@ enfileirar+desenfileirar, 200 000 operações, mesma estatística.
 
 | lote | `rte_ring` SP/SC | `SpscRing` C++23 | razão |
 |---:|---:|---:|---:|
-| 1 | 2,078 ns | 3,184 ns | 1,5× |
-| 8 | 0,687 ns | 1,070 ns | 1,6× |
-| 32 | 0,437 ns | 1,030 ns | 2,4× |
-| 128 | 0,368 ns | 1,050 ns | **2,9×** |
+| 1 | 1,628 ns | 3,117 ns | 1,9× |
+| 8 | 0,527 ns | 1,062 ns | 2,0× |
+| 32 | 0,393 ns | 1,026 ns | 2,6× |
+| 128 | **0,371 ns** | **1,037 ns** | **2,8×** |
+
+Medianas de **10 execuções por ponto**. Amplitudes entre execuções: `rte_ring`
+1,626–2,085 no lote 1 e 0,367–0,473 no lote 128; `SpscRing` 3,036–3,949 e
+1,014–1,194.
+
+> **Esta coluna publicava 2,078 e 0,368 ns, e os valores não reproduzem.** Dez
+> execuções de `custo-anel.c` devolvem 1,628 (amplitude 1,626–2,085) e 0,371
+> (0,367–0,473). A coluna nunca foi produzida por `custo-anel-cpp.cpp`, que mede
+> **só** o anel em C++ — ela foi copiada à mão de uma execução de `custo-anel.c`,
+> e cópia não tem quem a confira.
+>
+> **E há um efeito de instrumento que precisa ser dito, porque foi medido.** Ao
+> consolidar a leitura de relógio num cabeçalho único, os números de lote 32 e
+> 128 subiram 17% e 28% contra a versão anterior — 10 execuções de cada. Não é o
+> custo do carimbo: ele é tomado duas vezes por medição, em volta de 200 000
+> operações, e seria invisível. Tentar tirar o tratamento de erro do caminho
+> quente com `cold`/`noinline` **não** desfez o efeito, o que descarta a
+> verificação como causa e aponta para layout de código — sensibilidade conhecida
+> em medição de sub-nanossegundo.
+>
+> A consequência prática, e ela vale mais que os números: **valores absolutos
+> abaixo de 1 ns neste projeto são frágeis a mudanças que não tocam o laço
+> medido.** As razões entre colunas, medidas na mesma execução, resistem — 2,8×
+> contra 2,9× publicado antes.
+>
+> <!-- retratado: 2,078 0,687 0,437 0,368 -->
 
 **A diferença cresce com o lote, e é aí que está a explicação.** Em lote 1 os
 dois estão na mesma ordem de grandeza — é de fato o mesmo algoritmo. Mas o
@@ -192,8 +218,8 @@ dois estão na mesma ordem de grandeza — é de fato o mesmo algoritmo. Mas o
 com **um** par de operações atômicas. O `SpscRing` como está escrito não tem API
 de bloco: enfileirar 128 pacotes custa 128 publicações atômicas.
 
-Por isso o C++ fica plano em ~1,05 ns a partir do lote 8 — ele não tem o que
-amortizar — enquanto o `rte_ring` continua caindo até 0,368 ns.
+Por isso o C++ fica plano em ~1,04 ns a partir do lote 8 — ele não tem o que
+amortizar — enquanto o `rte_ring` continua caindo até 0,371 ns.
 
 > **Isto não é uma vantagem da linguagem.** Um anel em C++ com API de bloco
 > teria o mesmo comportamento; o que falta é a API, não o compilador. O que o
