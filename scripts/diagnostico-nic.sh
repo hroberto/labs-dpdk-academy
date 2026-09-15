@@ -65,7 +65,12 @@ restaurar() {
 command -v dpdk-devbind.py >/dev/null || { echo "dpdk-devbind.py nao encontrado"; exit 1; }
 command -v dpdk-testpmd   >/dev/null || { echo "dpdk-testpmd nao encontrado"; exit 1; }
 
-trap restaurar EXIT INT TERM
+# HUP entra aqui porque e O sinal que importa neste script, e nao um a mais na
+# lista: SIGHUP e o que o kernel entrega quando a sessao SSH morre -- exatamente
+# o modo de falha que a reversao existe para cobrir. Sem HUP, a sessao caia, o
+# processo morria sem restaurar, e a placa ficava no vfio-pci: o pior desfecho
+# possivel, produzido justamente pelo evento que a promessa de reversao cita.
+trap restaurar EXIT INT TERM HUP
 
 # ---------------------------------------------------------------------------
 titulo 1 "Estado inicial"
@@ -73,6 +78,25 @@ DRIVER_ORIGINAL=$(driver_de "$BDF")
 IFACE_ORIGINAL=$(iface_de "$BDF")
 [ -n "$DRIVER_ORIGINAL" ] && ok "driver atual: $DRIVER_ORIGINAL" || falha "sem driver"
 [ -n "$IFACE_ORIGINAL" ] && ok "interface: $IFACE_ORIGINAL" || info "sem interface no kernel"
+
+# TRAVA -- a interface que carrega o seu acesso.
+#
+# Esta trava existia em preparar-nic.sh (TRAVA 1) e NAO existia aqui, embora os
+# dois scripts facam a mesma operacao destrutiva: derrubar a interface e bindar
+# ao vfio-pci. A rota default era apenas IMPRESSA como informacao, e o script
+# seguia. Quem rodasse isto sobre a NIC que carrega o proprio acesso perdia a
+# maquina -- e o aviso estava na tela, sem consequencia.
+#
+# A auditoria classificou a assimetria como a lacuna que sozinha segurava a
+# dimensao de seguranca abaixo de "maduro": nao por ser sofisticada, mas por
+# nao estar declarada em lugar nenhum.
+DEFAULT_IFACE=$(ip route show default 2>/dev/null | awk '{print $5; exit}')
+if [ -n "$IFACE_ORIGINAL" ] && [ "$IFACE_ORIGINAL" = "$DEFAULT_IFACE" ]; then
+    falha "$IFACE_ORIGINAL carrega a rota default. Bindar isto derruba o acesso a maquina."
+    echo "          Use outra NIC, ou mova a rota antes. Este script nao forca isso." >&2
+    exit 1
+fi
+ok "${IFACE_ORIGINAL:-(sem interface)} nao carrega a rota default (${DEFAULT_IFACE:-nenhuma})"
 info "rota default: $(ip route show default 2>/dev/null | awk '{print $5}')"
 info "par PCI: $(lspci -n -s "${BDF#0000:}" | awk '{print $3}')"
 VENDOR=$(vendor_de "$BDF")
