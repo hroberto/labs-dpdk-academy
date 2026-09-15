@@ -142,7 +142,16 @@ echo ""
 # TRAVA 0 -- o MODELO DE DRIVER, antes de tudo. Bindar uma placa bifurcada ao
 # vfio-pci nao e "subotimo": tira do PMD o driver de kernel de que ele depende,
 # e o dispositivo para de funcionar dos dois lados.
-VENDOR=$(vendor_de "$BDF")
+# Fail-closed tambem aqui: `vendor_de` devolvia vazio quando nao conseguia ler,
+# e `modelo_de_driver ""` responde "captura" -- o veredito que autoriza o bind.
+# Ver o comentario de vendor_apurar em lib-nic.sh.
+if ! vendor_apurar "$BDF"; then
+    erro "nao apurei o vendor PCI de $BDF: ${_APUR_MOTIVO:-motivo nao registrado}"
+    echo "          Sem o vendor nao da para dizer se o modelo de driver e de" >&2
+    echo "          captura total ou bifurcado, e supor 'captura' autorizaria o bind." >&2
+    exit 1
+fi
+VENDOR=$_APUR
 if [ "$(modelo_de_driver "$VENDOR")" = "bifurcado" ]; then
     erro "$BDF nao deve ser bindado ao vfio-pci"
     echo "" >&2

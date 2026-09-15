@@ -144,7 +144,16 @@ fi
 ok "trava de captura: dispositivo apto (rotas e estado apurados)"
 info "rota default: $(ip route show default 2>/dev/null | awk '{print $5}')"
 info "par PCI: $(lspci -n -s "${BDF#0000:}" | awk '{print $3}')"
-VENDOR=$(vendor_de "$BDF")
+# Fail-closed tambem aqui: `vendor_de` devolvia vazio quando nao conseguia ler,
+# e `modelo_de_driver ""` responde "captura" -- o veredito que autoriza o bind.
+# Ver o comentario de vendor_apurar em lib-nic.sh.
+if ! vendor_apurar "$BDF"; then
+    falha "nao apurei o vendor PCI de $BDF: ${_APUR_MOTIVO:-motivo nao registrado}"
+    echo "          Sem o vendor nao da para dizer se o modelo de driver e de" >&2
+    echo "          captura total ou bifurcado, e supor 'captura' autorizaria o bind." >&2
+    exit 1
+fi
+VENDOR=$_APUR
 MODELO=$(modelo_de_driver "$VENDOR")
 if [ "$MODELO" = "bifurcado" ]; then
     ok "modelo de driver: BIFURCADO -- $(nome_do_vendor "$VENDOR")"

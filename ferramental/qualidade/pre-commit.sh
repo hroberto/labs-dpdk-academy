@@ -73,14 +73,19 @@ fi
 titulo "1. Sintaxe"
 
 erro_sh=0
-for f in $(find scripts docs trilha -name '*.sh' 2>/dev/null); do
+# `ferramental` entrou na lista, e a ausencia dele era defeito com data: apos a
+# separacao do ferramental, o maior diretorio de script do projeto -- 4779
+# linhas em 20 arquivos -- ficou fora desta varredura, e o gancho seguiu
+# anunciando que conferiu a sintaxe. Controle que anuncia o que nao cobriu e
+# pior que controle ausente.
+for f in $(find scripts docs trilha ferramental -name '*.sh' 2>/dev/null); do
     bash -n "$f" 2>/dev/null || { falha "bash -n: $f"; erro_sh=1; }
 done
 [ $erro_sh -eq 0 ] && ok "todos os scripts shell"
 
 if command -v python3 >/dev/null 2>&1; then
     erro_py=0
-    for f in scripts/*.py; do
+    for f in scripts/*.py ferramental/qualidade/*.py ferramental/af-xdp/*.py scripts/tests/*.py; do
         [ -e "$f" ] || continue
         python3 -m py_compile "$f" 2>/dev/null || { falha "py_compile: $f"; erro_py=1; }
     done

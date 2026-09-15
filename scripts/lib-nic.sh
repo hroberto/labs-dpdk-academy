@@ -64,6 +64,28 @@ vendor_de() {
     cat "/sys/bus/pci/devices/$1/vendor" 2>/dev/null || printf ''
 }
 
+# vendor_apurar -- a versao que NAO falha aberto.
+#
+# POR QUE ELA EXISTE. `vendor_de` devolve string vazia quando nao consegue ler,
+# e `modelo_de_driver ""` cai no ramo `*)` e responde "captura" -- que e o
+# veredito que AUTORIZA o bind ao vfio-pci. A cadeia inteira:
+#
+#     vendor ilegivel -> vendor_de devolve '' -> modelo "captura" -> bind aplica
+#
+# Um arquivo de sysfs ilegivel (diretorio nao percorrivel, sysfs nao montado,
+# dispositivo removido entre a listagem e a leitura) fazia o script concluir que
+# a placa podia ser capturada. E a decisao mais destrutiva do projeto tomada a
+# partir de uma nao-leitura.
+#
+# Esta versao devolve rc != 0 quando nao apurou, e deixa o motivo em
+# _APUR_MOTIVO. Requer os acessores de lib-apuracao.sh no shell chamador, como
+# lib-bind-guard.sh ja faz.
+vendor_apurar() {
+    apur_ler "/sys/bus/pci/devices/$1/vendor" || return 1
+    [ -n "$_APUR" ] || { _APUR_MOTIVO="vendor vazio em /sys/bus/pci/devices/$1/vendor"; return 1; }
+    return 0
+}
+
 # rdma_core_ok -> 0 se a pilha de userspace do RDMA está completa
 #
 # O PMD mlx5 depende de `rdma-core`. Faltando, o dispositivo simplesmente não é

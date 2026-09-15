@@ -21,7 +21,7 @@ jobs:
       # Fixada por SHA, nao por tag: `v7` e um ponteiro movel, e quem controla
       # o repositorio da acao pode reaponta-lo. O SHA e imutavel.
       #
-      # Corresponde a v7. Essa linha nao e decorativa: `scripts/pre-commit.sh`
+      # Corresponde a v7. Essa linha nao e decorativa: `ferramental/qualidade/pre-commit.sh`
       # a le para resolver o SHA de volta e avisar se ele deixou de ser o topo
       # do major declarado -- foi assim que apareceu o PR #1 do Dependabot
       # propondo saltar de v4 para v7, e foi assim que se notou que ele trocava
@@ -46,6 +46,21 @@ jobs:
 
       - name: Diagnosticar ambiente
         run: ./scripts/check-env.sh
+
+      # As regras de consistencia do projeto rodam AQUI, e nao so num gancho.
+      #
+      # INCIDENTE: este passo ja existiu uma vez e foi perdido num `reset
+      # --hard`. Pior: o README de ferramental/qualidade continuou afirmando que
+      # "ele e executado pela CI", declarando consertada uma lacuna que voltou a
+      # existir. Retratacao falsa e pior que a lacuna original, porque desliga o
+      # alarme -- quem le acredita que esta coberto.
+      #
+      # `.github/dependabot.yml` publica este script como a protecao numero 2
+      # contra merge de major sem revisao. Um gancho LOCAL de commit nao roda em
+      # PR do Dependabot por construcao; rodando aqui, a afirmacao passa a ser
+      # verdadeira, porque a CI executa em pull_request.
+      - name: Consistencia do projeto (regras do pre-commit)
+        run: ./ferramental/qualidade/pre-commit.sh
 
       # GTest vem do subprojeto do Meson (subprojects/gtest.wrap), com hash fixo.
       - name: Configurar
