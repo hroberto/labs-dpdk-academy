@@ -21,12 +21,39 @@
 
 set -u
 
-BDF=${1:-0000:08:00.0}
+# ALVO EXIGIDO E VALIDADO, ANTES DE QUALQUER CONSULTA AO HOST.
+#
+# Tres coisas mudaram aqui, e as tres vieram de defeito real:
+#
+#  1. Nao ha mais default. A versao anterior usava `${1:-0000:08:00.0}` -- o
+#     endereco da placa da maquina de referencia. Como o material publica a
+#     invocacao sem argumento, quem copiasse a linha noutra maquina bindaria
+#     cegamente o que estivesse naquele endereco.
+#  2. O formato e conferido. `../outro` nao e um BDF, e tratar caminho como
+#     endereco PCI leva a consulta a sysfs fora do lugar pretendido.
+#  3. Alvo repetido e recusado: bindar o mesmo dispositivo duas vezes na mesma
+#     invocacao nao tem significado, e aceitar calado esconde erro de digitacao.
+#
+# Codigo 2 = uso incorreto, distinto de 1 (falha apurada). E acontece ANTES da
+# exigencia de root, porque recusar argumento invalido nao precisa de
+# privilegio -- e porque pedir sudo para depois recusar o argumento treina o
+# leitor a rodar como root sem necessidade.
+uso() { echo "uso: $0 <BDF>   (ex.: 0000:08:00.0)" >&2; exit 2; }
+[ "$#" -eq 1 ] || uso
+case "$1" in
+    [0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F].[0-7]) ;;
+    *) echo "alvo invalido: '$1' nao tem a forma dddd:bb:dd.f" >&2; uso ;;
+esac
+BDF=$1
 FALHAS=0
 DRIVER_ORIGINAL=""
 
 # shellcheck source=lib-nic.sh
 . "$(dirname "$0")/lib-nic.sh"
+# shellcheck source=lib-apuracao.sh
+. "$(dirname "$0")/lib-apuracao.sh" || { echo "nao consegui carregar lib-apuracao.sh" >&2; exit 1; }
+# shellcheck source=lib-bind-guard.sh
+. "$(dirname "$0")/lib-bind-guard.sh" || { echo "nao consegui carregar lib-bind-guard.sh" >&2; exit 1; }
 
 titulo() { printf '\n\033[1m=== ETAPA %s: %s ===\033[0m\n' "$1" "$2"; }
 ok()     { printf '  [ok]    %s\n' "$1"; }
@@ -97,6 +124,24 @@ if [ -n "$IFACE_ORIGINAL" ] && [ "$IFACE_ORIGINAL" = "$DEFAULT_IFACE" ]; then
     exit 1
 fi
 ok "${IFACE_ORIGINAL:-(sem interface)} nao carrega a rota default (${DEFAULT_IFACE:-nenhuma})"
+
+# TRAVA FAIL-CLOSED, alem da comparacao simples acima.
+#
+# `nic_bind_guard` recusa tambem quando NAO CONSEGUE APURAR: rota default
+# inacessivel, flags ilegiveis, arquivo de estado ausente. A diferenca importa:
+# a comparacao acima responde "esta interface nao e a da rota default"; esta
+# responde "e eu consegui verificar isso". Sem ela, qualquer leitura que falhe
+# em silencio vira permissao.
+#
+# Recusa tambem interface UP -- bindar placa em uso derruba o que estiver
+# passando por ela, e o script nao tem como saber o que e.
+if ! nic_bind_guard "$BDF"; then
+    falha "trava de captura recusou $BDF: $NIC_BIND_REASON"
+    echo "          Recusar e o modo de falha seguro: liberar aqui seria afirmar," >&2
+    echo "          sem ter apurado, que bindar esta placa nao custa nada." >&2
+    exit 1
+fi
+ok "trava de captura: dispositivo apto (rotas e estado apurados)"
 info "rota default: $(ip route show default 2>/dev/null | awk '{print $5}')"
 info "par PCI: $(lspci -n -s "${BDF#0000:}" | awk '{print $3}')"
 VENDOR=$(vendor_de "$BDF")

@@ -181,6 +181,25 @@ endif
 # maquina exercita -- esteja testado ANTES de a ConnectX-4 Lx chegar. Errar essa
 # decisao significa bindar ao vfio-pci uma placa bifurcada, que para de
 # funcionar dos dois lados.
+# A trava de captura total, com fontes controladas.
+#
+# `nic_bind_guard` decide se um dispositivo pode ir para o vfio-pci, e decide
+# FECHANDO: enumera as interfaces do dispositivo, confere rota default em IPv4 e
+# IPv6, le os flags, e recusa quando NAO CONSEGUE APURAR qualquer um desses --
+# nao so quando a resposta e negativa. Cada recusa nomeia o motivo em
+# NIC_BIND_REASON.
+#
+# O teste monta um /sys/bus/pci falso e exercita os caminhos que nao se
+# provocam numa maquina real: rota sem interface identificavel, flags malformado,
+# arquivo de estado ausente, interface UP. E confere o contrato da linha de
+# comando de diagnostico-nic.sh -- alvo vazio, invalido ou duplicado saem com 2
+# ANTES de consultar o host, sem exigir root para recusar argumento.
+#
+# Estava no disco e nao estava registrado: rodava so se alguem lembrasse.
+test('scripts - L1 (trava de bind e contrato do alvo)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_bind_guard.sh'],
+     suite : ['l1', 'scripts'], timeout : 60)
+
 test('scripts - L1 (modelo de driver de NIC)', bash,
      args : [meson.project_source_root() / 'scripts/tests/l1_lib_nic.sh'],
      suite : ['l1', 'scripts'], timeout : 30)
