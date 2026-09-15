@@ -3,8 +3,17 @@
 > **Nível 6** do [plano de estudo](../../../docs/plano-estudo-dpdk.md) ·
 > Pré-requisito: [02 — Mempool, ring e lote](../../01-fundamentos/02-mempool-ring/)
 
-> **Esqueleto.** Registra escopo e compromissos; o conteúdo ainda não foi
-> escrito.
+> **Sem código, com medição.** Este tópico ainda não tem programa: o diretório
+> contém só este documento. Mas ele **não** é esqueleto — as seções
+> [Restrições de ambiente](#restrições-de-ambiente-verificadas) e
+> [Capacidades da NIC](#capacidades-da-nic-de-referência-medidas) publicam
+> verificação e medição reais, feitas com `scripts/diagnostico-nic.sh` nesta
+> máquina. O que falta é a implementação de RX/TX, que depende de NIC com
+> várias filas.
+>
+> O banner anterior dizia "o conteúdo ainda não foi escrito" em um documento com
+> 171 linhas de conteúdo medido. Um documento que erra sobre si mesmo é o mesmo
+> defeito que este material combate nos números.
 
 ## Objetivo
 

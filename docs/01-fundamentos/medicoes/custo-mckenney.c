@@ -50,6 +50,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "cpu_pause.h"
 #include "statistics.h"
 
 #define RODADAS 500000
@@ -158,7 +159,7 @@ static double falta_de_cache(void)
     for (int i = 0; i < RODADAS; i++) {
         atomic_store_explicit(&bastao, 1, memory_order_release);
         while (atomic_load_explicit(&bastao, memory_order_acquire) != 0)
-            __builtin_ia32_pause();
+            academy_cpu_pause();
     }
     const double r = (double)(now_ns() - t0) / RODADAS / 2.0;
 
@@ -183,7 +184,7 @@ static double cas_com_falta(void)
         int esperado = 0;
         atomic_compare_exchange_strong(&bastao, &esperado, 1);
         while (atomic_load_explicit(&bastao, memory_order_acquire) != 0)
-            __builtin_ia32_pause();
+            academy_cpu_pause();
     }
     const double r = (double)(now_ns() - t0) / RODADAS / 2.0;
 

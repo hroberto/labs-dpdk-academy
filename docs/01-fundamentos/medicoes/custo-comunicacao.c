@@ -38,6 +38,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "cpu_pause.h"
 #include "statistics.h"
 
 #define RODADAS 200000
@@ -74,7 +75,7 @@ static void *rebatedor(void *ignorado)
     fixar(cpu_b);
     for (int i = 0; i < RODADAS; i++) {
         while (atomic_load_explicit(&bola, memory_order_acquire) != 1)
-            __builtin_ia32_pause();
+            academy_cpu_pause();
         atomic_store_explicit(&bola, 0, memory_order_release);
     }
     return NULL;
@@ -98,7 +99,7 @@ static double medir(int a, int b)
     for (int i = 0; i < RODADAS; i++) {
         atomic_store_explicit(&bola, 1, memory_order_release);
         while (atomic_load_explicit(&bola, memory_order_acquire) != 0)
-            __builtin_ia32_pause();
+            academy_cpu_pause();
     }
     const uint64_t dt = now_ns() - t0;
     pthread_join(t, NULL);

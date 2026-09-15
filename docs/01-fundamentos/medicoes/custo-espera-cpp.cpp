@@ -34,6 +34,7 @@
 #include <pthread.h>
 #include <sched.h>
 
+#include "cpu_pause.h"
 #include "statistics.h"
 
 namespace {
@@ -183,7 +184,7 @@ void par_atomica()
     fixar(cpu_b);
     for (int i = 0; i < rodadas_repasse; i++) {
         while (bola.load(std::memory_order_acquire) != 1)
-            __builtin_ia32_pause();
+            academy_cpu_pause();
         bola.store(0, std::memory_order_release);
     }
 }
@@ -197,7 +198,7 @@ double m_repasse_atomica()
     for (int i = 0; i < rodadas_repasse; i++) {
         bola.store(1, std::memory_order_release);
         while (bola.load(std::memory_order_acquire) != 0)
-            __builtin_ia32_pause();
+            academy_cpu_pause();
     }
     const double r = (now_ns() - t0) / rodadas_repasse / 2.0;
     t.join();
@@ -216,7 +217,7 @@ void par_mutex_ativo()
                 break;
             }
             mtx2.unlock();
-            __builtin_ia32_pause();
+            academy_cpu_pause();
         }
     }
 }
@@ -238,7 +239,7 @@ double m_repasse_mutex_ativo()
                 break;
             }
             mtx2.unlock();
-            __builtin_ia32_pause();
+            academy_cpu_pause();
         }
     }
     const double r = (now_ns() - t0) / rodadas_repasse / 2.0;

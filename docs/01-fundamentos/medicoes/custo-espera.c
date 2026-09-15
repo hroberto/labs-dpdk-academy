@@ -59,6 +59,7 @@
 #include <stdio.h>
 #include <time.h>
 
+#include "cpu_pause.h"
 #include "statistics.h"
 
 #define RODADAS_PRIMITIVO_FIXO 2000000
@@ -275,7 +276,7 @@ static void *par_atomica(void *_)
     fixar(cpu_b);
     for (int i = 0; i < RODADAS_REPASSE; i++) {
         while (atomic_load_explicit(&bola, memory_order_acquire) != 1)
-            __builtin_ia32_pause();
+            academy_cpu_pause();
         atomic_store_explicit(&bola, 0, memory_order_release);
     }
     return NULL;
@@ -295,7 +296,7 @@ static void *par_mutex_ativo(void *_)
                 break;
             }
             pthread_mutex_unlock(&mtx2);
-            __builtin_ia32_pause();
+            academy_cpu_pause();
         }
     }
     return NULL;
@@ -343,7 +344,7 @@ static double m_repasse_atomica(void)
     for (int i = 0; i < RODADAS_REPASSE; i++) {
         atomic_store_explicit(&bola, 1, memory_order_release);
         while (atomic_load_explicit(&bola, memory_order_acquire) != 0)
-            __builtin_ia32_pause();
+            academy_cpu_pause();
     }
     const double r = (double)(now_ns() - t0) / RODADAS_REPASSE / 2.0;
     pthread_join(t, NULL);
@@ -369,7 +370,7 @@ static double m_repasse_mutex_ativo(void)
                 break;
             }
             pthread_mutex_unlock(&mtx2);
-            __builtin_ia32_pause();
+            academy_cpu_pause();
         }
     }
     const double r = (double)(now_ns() - t0) / RODADAS_REPASSE / 2.0;
