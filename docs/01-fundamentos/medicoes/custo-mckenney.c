@@ -223,7 +223,7 @@ int main(void)
     fixar(cpu_local);
     aquecer();
 
-    const struct statistics clk = collect(clock_period_ns, 9);
+    const struct statistics clk = collect_or_fail(clock_period_ns, 9);
 
     printf("Tabela 3.1 de McKenney, reproduzida nesta maquina\n");
     printf("(%d amostras por medicao; tempos em ns)\n\n", DEFAULT_SAMPLES);
@@ -236,15 +236,15 @@ int main(void)
 
     printf("MELHOR CASO - a linha de cache ja esta neste nucleo\n\n");
     print_header_cycles();
-    print_row_cycles("CAS em melhor caso", collect(cas_melhor_caso, DEFAULT_SAMPLES), T);
-    print_row_cycles("trava em melhor caso", collect(trava_melhor_caso, DEFAULT_SAMPLES), T);
+    print_row_cycles("CAS em melhor caso", collect_or_fail(cas_melhor_caso, DEFAULT_SAMPLES), T);
+    print_row_cycles("trava em melhor caso", collect_or_fail(trava_melhor_caso, DEFAULT_SAMPLES), T);
 
     printf("\nFALTA DE CACHE - a linha esta em outro nucleo e precisa migrar\n\n");
     print_header_cycles();
 
     cpu_remoto = 2;
-    print_row_cycles("falta simples, mesmo dominio L3", collect(falta_de_cache, DEFAULT_SAMPLES), T);
-    print_row_cycles("CAS com falta, mesmo dominio L3", collect(cas_com_falta, DEFAULT_SAMPLES), T);
+    print_row_cycles("falta simples, mesmo dominio L3", collect_or_fail(falta_de_cache, DEFAULT_SAMPLES), T);
+    print_row_cycles("CAS com falta, mesmo dominio L3", collect_or_fail(cas_com_falta, DEFAULT_SAMPLES), T);
 
     const int outro = nucleo_de_outro_dominio();
     if (outro < 0) {
@@ -258,8 +258,8 @@ int main(void)
         return 77;
     }
     cpu_remoto = outro;
-    print_row_cycles("falta simples, OUTRO dominio L3", collect(falta_de_cache, DEFAULT_SAMPLES), T);
-    print_row_cycles("CAS com falta, OUTRO dominio L3", collect(cas_com_falta, DEFAULT_SAMPLES), T);
+    print_row_cycles("falta simples, OUTRO dominio L3", collect_or_fail(falta_de_cache, DEFAULT_SAMPLES), T);
+    print_row_cycles("CAS com falta, OUTRO dominio L3", collect_or_fail(cas_com_falta, DEFAULT_SAMPLES), T);
 
     printf("\n  Para comparar, os valores de McKenney em CICLOS (periodo 0,6 ns):\n");
     printf("    CAS melhor caso  63 | trava melhor caso 109\n");

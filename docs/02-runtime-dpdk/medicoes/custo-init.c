@@ -162,7 +162,14 @@ int main(int argc, char **argv)
         printf("\n\n  Causas comuns: sem hugepages reservadas (use --no-huge), ou sem\n");
         printf("  permissao de escrita em /dev/hugepages (use --in-memory, sozinho).\n");
         printf("  As duas juntas falham antes do DPDK 24: --no-huge liga --legacy-mem.\n\n");
-        return 0; /* ambiente, não defeito: o teste L2 continua valido */
+        /* NAO e `return 0`. Sair com sucesso aqui fazia o Meson reportar OK
+         * para uma execucao que nao mediu nada -- a mesma classe de falso verde
+         * que o codigo 77 resolveu nos testes L3. Aqui e FALHA e nao PULO
+         * porque a configuracao foi PEDIDA por argumento: se ela nao sobe, o
+         * pedido nao pode ser atendido, e isso e resultado negativo, nao
+         * requisito ausente. */
+        rte_eal_cleanup();
+        return EXIT_FAILURE;
     }
 
     const struct statistics init = medir(ETAPA_INIT, n);
@@ -170,6 +177,15 @@ int main(int argc, char **argv)
 
     printf("  valores em MILISSEGUNDOS\n\n");
     print_header();
+    /* Coleta invalida nao vira tabela. Nao usa collect_or_fail porque a EAL
+     * esta de pe: exit() pularia rte_eal_cleanup(). */
+    if (!collection_is_valid(init, n) || !collection_is_valid(limpeza, n)) {
+        fprintf(stderr, "custo-init: coleta invalida ou abaixo da resolucao;"
+                        " nenhuma medicao a publicar\n");
+        rte_eal_cleanup();
+        return EXIT_FAILURE;
+    }
+
     print_row("rte_eal_init()", init);
     print_row("rte_eal_cleanup()", limpeza);
 

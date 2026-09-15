@@ -263,6 +263,14 @@ int main(int argc, char **argv)
     const struct statistics e_malloc = collect(m_malloc_unitario, n);
     const struct statistics e_cache = collect(m_pool_com_cache, n);
     const struct statistics e_sem = collect(m_pool_sem_cache, n);
+    if (!collection_is_valid(e_malloc, n) || !collection_is_valid(e_cache, n) ||
+        !collection_is_valid(e_sem, n)) {
+        fprintf(stderr, "custo-alocacao: coleta invalida em 'um objeto por vez';"
+                        " nenhuma medicao a publicar\n");
+        rte_eal_cleanup();
+        return EXIT_FAILURE;
+    }
+
     print_row("malloc/free", e_malloc);
     print_row("mempool get/put, com cache", e_cache);
     print_row("mempool get/put, SEM cache", e_sem);

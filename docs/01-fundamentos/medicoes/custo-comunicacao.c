@@ -45,7 +45,7 @@
 #define AMOSTRAS_C2C_FIXO 15
 #define AMOSTRAS_C2C samples(AMOSTRAS_C2C_FIXO)
 
-/* collect() recebe ponteiro sem argumentos; o par vai por variáveis. */
+/* collect_or_fail() recebe ponteiro sem argumentos; o par vai por variáveis. */
 static int par_a, par_b;
 #define BUDGET_10GBE_NS 67.2
 #define MAX_DOMINIOS 16
@@ -235,7 +235,7 @@ int main(void)
     const int a = primeiro_cpu(dominios[0]);
     par_a = a;
     par_b = a + 2;
-    const struct statistics e_dentro = collect(measure_pair, AMOSTRAS_C2C);
+    const struct statistics e_dentro = collect_or_fail(measure_pair, AMOSTRAS_C2C);
     const double dentro = e_dentro.median;
 
     print_header();
@@ -259,7 +259,7 @@ int main(void)
     const int b = primeiro_cpu(dominios[1]);
     par_a = a;
     par_b = b;
-    const struct statistics e_entre = collect(measure_pair, AMOSTRAS_C2C);
+    const struct statistics e_entre = collect_or_fail(measure_pair, AMOSTRAS_C2C);
     const double entre = e_entre.median;
     snprintf(rot, sizeof(rot), "ENTRE dominios (cpu %d <-> %d)", par_a, par_b);
     print_row(rot, e_entre);
@@ -268,7 +268,7 @@ int main(void)
     print_header();
 
     cpu_vizinho = -1;
-    const struct statistics e_sozinho = collect(laco_de_trabalho, AMOSTRAS_C2C);
+    const struct statistics e_sozinho = collect_or_fail(laco_de_trabalho, AMOSTRAS_C2C);
     print_row("laco sozinho no nucleo", e_sozinho);
 
     /* Irmão SMT do cpu 0, lido do sysfs. */
@@ -288,12 +288,12 @@ int main(void)
         cpu_vizinho = irmao;
         char rot[64];
         snprintf(rot, sizeof(rot), "vizinho no irmao SMT (cpu %d)", irmao);
-        const struct statistics e_smt = collect(com_vizinho, AMOSTRAS_C2C);
+        const struct statistics e_smt = collect_or_fail(com_vizinho, AMOSTRAS_C2C);
         print_row(rot, e_smt);
 
         cpu_vizinho = par_b; /* núcleo físico distinto, mesmo domínio */
         snprintf(rot, sizeof(rot), "vizinho em nucleo fisico (cpu %d)", par_b);
-        const struct statistics e_fis = collect(com_vizinho, AMOSTRAS_C2C);
+        const struct statistics e_fis = collect_or_fail(com_vizinho, AMOSTRAS_C2C);
         print_row(rot, e_fis);
 
         printf("\n  Compartilhar o nucleo custa %.0f%% de desempenho; usar nucleos\n",

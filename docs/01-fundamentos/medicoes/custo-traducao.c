@@ -144,9 +144,9 @@ int main(void)
     }
 
     print_header();
-    const struct statistics e4k = collect(amostra_4k, AMOSTRAS_PAGINA);
+    const struct statistics e4k = collect_or_fail(amostra_4k, AMOSTRAS_PAGINA);
     print_row("paginas de 4 KB", e4k);
-    const struct statistics e2m = collect(amostra_2m, AMOSTRAS_PAGINA);
+    const struct statistics e2m = collect_or_fail(amostra_2m, AMOSTRAS_PAGINA);
     print_row("hugepages de 2 MB", e2m);
 
     const double ns_4k = e4k.median, ns_2m = e2m.median;

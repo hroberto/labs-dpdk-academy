@@ -164,6 +164,12 @@ int main(int argc, char **argv)
     }
 
     const struct statistics lat = summarize(amostras_ns, (int)total);
+    if (!collection_is_valid(lat, (int)total)) {
+        fprintf(stderr, "feed-secundario: coleta de latencia invalida;"
+                        " nenhuma medicao a publicar\n");
+        rte_eal_cleanup();
+        return EXIT_FAILURE;
+    }
 
     printf("  --- travessia entre processos, por tick (nanossegundos) ---\n\n");
     print_header_tail();

@@ -207,6 +207,54 @@ static STAT_MAYBE_UNUSED struct statistics collect(double (*measurement)(void), 
     return e;
 }
 
+/* O selo avisa QUEM LÊ a tabela. Estas três funções avisam a SUÍTE, que não lê
+ * tabela nenhuma -- ela lê o código de saída.
+ *
+ * A distinção é o ponto. As funções de medição deste projeto devolvem valor
+ * negativo quando a operação medida falha -- um `rte_mempool_get()` que não
+ * entrega objeto, por exemplo. `collect()` grava esse negativo no vetor como se
+ * fosse tempo, `summarize()` tira mediana em cima dele, e o programa imprimia a
+ * tabela e saía com 0. O selo "?" denunciava a linha para quem lesse; o código
+ * de saída dizia OK para quem não lê.
+ *
+ * É a mesma regra que fez `l3_multiprocesso.sh` trocar `exit 0` por `exit 77`:
+ * o que não foi verificado não pode ser reportado como verificado.
+ *
+ * BELOW_RESOLUTION existe separado de INVALID porque mediana zero não é
+ * sentinela de erro: é operação mais rápida que a resolução do relógio. Não é
+ * publicável como custo, e não é defeito. Os callbacks devem devolver negativo
+ * ou NaN em falha, nunca zero. */
+enum collection_state { COLLECTION_INVALID, COLLECTION_BELOW_RESOLUTION, COLLECTION_VALID };
+
+static STAT_MAYBE_UNUSED enum collection_state collection_state(struct statistics e, int n)
+{
+    if (n <= 0 || e.samples != n || !isfinite(e.median) || !isfinite(e.minimum) ||
+        !isfinite(e.maximum) || !isfinite(e.p25) || !isfinite(e.p75) ||
+        !isfinite(e.p99) || !isfinite(e.cv) || !isfinite(e.disp) || e.minimum < 0)
+        return COLLECTION_INVALID;
+    return e.median > 0 ? COLLECTION_VALID : COLLECTION_BELOW_RESOLUTION;
+}
+
+static STAT_MAYBE_UNUSED int collection_is_valid(struct statistics e, int n)
+{
+    return collection_state(e, n) == COLLECTION_VALID;
+}
+
+/* Adaptador para os programas SEM EAL: falha encerra o processo antes de
+ * publicar. Quem tem runtime de pé (EAL, threads, pools) não pode usar este --
+ * precisa de `collect` + `collection_is_valid` e da própria limpeza, porque
+ * `exit()` aqui pularia `rte_eal_cleanup()`. */
+static STAT_MAYBE_UNUSED struct statistics collect_or_fail(double (*measurement)(void), int n)
+{
+    struct statistics e = collect(measurement, n);
+    if (!collection_is_valid(e, n)) {
+        fprintf(stderr, "COLETA INVALIDA OU ABAIXO DA RESOLUCAO:"
+                        " sem resultado publicavel\n");
+        exit(EXIT_FAILURE);
+    }
+    return e;
+}
+
 /* Marca visual de confiança, para o leitor não precisar interpretar o CV.
  *
  *   " "  dispersão baixa: o valor típico é confiável
@@ -231,7 +279,7 @@ static STAT_MAYBE_UNUSED struct statistics collect(double (*measurement)(void), 
  * negativa não existe. */
 static STAT_MAYBE_UNUSED const char *badge(struct statistics e)
 {
-    if (e.samples <= 0 || e.median <= 0.0)
+    if (!collection_is_valid(e, e.samples))
         return "?";
     if (e.disp <= DISP_ESTAVEL)
         return " ";

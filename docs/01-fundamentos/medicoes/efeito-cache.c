@@ -29,7 +29,7 @@
 #define AMOSTRAS_CACHE_FIXO 9
 #define AMOSTRAS_CACHE samples(AMOSTRAS_CACHE_FIXO)
 
-/* collect() recebe ponteiro sem argumentos; o caso vai por variáveis. */
+/* collect_or_fail() recebe ponteiro sem argumentos; o caso vai por variáveis. */
 static size_t caso_tam;
 static int caso_aleatorio;
 
@@ -104,12 +104,12 @@ int main(void)
         print_header();
 
         caso_aleatorio = 0;
-        const struct statistics seq = collect(amostra_caso, AMOSTRAS_CACHE);
+        const struct statistics seq = collect_or_fail(amostra_caso, AMOSTRAS_CACHE);
         snprintf(rot, sizeof(rot), "  sequencial");
         print_row(rot, seq);
 
         caso_aleatorio = 1;
-        const struct statistics ale = collect(amostra_caso, AMOSTRAS_CACHE);
+        const struct statistics ale = collect_or_fail(amostra_caso, AMOSTRAS_CACHE);
         snprintf(rot, sizeof(rot), "  aleatorio");
         print_row(rot, ale);
 

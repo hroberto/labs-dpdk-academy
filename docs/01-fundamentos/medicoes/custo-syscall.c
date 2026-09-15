@@ -108,11 +108,11 @@ int main(void)
     printf("Custo por operacao (%d iteracoes, %d amostras; tempos em ns)\n\n", ITERATIONS,
            DEFAULT_SAMPLES);
     print_header();
-    const struct statistics e_funcao = collect(m_funcao, DEFAULT_SAMPLES);
+    const struct statistics e_funcao = collect_or_fail(m_funcao, DEFAULT_SAMPLES);
     print_row("chamada de funcao (user-space)", e_funcao);
-    const struct statistics e_vdso = collect(m_vdso, DEFAULT_SAMPLES);
+    const struct statistics e_vdso = collect_or_fail(m_vdso, DEFAULT_SAMPLES);
     print_row("clock_gettime (vDSO, sem trap)", e_vdso);
-    const struct statistics e_syscall = collect(m_syscall, DEFAULT_SAMPLES);
+    const struct statistics e_syscall = collect_or_fail(m_syscall, DEFAULT_SAMPLES);
     print_row("syscall real (SYS_getpid)", e_syscall);
 
     const double ns_funcao = e_funcao.median;

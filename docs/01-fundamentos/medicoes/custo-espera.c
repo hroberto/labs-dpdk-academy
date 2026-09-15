@@ -214,7 +214,7 @@ static double com_outra_thread(void)
 static void measure_default(const char *rotulo, double (*m)(void))
 {
     medicao_sob_ruido = m;
-    print_row(rotulo, collect(com_outra_thread, DEFAULT_SAMPLES));
+    print_row(rotulo, collect_or_fail(com_outra_thread, DEFAULT_SAMPLES));
 }
 
 static double m_atomica_seqcst(void)
@@ -438,13 +438,13 @@ int main(void)
            cpu_a, cpu_b);
 
     print_header();
-    const struct statistics e_ativa = collect(m_repasse_atomica, AMOSTRAS_REPASSE);
+    const struct statistics e_ativa = collect_or_fail(m_repasse_atomica, AMOSTRAS_REPASSE);
     print_row("atomica + espera ativa (nao dorme)", e_ativa);
-    const struct statistics e_mutex = collect(m_repasse_mutex_ativo, AMOSTRAS_REPASSE);
+    const struct statistics e_mutex = collect_or_fail(m_repasse_mutex_ativo, AMOSTRAS_REPASSE);
     print_row("mutex + espera ativa (nao dorme)", e_mutex);
-    const struct statistics e_dorme = collect(m_repasse_condvar, AMOSTRAS_REPASSE);
+    const struct statistics e_dorme = collect_or_fail(m_repasse_condvar, AMOSTRAS_REPASSE);
     print_row("mutex + condvar (DORME)", e_dorme);
-    print_row("semaforo POSIX (DORME)", collect(m_repasse_semaforo, AMOSTRAS_REPASSE));
+    print_row("semaforo POSIX (DORME)", collect_or_fail(m_repasse_semaforo, AMOSTRAS_REPASSE));
 
     const double ns_ativa = e_ativa.median;
     const double ns_mutex_ativo = e_mutex.median;
