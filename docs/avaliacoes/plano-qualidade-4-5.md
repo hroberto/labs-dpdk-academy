@@ -213,7 +213,7 @@ O quadro deve mudar quando houver nova evidência suficiente para cruzar o crit�
 5. DPDK Academy. [Controle de helper ausente][5] e [runner L2 do pipeline](../../trilha/01-fundamentos/02-mempool-ring/tests/l2_run.sh), árvore local.
 6. Meson. [Unit tests][6], documentação consultada em 14/09/2026; protocolo exitcode, SKIP e compatibilidade de versão.
 7. DPDK Academy. [Runtime][7], [feed-secundario.c](../02-runtime-dpdk/medicoes/feed-secundario.c), [custo-alocacao.c](../03-mempool-ring-mbuf/medicoes/custo-alocacao.c) e [escopo de benchmarking](../../trilha/03-performance/01-benchmarking/README.md), árvore local.
-8. DPDK Academy. [Pipeline em memória][8] e [política de posse e progresso](../03-mempool-ring-mbuf/README.md#64-política-de-posse-e-progresso), árvore local.
+8. DPDK Academy. [Pipeline em memória][8] e [posse: quem libera](../03-mempool-ring-mbuf/README.md#24-posse-quem-libera) (a metade de *progresso* não tem seção própria), árvore local.
 9. DPDK Academy. [Proposta de detecção e recuperação][9] e [contrato compartilhado](../02-runtime-dpdk/medicoes/feed.h), árvore local.
 10. DPDK Project. [Multi-process Support][10], documentação da série 25.11 servida como 25.11.3; consultada em 14/09/2026. Instalação local 25.11.0; comportamentos específicos precisam ser confrontados com essa instalação.
 11. DPDK Academy. [Alternativa C++23 e controles propostos][11], árvore local.

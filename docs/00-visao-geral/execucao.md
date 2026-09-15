@@ -33,7 +33,13 @@ objetos devolvidos ao pool. Dez pacotes não formam uma medição de desempenho.
 O parâmetro `-t` limita a espera sem progresso; falha desse prazo encerra o
 pipeline após drenar os objetos pendentes.
 
-Para entender o resultado, leia [posse e progresso](../03-mempool-ring-mbuf/README.md#64-política-de-posse-e-progresso).
+Para entender a metade de **posse** — quem libera o objeto, e por que liberar o
+segundo segmento de uma cadeia é erro — leia
+[§2.4 Posse: quem libera](../03-mempool-ring-mbuf/README.md#24-posse-quem-libera).
+A metade de **progresso** (o prazo do `-t`, e o que acontece ao estourá-lo) está
+descrita no parágrafo acima e **ainda não tem seção própria** no módulo: o link
+anterior apontava para uma "§6.4 Política de posse e progresso" que nunca foi
+escrita.
 Para estudar o mecanismo completo, siga o [tópico prático](../../trilha/01-fundamentos/02-mempool-ring/README.md).
 
 ## Ler uma tabela
