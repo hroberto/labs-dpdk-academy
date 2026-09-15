@@ -50,6 +50,31 @@ test('03-nivel4 - L2 (custo de alocacao)', custo_alocacao,
      args : ['-l', '0', '--no-huge', '--file-prefix=academy_custo_alocacao'],
      suite : ['l2', 'nivel4'], timeout : 300)
 
+# --- Variante com AMOSTRA INVALIDA DELIBERADA, para o teste negativo ------
+#
+# Mesmo fonte, com uma medicao devolvendo a sentinela -1.0 por macro. Sem isto,
+# a guarda `collection_is_valid()` nunca seria exercitada no caminho de falha, e
+# nao haveria evidencia de que ela dispara.
+#
+# O defeito que ela previne ja existiu: a sentinela entrava no vetor de amostras
+# como se fosse tempo, `summarize()` tirava mediana dela, a tabela era publicada
+# e o programa saia com 0 -- coleta que nao mediu nada reportada como aprovada.
+custo_alocacao_invalido = executable(
+  'custo-alocacao-invalido',
+  ['custo-alocacao.c', 'sizing.c'],
+  dependencies : [dpdk_dep, nivel4_libm, dependency('threads')],
+  include_directories : [nivel4_estat, nivel4_inc],
+  c_args : ['-DDPDK_ACADEMY_INJECT_INVALID_SAMPLE'],
+  install : false,
+)
+
+# O invólucro afirma TRES coisas, e nao so o codigo de saida: rc exatamente 1, a
+# frase que nomeia o motivo, e que nenhuma linha de dado foi publicada. Conferir
+# apenas o codigo deixaria passar falha pelo motivo errado.
+test('03-nivel4 - L2 (coleta invalida deve falhar)', bash,
+     args : [files('tests/l2_coleta_invalida.sh'), custo_alocacao_invalido],
+     suite : ['l2', 'nivel4'], timeout : 60)
+
 # --- Eixo de falha (ROADMAP, Etapa 7.5) -----------------------------------
 #
 # Nao mede tempo: mede COMPORTAMENTO na fronteira do pool esgotado, e confronta

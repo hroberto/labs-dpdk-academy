@@ -151,6 +151,24 @@ static double measure_pool_single(struct rte_mempool *mp)
         void *p = NULL;
         if (rte_mempool_get(mp, &p) < 0)
             return -1.0;
+#ifdef DPDK_ACADEMY_INJECT_INVALID_SAMPLE
+        /* AMOSTRA INVALIDA DELIBERADA, compilada so na variante de teste.
+         *
+         * Existe porque `collection_is_valid()`, chamada antes de publicar,
+         * precisa de um teste NEGATIVO: verificacao que nunca falhou e
+         * indistinguivel de verificacao que nunca dispara.
+         *
+         * A sentinela real vem de `rte_mempool_get()` recusando objeto, e isso
+         * nao se provoca por argumento de linha de comando -- exige o pool
+         * esgotado, que este programa nunca deixa acontecer.
+         *
+         * O objeto e DEVOLVIDO antes de sair. A variante precisa falhar pela
+         * amostra invalida e por mais nada: se ela tambem vazasse, um pool
+         * corrompido poderia derrubar o programa por outro motivo e o teste
+         * passaria sem ter exercitado a guarda. */
+        rte_mempool_put(mp, p);
+        return -1.0;
+#endif
         consume_ptr(p);
         rte_mempool_put(mp, p);
     }

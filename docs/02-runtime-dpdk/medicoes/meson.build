@@ -102,6 +102,25 @@ test(
   timeout : 300,
 )
 
+# Regressao: EAL rejeitada nao pode virar uma medicao aprovada.
+#
+# custo-init.c saia com 0 quando a EAL nao subia, com o comentario "ambiente,
+# nao defeito: o teste L2 continua valido" -- valido sem ter medido nada. Hoje
+# sai com EXIT_FAILURE, e este teste tranca esse comportamento passando uma
+# opcao que a EAL rejeita.
+#
+# E FALHA e nao PULO porque a configuracao foi PEDIDA por argumento: se ela nao
+# sobe, o pedido nao foi atendido, e isso e resultado negativo, nao requisito
+# ausente.
+test(
+  '02-runtime - L2 (init invalida deve falhar)',
+  custo_init,
+  args : ['-l', '0', '--no-huge', '--dpdk-academy-opcao-invalida'],
+  should_fail : true,
+  suite : ['l2', 'runtime'],
+  timeout : 30,
+)
+
 test(
   '02-runtime - L2 (estados do lcore)',
   estado_lcore,
