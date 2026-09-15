@@ -1,0 +1,8002 @@
+[
+  {
+    "repetition": 0,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.409695000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,32.040765000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.895195000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,59.800955000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.358520000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.721915000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.401360000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.583200000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.542850000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.825500000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,20.235475000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.161295000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,18.475335000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,64.720085000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.621445000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 0,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.880200000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.550090000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,25.589830000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.755380000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,18.877500000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,21.923975000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,57.238495000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,4.504845000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,25.250790000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.651165000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,61.181075000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.894510000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,3.352260000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,18.018265000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.125975000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.719510000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 1,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,25.529915000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.132345000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.336035000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,52.638225000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,5.007995000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,23.485990000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,25.017390000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,20.611690000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,25.061025000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,56.426455000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.797290000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.749205000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,24.399320000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,3.807420000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.417125000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,4.049330000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 2,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,2.910870000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,25.811600000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.181940000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.359465000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.670295000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,19.413015000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,2.586005000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,5.098820000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,20.031235000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,2.411570000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,62.264730000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,24.852030000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.451920000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,56.586410000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.807565000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.089960000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 3,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.936575000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.642140000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.751215000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,18.515210000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,59.305120000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.820490000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,20.873280000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.706985000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,58.579590000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.432160000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.553870000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,24.903475000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.767770000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.123430000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.916285000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.878495000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 4,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.331220000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,69.296215000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.741050000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.277470000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,26.851525000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.517400000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,59.304615000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.097625000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.891640000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.874795000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.890270000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.380210000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,24.997005000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.562340000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,20.292185000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.889070000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 5,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.328620000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.769155000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.752360000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,61.721850000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.915700000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.566095000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.124785000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.764030000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.450485000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.898550000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.330625000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,57.235440000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.572455000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.419130000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,25.598140000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.245000000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 6,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,24.989340000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,62.823635000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.765825000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.539090000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,19.942670000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.892875000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.071425000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.330875000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.717055000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.411270000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,62.775895000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,24.138325000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,20.310515000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.123580000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.940430000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,20.133030000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 7,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,25.749230000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,24.430980000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.741820000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.904400000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.337085000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.588635000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.851995000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,53.298025000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.140255000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.746210000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,19.464060000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.148130000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.651905000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,60.039360000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.902760000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.331970000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 8,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.960505000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,18.224660000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.070875000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,20.480140000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.765570000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,55.806430000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,25.629655000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.989725000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,3.123870000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,20.325995000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,30.181590000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,2.844440000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,5.220345000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,2.372500000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.804810000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,25.362200000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 9,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,63.655365000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.661265000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,19.908105000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.497665000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.068470000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.744910000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.932600000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.429355000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,20.078275000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.500165000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.906965000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,54.527155000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.350310000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,20.403990000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,55.168270000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.157845000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 10,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,14.151790000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,24.802790000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.994370000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.069875000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.922095000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,55.606050000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,2.167865000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.332380000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.126785000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.527725000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.520110000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.520750000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.377505000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,61.184930000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.818085000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,20.026175000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 11,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.889565000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.080595000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,14.778325000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,18.498030000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.115115000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,55.370755000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,58.791895000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,25.172535000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.542250000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.506780000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,20.516410000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.720965000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.890885000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,20.368775000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.475095000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.334980000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 12,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.902740000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.889280000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,59.524330000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.763895000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,14.995390000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.091415000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.502425000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.326065000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,19.969020000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.333480000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.853500000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,59.891175000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.879700000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.912440000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.487945000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.683525000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 13,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.383465000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.383470000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,2.069775000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,54.723130000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,55.999200000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.592395000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,25.001465000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.773565000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,20.095710000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.826740000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.871535000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.141365000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.354710000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.836170000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.083950000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,20.603270000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 14,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,25.352430000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,23.973360000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,25.220680000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.421640000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.895745000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,25.913240000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.910010000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,54.915595000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.890015000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.104740000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,60.604630000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.854845000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.326550000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.707135000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.331875000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,19.768140000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 15,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.806225000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,55.430070000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,24.432935000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.757415000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,4.218850000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,24.707255000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,24.219880000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,56.402860000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.718055000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.789610000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.813990000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.578625000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.342140000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.895595000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,28.590470000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.736975000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 16,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.353720000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.119175000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.329470000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,23.710615000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.532900000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,25.052310000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.835300000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.068065000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,26.119430000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.833560000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.896130000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.709890000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.685330000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,20.940415000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,64.536035000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.898100000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 17,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,60.336770000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.950235000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,19.934905000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.851245000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.871435000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.327920000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,24.865855000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.600235000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.543450000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.835545000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.915185000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.459460000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.610480000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,59.485055000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,60.213840000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.079990000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 18,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.704685000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.739215000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.506880000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,20.476230000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.494255000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.877345000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,60.149170000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.333120000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,25.674040000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,20.038450000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.903260000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.141865000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.152080000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.441835000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.724870000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.842725000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 19,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,60.084140000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.390430000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.859460000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.892690000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,65.228650000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.793435000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.083350000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,55.600490000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,29.624680000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.121580000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.740700000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.334530000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.700815000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,25.008725000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.530480000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,20.210075000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 20,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.484790000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.742040000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.430405000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.125275000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.536485000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,57.575885000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.770710000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.356720000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.607385000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,30.558300000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.159050000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,19.910760000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.978035000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,60.660835000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.893595000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.827840000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 21,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.684515000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.727880000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.628815000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.786125000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.888330000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.927945000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.085650000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.328470000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,3.372050000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,64.592640000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,54.784195000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,20.319530000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,25.013035000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.526265000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,25.615975000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.804505000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 22,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.124080000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,29.890285000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.117770000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,22.636580000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,53.499910000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.903160000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,20.284170000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,22.484890000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.596645000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,4.083345000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,54.990135000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,21.472670000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.917230000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,1.723770000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.336285000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,19.882905000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 23,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.278260000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      0,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,2,200000,25.338905000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,0,200000,24.978670000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      1,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,2,200000,19.658030000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      1,
+      8,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,2,200000,24.764265000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      1,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,2,200000,20.260720000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      1,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,8,0,0,200000,3.781920000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,0,200000,24.633215000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "8",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,8,0,0,200000,4.940970000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      0,
+      32,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,2,200000,20.975075000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      1,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,128,0,0,200000,1.653485000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      0,
+      128,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,2,200000,19.937160000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,1,0,2,200000,62.033640000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      0,
+      128,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "128",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,128,0,0,200000,3.037910000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      1,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,32,0,0,200000,1.338290000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      0,
+      32,
+      0,
+      0
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "0",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,0,32,0,0,200000,1.902005000\n",
+    "stderr": ""
+  },
+  {
+    "repetition": 24,
+    "case": [
+      1,
+      1,
+      0,
+      2
+    ],
+    "command": [
+      "/tmp/academy-benchmark-sa_8ip1p/controle-anel",
+      "1",
+      "1",
+      "0",
+      "2",
+      "1"
+    ],
+    "returncode": 0,
+    "stdout": "sample,bulk,burst,producer,consumer,objects,ns_per_object\n0,1,1,0,2,200000,59.545775000\n",
+    "stderr": ""
+  }
+]

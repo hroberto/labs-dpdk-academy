@@ -1,0 +1,15 @@
+ 1/10 l1+docs - dpdk-academy:docs - ancoras de linha atualizadas              OK              0.05s
+ 2/10 l1+docs - dpdk-academy:docs - autoteste do verificador de ancoras       OK              0.02s
+ 3/10 l1+docs - dpdk-academy:docs - links e ancoras de titulo                 OK              0.03s
+ 4/10 l1+docs - dpdk-academy:docs - numeros retratados nao sobrevivem         OK              0.02s
+ 5/10 l1+docs - dpdk-academy:docs - autoteste do verificador de retratacoes   OK              0.02s
+ 6/10 l1+docs - dpdk-academy:docs - aritmetica publicada fecha                OK              0.02s
+ 7/10 l1+docs - dpdk-academy:docs - autoteste do verificador de aritmetica    OK              0.02s
+ 8/10 l1+docs - dpdk-academy:docs - autodescricao corresponde ao disco        OK              0.02s
+ 9/10 l1+docs - dpdk-academy:docs - autoteste do verificador de autodescricao OK              0.02s
+10/10 l1+docs - dpdk-academy:docs - inventario de tabelas atualizado          OK              0.03s
+
+Ok:                10  
+Fail:              0   
+
+Full log written to /home/henrique/workspaces/dpdk_academy/build/meson-logs/revisao-markdown-dados.txt

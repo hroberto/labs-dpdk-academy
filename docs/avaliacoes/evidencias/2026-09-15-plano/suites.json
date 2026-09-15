@@ -1,0 +1,307 @@
+{
+  "origem": "Execução da reavaliação anterior em 15/09/2026; não é nova execução de suíte.",
+  "comando": "CCACHE_DIR=/tmp/dpdk-ajustes-ccache DPDK_ACADEMY_AMOSTRAS=3 DPDK_ACADEMY_RODADAS=20000 meson test -C /tmp/dpdk-ajustes-20260914 --suite l1 --suite l2 --suite l3 --num-processes 1 --print-errorlogs --logbase reavaliacao-manual-20260915",
+  "contagens": {
+    "OK": 42,
+    "EXPECTEDFAIL": 2,
+    "SKIP": 3
+  },
+  "entradas": [
+    {
+      "name": "l1+docs - dpdk-academy:docs - ancoras de linha atualizadas",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.037833452224731445
+    },
+    {
+      "name": "l1+docs - dpdk-academy:docs - autoteste do verificador de ancoras",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.019106626510620117
+    },
+    {
+      "name": "l1+docs - dpdk-academy:docs - links e ancoras de titulo",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.02474045753479004
+    },
+    {
+      "name": "l1+scripts - dpdk-academy:scripts - L1 (modelo de driver de NIC)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.029545068740844727
+    },
+    {
+      "name": "l1+scripts - dpdk-academy:scripts - L1 (veredito AF_XDP zero-copy)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.03441190719604492
+    },
+    {
+      "name": "l1+scripts - dpdk-academy:scripts - L1 (bitmask AF_XDP)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.20097923278808594
+    },
+    {
+      "name": "l1+scripts - dpdk-academy:scripts - L1 (camada netlink de xdp-features.py)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.018250465393066406
+    },
+    {
+      "name": "l1+scripts - dpdk-academy:scripts - L1 (xdp-zerocopy.sh com fontes controladas)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 1.0105407238006592
+    },
+    {
+      "name": "l1+fundamentos - dpdk-academy:fundamentos - L1 (estatistica)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.008827686309814453
+    },
+    {
+      "name": "l3+fundamentos - dpdk-academy:fundamentos - custo-mckenney (L3)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.8837056159973145
+    },
+    {
+      "name": "l2+fundamentos - dpdk-academy:fundamentos - L2 (orcamento estourado)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.9550619125366211
+    },
+    {
+      "name": "l2+fundamentos - dpdk-academy:fundamentos - custo-syscall executa",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.3147146701812744
+    },
+    {
+      "name": "l2+fundamentos - dpdk-academy:fundamentos - efeito-cache executa",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 10.060763835906982
+    },
+    {
+      "name": "l3+fundamentos - dpdk-academy:fundamentos - custo-traducao (L3)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 30.49586272239685
+    },
+    {
+      "name": "l3+fundamentos - dpdk-academy:fundamentos - custo-comunicacao (L3)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.40186190605163574
+    },
+    {
+      "name": "l2+fundamentos - dpdk-academy:fundamentos - custo-espera executa",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.6543314456939697
+    },
+    {
+      "name": "l2+fundamentos - dpdk-academy:fundamentos - custo-espera-cpp executa",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.49544382095336914
+    },
+    {
+      "name": "l1+scripts - dpdk-academy:scripts - L1 (apuracao e mutacoes)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.9604887962341309
+    },
+    {
+      "name": "l1+runtime - dpdk-academy:02-runtime - L1 (FAIL e SKIP dos runners multiprocesso)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.69508957862854
+    },
+    {
+      "name": "l1+runtime - dpdk-academy:02-runtime - L1 (livro de ofertas)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.003542661666870117
+    },
+    {
+      "name": "l2+runtime - dpdk-academy:02-runtime - L2 (custo de init)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.8887739181518555
+    },
+    {
+      "name": "l2+runtime - dpdk-academy:02-runtime - L2 (init invalida deve falhar)",
+      "result": "EXPECTEDFAIL",
+      "returncode": 1,
+      "duration": 0.0031881332397460938
+    },
+    {
+      "name": "l2+runtime - dpdk-academy:02-runtime - L2 (estados do lcore)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.4283139705657959
+    },
+    {
+      "name": "l3+runtime - dpdk-academy:02-runtime - L3 (primario + secundario)",
+      "result": "SKIP",
+      "returncode": 77,
+      "duration": 0.01058506965637207
+    },
+    {
+      "name": "l3+runtime - dpdk-academy:02-runtime - L3 (primario morre, secundario invalida)",
+      "result": "SKIP",
+      "returncode": 77,
+      "duration": 0.008943319320678711
+    },
+    {
+      "name": "l1+runtime - dpdk-academy:02-runtime - L1 (saude e geracao)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.0021047592163085938
+    },
+    {
+      "name": "l3+runtime - dpdk-academy:02-runtime - L3 (reinicio em nova geracao)",
+      "result": "SKIP",
+      "returncode": 77,
+      "duration": 0.004412412643432617
+    },
+    {
+      "name": "l1+nivel4 - dpdk-academy:03-nivel4 - L1 (dimensionamento de mempool)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.0022695064544677734
+    },
+    {
+      "name": "l2+nivel4 - dpdk-academy:03-nivel4 - L2 (custo de alocacao)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.1701948642730713
+    },
+    {
+      "name": "l2+nivel4 - dpdk-academy:03-nivel4 - L2 (coleta invalida deve falhar)",
+      "result": "EXPECTEDFAIL",
+      "returncode": 1,
+      "duration": 0.13237810134887695
+    },
+    {
+      "name": "l2+nivel4 - dpdk-academy:03-nivel4 - L2 (pool esgotado e regra 4)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.12698960304260254
+    },
+    {
+      "name": "l2+nivel4 - dpdk-academy:03-nivel4 - L2 (anatomia do mbuf)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.12767624855041504
+    },
+    {
+      "name": "l2+nivel4 - dpdk-academy:03-nivel4 - L2 (custo do anel)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.13612627983093262
+    },
+    {
+      "name": "l3+nivel4 - dpdk-academy:03-nivel4 - L3 (contencao entre nucleos)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.18762588500976562
+    },
+    {
+      "name": "l2+dpdk - dpdk-academy:01-eal-hello - L2 (EAL real)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.1406421661376953
+    },
+    {
+      "name": "l1+dpdk - dpdk-academy:02-mempool-ring - L1 (logica pura)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.0034139156341552734
+    },
+    {
+      "name": "l2+dpdk - dpdk-academy:02-mempool-ring - L2 (mempool + ring)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.5211062431335449
+    },
+    {
+      "name": "l1+alternativa - dpdk-academy:02-mempool-ring/alt-cpp23 - L1 (logica pura)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.004858970642089844
+    },
+    {
+      "name": "l2+alternativa - dpdk-academy:02-mempool-ring/alt-cpp23 - L2 (binario)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.061815500259399414
+    },
+    {
+      "name": "l2+alternativa - dpdk-academy:02-mempool-ring/alt-cpp23 - L2 (anel SPSC em C++23)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.006509065628051758
+    },
+    {
+      "name": "l2+alternativa - dpdk-academy:02-mempool-ring/alt-cpp23 - L2 (controle API em bloco)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.0027761459350585938
+    },
+    {
+      "name": "l2+dpdk - dpdk-academy:02-mempool-ring - L2 (retorno parcial e vazamento)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.13439011573791504
+    },
+    {
+      "name": "l2+dpdk - dpdk-academy:02-mempool-ring - L2 (consumidor parado)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.15456700325012207
+    },
+    {
+      "name": "l2+dpdk - dpdk-academy:02-mempool-ring - L2 (dois lcores)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.7883245944976807
+    },
+    {
+      "name": "l2+dpdk - dpdk-academy:02-mempool-ring - L2 (consumidor parado em outro lcore)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.15900230407714844
+    },
+    {
+      "name": "l2+runtime - dpdk-academy:runtime - L2 (supervisor e nova geracao)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.5383689403533936
+    },
+    {
+      "name": "l1+scripts - dpdk-academy:scripts - L1 (dependencias separadas do XDP)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.04626178741455078
+    }
+  ],
+  "exclusoes": [
+    {
+      "name": "l3+runtime - dpdk-academy:02-runtime - L3 (primario + secundario)",
+      "stdout": "== L3: feed handler primario + assinante secundario ==\n  prefixo de runtime: academia_l3_349825\n  ticks: 20000\n\n  PULADO - hugetlbfs gravavel com paginas livres indisponivel\n\n  Este teste exige hugetlbfs compartilhado entre processos.\n  Habilite-o com estes três comandos:\n\n    sudo mkdir -p /mnt/huge-academia\n    sudo mount -t hugetlbfs -o pagesize=2M,uid=$(id -u) nodev /mnt/huge-academia\n    export DPDK_ACADEMY_HUGE_DIR=/mnt/huge-academia\n\n  Depois, rode novamente a suíte.\n  Detalhes no README do módulo 02.\n\nL3: pulado (ambiente sem memoria compartilhada entre processos)\n"
+    },
+    {
+      "name": "l3+runtime - dpdk-academy:02-runtime - L3 (primario morre, secundario invalida)",
+      "stdout": "== L3: o primario morre, o secundario continua ==\n  prefixo de runtime: academia_morte_349833\n\n  PULADO - hugetlbfs gravavel com paginas livres indisponivel\n\n  Este teste exige hugetlbfs compartilhado entre processos, igual ao\n  l3_multiprocesso.sh. Habilite com:\n\n    sudo ./scripts/preparar-hugepages.sh\n    export DPDK_ACADEMY_HUGE_DIR=/mnt/huge-academia\n\nL3: pulado (ambiente sem memoria compartilhada entre processos)\n"
+    },
+    {
+      "name": "l3+runtime - dpdk-academy:02-runtime - L3 (reinicio em nova geracao)",
+      "stdout": "SKIP: hugetlbfs gravavel com paginas livres\n"
+    }
+  ]
+}

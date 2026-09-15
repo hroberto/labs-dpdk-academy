@@ -1,0 +1,65 @@
+The Meson build system
+Version: 1.10.1
+Source dir: /home/henrique/workspaces/dpdk_academy
+Build dir: /tmp/academy-diagnostico-meson-hcy5oy0f/build
+Build type: native build
+Project name: dpdk-academy
+Project version: 1.00.00
+C compiler for the host machine: /usr/bin/ccache cc (gcc 15.2.0 "cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0")
+C linker for the host machine: cc ld.bfd 2.46
+C++ compiler for the host machine: /usr/bin/ccache c++ (gcc 15.2.0 "c++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0")
+C++ linker for the host machine: c++ ld.bfd 2.46
+Host machine cpu family: x86_64
+Host machine cpu: x86_64
+Found pkg-config: YES (/usr/bin/pkg-config) 2.5.1
+Run-time dependency libdpdk found: YES 25.11.0
+Found CMake: /usr/bin/cmake (4.2.3)
+Run-time dependency gtest_main found: NO (tried pkgconfig and cmake)
+Looking for a fallback subproject for the dependency gtest_main
+
+Executing subproject gtest 
+
+gtest| Project name: gtest
+gtest| Project version: 1.17.0
+gtest| C++ compiler for the host machine: /usr/bin/ccache c++ (gcc 15.2.0 "c++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0")
+gtest| C++ linker for the host machine: c++ ld.bfd 2.46
+gtest| Run-time dependency threads found: YES
+gtest| Dependency threads found: YES unknown (cached)
+gtest| Dependency threads found: YES unknown (cached)
+gtest| Build targets in project: 4
+gtest| Subproject gtest finished.
+
+Dependency gtest_main from subproject subprojects/googletest-1.17.0 found: YES 1.17.0
+Program bash found: YES (/usr/bin/bash)
+Program python3 found: YES (/usr/bin/python3)
+Library m found: YES
+Dependency threads found: YES unknown (cached)
+Dependency threads found: YES unknown (cached)
+Dependency threads found: YES unknown (cached)
+Dependency threads found: YES unknown (cached)
+Library m found: YES
+Library m found: YES
+Dependency threads found: YES unknown (cached)
+Dependency threads found: YES unknown (cached)
+Dependency threads found: YES unknown (cached)
+Dependency threads found: YES unknown (cached)
+Library m found: YES
+Dependency threads found: YES unknown (cached)
+Build targets in project: 35
+
+dpdk-academy 1.00.00
+
+  DPDK Academy
+    DPDK      : 25.11.0
+    GTest (L1): sim
+    padrao C  : c11
+    padrao C++: c++23
+
+  Subprojects
+    gtest     : YES
+
+  User defined options
+    c_std     : c11
+    wrap_mode : nodownload
+
+Found ninja-1.13.2 at /usr/bin/ninja

@@ -1,0 +1,583 @@
+{
+  "escopo": [
+    "docs/01-fundamentos/README.md",
+    "docs/02-runtime-dpdk/README.md",
+    "docs/03-mempool-ring-mbuf/README.md",
+    "trilha/01-fundamentos/02-mempool-ring/README.md",
+    "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
+    "trilha/04-projeto-final/README.md",
+    "docs/avaliacoes/evidencias/2026-09-14-controle-anel/tabela.md",
+    "docs/avaliacoes/evidencias/2026-09-15-controle-anel-validado/tabela.md"
+  ],
+  "limites": "Tabelas Markdown e blocos numericos nas oito paginas listadas. Nao abrange todos os numeros em prosa nem verifica automaticamente sua origem.",
+  "total": 81,
+  "entradas": [
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 63,
+      "secao": "Percurso de leitura",
+      "tipo": "tabela_markdown",
+      "sha256": "25e728e2a9cf594ecc0a265c7eba8d8c0775a04644640810c03fc09418b8137e"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 94,
+      "secao": "1. O orçamento: quanto tempo existe por pacote",
+      "tipo": "tabela_markdown",
+      "sha256": "8662b25c590cb69b5c69085101079b7aa317c91281058282be84d6eee3d5ac95"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 125,
+      "secao": "2. A fronteira user-space / kernel-space",
+      "tipo": "bloco_numerico",
+      "sha256": "8eff9e0a1c68756bc132526e0adc41c553ee48829c7f60b940ddc70659fade32"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 193,
+      "secao": "3. O caminho tradicional de um pacote",
+      "tipo": "tabela_markdown",
+      "sha256": "544bf533ff554b42ce8d3171673f6eba0c3b8a777f5d9002e8754530e5995964"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 327,
+      "secao": "Por que hugepages, então",
+      "tipo": "bloco_numerico",
+      "sha256": "cc182dbc03d35308e40fba7ce2721e25c2851f8856ed4fce5ef5a034e1987f73"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 341,
+      "secao": "Por que hugepages, então",
+      "tipo": "bloco_numerico",
+      "sha256": "3c1535426394cb1070c10f5dff3c3b97d38e786fa2f8d75824ab2df8de3e41f0"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 379,
+      "secao": "4.2 Cache e localidade",
+      "tipo": "bloco_numerico",
+      "sha256": "79ee21768faaea50a81c3ea67ab79afc78fd15be6b306cde12a122cb8a800ef1"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 629,
+      "secao": "Onde a memória realmente é alocada: a política de primeiro toque",
+      "tipo": "bloco_numerico",
+      "sha256": "195b66bf1496078618de2a969205a79e51b008811641aa8574e9fcd75aa2b099"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 647,
+      "secao": "O que muda no plano de dados",
+      "tipo": "tabela_markdown",
+      "sha256": "3a3ceb92e5cf82d6836a7b6bf8f7263546daa1152f12687fc145db687700168a"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 738,
+      "secao": "E numa máquina de um soquete, dá para ver algum efeito de topologia?",
+      "tipo": "bloco_numerico",
+      "sha256": "44bc0c46bcfba9b3d73791838b40182647124c4a848a5f68161921b7e46fe682"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 818,
+      "secao": "5.1.1 SMT: duas CPUs lógicas não são dois núcleos",
+      "tipo": "bloco_numerico",
+      "sha256": "d39f91976dae87466955b68f326e50b2672cbc4ea1dce6a982dc079fa04b39d9"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 904,
+      "secao": "Quanto custa dormir — e o que exatamente é caro",
+      "tipo": "bloco_numerico",
+      "sha256": "2fa37fb9736763bbd685f992316b899ab2d49109bfc78566863479354564b638"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 949,
+      "secao": "Quanto custa dormir — e o que exatamente é caro",
+      "tipo": "bloco_numerico",
+      "sha256": "d8702410e5231ab7405d2e5052cdd4c2aede4d8965f5f0aacd24272d20affed9"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1001,
+      "secao": "Qual primitivo usar, afinal",
+      "tipo": "tabela_markdown",
+      "sha256": "d2996d8da386c1f23ac2bc00bbd57d906b13698041bcc2b24c37d568ed05dec4"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1012,
+      "secao": "Qual primitivo usar, afinal",
+      "tipo": "tabela_markdown",
+      "sha256": "aeb85fccd9183b9bc437c7d04a20d53b66612db3dd9a004f5e30087115eab729"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1060,
+      "secao": "O preço, dito com todas as letras",
+      "tipo": "tabela_markdown",
+      "sha256": "a400552c88ed0784fb5da46d3335d7de87344d16919d086a3011971b51dcc81e"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1206,
+      "secao": "6.1 IOMMU: como entregar DMA a um processo sem abrir o sistema",
+      "tipo": "bloco_numerico",
+      "sha256": "863d08ae72df0e0e37f6b61ef344c0ef4defa40b479cefe415d3420f35353c6d"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1232,
+      "secao": "O IOTLB: o page walk existe do lado do dispositivo também",
+      "tipo": "tabela_markdown",
+      "sha256": "bd615a25f6b8620183ed35c839322bb4cb841404242367be47e25be870790334"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1256,
+      "secao": "6.2 O barramento também tem orçamento",
+      "tipo": "tabela_markdown",
+      "sha256": "862fddc39adadd8a1959859225c30586ed8f90d4a42cd5ef1169de45df50b9b5"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1323,
+      "secao": "Um ponto de comparação: servidor de *market data*",
+      "tipo": "tabela_markdown",
+      "sha256": "46c9cc841322107d83b3af7472ab029ac43cc81878e1ed4ff1c6f2fd5f503362"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1396,
+      "secao": "7. Métricas: o vocabulário para não se enganar",
+      "tipo": "tabela_markdown",
+      "sha256": "5056af522304524c1d9ca9b300c09ec2e5f517fe6a8d1e126e253255f8b3e328"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1426,
+      "secao": "Média e mediana não são a mesma coisa",
+      "tipo": "tabela_markdown",
+      "sha256": "6a94bf4f7c04f607db84b1b7d1872ea6524e9863da1ee0fa1fa0d846280899b7"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1454,
+      "secao": "Percentil: o que quer dizer p99",
+      "tipo": "bloco_numerico",
+      "sha256": "b71178e7876a676b643c379e0eec6292934616724b6e8b388f3ab86630d45f02"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1495,
+      "secao": "Por que a média mente",
+      "tipo": "bloco_numerico",
+      "sha256": "27d03d47cdb3439bb732ed665b105f13eba7b50bd5e9725f8ec23e71d846d0e0"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1550,
+      "secao": "8. Síntese: os dois caminhos lado a lado",
+      "tipo": "tabela_markdown",
+      "sha256": "b88177044fb1e476ab9f9f7747a56c45ced6654308e4c6af2693af92274a1fc4"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1580,
+      "secao": "Da observação à escolha de arquitetura",
+      "tipo": "tabela_markdown",
+      "sha256": "3f1c9a0e768cebc016fdb972b3a9d1d633681f72bb7dd5765047da9371ffe2a4"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1609,
+      "secao": "9. Validação: reproduza na sua máquina",
+      "tipo": "tabela_markdown",
+      "sha256": "b1d396a7822dfbe8612e27589c4a412652323cf3d33f584501885f18115bcbcc"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1686,
+      "secao": "10. Confronto com a literatura",
+      "tipo": "tabela_markdown",
+      "sha256": "e82f64cdc9ffccb139cd40d331020c6b074f840a13f82f0a4295f644bc445bd2"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1712,
+      "secao": "Sincronização: confronto com a referência canônica",
+      "tipo": "tabela_markdown",
+      "sha256": "24b2328b38e3e43d71a09cb63ae7014f3260b554f378f4b6a61d289f449c8c14"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1723,
+      "secao": "Sincronização: confronto com a referência canônica",
+      "tipo": "tabela_markdown",
+      "sha256": "18623a7657be2a8b2745e3687b73bd0bd4a8cc7fdc23d084fd477037282ba425"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1872,
+      "secao": "11.1 A travessia, medida",
+      "tipo": "tabela_markdown",
+      "sha256": "8bed884ad710c4a245d367ff36c5c8b26f61ccbd4a46b4f63e0219a3c9db131f"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 1940,
+      "secao": "13. Referências externas",
+      "tipo": "tabela_markdown",
+      "sha256": "981f2329abab17bd056c826e0bf6fd9b0440a78f9bbe2cc383146d6d831d653c"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 79,
+      "secao": "1. O que este módulo acrescenta às fontes existentes",
+      "tipo": "tabela_markdown",
+      "sha256": "83b77cd8b068a5abca4d4edfdf769d33794581cebb593a852b07ff2ff7330b29"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 116,
+      "secao": "2. O custo de existir: quanto a EAL leva para nascer",
+      "tipo": "bloco_numerico",
+      "sha256": "275aafec6bcfc8a6d0fd78f39b3fff6f1a3ed34efaf90b3f24591b2a2f1c40e1"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 145,
+      "secao": "2.1 De onde vêm os 123 ms",
+      "tipo": "tabela_markdown",
+      "sha256": "0d559a3da014e8bce70432530b177c99cf337014dac96276aae8135a28062842"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 183,
+      "secao": "2.1 De onde vêm os 123 ms",
+      "tipo": "bloco_numerico",
+      "sha256": "b301bdaedccf686954a228ff740359860069e7841351836bf46e7dc04ef1e251"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 244,
+      "secao": "2.3 O que isso decide na arquitetura",
+      "tipo": "tabela_markdown",
+      "sha256": "b423301fe66be19dbed7f49af3f7fe19a297166e4401797d396bc5b0a89f985b"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 339,
+      "secao": "3.3 Os três graus de \"não deixar rastro\"",
+      "tipo": "tabela_markdown",
+      "sha256": "1a1a37d9987486322c0e98da9d52051cef4d09cf4aff426f43d881a16a8d01f8"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 413,
+      "secao": "4.2 Como o secundário encontra a memória",
+      "tipo": "tabela_markdown",
+      "sha256": "71f89e6a5b0591bd6bce591ffe5eead26aade38c38843f55d9e92d9d0458b351"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 558,
+      "secao": "4.5 O que desliga o modelo multiprocesso sem avisar",
+      "tipo": "tabela_markdown",
+      "sha256": "1979e73621dd57ccf8d1b2b0a6fe0c0317993511871d8a440e744487856e6c6e"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 605,
+      "secao": "4.6 Quanto custa atravessar a fronteira",
+      "tipo": "bloco_numerico",
+      "sha256": "0d8b3f6288e10f0356ceb8234c378fed8fd5e81b1d396b0c77ce79a17fde7c89"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 771,
+      "secao": "6. IOVA: o endereço que o dispositivo enxerga",
+      "tipo": "tabela_markdown",
+      "sha256": "a1a0e8b8e3d4b131b52a00172ccac4671717dbda6121bf6c79b51ace106d18ad"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 859,
+      "secao": "7. Encerramento: o que fica para trás",
+      "tipo": "tabela_markdown",
+      "sha256": "5b0c9217cdbce56677de8a369cb7986e0b06edad45240ad9de545c8587881162"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 886,
+      "secao": "8. Síntese: o runtime do feed handler",
+      "tipo": "tabela_markdown",
+      "sha256": "f6cb236162e49620126b382fb439812846c461b52ad713cd7e8f1bb233f06cb7"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 1028,
+      "secao": "10.4 Detecção de ausência e reconstrução de estado",
+      "tipo": "tabela_markdown",
+      "sha256": "a680b786495df42bb824897533a909040bfcb3e400621b7f119d608bb3b242b9"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 1121,
+      "secao": "13. Navegação",
+      "tipo": "tabela_markdown",
+      "sha256": "1defc4f80e2ae3c39852de0b392bbf49e150451ca4864976fad9cc8c3dfdd3ef"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 18,
+      "secao": "Mempool, ring e mbuf — o modelo de dados do DPDK",
+      "tipo": "tabela_markdown",
+      "sha256": "cb72aacdadc28e243a6afcf9e4036f26f3ae02c8a9e05b66acdf3ad1aa01ff21"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 69,
+      "secao": "1. Por que não usar `malloc()` — a resposta medida",
+      "tipo": "bloco_numerico",
+      "sha256": "2e221119f1590af48a8e4e99040a2abe4abe715c2de3935288c6d3360b46e087"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 106,
+      "secao": "1.2 Dimensionamento: limites e recomendações",
+      "tipo": "tabela_markdown",
+      "sha256": "16a6478dbd80dad8b7c0e67b17e76bd50bfdd31cca7c9d7fde09e7ef0f514bf5"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 131,
+      "secao": "1.3 O lote muda de sinal entre os dois",
+      "tipo": "bloco_numerico",
+      "sha256": "14ee51a27fe17ce186c14e5ec75944ac798a8706dceaa2e45852f5243c955a8e"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 181,
+      "secao": "2. O mbuf: quatro números que parecem redundantes",
+      "tipo": "bloco_numerico",
+      "sha256": "eb46b419283cd9d214d4108d714eab902b2742d533ae4eb73f7f6d3a96bde31a"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 288,
+      "secao": "2.4 Posse: quem libera",
+      "tipo": "tabela_markdown",
+      "sha256": "202c753512434d518a531ceeaaaafcc64f525775309fe643baa36455b395db34"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 305,
+      "secao": "3. O anel: o preço da generalidade",
+      "tipo": "bloco_numerico",
+      "sha256": "daa76c2b7c9d4e055652bebffe674ba2dc7b0282c4184c56975abafdb58321c3"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 362,
+      "secao": "3.1 `_bulk` e `_burst` não são sinônimos",
+      "tipo": "tabela_markdown",
+      "sha256": "733444ebfad15508e3e54b6f82c6fc05db78fdcfccce7adbc656a4354a45c54e"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 493,
+      "secao": "6.1 O degrau: `get_bulk` não entrega lote parcial",
+      "tipo": "tabela_markdown",
+      "sha256": "138622c9479008925c9f6f7db7278cca2bf1c617e01922d867e6d61e5cd14b0b"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 528,
+      "secao": "6.2 A regra 4, confrontada — e corrigida",
+      "tipo": "tabela_markdown",
+      "sha256": "c5738905a71ae0f061eb7fc88e3b4337edd9ed1f423346ea4f115122183550f3"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 567,
+      "secao": "6.4 Política de posse e progresso",
+      "tipo": "tabela_markdown",
+      "sha256": "f633bccef8c1980dd78e6c62784b56704ff8732cbfa72293bd1d61689a694efd"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 643,
+      "secao": "9. Navegação",
+      "tipo": "tabela_markdown",
+      "sha256": "2d1a1a467c39df56751d8aa28ea92cb61ad57603a18a14a8d11a07f2ace024c0"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 100,
+      "secao": "3. Trade-offs",
+      "tipo": "tabela_markdown",
+      "sha256": "dddb363d4d797529ddc8c7752ea2cf17c557cc2239cd70a010c6829693d55f1c"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 141,
+      "secao": "3. Trade-offs",
+      "tipo": "tabela_markdown",
+      "sha256": "acfcafdfad805dff0f72964f01047018a94479a87917987593bbfc2444f0adbc"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 201,
+      "secao": "4. Implementação",
+      "tipo": "tabela_markdown",
+      "sha256": "7ff65b3b1e23334efea6a33c82fcbe61595aa0a0ef47b8f0681412987aac0730"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 225,
+      "secao": "4. Implementação",
+      "tipo": "bloco_numerico",
+      "sha256": "0314cca9f9f6dd8332520a4ab338c3aa12a797d68d0832444a122927e01e2f3f"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 249,
+      "secao": "4. Implementação",
+      "tipo": "tabela_markdown",
+      "sha256": "77b7a3c0d7105145ab1fa48365feab26f23d3df01bc7c32e92774eb0b702ad35"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 336,
+      "secao": "6.3 O que a medição mostra",
+      "tipo": "tabela_markdown",
+      "sha256": "885386cabe517a9c1fdd27943178b3e5387abb073a4d42c0882e5d00d35480fc"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
+      "linha": 28,
+      "secao": "1. Fundamento: o que \"C++23 puro\" significa aqui",
+      "tipo": "tabela_markdown",
+      "sha256": "c7e0246f5ce85721c12355edf607ba70b4440c3e2469474ac92dc00be0453cf7"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
+      "linha": 65,
+      "secao": "3. Medição — e por que ela **não** significa o que parece",
+      "tipo": "tabela_markdown",
+      "sha256": "9c994946e9161dd31aff6c8997311b58ddee6eac8d2f904d7881cf72edaaa327"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
+      "linha": 117,
+      "secao": "Outros cenários, sem antecipar o resultado de rede",
+      "tipo": "tabela_markdown",
+      "sha256": "735c06389a560104a6b810e17ad1f2c56d54276e1dfe536b467a396505d75742"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
+      "linha": 144,
+      "secao": "Outros cenários, sem antecipar o resultado de rede",
+      "tipo": "tabela_markdown",
+      "sha256": "96c6af7ba63fbc1685eac5910ed85dc24dbec9b8f935d900671e4634c5e102b8"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
+      "linha": 204,
+      "secao": "Outros cenários, sem antecipar o resultado de rede",
+      "tipo": "tabela_markdown",
+      "sha256": "9473650589542a2c7e893ecad14e3e1a87768ad9cc21d94cc0e3c62e3f062fa4"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
+      "linha": 219,
+      "secao": "Outros cenários, sem antecipar o resultado de rede",
+      "tipo": "tabela_markdown",
+      "sha256": "06cf61fb335ab2bb8bddea29ffee8856928c5f79e8ba0705f6ab35fd3f362589"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
+      "linha": 263,
+      "secao": "Controles que faltam para explicar as diferenças",
+      "tipo": "tabela_markdown",
+      "sha256": "4c62e7a19ee91a771f19179addb084d8f5d99d12a6606f17fd60d624f3999002"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
+      "linha": 283,
+      "secao": "Critério de escolha para o problema atual",
+      "tipo": "tabela_markdown",
+      "sha256": "10ff1ac81624e7808ff33e4e21176bf9b52ca1223c5323cc9b31e72e0eb778a0"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
+      "linha": 326,
+      "secao": "5. Implementação e validação",
+      "tipo": "tabela_markdown",
+      "sha256": "87fd8f01987d348ad69eab30f6c9e963f152177f7167f945586d2c13d26b2216"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
+      "linha": 335,
+      "secao": "5. Implementação e validação",
+      "tipo": "bloco_numerico",
+      "sha256": "43dce893fc22d36c9648ff7e134e9f56e2f80a88e111275e497b2bb6e14c20c0"
+    },
+    {
+      "arquivo": "trilha/04-projeto-final/README.md",
+      "linha": 35,
+      "secao": "Responsabilidades e ordem de integração",
+      "tipo": "tabela_markdown",
+      "sha256": "2ab71cc5580da6e1b1761c54cf3dce8d7ac08448df9b93101b4ec29430a87e66"
+    },
+    {
+      "arquivo": "trilha/04-projeto-final/README.md",
+      "linha": 55,
+      "secao": "As três comparações",
+      "tipo": "tabela_markdown",
+      "sha256": "74ca5a3354511fb5aa3afaf2510ff4f08bd6bb7e9f1f122f2f609e03ebfe7017"
+    },
+    {
+      "arquivo": "trilha/04-projeto-final/README.md",
+      "linha": 74,
+      "secao": "O que aperta: o orçamento",
+      "tipo": "tabela_markdown",
+      "sha256": "cadfc5392c09594b5387f3ba1d96c7f8087fa5b96154a63e095887bba7d1d1e8"
+    },
+    {
+      "arquivo": "trilha/04-projeto-final/README.md",
+      "linha": 98,
+      "secao": "Onde o DPDK ganha e onde perde",
+      "tipo": "tabela_markdown",
+      "sha256": "0307c5052a0ad87c8048e0c52fd97c2a02fb3b15d899f34d243b9200fba10987"
+    },
+    {
+      "arquivo": "trilha/04-projeto-final/README.md",
+      "linha": 176,
+      "secao": "Navegação",
+      "tipo": "tabela_markdown",
+      "sha256": "955788e608a2e76e881a84f1543d2878cae70286d033ef8b97bef0e81ea86dbd"
+    },
+    {
+      "arquivo": "docs/avaliacoes/evidencias/2026-09-14-controle-anel/tabela.md",
+      "linha": 5,
+      "secao": "Controle do anel SPSC",
+      "tipo": "tabela_markdown",
+      "sha256": "42606521eba599930b17eddc3a29aa45c16933d5a61c766810d1067c46e3b103"
+    },
+    {
+      "arquivo": "docs/avaliacoes/evidencias/2026-09-15-controle-anel-validado/tabela.md",
+      "linha": 5,
+      "secao": "Controle do anel SPSC",
+      "tipo": "tabela_markdown",
+      "sha256": "ce18f2700397fda59070f806e439496fc3ff58ebf23c6cd73467f3b82056cfac"
+    }
+  ]
+}

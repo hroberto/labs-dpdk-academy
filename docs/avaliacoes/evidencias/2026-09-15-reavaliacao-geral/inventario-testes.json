@@ -1,0 +1,782 @@
+[
+  {
+    "name": "docs - ancoras de linha atualizadas",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:docs"
+    ],
+    "cmd": [
+      "/usr/bin/python3",
+      "/home/henrique/workspaces/dpdk_academy/scripts/verificar-ancoras.py",
+      "/home/henrique/workspaces/dpdk_academy"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "docs - autoteste do verificador de ancoras",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:docs"
+    ],
+    "cmd": [
+      "/usr/bin/python3",
+      "/home/henrique/workspaces/dpdk_academy/scripts/verificar-ancoras.py",
+      "--autoteste"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "docs - links e ancoras de titulo",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:docs"
+    ],
+    "cmd": [
+      "/usr/bin/python3",
+      "/home/henrique/workspaces/dpdk_academy/scripts/verificar-links.py",
+      "/home/henrique/workspaces/dpdk_academy"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "docs - numeros retratados nao sobrevivem",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:docs"
+    ],
+    "cmd": [
+      "/usr/bin/python3",
+      "/home/henrique/workspaces/dpdk_academy/scripts/verificar-retratacoes.py",
+      "/home/henrique/workspaces/dpdk_academy"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "docs - autoteste do verificador de retratacoes",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:docs"
+    ],
+    "cmd": [
+      "/usr/bin/python3",
+      "/home/henrique/workspaces/dpdk_academy/scripts/verificar-retratacoes.py",
+      "--autoteste"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "docs - aritmetica publicada fecha",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:docs"
+    ],
+    "cmd": [
+      "/usr/bin/python3",
+      "/home/henrique/workspaces/dpdk_academy/scripts/verificar-aritmetica.py",
+      "/home/henrique/workspaces/dpdk_academy"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "docs - autoteste do verificador de aritmetica",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:docs"
+    ],
+    "cmd": [
+      "/usr/bin/python3",
+      "/home/henrique/workspaces/dpdk_academy/scripts/verificar-aritmetica.py",
+      "--autoteste"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "docs - autodescricao corresponde ao disco",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:docs"
+    ],
+    "cmd": [
+      "/usr/bin/python3",
+      "/home/henrique/workspaces/dpdk_academy/scripts/verificar-autodescricao.py",
+      "/home/henrique/workspaces/dpdk_academy"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "docs - autoteste do verificador de autodescricao",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:docs"
+    ],
+    "cmd": [
+      "/usr/bin/python3",
+      "/home/henrique/workspaces/dpdk_academy/scripts/verificar-autodescricao.py",
+      "--autoteste"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "scripts - L1 (modelo de driver de NIC)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:scripts"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/scripts/tests/l1_lib_nic.sh"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "scripts - L1 (veredito AF_XDP zero-copy)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:scripts"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/scripts/tests/l1_xdp.sh"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "scripts - L1 (bitmask AF_XDP)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:scripts"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/scripts/tests/l1_xdp_bitmask.sh"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "scripts - L1 (camada netlink de xdp-features.py)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:scripts"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/scripts/tests/l1_xdp_netlink.sh"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "scripts - L1 (xdp-zerocopy.sh com fontes controladas)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:scripts"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/scripts/tests/l1_xdp_zerocopy.sh"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "fundamentos - L1 (estatistica)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:fundamentos"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/01-fundamentos/medicoes/test_l1_statistics"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "fundamentos - custo-mckenney (L3)",
+    "suite": [
+      "dpdk-academy:l3",
+      "dpdk-academy:fundamentos"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/01-fundamentos/medicoes/custo-mckenney"
+    ],
+    "timeout": 300,
+    "is_parallel": true
+  },
+  {
+    "name": "fundamentos - L2 (orcamento estourado)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:fundamentos"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/01-fundamentos/medicoes/orcamento-estourado"
+    ],
+    "timeout": 120,
+    "is_parallel": true
+  },
+  {
+    "name": "fundamentos - custo-syscall executa",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:fundamentos"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/01-fundamentos/medicoes/custo-syscall"
+    ],
+    "timeout": 120,
+    "is_parallel": true
+  },
+  {
+    "name": "fundamentos - efeito-cache executa",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:fundamentos"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/01-fundamentos/medicoes/efeito-cache"
+    ],
+    "timeout": 180,
+    "is_parallel": true
+  },
+  {
+    "name": "fundamentos - custo-traducao (L3)",
+    "suite": [
+      "dpdk-academy:l3",
+      "dpdk-academy:fundamentos"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/01-fundamentos/medicoes/custo-traducao"
+    ],
+    "timeout": 300,
+    "is_parallel": true
+  },
+  {
+    "name": "fundamentos - custo-comunicacao (L3)",
+    "suite": [
+      "dpdk-academy:l3",
+      "dpdk-academy:fundamentos"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/01-fundamentos/medicoes/custo-comunicacao"
+    ],
+    "timeout": 180,
+    "is_parallel": true
+  },
+  {
+    "name": "fundamentos - custo-espera executa",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:fundamentos"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/01-fundamentos/medicoes/custo-espera"
+    ],
+    "timeout": 300,
+    "is_parallel": true
+  },
+  {
+    "name": "fundamentos - custo-espera-cpp executa",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:fundamentos"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/01-fundamentos/medicoes/custo-espera-cpp"
+    ],
+    "timeout": 300,
+    "is_parallel": true
+  },
+  {
+    "name": "scripts - L1 (apuracao e mutacoes)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:scripts"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/scripts/tests/l1_apuracao.sh"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "02-runtime - L1 (FAIL e SKIP dos runners multiprocesso)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:runtime"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/docs/02-runtime-dpdk/medicoes/tests/l1_multiprocesso.sh"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "02-runtime - L1 (livro de ofertas)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:runtime"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/02-runtime-dpdk/medicoes/test_l1_order_book"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "02-runtime - L2 (custo de init)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:runtime"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/02-runtime-dpdk/medicoes/custo-init",
+      "-l",
+      "0",
+      "--no-huge",
+      "--file-prefix=academy_custo_init"
+    ],
+    "timeout": 300,
+    "is_parallel": true
+  },
+  {
+    "name": "02-runtime - L2 (init invalida deve falhar)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:runtime"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/02-runtime-dpdk/medicoes/custo-init",
+      "-l",
+      "0",
+      "--no-huge",
+      "--dpdk-academy-opcao-invalida"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "02-runtime - L2 (estados do lcore)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:runtime"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/02-runtime-dpdk/medicoes/estado-lcore",
+      "-l",
+      "0-1",
+      "--no-huge",
+      "--file-prefix=academy_estado_lcore"
+    ],
+    "timeout": 120,
+    "is_parallel": true
+  },
+  {
+    "name": "02-runtime - L3 (primario + secundario)",
+    "suite": [
+      "dpdk-academy:l3",
+      "dpdk-academy:runtime"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/build/../docs/02-runtime-dpdk/medicoes/tests/l3_multiprocesso.sh",
+      "docs/02-runtime-dpdk/medicoes/feed-primario",
+      "docs/02-runtime-dpdk/medicoes/feed-secundario"
+    ],
+    "timeout": 180,
+    "is_parallel": true
+  },
+  {
+    "name": "02-runtime - L3 (primario morre, secundario invalida)",
+    "suite": [
+      "dpdk-academy:l3",
+      "dpdk-academy:runtime"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/build/../docs/02-runtime-dpdk/medicoes/tests/l3_primario_morre.sh",
+      "docs/02-runtime-dpdk/medicoes/feed-primario",
+      "docs/02-runtime-dpdk/medicoes/feed-secundario"
+    ],
+    "timeout": 180,
+    "is_parallel": true
+  },
+  {
+    "name": "02-runtime - L1 (saude e geracao)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:runtime"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/02-runtime-dpdk/medicoes/test_l1_feed_health"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "02-runtime - L3 (reinicio em nova geracao)",
+    "suite": [
+      "dpdk-academy:l3",
+      "dpdk-academy:runtime"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/build/../docs/02-runtime-dpdk/medicoes/tests/l3_recuperacao.sh",
+      "docs/02-runtime-dpdk/medicoes/feed-primario",
+      "docs/02-runtime-dpdk/medicoes/feed-secundario",
+      "/home/henrique/workspaces/dpdk_academy/scripts/feed-supervisor.py"
+    ],
+    "timeout": 180,
+    "is_parallel": true
+  },
+  {
+    "name": "03-nivel4 - L1 (dimensionamento de mempool)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:nivel4"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/03-mempool-ring-mbuf/medicoes/test_l1_sizing"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "03-nivel4 - L2 (custo de alocacao)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:nivel4"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/03-mempool-ring-mbuf/medicoes/custo-alocacao",
+      "-l",
+      "0",
+      "--no-huge",
+      "--file-prefix=academy_custo_alocacao"
+    ],
+    "timeout": 300,
+    "is_parallel": true
+  },
+  {
+    "name": "03-nivel4 - L2 (coleta invalida deve falhar)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:nivel4"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/build/../docs/03-mempool-ring-mbuf/medicoes/tests/l2_coleta_invalida.sh",
+      "docs/03-mempool-ring-mbuf/medicoes/custo-alocacao-invalido"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "03-nivel4 - L2 (pool esgotado e regra 4)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:nivel4"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/03-mempool-ring-mbuf/medicoes/pool-esgotado",
+      "-l",
+      "0",
+      "--no-huge",
+      "--file-prefix=academy_pool_esgotado"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "03-nivel4 - L2 (anatomia do mbuf)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:nivel4"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/03-mempool-ring-mbuf/medicoes/anatomia-mbuf",
+      "-l",
+      "0",
+      "--no-huge",
+      "--file-prefix=academy_anatomia_mbuf"
+    ],
+    "timeout": 120,
+    "is_parallel": true
+  },
+  {
+    "name": "03-nivel4 - L2 (custo do anel)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:nivel4"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/docs/03-mempool-ring-mbuf/medicoes/custo-anel",
+      "-l",
+      "0",
+      "--no-huge",
+      "--file-prefix=academy_custo_anel"
+    ],
+    "timeout": 300,
+    "is_parallel": true
+  },
+  {
+    "name": "03-nivel4 - L3 (contencao entre nucleos)",
+    "suite": [
+      "dpdk-academy:l3",
+      "dpdk-academy:nivel4"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/build/../docs/03-mempool-ring-mbuf/medicoes/tests/l3_contencao.sh",
+      "docs/03-mempool-ring-mbuf/medicoes/custo-contencao"
+    ],
+    "timeout": 300,
+    "is_parallel": true
+  },
+  {
+    "name": "01-eal-hello - L2 (EAL real)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:dpdk"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/build/../trilha/01-fundamentos/01-eal-hello/tests/l2_run.sh",
+      "trilha/01-fundamentos/01-eal-hello/hello_dpdk"
+    ],
+    "timeout": 60,
+    "is_parallel": true
+  },
+  {
+    "name": "02-mempool-ring - L1 (logica pura)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:dpdk"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/trilha/01-fundamentos/02-mempool-ring/test_l1_mempool_ring"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "02-mempool-ring - L2 (mempool + ring)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:dpdk"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/build/../trilha/01-fundamentos/02-mempool-ring/tests/l2_run.sh",
+      "trilha/01-fundamentos/02-mempool-ring/pipeline_ring"
+    ],
+    "timeout": 120,
+    "is_parallel": true
+  },
+  {
+    "name": "02-mempool-ring/alt-cpp23 - L1 (logica pura)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:alternativa"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/test_l1_alt_cpp23"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "02-mempool-ring/alt-cpp23 - L2 (binario)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:alternativa"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/build/../trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/tests/l2_run.sh",
+      "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/packet_pipeline"
+    ],
+    "timeout": 120,
+    "is_parallel": true
+  },
+  {
+    "name": "02-mempool-ring/alt-cpp23 - L2 (anel SPSC em C++23)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:alternativa"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/custo-anel-cpp"
+    ],
+    "timeout": 120,
+    "is_parallel": true
+  },
+  {
+    "name": "02-mempool-ring/alt-cpp23 - L2 (controle API em bloco)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:alternativa"
+    ],
+    "cmd": [
+      "/home/henrique/workspaces/dpdk_academy/build/trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/controle-anel",
+      "1",
+      "32",
+      "0",
+      "0",
+      "1"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "02-mempool-ring - L2 (retorno parcial e vazamento)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:dpdk"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/build/../trilha/01-fundamentos/02-mempool-ring/tests/l2_failure.sh",
+      "trilha/01-fundamentos/02-mempool-ring/pipeline_ring_vazado",
+      "leak"
+    ],
+    "timeout": 20,
+    "is_parallel": true
+  },
+  {
+    "name": "02-mempool-ring - L2 (consumidor parado)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:dpdk"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/build/../trilha/01-fundamentos/02-mempool-ring/tests/l2_failure.sh",
+      "trilha/01-fundamentos/02-mempool-ring/pipeline_ring_paused",
+      "paused"
+    ],
+    "timeout": 20,
+    "is_parallel": true
+  },
+  {
+    "name": "02-mempool-ring - L2 (dois lcores)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:dpdk"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/build/../trilha/01-fundamentos/02-mempool-ring/tests/l2_run.sh",
+      "trilha/01-fundamentos/02-mempool-ring/pipeline_ring",
+      "two"
+    ],
+    "timeout": 120,
+    "is_parallel": true
+  },
+  {
+    "name": "02-mempool-ring - L2 (consumidor parado em outro lcore)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:dpdk"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/build/../trilha/01-fundamentos/02-mempool-ring/tests/l2_failure.sh",
+      "trilha/01-fundamentos/02-mempool-ring/pipeline_ring_paused",
+      "pausedtwo"
+    ],
+    "timeout": 20,
+    "is_parallel": true
+  },
+  {
+    "name": "docs - inventario de tabelas atualizado",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:docs"
+    ],
+    "cmd": [
+      "/usr/bin/python3",
+      "/home/henrique/workspaces/dpdk_academy/scripts/inventariar-dados.py"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "dados - L1 (mutacoes da publicacao)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:dados"
+    ],
+    "cmd": [
+      "/usr/bin/python3",
+      "/home/henrique/workspaces/dpdk_academy/scripts/tests/l1_mutacoes_publicacao.py"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "dados - L2 (contrato de publicacao)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:dados"
+    ],
+    "cmd": [
+      "/usr/bin/python3",
+      "/home/henrique/workspaces/dpdk_academy/scripts/tests/l2_publicacao.py"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "runtime - L2 (supervisor e nova geracao)",
+    "suite": [
+      "dpdk-academy:l2",
+      "dpdk-academy:runtime"
+    ],
+    "cmd": [
+      "/usr/bin/python3",
+      "/home/henrique/workspaces/dpdk_academy/scripts/tests/l2_feed_supervisor.py"
+    ],
+    "timeout": 20,
+    "is_parallel": true
+  },
+  {
+    "name": "scripts - L1 (dependencias separadas do XDP)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:scripts"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/scripts/tests/l1_xdp_dependencias.sh"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  },
+  {
+    "name": "scripts - L1 (protecao de interface para captura)",
+    "suite": [
+      "dpdk-academy:l1",
+      "dpdk-academy:scripts"
+    ],
+    "cmd": [
+      "/usr/bin/bash",
+      "/home/henrique/workspaces/dpdk_academy/scripts/tests/l1_bind_guard.sh"
+    ],
+    "timeout": 30,
+    "is_parallel": true
+  }
+]

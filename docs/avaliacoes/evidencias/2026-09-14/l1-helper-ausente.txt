@@ -1,0 +1,68 @@
+== L1: decisao do diagnostico AF_XDP zero-copy ==
+  ok    - xdp_valor le a primeira chave
+  ok    - xdp_valor le uma chave do meio
+  ok    - xdp_valor le a ultima chave
+  ok    - xdp_valor devolve vazio em chave ausente
+  ok    - xdp_valor devolve vazio em valor vazio
+  ok    - xdp_valor nao confunde chave com prefixo de outra
+  ok    - campo_xdploader extrai BASIC de saida sem XDP
+  ok    - campo_xdploader extrai ZEROCOPY de saida com ZC
+  ok    - campo_xdploader devolve vazio em campo ausente
+  ok    - resposta_xdploader traduz yes
+  ok    - resposta_xdploader traduz no
+  ok    - resposta_xdploader nao inventa em valor vazio
+  ok    - resposta_xdploader nao inventa em valor estranho
+  ok    - ZC=sim vira zero-copy
+  ok    - ZC=sim vence, mesmo com BASIC ausente
+  ok    - BASIC=nao vira sem-xdp
+  ok    - ZC=nao com BASIC=sim vira nativo-sem-zc
+  ok    - tudo desconhecido vira inconclusivo
+  ok    - sem argumento nenhum vira inconclusivo
+  ok    - saida sem XDP percorre parser+classe ate sem-xdp
+  ok    - saida com ZC percorre parser+classe ate zero-copy
+  ok    - alvo que so e interface -> interface
+  ok    - alvo que so e driver -> driver
+  ok    - alvo que e os dois -> interface
+  ok    - alvo que nao e nenhum -> desconhecido
+  ok    - predicados ausentes -> desconhecido
+  ok    - motivo_netlink(0) diz alguma coisa
+  ok    - motivo_netlink(2) diz alguma coisa
+  ok    - motivo_netlink(3) diz alguma coisa
+  ok    - motivo_netlink(4) diz alguma coisa
+  ok    - motivo_netlink(5) diz alguma coisa
+  ok    - motivo_netlink(126) diz alguma coisa
+  ok    - motivo_netlink(127) diz alguma coisa
+  ok    - motivo_netlink(200) diz alguma coisa
+  ok    - motivo do codigo 3 nomeia a familia netlink
+  ok    - motivo do codigo 127 nomeia o python3
+  ok    - heuristica com 0 chamadas fala em baixa probabilidade
+  ok    - heuristica com chamadas fala em indicio
+  ok    - heuristica com 0 chamadas mantem a ressalva de nao provar ausencia
+  ok    - r8169 (0/0/0) e 'sem XDP nenhum'
+  ok    - i40e (37/7/13) e 'XDP + zero-copy'
+  ok    - ice (83/7/13) e 'XDP + zero-copy'
+  ok    - ixgbe (38/8/12) e 'XDP + zero-copy'
+  ok    - mlx5_core (59/8/43) e 'XDP + zero-copy'
+  ok    - modulo com xdp_ e sem xsk_ e 'XDP sem zero-copy'
+  ok    - chamada ao nucleo XSK sem codigo proprio ja e 'XDP + zero-copy'
+  ok    - codigo xsk_ proprio SEM chamada ao nucleo nao basta para zero-copy
+  ok    - veredito sem-xdp cita NETDEV_XDP_ACT_BASIC
+  ok    - veredito sem-xdp explica o modo generico (SKB)
+  ok    - veredito zero-copy lembra que a prova e o bind real
+  ok    - veredito nativo-sem-zc diz que a copia continua
+  ok    - veredito sem-atributo explica que o fallback le o mesmo atributo
+  ok    - veredito inconclusivo repete o motivo recebido
+  ok    - veredito inconclusivo nega explicitamente a leitura errada
+  ok    - veredito inconclusivo aponta o bind real como saida
+  ok    - classe desconhecida cai no ramo inconclusivo
+  LACUNA - scripts/xdp-features.py nao esta legivel em '/tmp/dpdk-controles-kig5icep/fixture/scripts/tests/../xdp-features.py'.
+  LACUNA   18 assercao(oes) NAO foram exercitadas nesta rodada (linhas 310-362 de /tmp/dpdk-controles-kig5icep/fixture/scripts/tests/l1_xdp.sh):
+  LACUNA     veredito a partir de bitmask (0x0, 0x1, 0x8, 0x9, 'ausente')
+  LACUNA     o unico teste do caminho 'anuncia zero-copy' que existe aqui
+  LACUNA     lista de nomes de flags, e o BIT_DESCONHECIDO nao engolido
+  LACUNA     XDP_ZC_MAX_SEGS vazio x anunciado (ausente nao e zero)
+  LACUNA     rx_metadata, xsk_features
+  LACUNA     codigo de saida 2 para valor e flag invalidos
+  LACUNA   Nada disso falhou: nada disso RODOU. Sao coisas diferentes.
+
+L1: as assercoes que rodaram passaram, com 1 bloco(s) SEM COBERTURA (ver LACUNA acima)

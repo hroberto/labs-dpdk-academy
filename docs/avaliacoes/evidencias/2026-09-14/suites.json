@@ -1,0 +1,280 @@
+{
+  "coleta": "2026-09-14",
+  "finalidade": "Verificação funcional; não é campanha de desempenho",
+  "versoes": {
+    "dpdk": "25.11.0",
+    "meson": "1.10.1",
+    "gcc": "15.2.0"
+  },
+  "comando": "CCACHE_DIR=/tmp/dpdk-ajustes-ccache DPDK_ACADEMY_AMOSTRAS=3 DPDK_ACADEMY_RODADAS=20000 meson test -C /tmp/dpdk-ajustes-20260914 --suite l1 --suite l2 --suite l3 --num-processes 1 --print-errorlogs --logbase analise-profunda-atualizada",
+  "origem_log": "/tmp/dpdk-ajustes-20260914/meson-logs/analise-profunda-atualizada.json",
+  "extracao": "Somente campos de resultados; ambiente completo da sessão omitido",
+  "totais": {
+    "EXPECTEDFAIL": 2,
+    "OK": 33,
+    "SKIP": 2
+  },
+  "testes": [
+    {
+      "name": "l1+docs - dpdk-academy:docs - ancoras de linha atualizadas",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.05495810508728027,
+      "starttime": 1789436744.3073847
+    },
+    {
+      "name": "l1+docs - dpdk-academy:docs - autoteste do verificador de ancoras",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.020704030990600586,
+      "starttime": 1789436744.3628557
+    },
+    {
+      "name": "l1+docs - dpdk-academy:docs - links e ancoras de titulo",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.02288341522216797,
+      "starttime": 1789436744.3841178
+    },
+    {
+      "name": "l1+scripts - dpdk-academy:scripts - L1 (modelo de driver de NIC)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.031824350357055664,
+      "starttime": 1789436744.4074168
+    },
+    {
+      "name": "l1+scripts - dpdk-academy:scripts - L1 (veredito AF_XDP zero-copy)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.22982525825500488,
+      "starttime": 1789436744.43965
+    },
+    {
+      "name": "l1+scripts - dpdk-academy:scripts - L1 (camada netlink de xdp-features.py)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.017348289489746094,
+      "starttime": 1789436744.6699226
+    },
+    {
+      "name": "l1+scripts - dpdk-academy:scripts - L1 (xdp-zerocopy.sh com fontes controladas)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 1.0570287704467773,
+      "starttime": 1789436744.6877692
+    },
+    {
+      "name": "l1+fundamentos - dpdk-academy:fundamentos - L1 (estatistica)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.006360292434692383,
+      "starttime": 1789436745.7452893
+    },
+    {
+      "name": "l3+fundamentos - dpdk-academy:fundamentos - custo-mckenney (L3)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 1.0092482566833496,
+      "starttime": 1789436745.752052
+    },
+    {
+      "name": "l2+fundamentos - dpdk-academy:fundamentos - L2 (orcamento estourado)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.9621906280517578,
+      "starttime": 1789436746.7618017
+    },
+    {
+      "name": "l2+fundamentos - dpdk-academy:fundamentos - custo-syscall executa",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.3108820915222168,
+      "starttime": 1789436747.7245338
+    },
+    {
+      "name": "l2+fundamentos - dpdk-academy:fundamentos - efeito-cache executa",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 10.392193794250488,
+      "starttime": 1789436748.0360944
+    },
+    {
+      "name": "l3+fundamentos - dpdk-academy:fundamentos - custo-traducao (L3)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 30.791375160217285,
+      "starttime": 1789436758.4287899
+    },
+    {
+      "name": "l3+fundamentos - dpdk-academy:fundamentos - custo-comunicacao (L3)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.39608192443847656,
+      "starttime": 1789436789.220675
+    },
+    {
+      "name": "l2+fundamentos - dpdk-academy:fundamentos - custo-espera executa",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.6962785720825195,
+      "starttime": 1789436789.6172817
+    },
+    {
+      "name": "l2+fundamentos - dpdk-academy:fundamentos - custo-espera-cpp executa",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.5095999240875244,
+      "starttime": 1789436790.3143384
+    },
+    {
+      "name": "l1+scripts - dpdk-academy:scripts - L1 (apuracao e mutacoes)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.9826197624206543,
+      "starttime": 1789436790.8244393
+    },
+    {
+      "name": "l1+runtime - dpdk-academy:02-runtime - L1 (FAIL e SKIP dos runners multiprocesso)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.8908736705780029,
+      "starttime": 1789436791.807553
+    },
+    {
+      "name": "l1+runtime - dpdk-academy:02-runtime - L1 (livro de ofertas)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.00514531135559082,
+      "starttime": 1789436792.6989717
+    },
+    {
+      "name": "l2+runtime - dpdk-academy:02-runtime - L2 (custo de init)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.8996155261993408,
+      "starttime": 1789436792.7045343
+    },
+    {
+      "name": "l2+runtime - dpdk-academy:02-runtime - L2 (init invalida deve falhar)",
+      "result": "EXPECTEDFAIL",
+      "returncode": 1,
+      "duration": 0.0036640167236328125,
+      "starttime": 1789436793.6046774
+    },
+    {
+      "name": "l2+runtime - dpdk-academy:02-runtime - L2 (estados do lcore)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.42966628074645996,
+      "starttime": 1789436793.608812
+    },
+    {
+      "name": "l3+runtime - dpdk-academy:02-runtime - L3 (primario + secundario)",
+      "result": "SKIP",
+      "returncode": 77,
+      "duration": 0.01098322868347168,
+      "starttime": 1789436794.0389225,
+      "motivo": "hugetlbfs gravável com páginas livres indisponível, conforme stdout do runner"
+    },
+    {
+      "name": "l3+runtime - dpdk-academy:02-runtime - L3 (primario morre, secundario continua)",
+      "result": "SKIP",
+      "returncode": 77,
+      "duration": 0.010907649993896484,
+      "starttime": 1789436794.050345,
+      "motivo": "hugetlbfs gravável com páginas livres indisponível, conforme stdout do runner"
+    },
+    {
+      "name": "l1+nivel4 - dpdk-academy:03-nivel4 - L1 (dimensionamento de mempool)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.0030782222747802734,
+      "starttime": 1789436794.0618997
+    },
+    {
+      "name": "l2+nivel4 - dpdk-academy:03-nivel4 - L2 (custo de alocacao)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.17585349082946777,
+      "starttime": 1789436794.0653136
+    },
+    {
+      "name": "l2+nivel4 - dpdk-academy:03-nivel4 - L2 (coleta invalida deve falhar)",
+      "result": "EXPECTEDFAIL",
+      "returncode": 1,
+      "duration": 0.14358019828796387,
+      "starttime": 1789436794.2417178
+    },
+    {
+      "name": "l2+nivel4 - dpdk-academy:03-nivel4 - L2 (pool esgotado e regra 4)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.14132952690124512,
+      "starttime": 1789436794.3858242
+    },
+    {
+      "name": "l2+nivel4 - dpdk-academy:03-nivel4 - L2 (anatomia do mbuf)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.1366875171661377,
+      "starttime": 1789436794.527797
+    },
+    {
+      "name": "l2+nivel4 - dpdk-academy:03-nivel4 - L2 (custo do anel)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.14437556266784668,
+      "starttime": 1789436794.6649559
+    },
+    {
+      "name": "l3+nivel4 - dpdk-academy:03-nivel4 - L3 (contencao entre nucleos)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.19471502304077148,
+      "starttime": 1789436794.809793
+    },
+    {
+      "name": "l2+dpdk - dpdk-academy:01-eal-hello - L2 (EAL real)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.1457059383392334,
+      "starttime": 1789436795.0049691
+    },
+    {
+      "name": "l1+dpdk - dpdk-academy:02-mempool-ring - L1 (logica pura)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.0038471221923828125,
+      "starttime": 1789436795.1512663
+    },
+    {
+      "name": "l2+dpdk - dpdk-academy:02-mempool-ring - L2 (mempool + ring)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.9240620136260986,
+      "starttime": 1789436795.1554425
+    },
+    {
+      "name": "l1+alternativa - dpdk-academy:02-mempool-ring/alt-cpp23 - L1 (logica pura)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.004299163818359375,
+      "starttime": 1789436796.0799537
+    },
+    {
+      "name": "l2+alternativa - dpdk-academy:02-mempool-ring/alt-cpp23 - L2 (binario)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.05980181694030762,
+      "starttime": 1789436796.0847309
+    },
+    {
+      "name": "l2+alternativa - dpdk-academy:02-mempool-ring/alt-cpp23 - L2 (anel SPSC em C++23)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 0.006001710891723633,
+      "starttime": 1789436796.1449888
+    }
+  ]
+}

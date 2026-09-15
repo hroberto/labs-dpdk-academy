@@ -1,0 +1,12 @@
+{
+  "comando": "meson test -C /tmp/dpdk-ajustes-20260914 \"runtime - L2 (supervisor e nova geracao)\" --print-errorlogs --logbase supervisor-prefixo-final",
+  "entradas": [
+    {
+      "name": "l2+runtime - dpdk-academy:runtime - L2 (supervisor e nova geracao)",
+      "result": "OK",
+      "returncode": 0,
+      "duration": 1.6882598400115967,
+      "stdout": "OK: reinicio apos consumo; geracoes, ordem e ausencia de processos antigos conferidas\nOK: rejeita no_active e preserva recurso alheio\nOK: rejeita no_final_valid e preserva recurso alheio\n"
+    }
+  ]
+}
