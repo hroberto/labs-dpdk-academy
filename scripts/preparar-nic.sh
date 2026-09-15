@@ -51,6 +51,10 @@ done
 
 # shellcheck source=lib-nic.sh
 . "$(dirname "$0")/lib-nic.sh"
+# shellcheck source=lib-apuracao.sh
+. "$(dirname "$0")/lib-apuracao.sh" || { echo "nao consegui carregar lib-apuracao.sh" >&2; exit 1; }
+# shellcheck source=lib-bind-guard.sh
+. "$(dirname "$0")/lib-bind-guard.sh" || { echo "nao consegui carregar lib-bind-guard.sh" >&2; exit 1; }
 
 erro() { printf '  RECUSADO - %s\n' "$1" >&2; }
 ok()   { printf '  ok    - %s\n' "$1"; }
@@ -156,6 +160,25 @@ if [ -n "$IFACE" ] && [ "$IFACE" = "$DEFAULT_IFACE" ]; then
     exit 1
 fi
 ok "${IFACE:-(sem interface)} nao carrega a rota default (${DEFAULT_IFACE:-nenhuma})"
+
+# TRAVA 1b -- a mesma pergunta, FECHANDO quando nao consegue apurar.
+#
+# A TRAVA 1 acima compara duas strings. Se `ip route show default` falhar,
+# `DEFAULT_IFACE` fica vazio, a comparacao da falsa, e o script LIBERA -- o
+# caminho preguicoso e o perigoso. `nic_bind_guard` responde a mesma pergunta e
+# recusa quando a apuracao nao acontece: rota inacessivel, flags ilegiveis,
+# arquivo de estado ausente. Recusa tambem interface UP, que a TRAVA 1 nao ve.
+#
+# As duas coexistem de proposito: a primeira da a mensagem especifica que o
+# leitor precisa ("$IFACE carrega a rota default"), e esta fecha o caso em que
+# nao houve resposta. Uma responde "nao e"; a outra, "e eu verifiquei".
+if ! nic_bind_guard "$BDF"; then
+    erro "trava de captura recusou $BDF: $NIC_BIND_REASON"
+    echo "         Recusar e o modo de falha seguro: liberar aqui seria afirmar," >&2
+    echo "         sem ter apurado, que bindar esta placa nao custa nada." >&2
+    exit 1
+fi
+ok "trava de captura: rotas e estado das interfaces apurados"
 
 # TRAVA 2 -- endereço configurado indica uso.
 if [ -n "$IFACE" ] && ip -br addr show "$IFACE" 2>/dev/null | grep -qE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'; then
