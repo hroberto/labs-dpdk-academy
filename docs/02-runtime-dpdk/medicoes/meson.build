@@ -54,6 +54,33 @@ feed_secundario = executable(
 #
 # livro.c não inclui nada do DPDK. É a única parte deste módulo que se testa em
 # milissegundos, e a razão pela qual a separação existe.
+# A logica de saude do feed -- HEALTHY / SILENT / STALE / WRONG_GENERATION --
+# nao tinha NENHUMA cobertura executada: o teste existia no disco e nao era
+# compilado nem registrado. E o contrato que distingue "o primario esta vivo" de
+# "os dados estao atuais", que e a diferenca entre heartbeat e frescor: um feed
+# pode bater o coracao e publicar dado velho.
+if gtest_dep.found()
+  test_l1_feed_health = executable(
+    'test_l1_feed_health',
+    ['tests/test_l1_feed_health.cpp'],
+    dependencies : [gtest_dep],
+    include_directories : [runtime_inc],
+    install : false,
+  )
+  test(
+    '02-runtime - L1 (saude do feed)',
+    test_l1_feed_health,
+    protocol : 'gtest',
+    suite : ['l1', 'runtime'],
+    timeout : 30,
+  )
+else
+  test('02-runtime - L1 (saude do feed)', bash,
+       args : [meson.project_source_root() / 'ferramental/qualidade/pular-sem-gtest.sh',
+               '02-runtime - L1 (saude do feed)'],
+       suite : ['l1', 'runtime'], timeout : 30)
+endif
+
 if gtest_dep.found()
   test_l1_order_book = executable(
     'test_l1_order_book',
@@ -143,6 +170,25 @@ test(
   timeout : 180,
 )
 
+
+# --- L3: o primario cai e a sessao se recupera -----------------------------
+#
+# Exercita o supervisor: primario morto por injecao, secundario detectando a
+# mudanca de geracao, e a sessao seguinte publicando de novo. E o contrato de
+# RECUPERACAO, que SECURITY.md e a matriz de requisitos tratam no mesmo patamar
+# da trava -- e que nao tinha nenhuma execucao: o script existia no disco e
+# nunca foi registrado em meson.build nenhum.
+#
+# L3 porque exige hugetlbfs gravavel com paginas livres; onde faltar, o proprio
+# script sai com 77 e o Meson conta como PULADO.
+test(
+  '02-runtime - L3 (recuperacao apos queda do primario)',
+  bash,
+  args : [files('tests/l3_recuperacao.sh'), feed_primario, feed_secundario,
+          meson.project_source_root() / 'scripts/feed-supervisor.py'],
+  suite : ['l3', 'runtime'],
+  timeout : 300,
+)
 # EIXO DE FALHA (ROADMAP, Etapa 7.5): o mesmo par de processos, mas com o
 # primário morto por SIGKILL no meio da publicação. Também L3, e pelo mesmo
 # motivo: sem hugetlbfs compartilhado não há o que derrubar.

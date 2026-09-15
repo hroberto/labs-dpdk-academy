@@ -175,6 +175,16 @@ else
 endif
 
 # Classificacao do modelo de driver de NIC (captura total x bifurcado).
+if python3.found()
+  test('scripts - L1 (preparar NIC: recusas e restauracao)', python3,
+       args : [meson.project_source_root() / 'scripts/tests/l1_preparar_nic.py'],
+       suite : ['l1', 'scripts'], timeout : 60)
+else
+  test('scripts - L1 (preparar NIC: recusas e restauracao)', bash,
+       args : ['-c', 'echo "SKIP: python3 ausente; contrato de preparar-nic nao executado"; exit 77'],
+       suite : ['l1', 'scripts'], timeout : 30)
+endif
+
 #
 # E L1 porque e logica pura: recebe o vendor PCI como argumento e nao toca em
 # hardware. Existe para que o caminho da Mellanox -- que nenhuma placa desta
@@ -196,6 +206,32 @@ endif
 # ANTES de consultar o host, sem exigir root para recusar argumento.
 #
 # Estava no disco e nao estava registrado: rodava so se alguem lembrasse.
+# As duas pecas mais densas em cenario negativo do ferramental de publicacao
+# estavam no disco sem registro. Nao sao acessorias: l2_publicacao.py exercita
+# os caminhos em que uma coleta NAO pode virar numero (execucao que falhou,
+# execucao ausente, comando divergente, ambiente que falhou), e
+# l1_mutacoes_publicacao.py e teste de MUTACAO -- remove cada contrato da
+# bateria e exige que a bateria acuse a remocao.
+#
+# Teste de mutacao e a unica prova automatica de nao-vacuidade que existe: ele
+# demonstra, a cada execucao, que detecta a ausencia daquilo que protege.
+if python3.found()
+  test('scripts - L1 (mutacoes da publicacao)', python3,
+       args : [meson.project_source_root() / 'scripts/tests/l1_mutacoes_publicacao.py'],
+       suite : ['l1', 'scripts'], timeout : 120)
+
+  test('scripts - L2 (contrato de publicacao)', python3,
+       args : [meson.project_source_root() / 'scripts/tests/l2_publicacao.py'],
+       suite : ['l2', 'scripts'], timeout : 120)
+else
+  foreach nome : ['scripts - L1 (mutacoes da publicacao)',
+                  'scripts - L2 (contrato de publicacao)']
+    test(nome, bash,
+         args : [meson.project_source_root() / 'ferramental/qualidade/pular-sem-python3.sh', nome],
+         suite : ['l1', 'scripts'], timeout : 30)
+  endforeach
+endif
+
 test('scripts - L1 (trava de bind e contrato do alvo)', bash,
      args : [meson.project_source_root() / 'scripts/tests/l1_bind_guard.sh'],
      suite : ['l1', 'scripts'], timeout : 60)
