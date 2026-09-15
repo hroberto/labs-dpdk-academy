@@ -1144,7 +1144,7 @@ operacional, e não cabe num módulo de runtime.
   NUMA, falso compartilhamento e métricas
 - [Tópico 01 — Inicialização da EAL](../../trilha/01-fundamentos/01-eal-hello/) —
   o programa mínimo e o contrato de `rte_eal_init()`
-- [Mapa de links do DPDK](../../scripts/mapa-links-dpdk.md) — registro canônico
+- [Mapa de links do DPDK](../../ferramental/qualidade/mapa-links-dpdk.md) — registro canônico
   dos símbolos citados
 
 ---

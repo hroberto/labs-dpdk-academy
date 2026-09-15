@@ -25,9 +25,9 @@ não cobre todos os números em prosa. Alterar um bloco exige revisar o inventá
 não apenas aceitar automaticamente o hash novo.
 
 ```bash
-python3 scripts/inventariar-dados.py
+python3 ferramental/qualidade/inventariar-dados.py
 # Depois de revisar as mudanças de conteúdo:
-python3 scripts/inventariar-dados.py --atualizar
+python3 ferramental/qualidade/inventariar-dados.py --atualizar
 ```
 
 As campanhas D09 são a [coleta anterior](evidencias/2026-09-14-controle-anel/tabela.md)

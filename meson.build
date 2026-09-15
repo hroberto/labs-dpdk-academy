@@ -70,7 +70,7 @@ bash = find_program('bash')
 python3 = find_program('python3', required : false)
 if python3.found()
   test('docs - ancoras de linha atualizadas', python3,
-       args : [meson.project_source_root() / 'scripts/verificar-ancoras.py',
+       args : [meson.project_source_root() / 'ferramental/qualidade/verificar-ancoras.py',
                meson.project_source_root()],
        suite : ['l1', 'docs'], timeout : 60)
 
@@ -89,7 +89,7 @@ if python3.found()
   # a checagem de conteudo; NAO trava a reincidencia do heredoc que motivou sua
   # criacao. Registrar e melhor que nao registrar, e nao equivale a cobrir.
   test('docs - autoteste do verificador de ancoras', python3,
-       args : [meson.project_source_root() / 'scripts/verificar-ancoras.py',
+       args : [meson.project_source_root() / 'ferramental/qualidade/verificar-ancoras.py',
                '--autoteste'],
        suite : ['l1', 'docs'], timeout : 60)
 
@@ -97,7 +97,7 @@ if python3.found()
   # cada espaco vira um hifen, sem colapsar. Um validador que colapse deixa
   # passar ancora morta em titulo com travessao.
   test('docs - links e ancoras de titulo', python3,
-       args : [meson.project_source_root() / 'scripts/verificar-links.py',
+       args : [meson.project_source_root() / 'ferramental/qualidade/verificar-links.py',
                meson.project_source_root()],
        suite : ['l1', 'docs'], timeout : 60)
 
@@ -110,7 +110,7 @@ if python3.found()
   # retratava. Quem errou conhecia a regra e tinha acabado de escreve-la.
   # Correcao manual nao escala para "nenhum numero retratado sobrevive".
   test('docs - numeros retratados nao sobrevivem', python3,
-       args : [meson.project_source_root() / 'scripts/verificar-retratacoes.py',
+       args : [meson.project_source_root() / 'ferramental/qualidade/verificar-retratacoes.py',
                meson.project_source_root()],
        suite : ['l1', 'docs'], timeout : 60)
 
@@ -118,7 +118,7 @@ if python3.found()
   # sem marca). O terceiro trava a contagem de cobertura parcial -- sem ele,
   # um repositorio de retratacoes nao marcadas sairia verde.
   test('docs - autoteste do verificador de retratacoes', python3,
-       args : [meson.project_source_root() / 'scripts/verificar-retratacoes.py',
+       args : [meson.project_source_root() / 'ferramental/qualidade/verificar-retratacoes.py',
                '--autoteste'],
        suite : ['l1', 'docs'], timeout : 60)
 
@@ -129,12 +129,12 @@ if python3.found()
   # outra tabela. O erro sobreviveu a varias leituras porque ninguem multiplica
   # ao ler; computador multiplica sem se cansar.
   test('docs - aritmetica publicada fecha', python3,
-       args : [meson.project_source_root() / 'scripts/verificar-aritmetica.py',
+       args : [meson.project_source_root() / 'ferramental/qualidade/verificar-aritmetica.py',
                meson.project_source_root()],
        suite : ['l1', 'docs'], timeout : 60)
 
   test('docs - autoteste do verificador de aritmetica', python3,
-       args : [meson.project_source_root() / 'scripts/verificar-aritmetica.py',
+       args : [meson.project_source_root() / 'ferramental/qualidade/verificar-aritmetica.py',
                '--autoteste'],
        suite : ['l1', 'docs'], timeout : 60)
 
@@ -146,19 +146,19 @@ if python3.found()
   # visivel para quem le: um exige contar linhas, o outro exige cruzar a porta
   # de entrada com o codigo.
   test('docs - autodescricao corresponde ao disco', python3,
-       args : [meson.project_source_root() / 'scripts/verificar-autodescricao.py',
+       args : [meson.project_source_root() / 'ferramental/qualidade/verificar-autodescricao.py',
                meson.project_source_root()],
        suite : ['l1', 'docs'], timeout : 60)
 
   test('docs - autoteste do verificador de autodescricao', python3,
-       args : [meson.project_source_root() / 'scripts/verificar-autodescricao.py',
+       args : [meson.project_source_root() / 'ferramental/qualidade/verificar-autodescricao.py',
                '--autoteste'],
        suite : ['l1', 'docs'], timeout : 60)
 else
   # python3 ausente: registrar marcadores que PULAM (codigo 77) em vez de nao
   # registrar nada. Sem isto a suite l1 encolhia em TRES testes e reportava
   # verde -- e os tres sao justamente os que conferem se o material diz a
-  # verdade. Ver scripts/pular-sem-python3.sh.
+  # verdade. Ver ferramental/qualidade/pular-sem-python3.sh.
   foreach nome : ['docs - ancoras de linha atualizadas',
                   'docs - autoteste do verificador de ancoras',
                   'docs - links e ancoras de titulo',
@@ -169,7 +169,7 @@ else
                   'docs - autodescricao corresponde ao disco',
                   'docs - autoteste do verificador de autodescricao']
     test(nome, bash,
-         args : [meson.project_source_root() / 'scripts/pular-sem-python3.sh', nome],
+         args : [meson.project_source_root() / 'ferramental/qualidade/pular-sem-python3.sh', nome],
          suite : ['l1', 'docs'], timeout : 30)
   endforeach
 endif
@@ -187,13 +187,13 @@ test('scripts - L1 (modelo de driver de NIC)', bash,
 
 # Shell e decodificador têm dependências diferentes e resultados separados.
 test('scripts - L1 (veredito AF_XDP zero-copy)', bash,
-     args : [meson.project_source_root() / 'scripts/tests/l1_xdp.sh'],
+     args : [meson.project_source_root() / 'ferramental/af-xdp/l1_xdp.sh'],
      suite : ['l1', 'scripts'], timeout : 30)
 test('scripts - L1 (bitmask AF_XDP)', bash,
-     args : [meson.project_source_root() / 'scripts/tests/l1_xdp_bitmask.sh'],
+     args : [meson.project_source_root() / 'ferramental/af-xdp/l1_xdp_bitmask.sh'],
      suite : ['l1', 'scripts'], timeout : 30)
 
-# Camada NETLINK de scripts/xdp-features.py: parse de TLV, alinhamento NLA,
+# Camada NETLINK de ferramental/af-xdp/xdp-features.py: parse de TLV, alinhamento NLA,
 # truncamento, ext_ack e higienizacao de nome de interface.
 #
 # E L1 apesar do nome: nao abre socket nenhum. O modulo e importado com
@@ -209,19 +209,19 @@ test('scripts - L1 (bitmask AF_XDP)', bash,
 # um SKIP que nomeia as OITO funcoes que ficaram sem cobertura (o numero era
 # "sete" aqui e "oito" no proprio SKIP, escritos em paralelo sobre o mesmo
 # bloco de saida; conferido com
-#     PATH=<sem python3> bash scripts/tests/l1_xdp_netlink.sh | grep -c '^  SKIP      '
+#     PATH=<sem python3> bash ferramental/af-xdp/l1_xdp_netlink.sh | grep -c '^  SKIP      '
 # ). Um gate aqui
 # apagaria essa distincao, que e justamente a que este conjunto de arquivos
 # existe para defender: "nao consegui apurar" nao pode ter a mesma cara de
 # "esta correto".
 test('scripts - L1 (camada netlink de xdp-features.py)', bash,
-     args : [meson.project_source_root() / 'scripts/tests/l1_xdp_netlink.sh'],
+     args : [meson.project_source_root() / 'ferramental/af-xdp/l1_xdp_netlink.sh'],
      suite : ['l1', 'scripts'], timeout : 30)
 
 # xdp-zerocopy.sh EXECUTADO, com fontes controladas.
 #
 # INCIDENTE que este registro fecha: ate agora nenhum teste da arvore executava
-# scripts/xdp-zerocopy.sh -- `grep -rn xdp-zerocopy scripts/tests/ meson.build`
+# ferramental/af-xdp/xdp-zerocopy.sh -- `grep -rn xdp-zerocopy scripts/tests/ meson.build`
 # so achava mencao em comentario. Por isso o defeito fundador daquele arquivo
 # ("informacao nao apurada publicada como fato negativo") voltou DUAS vezes sem
 # que a suite mudasse de cor, e a segunda vez veio dentro da propria correcao.
@@ -237,7 +237,7 @@ test('scripts - L1 (camada netlink de xdp-features.py)', bash,
 # redirecionado por DPDK_ACADEMY_SYSFS_NET. Sem gate, pelo mesmo motivo dos
 # dois testes acima.
 test('scripts - L1 (xdp-zerocopy.sh com fontes controladas)', bash,
-     args : [meson.project_source_root() / 'scripts/tests/l1_xdp_zerocopy.sh'],
+     args : [meson.project_source_root() / 'ferramental/af-xdp/l1_xdp_zerocopy.sh'],
      suite : ['l1', 'scripts'], timeout : 60)
 
 subdir('docs/01-fundamentos/medicoes')
@@ -272,5 +272,5 @@ else
 endif
 
 test('scripts - L1 (dependencias separadas do XDP)', bash,
-  args : [meson.project_source_root() / 'scripts/tests/l1_xdp_dependencias.sh'],
+  args : [meson.project_source_root() / 'ferramental/af-xdp/l1_xdp_dependencias.sh'],
   suite : ['l1', 'scripts'], timeout : 30)

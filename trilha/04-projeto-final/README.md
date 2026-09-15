@@ -58,8 +58,8 @@ poderia atribuir o "no" ao link caído — a evidência do módulo descarta isso
 Verifique na sua máquina com:
 
 ```bash
-./scripts/xdp-zerocopy.sh              # driver da interface padrão
-./scripts/xdp-zerocopy.sh i40e ice     # drivers nomeados
+./ferramental/af-xdp/xdp-zerocopy.sh              # driver da interface padrão
+./ferramental/af-xdp/xdp-zerocopy.sh i40e ice     # drivers nomeados
 ```
 
 Nesta máquina, e nos drivers Intel para comparação:

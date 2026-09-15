@@ -324,8 +324,8 @@ e em XDP genérico, que roda o eBPF já depois da alocação de `sk_buff` — pe
 a maior parte do ganho. Verificável no módulo do driver:
 
 ```bash
-./scripts/xdp-zerocopy.sh              # o driver da interface padrão
-./scripts/xdp-zerocopy.sh i40e ice     # drivers nomeados, para comparar
+./ferramental/af-xdp/xdp-zerocopy.sh              # o driver da interface padrão
+./ferramental/af-xdp/xdp-zerocopy.sh i40e ice     # drivers nomeados, para comparar
 ```
 
 O script existe porque a forma direta erra em silêncio: módulos do kernel vêm

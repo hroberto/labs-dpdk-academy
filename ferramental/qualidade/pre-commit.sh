@@ -21,9 +21,9 @@
 # de ambiente — que foram a maioria.
 #
 # Uso:
-#   ./scripts/pre-commit.sh            # completo (~2 min)
-#   ./scripts/pre-commit.sh --rapido   # sem a suíte longa (~20 s)
-#   ./scripts/pre-commit.sh --instalar # liga como hook do git
+#   ./ferramental/qualidade/pre-commit.sh            # completo (~2 min)
+#   ./ferramental/qualidade/pre-commit.sh --rapido   # sem a suíte longa (~20 s)
+#   ./ferramental/qualidade/pre-commit.sh --instalar # liga como hook do git
 set -u
 cd "$(dirname "$0")/.."
 
@@ -49,8 +49,8 @@ if [ "$MODO" = "instalar" ]; then
     mkdir -p .git/hooks
     cat > .git/hooks/pre-commit <<'HOOK'
 #!/usr/bin/env bash
-# Instalado por scripts/pre-commit.sh --instalar
-exec ./scripts/pre-commit.sh --rapido
+# Instalado por ferramental/qualidade/pre-commit.sh --instalar
+exec ./ferramental/qualidade/pre-commit.sh --rapido
 HOOK
     chmod +x .git/hooks/pre-commit
     echo "  hook instalado em .git/hooks/pre-commit (modo --rapido)"
@@ -169,15 +169,15 @@ mac=$(git grep -nIE '\b([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\b' -- . 2>/dev/null ||
 # --- 4. Documentação --------------------------------------------------------
 titulo "4. Documentação"
 
-if [ -x scripts/verificar-links.py ]; then
-    if out=$(./scripts/verificar-links.py 2>&1); then
+if [ -x ferramental/qualidade/verificar-links.py ]; then
+    if out=$(./ferramental/qualidade/verificar-links.py 2>&1); then
         ok "$(tail -1 <<<"$out" | sed 's/^ *//')"
     else
         falha "links ou referências quebrados"; sed 's/^/          /' <<<"$out" | head -8
     fi
 fi
-if [ -x scripts/verificar-ancoras.py ]; then
-    if out=$(./scripts/verificar-ancoras.py 2>&1); then
+if [ -x ferramental/qualidade/verificar-ancoras.py ]; then
+    if out=$(./ferramental/qualidade/verificar-ancoras.py 2>&1); then
         ok "$(tail -1 <<<"$out" | sed 's/^ *//')"
     else
         falha "âncoras de linha desatualizadas"; sed 's/^/          /' <<<"$out" | head -8

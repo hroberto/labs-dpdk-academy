@@ -54,13 +54,13 @@ leitura.
 > **`_bulk` e `_burst` são contratos diferentes, não sinônimos.** `_bulk` devolve
 > "either 0 or n" — tudo ou nada; `_burst` aceita parcial e devolve quantos
 > couberam. A demonstração está na
-> [§3.1 do módulo 03](../docs/03-mempool-ring-mbuf/README.md#31-_bulk-e-_burst-não-são-sinônimos).
+> [§3.1 do módulo 03](../../docs/03-mempool-ring-mbuf/README.md#31-_bulk-e-_burst-não-são-sinônimos).
 
 > **Cuidado com `rte_lcore_to_cpu_id()`.** Apesar do nome, ela **não** devolve o
 > número da CPU: a documentação da própria função diz *"the id of the lcore on a
 > socket starting from zero"* — um índice relativo ao nó NUMA. Quem quer a CPU
 > real usa `rte_lcore_cpuset()`. A distinção está demonstrada na
-> [§5.1 do módulo 02](../docs/02-runtime-dpdk/README.md#51-lcore-não-é-cpu).
+> [§5.1 do módulo 02](../../docs/02-runtime-dpdk/README.md#51-lcore-não-é-cpu).
 
 ## Estruturas e bibliotecas (guia do programador)
 
@@ -110,7 +110,7 @@ Dois pontos que vale registrar, porque não são óbvios:
 
 **`--no-huge` está sob *Debugging options*, não sob memória.** É a classificação
 da própria documentação oficial, e sustenta o que o
-[módulo 02](../docs/02-runtime-dpdk/README.md#45-o-que-desliga-o-modelo-multiprocesso-sem-avisar)
+[módulo 02](../../docs/02-runtime-dpdk/README.md#45-o-que-desliga-o-modelo-multiprocesso-sem-avisar)
 diz sobre ela não ser escolha de produção.
 
 **Não use as âncoras `#id1`, `#id2`, `#id3`.** O Sphinx as gera automaticamente
@@ -143,11 +143,11 @@ proximidade.** Páginas Doxygen têm muitas âncoras próximas, e heurísticas d
 já produziram aqui links de `rte_eal_init` que levavam a `rte_eal_process_type`
 e de `rte_ring_enqueue_burst` que levavam à variante `_sp_`. O único critério
 confiável é o título do bloco de detalhe (`memtitle`), que traz o nome exato.
-Use [`scripts/ancora-dpdk.py`](ancora-dpdk.py), que faz esse casamento:
+Use [`ancora-dpdk.py`](ancora-dpdk.py), que faz esse casamento:
 
 ```bash
-./scripts/ancora-dpdk.py rte__ring_8h.html rte_ring_dequeue_burst
-./scripts/ancora-dpdk.py --verificar    # confere o mapa inteiro
+./ferramental/qualidade/ancora-dpdk.py rte__ring_8h.html rte_ring_dequeue_burst
+./ferramental/qualidade/ancora-dpdk.py --verificar    # confere o mapa inteiro
 ```
 
 **Âncoras Doxygen não são verificáveis por código de status.** Uma URL com

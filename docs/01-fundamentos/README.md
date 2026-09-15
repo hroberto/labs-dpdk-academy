@@ -1040,7 +1040,7 @@ núcleos é comparado com [`scripts/bench-ccd.sh`](../../scripts/bench-ccd.sh).
 
 > **Âncoras de linha exigem manutenção.** Números de linha mudam quando o código
 > muda, e um link desatualizado aponta em silêncio para o trecho errado. Por
-> isso [`scripts/verificar-ancoras.py`](../../scripts/verificar-ancoras.py)
+> isso [`ferramental/qualidade/verificar-ancoras.py`](../../ferramental/qualidade/verificar-ancoras.py)
 > confere se cada âncora ainda cai sobre a função que o texto promete, e roda
 > junto com os testes.
 

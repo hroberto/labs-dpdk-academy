@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: MIT
 #
-# Teste L1 que EXECUTA scripts/xdp-zerocopy.sh.
+# Teste L1 que EXECUTA ferramental/af-xdp/xdp-zerocopy.sh.
 #
 # POR QUE ESTE ARQUIVO NASCEU
 #
@@ -24,7 +24,7 @@
 # ficou verde nas tres. O teste que faltava e este.
 #
 # QUE ELE PEGA DEFEITO DE VERDADE E MEDIDO, nao alegado. Onze mutacoes
-# deliberadas em scripts/xdp-zerocopy.sh, cada uma aplicada, rodada e
+# deliberadas em ferramental/af-xdp/xdp-zerocopy.sh, cada uma aplicada, rodada e
 # restaurada (o arquivo volta byte a byte; conferido com `diff -q`):
 #
 #     mutacao                                               resultado
@@ -87,7 +87,10 @@
 set -u
 
 aqui="$(cd "$(dirname "$0")" && pwd)"
-raiz="$(dirname "$aqui")"
+# Os alvos ficam neste mesmo diretorio; lib-apuracao.sh continua em scripts/,
+# porque serve ao projeto inteiro e nao so ao AF_XDP.
+raiz="$aqui"
+scripts_raiz="$(cd "$aqui/../../scripts" && pwd)"
 
 falhas=0
 lacunas=0
@@ -117,7 +120,7 @@ nao_contem() {
 }
 lacuna() { echo "  LACUNA - $1"; lacunas=$((lacunas + 1)); }
 
-echo "== L1: scripts/xdp-zerocopy.sh executado com fontes controladas =="
+echo "== L1: ferramental/af-xdp/xdp-zerocopy.sh executado com fontes controladas =="
 
 # --- o arnes -----------------------------------------------------------------
 
@@ -125,7 +128,7 @@ SB=$(mktemp -d) || { echo "  FALHA - mktemp -d falhou; sem sandbox nao ha teste"
 trap 'chmod -R u+rwX "$SB" 2>/dev/null; rm -rf "$SB"' EXIT
 
 mkdir -p "$SB/app" "$SB/bin" "$SB/mods" "$SB/sys"
-cp "$raiz/xdp-zerocopy.sh" "$raiz/lib-xdp.sh" "$raiz/lib-apuracao.sh" "$SB/app/" || {
+cp "$raiz/xdp-zerocopy.sh" "$raiz/lib-xdp.sh" "$scripts_raiz/lib-apuracao.sh" "$SB/app/" || {
     echo "  FALHA - nao consegui copiar o script sob teste para a sandbox"; exit 1; }
 APP="$SB/app/xdp-zerocopy.sh"
 
@@ -211,7 +214,7 @@ fi
 cat "$arquivo"
 STUB
 
-# python3: faz o papel do interpretador que roda scripts/xdp-features.py. O
+# python3: faz o papel do interpretador que roda ferramental/af-xdp/xdp-features.py. O
 # bloco KEY=VALUE e o codigo de saida sao ditados por variavel; assim os cinco
 # vereditos e as respostas defeituosas sao exercitados sem kernel nenhum.
 cat > "$SB/bin/python3" <<'STUB'
@@ -542,7 +545,7 @@ fi
 mv "$SB/app/xdp-features.py" "$SB/helper-guardado"
 saida=$(STUB_HELPER_RC=0 roda fake0)
 contem "helper ausente usa a frase publicada" \
-    "scripts/xdp-features.py nao encontrado ao lado deste script." "$saida"
+    "ferramental/af-xdp/xdp-features.py nao encontrado ao lado deste script." "$saida"
 contem "helper ausente entra no motivo do veredito" \
     "nao esta ao lado do script" "$saida"
 mv "$SB/helper-guardado" "$SB/app/xdp-features.py"

@@ -38,9 +38,9 @@ if gtest_dep.found()
 else
   # GTest ausente: registrar um marcador que PULA (codigo 77) em vez de
   # nao registrar nada. Sem isto a suite l1 encolhia em silencio e
-  # reportava verde -- ver scripts/pular-sem-gtest.sh.
+  # reportava verde -- ver ferramental/qualidade/pular-sem-gtest.sh.
   test('02-mempool-ring/alt-cpp23 - L1 (logica pura)', bash,
-       args : [meson.project_source_root() / 'scripts/pular-sem-gtest.sh',
+       args : [meson.project_source_root() / 'ferramental/qualidade/pular-sem-gtest.sh',
                '02-mempool-ring/alt-cpp23 - L1 (logica pura)'],
        suite : ['l1', 'alternativa'], timeout : 30)
 endif

@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT
 # Decodificador puro; registrado separadamente para preservar SKIP por dependência.
 set -u
-. "$(dirname "$0")/../lib-xdp.sh"
-HELPER="$(dirname "$0")/../xdp-features.py"
+. "$(dirname "$0")/lib-xdp.sh"
+HELPER="$(dirname "$0")/xdp-features.py"
 if ! command -v python3 >/dev/null 2>&1; then
     echo 'SKIP: decodificador exige python3'
     exit 77

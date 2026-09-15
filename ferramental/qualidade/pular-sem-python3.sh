@@ -21,7 +21,7 @@
 #     PATH=/usr/bin:/bin meson setup build-sem-py   # sem python3 no PATH
 #     meson test -C build-sem-py --suite l1         # tres testes a menos, rc=0
 #
-# O remedio e o mesmo que scripts/pular-sem-gtest.sh ja aplicou ao GoogleTest, e
+# O remedio e o mesmo que ferramental/qualidade/pular-sem-gtest.sh ja aplicou ao GoogleTest, e
 # o mesmo que o codigo 77 ja resolveu para os testes L3: dizer PULADO em vez de
 # sumir. A causa muda (dependencia ausente, nao ambiente insuficiente); a regra
 # do projeto nao muda -- o que nao foi verificado nao pode ser reportado como

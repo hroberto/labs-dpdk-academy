@@ -6,7 +6,17 @@ import json
 from pathlib import Path
 import re
 
-ROOT = Path(__file__).resolve().parents[1]
+# Sobe ate achar a raiz do repositorio, em vez de contar niveis.
+# Contar quebrou quando este arquivo saiu de scripts/ para
+# ferramental/qualidade/: `parents[1]` passou a apontar para ferramental/.
+def _raiz():
+    for d in Path(__file__).resolve().parents:
+        if (d / "meson.build").is_file() and (d / "docs").is_dir():
+            return d
+    raise SystemExit("nao achei a raiz do repositorio a partir de " + __file__)
+
+
+ROOT = _raiz()
 TARGETS = (
     'docs/01-fundamentos/README.md', 'docs/02-runtime-dpdk/README.md',
     'docs/03-mempool-ring-mbuf/README.md',

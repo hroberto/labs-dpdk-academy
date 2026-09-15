@@ -3,7 +3,7 @@
 
 POR QUE ESTE SCRIPT EXISTE
 
-`scripts/xdp-zerocopy.sh` dependia de `xdp-loader features`, que aborta com
+`ferramental/af-xdp/xdp-zerocopy.sh` dependia de `xdp-loader features`, que aborta com
 "This program must be run as root." antes de abrir qualquer socket. Medido:
 
     $ id -u                        ->  1000
@@ -20,7 +20,7 @@ A causa não era o dado ser privilegiado, era a FERRAMENTA ser privilegiada.
 `xdp-loader` exige root porque carrega programa eBPF e abre mapa BPF; a
 LEITURA de xdp-features é netlink puro, e o kernel declara que ela é livre:
 
-    $ ./scripts/xdp-features.py --politica
+    $ ./ferramental/af-xdp/xdp-features.py --politica
       NETDEV_CMD_DEV_GET   0x0e  livre  [CAP_DO|CAP_DUMP|CAP_HASPOL]
       NETDEV_CMD_BIND_RX   0x0b  ROOT (GENL_ADMIN_PERM)
 
@@ -35,7 +35,7 @@ o mesmo que dado privilegiado.
 
 POR QUE KEY=VALUE, E NÃO JSON
 
-A saída é consumida por `scripts/xdp-zerocopy.sh`, que é bash. JSON exigiria
+A saída é consumida por `ferramental/af-xdp/xdp-zerocopy.sh`, que é bash. JSON exigiria
 `jq`: está instalado nesta máquina, e NÃO está na CI -- `.github/workflows/ci.yml`
 instala apenas dpdk-dev, pkg-config, ninja-build, python3-pip e g++-14. Um
 formato que obriga a instalar um pacote a mais para ler a resposta contraria a
@@ -64,10 +64,10 @@ CÓDIGOS DE SAÍDA (o chamador PRECISA distinguir os quatro)
     5  a interface não existe nesta máquina
 
 Uso:
-    scripts/xdp-features.py                 # todas as interfaces
-    scripts/xdp-features.py enp8s0          # uma interface
-    scripts/xdp-features.py --politica      # o que o kernel exige de privilégio
-    scripts/xdp-features.py --decodificar 0x23   # decodifica offline, sem netlink
+    ferramental/af-xdp/xdp-features.py                 # todas as interfaces
+    ferramental/af-xdp/xdp-features.py enp8s0          # uma interface
+    ferramental/af-xdp/xdp-features.py --politica      # o que o kernel exige de privilégio
+    ferramental/af-xdp/xdp-features.py --decodificar 0x23   # decodifica offline, sem netlink
 """
 
 import os
@@ -257,7 +257,7 @@ def parse_attrs(buf: bytes, offset=0):
         corte em  2 bytes -> "sobraram 2 bytes soltos"
     Antes da correção o corte de 2 bytes passava sem uma palavra.
 
-    Regressão travada em `scripts/tests/l1_xdp_netlink.sh`, com estas duas
+    Regressão travada em `ferramental/af-xdp/l1_xdp_netlink.sh`, com estas duas
     frases como asserção literal. Ela ficou sem teste até bem depois da
     correção, e nesse intervalo apagar qualquer uma das duas checagens passava
     limpo pela suíte -- o mesmo bug voltando pela mesma porta.
@@ -397,7 +397,7 @@ class Genl:
         cortada; separada, dá para alimentar bytes arbitrários e conferir que
         o truncamento vira exceção em vez de dado inventado.
 
-        Quem faz isso é `scripts/tests/l1_xdp_netlink.sh`. A frase acima ficou
+        Quem faz isso é `ferramental/af-xdp/l1_xdp_netlink.sh`. A frase acima ficou
         um tempo sendo só uma promessa: o código foi refatorado PARA ser
         testável e depois não foi testado, o que é pior do que não refatorar --
         rende a confiança sem render a verificação.
@@ -463,7 +463,7 @@ class Genl:
         faltante de forma ESTRUTURADA; ler só ATTR_MSG joga fora justamente o
         diagnóstico mais acionável dos dois.
 
-        Regressão travada em `scripts/tests/l1_xdp_netlink.sh`: um corpo de
+        Regressão travada em `ferramental/af-xdp/l1_xdp_netlink.sh`: um corpo de
         erro que traz APENAS MISS_TYPE precisa render a frase inteira.
         """
         if not self.ext_ack or not (mflags & NLM_F_ACK_TLVS):
@@ -575,18 +575,18 @@ def consulta(g, fam, ifindex=None):
 # Veredito e saída
 #
 # A partir daqui é lógica PURA: recebe números, devolve texto. É esta parte que
-# `scripts/tests/l1_xdp.sh` exercita pela linha de comando (`--decodificar`),
+# `ferramental/af-xdp/l1_xdp.sh` exercita pela linha de comando (`--decodificar`),
 # porque ela é a que decide -- e porque nenhuma placa desta máquina anuncia
 # zero-copy, então o caminho positivo só seria exercitado no dia em que a NIC
 # chegasse. A camada de netlink acima é coberta por
-# `scripts/tests/l1_xdp_netlink.sh`, que importa este arquivo como módulo e
+# `ferramental/af-xdp/l1_xdp_netlink.sh`, que importa este arquivo como módulo e
 # alimenta bytes arbitrários.
 #
 # INCIDENTE. Este comentário citava "scripts/tests/l1_xdp_features.sh", arquivo
 # que nunca existiu na árvore. Âncora para arquivo inexistente é da mesma
 # família das duas âncoras de linha mortas que estavam em lib-xdp.sh e no teste:
 # escrita de memória, verdadeira em nenhum momento, e sem nada que a verifique
-# (scripts/verificar-ancoras.py só lê .md).
+# (ferramental/qualidade/verificar-ancoras.py só lê .md).
 # ---------------------------------------------------------------------------
 
 def veredito_de(features):

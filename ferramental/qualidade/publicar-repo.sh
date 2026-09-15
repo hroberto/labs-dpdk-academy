@@ -18,8 +18,8 @@
 # pode ser gerado.
 #
 # Uso:
-#   ./scripts/publicar-repo.sh --mostrar    # so imprime o que seria aplicado
-#   ./scripts/publicar-repo.sh              # aplica (exige gh autenticado)
+#   ./ferramental/qualidade/publicar-repo.sh --mostrar    # so imprime o que seria aplicado
+#   ./ferramental/qualidade/publicar-repo.sh              # aplica (exige gh autenticado)
 set -u
 
 # --- o conteudo, que e o que importa nesta revisao -------------------------

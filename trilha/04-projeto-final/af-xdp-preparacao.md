@@ -19,9 +19,9 @@ A verificação continua válida e vale ser preservada; o lugar dela é aqui.
 
 | Ferramenta | O que faz |
 |---|---|
-| [`scripts/xdp-zerocopy.sh`](../../scripts/xdp-zerocopy.sh) | diagnóstico por interface ou por driver, com hierarquia de evidência |
-| [`scripts/xdp-features.py`](../../scripts/xdp-features.py) | consulta as *features* do netdev |
-| [`scripts/lib-xdp.sh`](../../scripts/lib-xdp.sh) | funções comuns de detecção |
+| [`ferramental/af-xdp/xdp-zerocopy.sh`](../../ferramental/af-xdp/xdp-zerocopy.sh) | diagnóstico por interface ou por driver, com hierarquia de evidência |
+| [`ferramental/af-xdp/xdp-features.py`](../../ferramental/af-xdp/xdp-features.py) | consulta as *features* do netdev |
+| [`ferramental/af-xdp/lib-xdp.sh`](../../ferramental/af-xdp/lib-xdp.sh) | funções comuns de detecção |
 
 Numa máquina com NIC adequada, essas ferramentas respondem — antes de escrever
 qualquer código — se o experimento é possível e em qual modo.
@@ -37,7 +37,7 @@ Registrada agora para não virar promessa quebrada depois:
 sem `sudo`, com `CapEff: 0000000000000000`:
 
 ```console
-$ ./scripts/xdp-features.py enp8s0
+$ ./ferramental/af-xdp/xdp-features.py enp8s0
 FONTE=netlink
 IFACE=enp8s0
 IFINDEX=7
@@ -60,7 +60,7 @@ VEREDITO=sem-xdp
 > abre mapa BPF, não porque o dado seja restrito. A leitura em si é netlink
 > puro, e o kernel **declara** que ela é livre: `NETDEV_CMD_DEV_GET` vem com
 > flags `0x0e`, sem o bit `GENL_ADMIN_PERM` que `NETDEV_CMD_BIND_RX` e
-> `NETDEV_CMD_NAPI_SET` carregam. Confira com `./scripts/xdp-features.py
+> `NETDEV_CMD_NAPI_SET` carregam. Confira com `./ferramental/af-xdp/xdp-features.py
 > --politica` — que imprime essa tabela de política **e, logo abaixo dela**, o
 > bloco `KEY=VALUE` de todas as interfaces (67 linhas ao todo nesta máquina);
 > para ver só a tabela, corte em `head -12`. A regra que ficou: antes de
@@ -90,7 +90,7 @@ sem ele, "tudo `0x00`" seria indistinguível de uma ferramenta quebrada:
 $ unshare -Urnm -- bash -c 'mount -t sysfs none /sys
     ip link add veth0 type veth peer name veth1
     ip -br link show veth0 | awk "{print \$1, \$2}"
-    ./scripts/xdp-features.py veth0'
+    ./ferramental/af-xdp/xdp-features.py veth0'
 veth0@veth1 DOWN
 FONTE=netlink
 IFACE=veth0
@@ -123,8 +123,8 @@ como leitura do comportamento, não como medição.
 Verifique na sua máquina com:
 
 ```bash
-./scripts/xdp-zerocopy.sh                             # a interface física daqui
-./scripts/xdp-zerocopy.sh r8169 i40e ice ixgbe mlx5_core   # modo comparação
+./ferramental/af-xdp/xdp-zerocopy.sh                             # a interface física daqui
+./ferramental/af-xdp/xdp-zerocopy.sh r8169 i40e ice ixgbe mlx5_core   # modo comparação
 ```
 
 Nenhum dos dois exige root. O segundo comando é literalmente o que regenera a
@@ -201,14 +201,14 @@ Suporte real tem as três.
 > linha prova isso:
 >
 > ```console
-> $ ./scripts/xdp-features.py --politica | head -1
+> $ ./ferramental/af-xdp/xdp-features.py --politica | head -1
 > politica declarada pelo kernel para a familia "netdev" (id=22):
 > $ S=/tmp/sem-helper; rm -rf "$S"; mkdir -p "$S"
-> $ cp scripts/xdp-zerocopy.sh scripts/lib-xdp.sh scripts/lib-apuracao.sh "$S"/   # de propósito, sem o xdp-features.py
+> $ cp ferramental/af-xdp/xdp-zerocopy.sh ferramental/af-xdp/lib-xdp.sh scripts/lib-apuracao.sh "$S"/   # de propósito, sem o xdp-features.py
 > $ "$S"/xdp-zerocopy.sh enp8s0 | sed -n '/^-- Capacidade/,/^-- Heur/p' | head -n -1
 > -- Capacidade anunciada pelo netdev --
->   scripts/xdp-features.py nao encontrado ao lado deste script.
->   fonte primaria (netlink) nao respondeu: scripts/xdp-features.py nao esta ao lado do script (copie os dois juntos).
+>   ferramental/af-xdp/xdp-features.py nao encontrado ao lado deste script.
+>   fonte primaria (netlink) nao respondeu: ferramental/af-xdp/xdp-features.py nao esta ao lado do script (copie os dois juntos).
 >
 >   Fallback: xdp-loader features
 >   xdp-loader exige root, e a exigencia e DA FERRAMENTA: ele carrega

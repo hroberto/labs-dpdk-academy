@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: MIT
 #
-# Teste L1 da camada NETLINK de scripts/xdp-features.py.
+# Teste L1 da camada NETLINK de ferramental/af-xdp/xdp-features.py.
 #
 # POR QUE ESTE ARQUIVO NASCEU
 #
-# INCIDENTE. As ~380 linhas de netlink de `scripts/xdp-features.py` nao tinham
-# UMA assercao sequer. `scripts/tests/l1_xdp.sh` cobria a decisao (lib-xdp.sh) e
+# INCIDENTE. As ~380 linhas de netlink de `ferramental/af-xdp/xdp-features.py` nao tinham
+# UMA assercao sequer. `ferramental/af-xdp/l1_xdp.sh` cobria a decisao (lib-xdp.sh) e
 # o decodificador de bitmask, chamado pela linha de comando -- nada abaixo
 # disso. Medido, mutando o arquivo e rodando a suite L1 que existia:
 #
@@ -50,7 +50,7 @@
 #     flag chegar, `_recebe` para em vez de seguir lendo lixo;
 #   - nao prova que NETDEV_CMD_DEV_GET e mesmo livre de root neste kernel;
 #     prova que `resolve_familia` le a flag GENL_ADMIN_PERM do lugar certo. A
-#     prova da politica real e `scripts/xdp-features.py --politica` rodando;
+#     prova da politica real e `ferramental/af-xdp/xdp-features.py --politica` rodando;
 #   - nao prova que a resposta real do kernel tem o layout usado aqui. O layout
 #     vem dos headers citados linha a linha em xdp-features.py.
 #
@@ -77,13 +77,13 @@
 set -u
 
 aqui="$(dirname "$0")"
-HELPER="$aqui/../xdp-features.py"
+HELPER="$aqui/xdp-features.py"
 
 # APURACAO-OK: mesma justificativa do teste vizinho -- a mensagem diz "nao
 # esta legivel", que cobre ENOENT e EACCES sem afirmar qual dos dois e, e o
 # teste sai igual nos dois casos.
 if [ ! -r "$HELPER" ]; then
-    echo "  FALHA - scripts/xdp-features.py nao esta legivel em '$HELPER'"
+    echo "  FALHA - ferramental/af-xdp/xdp-features.py nao esta legivel em '$HELPER'"
     echo "          (o teste vive ao lado do que ele testa; copie os dois juntos)"
     exit 1
 fi
@@ -91,7 +91,7 @@ fi
 if ! command -v python3 >/dev/null 2>&1; then
     echo "== L1: camada netlink de xdp-features.py =="
     echo "  SKIP  - python3 ausente do PATH; NADA abaixo foi exercitado."
-    echo "  SKIP    Ficaram sem cobertura, em scripts/xdp-features.py:"
+    echo "  SKIP    Ficaram sem cobertura, em ferramental/af-xdp/xdp-features.py:"
     echo "  SKIP      parse_attrs           (truncamento de TLV, alinhamento NLA)"
     echo "  SKIP      uint                  (u64 lido como u64, nao como u32)"
     echo "  SKIP      Genl._parse_datagrama (mensagens grudadas, seq, NLMSG_ERROR)"
@@ -126,7 +126,7 @@ _socket_real = socket.socket
 
 def _sentinela(*a, **k):
     raise AssertionError(
-        "scripts/xdp-features.py abriu socket durante o import: "
+        "ferramental/af-xdp/xdp-features.py abriu socket durante o import: "
         f"socket.socket{a!r}. O modulo tem que ser importavel sem tocar "
         "netlink -- e o que torna este teste L1.")
 
@@ -233,7 +233,7 @@ def com_prazo(fn, segundos=5):
     informacao real e "a guarda sumiu".
 
     Sob o Meson o `timeout : 30` ao menos falhava, sem dizer QUAL assercao; e a
-    forma publicada de rodar (`bash scripts/tests/l1_xdp_netlink.sh`) nao tinha
+    forma publicada de rodar (`bash ferramental/af-xdp/l1_xdp_netlink.sh`) nao tinha
     prazo nenhum. O relogio fica AQUI, junto da assercao que precisa dele.
 
     SIGALRM interrompe laco de bytecode puro (o interpretador confere sinais

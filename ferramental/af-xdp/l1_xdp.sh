@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 #
 # Teste L1 do diagnóstico de AF_XDP zero-copy: lib-xdp.sh e o decodificador de
-# scripts/xdp-features.py.
+# ferramental/af-xdp/xdp-features.py.
 #
 # POR QUE ESTE TESTE EXISTE, E POR QUE E L1
 #
@@ -13,7 +13,7 @@
 # Sem teste, a primeira vez que eles rodariam de verdade seria no dia em que
 # uma NIC Intel ou Mellanox fosse instalada.
 #
-# E o precedente e concreto: a versao anterior de scripts/xdp-zerocopy.sh tinha
+# E o precedente e concreto: a versao anterior de ferramental/af-xdp/xdp-zerocopy.sh tinha
 # o veredito inteiro dentro do ramo que exige root, e por isso NUNCA foi
 # executado por ninguem sem privilegio. Um erro ali passaria despercebido
 # indefinidamente.
@@ -25,9 +25,9 @@
 # milissegundos, em qualquer maquina, sem privilegio: a definicao de L1 neste
 # projeto. Isso nao e promessa, e medicao:
 #
-#     $ strace -e trace=socket python3 scripts/xdp-features.py --decodificar 0x23
+#     $ strace -e trace=socket python3 ferramental/af-xdp/xdp-features.py --decodificar 0x23
 #       chamadas socket(): 0
-#     $ strace -e trace=socket python3 scripts/xdp-features.py enp8s0
+#     $ strace -e trace=socket python3 ferramental/af-xdp/xdp-features.py enp8s0
 #       socket(AF_NETLINK, SOCK_RAW|SOCK_CLOEXEC, NETLINK_GENERIC) = 3
 #
 # O modo que este teste usa nao abre socket nenhum; o modo de consulta abre.
@@ -41,13 +41,13 @@
 # (`strings -n 2 /usr/sbin/xdp-loader`, formato `%s:%s%s` com "yes"/"no"
 # coladas), mais uma captura antiga que hoje nao esta publicada em lugar
 # nenhum. A procedencia completa, com o comando que reproduz o dump, esta no
-# comentario de `campo_xdploader` em scripts/lib-xdp.sh. Nao foi possivel
+# comentario de `campo_xdploader` em ferramental/af-xdp/lib-xdp.sh. Nao foi possivel
 # rodar a ferramenta ao escrever isto (`sudo -n true` -> "interactive
 # authentication is required").
 #
-# Este teste tambem NAO cobre a camada netlink de scripts/xdp-features.py --
+# Este teste tambem NAO cobre a camada netlink de ferramental/af-xdp/xdp-features.py --
 # parse de TLV, truncamento, ext_ack, sequencia. Isso e
-# scripts/tests/l1_xdp_netlink.sh, que nasceu depois e por um motivo concreto:
+# ferramental/af-xdp/l1_xdp_netlink.sh, que nasceu depois e por um motivo concreto:
 # oito mutacoes deliberadas naquele codigo passavam por ESTE arquivo sem uma
 # falha.
 #
@@ -55,8 +55,8 @@
 # e qual texto sai de cada classe -- esta correta antes de a placa chegar.
 set -u
 
-# shellcheck source=../lib-xdp.sh
-. "$(dirname "$0")/../lib-xdp.sh"
+# shellcheck source=lib-xdp.sh
+. "$(dirname "$0")/lib-xdp.sh"
 
 
 
@@ -115,19 +115,19 @@ check "xdp_valor nao confunde chave com prefixo de outra" \
 #
 # INCIDENTE. Estas duas amostras citavam um "bloco publicado" em
 # trilha/04-projeto-final/README.md, nas linhas 43 a 45. Aquele bloco EXISTIA
-# ali e foi removido quando o documento passou a usar scripts/xdp-features.py;
+# ali e foi removido quando o documento passou a usar ferramental/af-xdp/xdp-features.py;
 # hoje aquelas linhas trazem saida de outra ferramenta, em outro formato. A
 # ancora apontava em silencio para o lugar errado desde o dia em que foi
 # escrita.
 #
 # A citacao foi reescrita SEM a forma `arquivo:N-M` de proposito: assim ela e
 # a narrativa de uma ancora morta, e nao uma ancora nova. Como
-# scripts/verificar-ancoras.py avisa, nao ha como distinguir uma ancora de uma
+# ferramental/qualidade/verificar-ancoras.py avisa, nao ha como distinguir uma ancora de uma
 # mencao a uma ancora -- e este comentario foi cobrado como citacao na
 # primeira vez que rodou contra a arvore.
 #
 # A procedencia verdadeira, com o comando que a reproduz, esta no comentario
-# de `campo_xdploader` em scripts/lib-xdp.sh: formato `%s:%s%s` lido de
+# de `campo_xdploader` em ferramental/af-xdp/lib-xdp.sh: formato `%s:%s%s` lido de
 # `strings -n 2 /usr/sbin/xdp-loader` (xdp-tools 1.6.2), mais uma captura hoje
 # nao publicada. As amostras abaixo sao, portanto, RECONSTRUIDAS -- e o
 # alinhamento por espacos e arbitrario de proposito, ja que o parser tem que
@@ -236,7 +236,7 @@ contem "heuristica com 0 chamadas mantem a ressalva de nao provar ausencia" \
 #
 #     grep -n '| driver |' trilha/04-projeto-final/README.md
 #
-# (Isto tambem nao e mais verdade: `scripts/verificar-ancoras.py` passou a ler
+# (Isto tambem nao e mais verdade: `ferramental/qualidade/verificar-ancoras.py` passou a ler
 # comentario de .sh e .py na mesma rodada em que este comentario dizia que
 # "nada verifica ancora de linha escrita em comentario de shell". Se uma
 # ancora `arquivo.md:N-M` for escrita aqui, ela SERA cobrada.)
@@ -258,8 +258,8 @@ check "modulo com xdp_ e sem xsk_ e 'XDP sem zero-copy'" \
 # EXATAMENTE quando proprios>0. Medido -- trocando `$2` por `$3` na primeira
 # linha de `diagnostico_modulo`:
 #
-#     $ sed -i 's/chamadas=${2:-0}/chamadas=${3:-0}/' scripts/lib-xdp.sh
-#     $ bash scripts/tests/l1_xdp.sh | tail -2
+#     $ sed -i 's/chamadas=${2:-0}/chamadas=${3:-0}/' ferramental/af-xdp/lib-xdp.sh
+#     $ bash ferramental/af-xdp/l1_xdp.sh | tail -2
 #       L1: todos os testes passaram
 #
 # Seis assercoes, nenhuma falha, e a semantica do rotulo invertida. O

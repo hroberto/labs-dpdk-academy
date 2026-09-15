@@ -64,7 +64,7 @@ que decide.
 | C1 | `README.md:104` | "Linux x86_64 **ou arm64**" | `__builtin_ia32_pause()` em 4 arquivos, 12 pontos, **zero** guardas de arquitetura | `grep -rl __builtin_ia32_pause` |
 | C2 | `trilha/02-pipeline/01-rx-tx-burst/README.md:6` | "**Esqueleto.** O conteúdo ainda não foi escrito" | 268 linhas, com restrições verificadas contra a máquina | `wc -l` |
 | C3 | `docs/02-runtime-dpdk/README.md:146` | "Usar **quatro lcores** em vez de um não muda nada" | tabela em :141-143 tem três linhas, nenhuma com quatro lcores | `sed -n '141,146p'` |
-| C4 | `scripts/pre-commit.sh:99` | anuncia "nenhuma invocação combina `--in-memory` com `--no-huge`" | varre só `*.sh` e `meson.build`; duas sobrevivem em `docs/02-runtime-dpdk/README.md:113,141` | rodar o gancho |
+| C4 | `ferramental/qualidade/pre-commit.sh:99` | anuncia "nenhuma invocação combina `--in-memory` com `--no-huge`" | varre só `*.sh` e `meson.build`; duas sobrevivem em `docs/02-runtime-dpdk/README.md:113,141` | rodar o gancho |
 | C5 | `meson.build:70-103` | três verificadores de documentação registrados | vivem em `if python3.found()` **sem `else`**: sem o interpretador somem e a suíte fica verde | `meson setup --wrap-mode=nofallback` |
 
 **C5 é o mais sério do conjunto**, e não por tamanho: é a única entrada em que o
@@ -145,7 +145,7 @@ Três regras, todas mecânicas:
 ### E o portão que falta ter portão
 
 C5 se corrige com o antídoto que o projeto **já escreveu** para o GTest:
-`scripts/pular-sem-gtest.sh` transforma "dependência ausente" em PULADO em vez
+`ferramental/qualidade/pular-sem-gtest.sh` transforma "dependência ausente" em PULADO em vez
 de desaparecimento. A mesma técnica aplicada ao `else` de `meson.build:103`
 fecha a última porta pela qual a verificação some sem avisar.
 

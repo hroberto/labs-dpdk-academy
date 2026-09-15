@@ -4,7 +4,7 @@
 #
 # POR QUE ISTO EXISTE
 #
-# `scripts/xdp-zerocopy.sh` tinha o veredito inteiro escrito DENTRO do ramo que
+# `ferramental/af-xdp/xdp-zerocopy.sh` tinha o veredito inteiro escrito DENTRO do ramo que
 # exige root. Medido, como uid 1000: a heurística do módulo acertava
 # ("simbolos xdp_ 0 ... baixa probabilidade de suporte") e mesmo assim o
 # veredito saía "Resultado inconclusivo", porque as variáveis `capacidade` e
@@ -41,7 +41,7 @@
 # INCIDENTE. O vocabulario de cinco classes estava documentado no cabecalho
 # deste arquivo e em lugar nenhum do CODIGO -- e `texto_veredito` abaixo tem um
 # ramo `*)` que aceita qualquer palavra e a trata como "inconclusivo". A
-# consequencia foi medida em scripts/xdp-zerocopy.sh: o guarda do fallback
+# consequencia foi medida em ferramental/af-xdp/xdp-zerocopy.sh: o guarda do fallback
 # aceitava QUALQUER string nao vazia como "veredito fechado", entao uma classe
 # que este arquivo nao conhece (um helper de outra versao grafando "no-xdp")
 # produzia "Resultado INCONCLUSIVO" sem a linha "O que faltou" -- exatamente a
@@ -59,7 +59,7 @@ classe_conhecida() {
 
 # xdp_valor <chave> <bloco KEY=VALUE>  ->  valor, ou vazio
 #
-# Lê a saída de `scripts/xdp-features.py`. Sem `eval`, de propósito: os valores
+# Lê a saída de `ferramental/af-xdp/xdp-features.py`. Sem `eval`, de propósito: os valores
 # vêm do kernel, e `eval` sobre saída de programa é injeção esperando
 # acontecer. `-v k=` em vez de interpolar a chave na fonte do awk pelo mesmo
 # motivo.
@@ -95,7 +95,7 @@ xdp_valor() {
 # INCIDENTE. Este comentario e o do teste citavam "o bloco publicado em
 # trilha/04-projeto-final/README.md" (linhas 43-45) como procedencia. O bloco
 # existia ali e foi REMOVIDO quando o documento passou a usar
-# scripts/xdp-features.py; hoje aquelas linhas trazem saida de outra
+# ferramental/af-xdp/xdp-features.py; hoje aquelas linhas trazem saida de outra
 # ferramenta, em outro formato (KEY=VALUE). A ancora nasceu morta no mesmo
 # conjunto de mudancas que a criou, e apontava em silencio para o lugar
 # errado. Nao se inventou substituta: o lastro real e o binario acima.
@@ -158,12 +158,12 @@ classificar_alvo() {
 
 # motivo_netlink <codigo de saida de xdp-features.py>  ->  frase do porque
 #
-# Os codigos estao documentados na docstring de scripts/xdp-features.py. Cada
+# Os codigos estao documentados na docstring de ferramental/af-xdp/xdp-features.py. Cada
 # um vira uma frase que nomeia O QUE faltou -- nunca "falhou".
 motivo_netlink() {
     case "${1:-}" in
         0)  printf 'a consulta netlink respondeu' ;;
-        2)  printf 'chamada incorreta ao scripts/xdp-features.py (defeito do script, reporte)' ;;
+        2)  printf 'chamada incorreta ao ferramental/af-xdp/xdp-features.py (defeito do script, reporte)' ;;
         3)  printf 'este kernel nao expoe a familia netlink "netdev" (veio no 6.1; xdp_features, no 6.3)' ;;
         4)  printf 'a familia "netdev" existe, mas a consulta netlink falhou' ;;
         5)  printf 'a interface nao existe para o kernel no momento da consulta' ;;
@@ -175,10 +175,10 @@ motivo_netlink() {
         # do helper era `[ ! -r ]`, verdadeiro tanto para "nao existe" quanto
         # para "existe e nao posso ler", e os dois saiam com a frase do 126 --
         # mandando copiar um arquivo que ja estava la.
-        125) printf 'scripts/xdp-features.py esta ao lado do script e nao pode ser lido por este processo (permissao)' ;;
-        126) printf 'scripts/xdp-features.py nao esta ao lado do script (copie os dois juntos)' ;;
+        125) printf 'ferramental/af-xdp/xdp-features.py esta ao lado do script e nao pode ser lido por este processo (permissao)' ;;
+        126) printf 'ferramental/af-xdp/xdp-features.py nao esta ao lado do script (copie os dois juntos)' ;;
         127) printf 'python3 nao encontrado; sem ele a fonte primaria nao roda' ;;
-        *)  printf 'scripts/xdp-features.py saiu com codigo inesperado' ;;
+        *)  printf 'ferramental/af-xdp/xdp-features.py saiu com codigo inesperado' ;;
     esac
 }
 
@@ -212,7 +212,7 @@ interpretar_heuristica() {
 # por `$3` na linha abaixo passava pelas seis assercoes sem uma falha. Cinco
 # pares onde duas colunas andam juntas nao distinguem qual das duas manda; sao
 # medicao, nao especificacao. Os dois casos que separam as semanticas estao em
-# scripts/tests/l1_xdp.sh, sao SINTETICOS e estao declarados como tais.
+# ferramental/af-xdp/l1_xdp.sh, sao SINTETICOS e estao declarados como tais.
 diagnostico_modulo() {
     local xdp=${1:-0} chamadas=${2:-0}
     if [ "$chamadas" -gt 0 ]; then

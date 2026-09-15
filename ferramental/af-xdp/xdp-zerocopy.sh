@@ -14,12 +14,12 @@
 # não para afirmar "isso funciona".
 #
 # Uso:
-#   ./scripts/xdp-zerocopy.sh [interface|driver]
+#   ./ferramental/af-xdp/xdp-zerocopy.sh [interface|driver]
 #
 # Exemplos:
-#   ./scripts/xdp-zerocopy.sh enp8s0        # por interface
-#   ./scripts/xdp-zerocopy.sh i40e          # por driver, sem precisar da placa
-#   ./scripts/xdp-zerocopy.sh               # escolhe uma interface fisica
+#   ./ferramental/af-xdp/xdp-zerocopy.sh enp8s0        # por interface
+#   ./ferramental/af-xdp/xdp-zerocopy.sh i40e          # por driver, sem precisar da placa
+#   ./ferramental/af-xdp/xdp-zerocopy.sh               # escolhe uma interface fisica
 
 set -u
 

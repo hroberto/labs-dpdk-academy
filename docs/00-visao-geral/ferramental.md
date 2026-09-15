@@ -304,14 +304,14 @@ leva **direto à linha** da função que o produziu — leitura mais fluida que
 "procure a função no arquivo". O custo é manutenção: números de linha mudam
 quando o código muda, e um link desatualizado não quebra, aponta em silêncio
 para o trecho errado. Por isso a convenção exige que o **texto do link seja o
-nome do símbolo**, e [`scripts/verificar-ancoras.py`](../../scripts/verificar-ancoras.py)
+nome do símbolo**, e [`ferramental/qualidade/verificar-ancoras.py`](../../ferramental/qualidade/verificar-ancoras.py)
 confere se cada âncora ainda cai sobre ele. Roda como teste da suíte
 (`meson test --suite docs`), então uma âncora desatualizada quebra o CI em vez
 de enganar o leitor.
 
 **Referências para a documentação oficial.** Os símbolos e conceitos do DPDK
 citados nos documentos apontam para a documentação oficial, seguindo um mapa
-canônico em [`scripts/mapa-links-dpdk.md`](../../scripts/mapa-links-dpdk.md):
+canônico em [`scripts/mapa-links-dpdk.md`](../../ferramental/qualidade/mapa-links-dpdk.md):
 mesmo símbolo, mesmo destino, uma referência por arquivo na primeira ocorrência.
 O mapa também registra duas armadilhas — link em título quebra a âncora da
 seção, e âncora Doxygen errada devolve HTTP 200 do mesmo jeito.

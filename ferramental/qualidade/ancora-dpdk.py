@@ -14,8 +14,8 @@ O único critério confiável é o título do bloco de detalhe (`memtitle`), que
 Doxygen preenche com o nome exato do símbolo. É o que este script compara.
 
 Uso:
-    scripts/ancora-dpdk.py rte__ring_8h.html rte_ring_dequeue_burst
-    scripts/ancora-dpdk.py --verificar   # confere o mapa inteiro
+    ferramental/qualidade/ancora-dpdk.py rte__ring_8h.html rte_ring_dequeue_burst
+    ferramental/qualidade/ancora-dpdk.py --verificar   # confere o mapa inteiro
 """
 import html
 import re
