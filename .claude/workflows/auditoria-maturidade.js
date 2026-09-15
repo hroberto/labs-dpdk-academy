@@ -37,7 +37,12 @@ PROJETO: DPDK Academy, em ${RAIZ}
 Guia de estudo de DPDK em portugues (pt-BR), com codigo e medicoes junto de cada topico.
 Publico: quem sabe C e Linux e quer aprender DPDK do inicio ao avancado.
 Estrutura: docs/ (modulos conceituais 00..03, com medicoes/ executaveis), trilha/ (exercicios praticos
-01..04, com alternativas/cpp23 comparativas), scripts/ (ferramental de ambiente, NIC, XDP, apuracao).
+01..04, com alternativas/cpp23 comparativas), scripts/ (o que o ESTUDANTE executa: ambiente, build, test, hugepages, e os de NIC,
+que protegem a maquina dele), ferramental/qualidade/ (os cinco verificadores de
+documentacao e o gancho de pre-commit que a CI roda), ferramental/af-xdp/
+(diagnostico AF_XDP preservado; NAO executavel no hardware de referencia).
+A separacao entre scripts/ e ferramental/ e recente e deliberada: ver
+ferramental/README.md, que traz a medicao que a motivou.
 Build: Meson + Ninja, c_std=c11 com _GNU_SOURCE por arquivo, cpp_std=c++23, GoogleTest via subprojeto.
 Taxonomia de teste do projeto: L1 = logica pura sem EAL; L2 = EAL real sem privilegio; L3 = exige do host
 (hugetlbfs, varios nucleos fisicos, IOMMU, NIC) e PULA com codigo 77.
