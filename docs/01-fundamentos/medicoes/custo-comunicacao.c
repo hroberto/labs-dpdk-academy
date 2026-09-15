@@ -39,6 +39,7 @@
 #include <time.h>
 
 #include "cpu_pause.h"
+#include "clock_ns.h"
 #include "statistics.h"
 
 #define RODADAS 200000
@@ -54,12 +55,6 @@ static int par_a, par_b;
 static _Alignas(64) atomic_int bola;
 static int cpu_a, cpu_b;
 
-static uint64_t now_ns(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (uint64_t)t.tv_sec * 1000000000ull + t.tv_nsec;
-}
 
 static int fixar(int cpu)
 {
@@ -95,13 +90,13 @@ static double medir(int a, int b)
     const struct timespec espera = {0, 1000000};
     nanosleep(&espera, NULL); /* deixa o rebatedor chegar ao laço */
 
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < RODADAS; i++) {
         atomic_store_explicit(&bola, 1, memory_order_release);
         while (atomic_load_explicit(&bola, memory_order_acquire) != 0)
             academy_cpu_pause();
     }
-    const uint64_t dt = now_ns() - t0;
+    const uint64_t dt = academy_now_ns() - t0;
     pthread_join(t, NULL);
 
     return (double)dt / RODADAS / 2.0; /* ida e volta -> uma travessia */
@@ -178,9 +173,9 @@ static double laco_de_trabalho(void)
 {
     const int n = 20000000;
     long a = 0, b = 0, c = 0, d = 0;
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     TRABALHO_ALU(n, a, b, c, d);
-    const double r = (double)(now_ns() - t0) / n;
+    const double r = (double)(academy_now_ns() - t0) / n;
     soma_vizinho += a + b + c + d;
     return r;
 }

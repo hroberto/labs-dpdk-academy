@@ -38,6 +38,7 @@
 #include <sys/mman.h>
 #include <time.h>
 
+#include "clock_ns.h"
 #include "statistics.h"
 
 #define REGIAO_BYTES (512ull * 1024 * 1024)
@@ -50,12 +51,6 @@
 
 static volatile size_t sumidouro;
 
-static uint64_t now_ns(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (uint64_t)t.tv_sec * 1000000000ull + t.tv_nsec;
-}
 
 static uint64_t aleatorio_64(void)
 {
@@ -89,10 +84,10 @@ static double medir(void *mem, size_t bytes)
 
     size_t idx = 0;
     const size_t iteracoes = n * 4;
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (size_t i = 0; i < iteracoes; i++)
         idx = p[idx];
-    const uint64_t dt = now_ns() - t0;
+    const uint64_t dt = academy_now_ns() - t0;
     sumidouro = idx;
 
     return (double)dt / (double)iteracoes;

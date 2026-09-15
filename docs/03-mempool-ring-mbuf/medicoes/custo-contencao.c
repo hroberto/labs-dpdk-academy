@@ -34,6 +34,7 @@
 #include <rte_lcore.h>
 #include <rte_mempool.h>
 
+#include "clock_ns.h"
 #include "statistics.h"
 
 #define OBJS 32767u
@@ -51,8 +52,6 @@ static struct rte_mempool *pool;
 static _Alignas(64) atomic_int start_flag = 0;
 static _Alignas(64) atomic_ullong ns_total = 0;
 
-static double now_ns(void){ struct timespec t; clock_gettime(CLOCK_MONOTONIC,&t);
-  return (double)t.tv_sec*1e9 + (double)t.tv_nsec; }
 static inline void consume_ptr(void*p){ __asm__ __volatile__("" : : "r"(p) : "memory"); }
 
 /* Roda num lcore da EAL: e o que faz rte_lcore_id() ser valido e o cache por
@@ -63,13 +62,13 @@ static int worker_pool(void *arg)
     (void)arg;
     void *v[BURST];
     while (!atomic_load_explicit(&start_flag, memory_order_acquire)) ;
-    const double t0 = now_ns();
+    const double t0 = academy_now_ns_d();
     for (int i = 0; i < ITER / (int)BURST; i++) {
         if (rte_mempool_get_bulk(pool, v, BURST) < 0) continue;
         for (unsigned j = 0; j < BURST; j++) consume_ptr(v[j]);
         rte_mempool_put_bulk(pool, (void *const *)v, BURST);
     }
-    atomic_fetch_add(&ns_total, (unsigned long long)((now_ns()-t0)*1000.0/ITER));
+    atomic_fetch_add(&ns_total, (unsigned long long)((academy_now_ns_d()-t0)*1000.0/ITER));
     return 0;
 }
 
@@ -78,12 +77,12 @@ static void *worker_malloc(void *arg)
     (void)arg;
     void *v[BURST];
     while (!atomic_load_explicit(&start_flag, memory_order_acquire)) ;
-    const double t0 = now_ns();
+    const double t0 = academy_now_ns_d();
     for (int i = 0; i < ITER / (int)BURST; i++) {
         for (unsigned j = 0; j < BURST; j++) { v[j] = malloc(TAM); consume_ptr(v[j]); }
         for (unsigned j = 0; j < BURST; j++) free(v[j]);
     }
-    atomic_fetch_add(&ns_total, (unsigned long long)((now_ns()-t0)*1000.0/ITER));
+    atomic_fetch_add(&ns_total, (unsigned long long)((academy_now_ns_d()-t0)*1000.0/ITER));
     return NULL;
 }
 

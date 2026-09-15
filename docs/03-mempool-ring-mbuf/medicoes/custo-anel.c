@@ -36,6 +36,7 @@
 #include <rte_lcore.h>
 #include <rte_ring.h>
 
+#include "clock_ns.h"
 #include "statistics.h"
 
 #define RING_SIZE 4096u
@@ -52,12 +53,6 @@ static struct rte_ring *ring_current;
  * ponteiro inválido, que sanitizers reclamariam. */
 static char objects[BURST_MAX];
 
-static double now_ns(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (double)t.tv_sec * 1e9 + (double)t.tv_nsec;
-}
 
 /* Um ciclo completo: enfileirar o lote e desenfileirar o lote. Medir só um dos
  * lados deixaria a fila crescendo ou vazia, e a medição mudaria de regime no
@@ -69,14 +64,14 @@ static double m_ciclo_bulk(void)
         v[j] = &objects[j];
 
     const int rounds = ITERATIONS / (int)current_burst;
-    const double t0 = now_ns();
+    const double t0 = academy_now_ns_d();
     for (int i = 0; i < rounds; i++) {
         if (rte_ring_enqueue_bulk(ring_current, v, current_burst, NULL) == 0)
             return -1.0; /* 0 = nada entrou: tudo ou nada */
         if (rte_ring_dequeue_bulk(ring_current, v, current_burst, NULL) == 0)
             return -1.0;
     }
-    return (now_ns() - t0) / (rounds * (int)current_burst);
+    return (academy_now_ns_d() - t0) / (rounds * (int)current_burst);
 }
 
 static double m_spsc(void)

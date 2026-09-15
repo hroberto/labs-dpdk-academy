@@ -24,6 +24,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "clock_ns.h"
 #include "statistics.h"
 
 #define ITERATIONS 2000000
@@ -33,12 +34,6 @@
  * de preâmbulo e intervalo entre quadros): 10e9 / (84 * 8) = 14,88 Mpps. */
 #define BUDGET_10GBE_NS 67.2
 
-static uint64_t now_ns(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (uint64_t)t.tv_sec * 1000000000ull + t.tv_nsec;
-}
 
 /* volatile impede que o compilador elimine os laços de medição. */
 static volatile long sumidouro;
@@ -76,26 +71,26 @@ __attribute__((noinline)) static long plain_call(long x)
 
 static double m_funcao(void)
 {
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < ITERATIONS; i++)
         sumidouro = plain_call(i);
-    return (double)(now_ns() - t0) / ITERATIONS;
+    return (double)(academy_now_ns() - t0) / ITERATIONS;
 }
 
 static double m_syscall(void)
 {
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < ITERATIONS; i++)
         sumidouro = syscall(SYS_getpid);
-    return (double)(now_ns() - t0) / ITERATIONS;
+    return (double)(academy_now_ns() - t0) / ITERATIONS;
 }
 
 static double m_vdso(void)
 {
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < ITERATIONS; i++)
-        sumidouro = (long)now_ns();
-    return (double)(now_ns() - t0) / ITERATIONS;
+        sumidouro = (long)academy_now_ns();
+    return (double)(academy_now_ns() - t0) / ITERATIONS;
 }
 
 int main(void)

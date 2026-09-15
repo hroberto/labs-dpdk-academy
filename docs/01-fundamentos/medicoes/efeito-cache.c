@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "clock_ns.h"
 #include "statistics.h"
 
 /* Total de acessos por medição, constante entre os tamanhos para comparar. */
@@ -33,17 +34,11 @@
 static size_t caso_tam;
 static int caso_aleatorio;
 
-static uint64_t now_ns(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (uint64_t)t.tv_sec * 1000000000ull + t.tv_nsec;
-}
 
 static double medir(const uint32_t *a, const uint32_t *ordem, size_t n, size_t repeticoes)
 {
     volatile uint64_t soma = 0;
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     if (ordem == NULL) {
         for (size_t r = 0; r < repeticoes; r++)
             for (size_t i = 0; i < n; i++)
@@ -54,7 +49,7 @@ static double medir(const uint32_t *a, const uint32_t *ordem, size_t n, size_t r
                 soma += a[ordem[i]];
     }
     (void)soma;
-    return (double)(now_ns() - t0) / (double)(n * repeticoes);
+    return (double)(academy_now_ns() - t0) / (double)(n * repeticoes);
 }
 
 /* Uma amostra do caso corrente: aloca, embaralha se preciso, percorre. */

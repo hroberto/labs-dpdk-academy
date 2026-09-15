@@ -51,6 +51,7 @@
 #include <time.h>
 
 #include "cpu_pause.h"
+#include "clock_ns.h"
 #include "statistics.h"
 
 #define RODADAS 500000
@@ -67,12 +68,6 @@ static _Alignas(64) volatile long sumidouro;
 static int cpu_local = 0;
 static int cpu_remoto = 2; /* mesmo CCD por padrão; a main varia */
 
-static uint64_t now_ns(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (uint64_t)t.tv_sec * 1000000000ull + t.tv_nsec;
-}
 
 static void fixar(int cpu)
 {
@@ -84,9 +79,9 @@ static void fixar(int cpu)
 
 static void aquecer(void)
 {
-    const uint64_t ate = now_ns() + (uint64_t)AQUECIMENTO_MS * 1000000ull;
+    const uint64_t ate = academy_now_ns() + (uint64_t)AQUECIMENTO_MS * 1000000ull;
     long a = 0;
-    while (now_ns() < ate)
+    while (academy_now_ns() < ate)
         for (int i = 0; i < 10000; i++)
             a += i;
     sumidouro = a;
@@ -98,10 +93,10 @@ static double clock_period_ns(void)
     /* Cadeia de dependências de somas inteiras: uma por ciclo em regime. */
     const int n = 20000000;
     volatile long x = 0;
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < n; i++)
         x = x + 1;
-    const double r = (double)(now_ns() - t0) / n;
+    const double r = (double)(academy_now_ns() - t0) / n;
     sumidouro = x;
     return r;
 }
@@ -110,23 +105,23 @@ static double clock_period_ns(void)
 
 static double cas_melhor_caso(void)
 {
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < RODADAS; i++) {
         int esperado = 0;
         atomic_compare_exchange_strong(&alvo, &esperado, 1);
         atomic_store(&alvo, 0);
     }
-    return (double)(now_ns() - t0) / RODADAS;
+    return (double)(academy_now_ns() - t0) / RODADAS;
 }
 
 static double trava_melhor_caso(void)
 {
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < RODADAS; i++) {
         pthread_mutex_lock(&trava);
         pthread_mutex_unlock(&trava);
     }
-    return (double)(now_ns() - t0) / RODADAS;
+    return (double)(academy_now_ns() - t0) / RODADAS;
 }
 
 /* ------------ Falta de cache: a linha está no cache de outro núcleo --------- */
@@ -155,13 +150,13 @@ static double falta_de_cache(void)
     const struct timespec d = {0, 5000000};
     nanosleep(&d, NULL);
 
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < RODADAS; i++) {
         atomic_store_explicit(&bastao, 1, memory_order_release);
         while (atomic_load_explicit(&bastao, memory_order_acquire) != 0)
             academy_cpu_pause();
     }
-    const double r = (double)(now_ns() - t0) / RODADAS / 2.0;
+    const double r = (double)(academy_now_ns() - t0) / RODADAS / 2.0;
 
     atomic_store(&encerrar, 1);
     pthread_join(t, NULL);
@@ -179,14 +174,14 @@ static double cas_com_falta(void)
     const struct timespec d = {0, 5000000};
     nanosleep(&d, NULL);
 
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < RODADAS; i++) {
         int esperado = 0;
         atomic_compare_exchange_strong(&bastao, &esperado, 1);
         while (atomic_load_explicit(&bastao, memory_order_acquire) != 0)
             academy_cpu_pause();
     }
-    const double r = (double)(now_ns() - t0) / RODADAS / 2.0;
+    const double r = (double)(academy_now_ns() - t0) / RODADAS / 2.0;
 
     atomic_store(&encerrar, 1);
     pthread_join(t, NULL);

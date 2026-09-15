@@ -48,6 +48,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "clock_ns.h"
 #include "statistics.h"
 
 /* Orçamento de 10 GbE com quadro de 64 B, o número que o módulo publica:
@@ -58,12 +59,6 @@
 #define DURATION_MS 120          /* por nível de carga */
 #define MAX_LATENCIES 200000
 
-static double now_ns(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (double)t.tv_sec * 1e9 + (double)t.tv_nsec;
-}
 
 /* Trabalho sintético por pacote. `volatile` impede que o compilador elimine o
  * laço — sem isso, -O2 apagaria a função inteira e mediríamos zero. */
@@ -97,14 +92,14 @@ static double saturated_service(unsigned passos)
     for (int i = 0; i < 1000; i++) /* aquece */
         do_work(passos);
 
-    const double t0 = now_ns();
+    const double t0 = academy_now_ns_d();
     for (int i = 0; i < repet; i++) {
-        const double arrived_at = now_ns(); /* mesma leitura que o laço real faz */
+        const double arrived_at = academy_now_ns_d(); /* mesma leitura que o laço real faz */
         idx = (idx + 1) % 8;              /* mesma contabilidade de índice */
         do_work(passos);
-        descarte[idx] = now_ns() - arrived_at;
+        descarte[idx] = academy_now_ns_d() - arrived_at;
     }
-    const double total = now_ns() - t0;
+    const double total = academy_now_ns_d() - t0;
     /* Impede que o compilador descarte `descarte[]`. */
     if (descarte[idx] < 0.0)
         printf("impossivel\n");
@@ -131,12 +126,12 @@ static struct resultado correr(unsigned passos, double service_ns, double *lat)
     unsigned cabeca = 0, cauda = 0, occupancy = 0;
     int n_lat = 0;
 
-    const double t0 = now_ns();
+    const double t0 = academy_now_ns_d();
     const double fim = t0 + (double)DURATION_MS * 1e6;
     double next_arrival = t0;
 
     for (;;) {
-        const double t = now_ns();
+        const double t = academy_now_ns_d();
         if (t >= fim)
             break;
 
@@ -163,7 +158,7 @@ static struct resultado correr(unsigned passos, double service_ns, double *lat)
             occupancy--;
             do_work(passos);
             if (n_lat < MAX_LATENCIES)
-                lat[n_lat++] = now_ns() - arrived_at;
+                lat[n_lat++] = academy_now_ns_d() - arrived_at;
             r.served++;
         }
     }

@@ -60,6 +60,7 @@
 #include <time.h>
 
 #include "cpu_pause.h"
+#include "clock_ns.h"
 #include "statistics.h"
 
 #define RODADAS_PRIMITIVO_FIXO 2000000
@@ -70,12 +71,6 @@
 
 static int cpu_a = 0, cpu_b = 2;
 
-static uint64_t now_ns(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (uint64_t)t.tv_sec * 1000000000ull + t.tv_nsec;
-}
 
 static void fixar(int cpu)
 {
@@ -103,9 +98,9 @@ static _Alignas(64) volatile long sumidouro;
  * aquecerem, antes de qualquer medição valer. */
 static void aquecer(void)
 {
-    const uint64_t ate = now_ns() + (uint64_t)AQUECIMENTO_MS * 1000000ull;
+    const uint64_t ate = academy_now_ns() + (uint64_t)AQUECIMENTO_MS * 1000000ull;
     long acumulador = 0;
-    while (now_ns() < ate)
+    while (academy_now_ns() < ate)
         for (int i = 0; i < 10000; i++)
             acumulador += i;
     sumidouro = acumulador;
@@ -126,23 +121,23 @@ static _Alignas(64) pthread_spinlock_t spin;
 
 static double m_atomica_relaxed(void)
 {
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < RODADAS_PRIMITIVO; i++) {
         atomic_store_explicit(&valor, i, memory_order_relaxed);
         sumidouro = atomic_load_explicit(&valor, memory_order_relaxed);
     }
-    return (double)(now_ns() - t0) / RODADAS_PRIMITIVO;
+    return (double)(academy_now_ns() - t0) / RODADAS_PRIMITIVO;
 }
 
 static double m_mutex_simples(void)
 {
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < RODADAS_PRIMITIVO; i++) {
         pthread_mutex_lock(&mtx);
         sumidouro = i;
         pthread_mutex_unlock(&mtx);
     }
-    return (double)(now_ns() - t0) / RODADAS_PRIMITIVO;
+    return (double)(academy_now_ns() - t0) / RODADAS_PRIMITIVO;
 }
 
 /* Executa QUALQUER medição com uma thread de ruído presente no processo.
@@ -219,35 +214,35 @@ static void measure_default(const char *rotulo, double (*m)(void))
 
 static double m_atomica_seqcst(void)
 {
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < RODADAS_PRIMITIVO; i++) {
         atomic_store(&valor, i); /* seq_cst: barreira completa */
         sumidouro = atomic_load(&valor);
     }
-    return (double)(now_ns() - t0) / RODADAS_PRIMITIVO;
+    return (double)(academy_now_ns() - t0) / RODADAS_PRIMITIVO;
 }
 
 static double m_spinlock(void)
 {
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < RODADAS_PRIMITIVO; i++) {
         pthread_spin_lock(&spin);
         sumidouro = i;
         pthread_spin_unlock(&spin);
     }
-    return (double)(now_ns() - t0) / RODADAS_PRIMITIVO;
+    return (double)(academy_now_ns() - t0) / RODADAS_PRIMITIVO;
 }
 
 static double m_semaforo_livre(void)
 {
     sem_t s;
     sem_init(&s, 0, 0);
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < RODADAS_PRIMITIVO; i++) {
         sem_post(&s);
         sem_wait(&s); /* nunca bloqueia: já há permissão */
     }
-    const double r = (double)(now_ns() - t0) / RODADAS_PRIMITIVO;
+    const double r = (double)(academy_now_ns() - t0) / RODADAS_PRIMITIVO;
     sem_destroy(&s);
     return r;
 }
@@ -340,13 +335,13 @@ static double m_repasse_atomica(void)
     if (pthread_create(&t, NULL, par_atomica, NULL) != 0)
         return 0.0;
     nanosleep(&assentar, NULL);
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < RODADAS_REPASSE; i++) {
         atomic_store_explicit(&bola, 1, memory_order_release);
         while (atomic_load_explicit(&bola, memory_order_acquire) != 0)
             academy_cpu_pause();
     }
-    const double r = (double)(now_ns() - t0) / RODADAS_REPASSE / 2.0;
+    const double r = (double)(academy_now_ns() - t0) / RODADAS_REPASSE / 2.0;
     pthread_join(t, NULL);
     return r;
 }
@@ -358,7 +353,7 @@ static double m_repasse_mutex_ativo(void)
     if (pthread_create(&t, NULL, par_mutex_ativo, NULL) != 0)
         return 0.0;
     nanosleep(&assentar, NULL);
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < RODADAS_REPASSE; i++) {
         pthread_mutex_lock(&mtx2);
         estado = 1;
@@ -373,7 +368,7 @@ static double m_repasse_mutex_ativo(void)
             academy_cpu_pause();
         }
     }
-    const double r = (double)(now_ns() - t0) / RODADAS_REPASSE / 2.0;
+    const double r = (double)(academy_now_ns() - t0) / RODADAS_REPASSE / 2.0;
     pthread_join(t, NULL);
     return r;
 }
@@ -385,7 +380,7 @@ static double m_repasse_condvar(void)
     if (pthread_create(&t, NULL, par_condvar, NULL) != 0)
         return 0.0;
     nanosleep(&assentar, NULL);
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < RODADAS_REPASSE; i++) {
         pthread_mutex_lock(&mtx2);
         estado = 1;
@@ -394,7 +389,7 @@ static double m_repasse_condvar(void)
             pthread_cond_wait(&cond, &mtx2);
         pthread_mutex_unlock(&mtx2);
     }
-    const double r = (double)(now_ns() - t0) / RODADAS_REPASSE / 2.0;
+    const double r = (double)(academy_now_ns() - t0) / RODADAS_REPASSE / 2.0;
     pthread_join(t, NULL);
     return r;
 }
@@ -407,12 +402,12 @@ static double m_repasse_semaforo(void)
     if (pthread_create(&t, NULL, par_semaforo, NULL) != 0)
         return 0.0;
     nanosleep(&assentar, NULL);
-    const uint64_t t0 = now_ns();
+    const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < RODADAS_REPASSE; i++) {
         sem_post(&sem_ida);
         sem_wait(&sem_volta);
     }
-    const double r = (double)(now_ns() - t0) / RODADAS_REPASSE / 2.0;
+    const double r = (double)(academy_now_ns() - t0) / RODADAS_REPASSE / 2.0;
     pthread_join(t, NULL);
     sem_destroy(&sem_ida);
     sem_destroy(&sem_volta);

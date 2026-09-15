@@ -44,6 +44,7 @@
 #include <rte_mempool.h>
 
 #include "sizing.h"
+#include "clock_ns.h"
 #include "statistics.h"
 
 #define OBJECTS 4095u   /* 2^12 - 1: tamanho ótimo em uso de memória */
@@ -104,12 +105,6 @@ static double freq_ghz(unsigned cpu)
     return (double)khz / 1e6;
 }
 
-static double now_ns(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (double)t.tv_sec * 1e9 + (double)t.tv_nsec;
-}
 
 /* Barreira contra o otimizador: sem ela, o compilador percebe que o ponteiro
  * não é usado e remove o par alocar/liberar inteiro, produzindo 0,000 ns. */
@@ -120,13 +115,13 @@ static inline void consume_ptr(void *p)
 
 static double m_malloc_unitario(void)
 {
-    const double t0 = now_ns();
+    const double t0 = academy_now_ns_d();
     for (int i = 0; i < ITERATIONS; i++) {
         void *p = malloc(OBJECT_SIZE);
         consume_ptr(p);
         free(p);
     }
-    return (now_ns() - t0) / ITERATIONS;
+    return (academy_now_ns_d() - t0) / ITERATIONS;
 }
 
 /* Lote corrente da varredura. Global porque collect() recebe função sem
@@ -137,7 +132,7 @@ static double m_malloc_lote(void)
 {
     void *v[BURST_MAX];
     const int rounds = ITERATIONS / (int)current_burst;
-    const double t0 = now_ns();
+    const double t0 = academy_now_ns_d();
     for (int i = 0; i < rounds; i++) {
         for (unsigned j = 0; j < current_burst; j++) {
             v[j] = malloc(OBJECT_SIZE);
@@ -146,12 +141,12 @@ static double m_malloc_lote(void)
         for (unsigned j = 0; j < current_burst; j++)
             free(v[j]);
     }
-    return (now_ns() - t0) / (rounds * (int)current_burst);
+    return (academy_now_ns_d() - t0) / (rounds * (int)current_burst);
 }
 
 static double measure_pool_single(struct rte_mempool *mp)
 {
-    const double t0 = now_ns();
+    const double t0 = academy_now_ns_d();
     for (int i = 0; i < ITERATIONS; i++) {
         void *p = NULL;
         if (rte_mempool_get(mp, &p) < 0)
@@ -159,7 +154,7 @@ static double measure_pool_single(struct rte_mempool *mp)
         consume_ptr(p);
         rte_mempool_put(mp, p);
     }
-    return (now_ns() - t0) / ITERATIONS;
+    return (academy_now_ns_d() - t0) / ITERATIONS;
 }
 
 static double m_pool_com_cache(void)
@@ -176,7 +171,7 @@ static double m_pool_bulk(void)
 {
     void *v[BURST_MAX];
     const int rounds = ITERATIONS / (int)current_burst;
-    const double t0 = now_ns();
+    const double t0 = academy_now_ns_d();
     for (int i = 0; i < rounds; i++) {
         if (rte_mempool_get_bulk(pool_cache, v, current_burst) < 0)
             return -1.0;
@@ -184,7 +179,7 @@ static double m_pool_bulk(void)
             consume_ptr(v[j]);
         rte_mempool_put_bulk(pool_cache, v, current_burst);
     }
-    return (now_ns() - t0) / (rounds * (int)current_burst);
+    return (academy_now_ns_d() - t0) / (rounds * (int)current_burst);
 }
 
 int main(int argc, char **argv)
