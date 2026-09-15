@@ -25,7 +25,18 @@
 #   ./ferramental/qualidade/pre-commit.sh --rapido   # sem a suíte longa (~20 s)
 #   ./ferramental/qualidade/pre-commit.sh --instalar # liga como hook do git
 set -u
-cd "$(dirname "$0")/.."
+# Sobe ate a raiz do repositorio em vez de contar niveis.
+#
+# Contar quebrou quando este script saiu de scripts/ para
+# ferramental/qualidade/: `..` passou a ser ferramental/, e o efeito foi
+# enganoso -- `meson setup` "falhava", o ninja dizia que build.ninja nao existia,
+# e o arquivo estava la, na raiz. Tres falhas relatadas, nenhuma real.
+_raiz="$(cd "$(dirname "$0")" && pwd)"
+while [ "$_raiz" != "/" ] && { [ ! -f "$_raiz/meson.build" ] || [ ! -d "$_raiz/docs" ]; }; do
+    _raiz="$(dirname "$_raiz")"
+done
+[ -f "$_raiz/meson.build" ] || { echo "nao achei a raiz do repositorio" >&2; exit 2; }
+cd "$_raiz"
 
 MODO="completo"
 case "${1:-}" in
