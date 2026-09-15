@@ -28,19 +28,54 @@
 
 # Ecoa o diretório utilizável, ou string vazia. Nunca falha.
 descobrir_hugetlbfs() {
-    if [ -n "${DPDK_ACADEMY_HUGE_DIR:-}" ] && [ -w "${DPDK_ACADEMY_HUGE_DIR}" ]; then
+    if [ -n "${DPDK_ACADEMY_HUGE_DIR:-}" ] && gravavel_de_fato "${DPDK_ACADEMY_HUGE_DIR}"; then
         printf '%s' "$DPDK_ACADEMY_HUGE_DIR"
         return 0
     fi
     # Campo 2 de /proc/mounts é o ponto de montagem; campo 3, o tipo.
     while read -r _ ponto tipo _; do
         [ "$tipo" = "hugetlbfs" ] || continue
-        # -w sozinho responde "sim" para root mesmo sem permissão real; estes
-        # testes não rodam como root, então -w basta e mantém a função simples.
-        if [ -w "$ponto" ]; then
+        if gravavel_de_fato "$ponto"; then
             printf '%s' "$ponto"
             return 0
         fi
     done < /proc/mounts
     printf ''
+}
+
+# Escreve de verdade, em vez de perguntar se e possivel escrever.
+#
+# POR QUE NAO `-w`. O teste `-w` responde SIM para root em qualquer diretorio,
+# mesmo sem permissao real -- e a versao anterior desta biblioteca sabia disso,
+# documentando que "estes testes nao rodam como root, entao -w basta". A
+# suposicao e falsa toda vez que alguem executa `sudo ./scripts/test-all.sh`:
+# ali o pulo deixa de acontecer, os testes rodam num ambiente que a precondicao
+# aprovou por engano, e a falha resultante parece defeito do projeto.
+#
+# Criar e remover um arquivo responde a mesma pergunta sem depender do uid.
+gravavel_de_fato() {
+    local ponto=$1 alvo="$1/.academia-escrita-$$"
+    [ -d "$ponto" ] || return 1
+    # Subshell: `2>/dev/null` no comando NAO cala a mensagem que o shell emite
+    # quando o proprio redirecionamento falha. Redirecionar o subshell inteiro
+    # cala a origem certa.
+    ( : > "$alvo" ) 2>/dev/null || return 1
+    rm -f -- "$alvo"
+    return 0
+}
+
+# Pre-requisitos observaveis ANTES de executar a aplicacao. Uma falha da EAL
+# depois desta verificacao e FAIL: nao se infere falta de hardware pelo log.
+#
+# Confere tres coisas, e as tres importam: que o diretorio aceite escrita deste
+# usuario, que ele seja mesmo hugetlbfs (e nao um diretorio comum apontado por
+# engano na variavel de ambiente), e que haja pagina livre do tamanho da
+# montagem -- montagem sem pagina livre falha na EAL, nao aqui.
+hugetlbfs_disponivel() {
+    local ponto=$1 tamanho livres
+    [ -n "$ponto" ] && gravavel_de_fato "$ponto" || return 1
+    [ "$(stat -f -c %T -- "$ponto" 2>/dev/null)" = hugetlbfs ] || return 1
+    tamanho=$(stat -f -c %S -- "$ponto") || return 1
+    livres="/sys/kernel/mm/hugepages/hugepages-$((tamanho / 1024))kB/free_hugepages"
+    [ -r "$livres" ] && [ "$(cat "$livres")" -gt 0 ]
 }

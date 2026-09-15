@@ -111,6 +111,26 @@ echo ""
 # definida, para permitir apontar uma montagem especifica.
 # shellcheck source=lib-hugetlbfs.sh
 . "$(dirname "$0")/lib-hugetlbfs.sh"
+
+# A BIBLIOTECA TEM DE ESTAR COMPLETA, e isto nao e paranoia.
+#
+# Quando `hugetlbfs_disponivel` nao existia na biblioteca, a chamada abaixo
+# falhava com "comando nao encontrado" -- e como o `||` trata qualquer retorno
+# nao-zero igual, o runner PULAVA. Dependencia ausente aparecia como requisito
+# ausente: um defeito do projeto reportado como limitacao do ambiente, que e a
+# confusao que este arquivo inteiro existe para eliminar.
+# Sao as duas que ESTE runner chama. `gravavel_de_fato` fica de fora de
+# proposito: e detalhe interno da biblioteca, e exigi-la aqui quebraria o
+# stub minimo que l1_multiprocesso.sh injeta para exercitar os caminhos de
+# falha -- guarda deve cobrir o contrato de quem chama, nao a API inteira.
+for _f in descobrir_hugetlbfs hugetlbfs_disponivel; do
+    if ! declare -F "$_f" >/dev/null; then
+        echo "  FALHA - lib-hugetlbfs.sh nao define $_f" >&2
+        echo "          Isto e defeito da biblioteca, NAO falta de requisito:" >&2
+        echo "          pular aqui esconderia um erro de codigo." >&2
+        exit 1
+    fi
+done
 DPDK_ACADEMY_HUGE_DIR=$(descobrir_hugetlbfs)
 export DPDK_ACADEMY_HUGE_DIR
 
