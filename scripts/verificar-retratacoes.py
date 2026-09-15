@@ -58,6 +58,11 @@ demais:
   (2,08 no lugar de 2,078): a busca é textual;
 - número retratado dentro de código-fonte que o documento não cita;
 - retratação escrita sem nenhum dos marcadores conhecidos;
+- valor cujos MESMOS DÍGITOS têm outro papel legítimo no texto. Um "120,0"
+  retratado como mediana reaparece como extremo de amplitude "120,0-122,5", e a
+  busca textual não separa os dois. Nesse caso o valor não deve entrar na marca
+  -- declará-lo produziria acusação falsa, e verificador que acusa o correto é
+  desligado;
 - afirmação retratada que não é numérica (um rótulo, uma conclusão).
 
 Só entram números com pelo menos TRÊS dígitos significativos. Sem esse corte,
@@ -80,8 +85,39 @@ MARCADORES = (
     "estava errado", "estavam errados", "estavam erradas", "dizia",
 )
 
-# Número com >= 3 dígitos significativos: 2,078 / 1.539 / 0,115 / 22,5 não entra.
-NUMERO = re.compile(r"\b\d+[.,]\d{2,}\b")
+# Número decimal qualquer; o corte por dígitos significativos vem depois, em
+# `distintivo()`. A primeira versão fazia o corte NO REGEX, exigindo duas casas
+# decimais -- e o cabeçalho prometia "três dígitos significativos", que não é a
+# mesma coisa: `120,0` tem quatro significativos e uma casa, e escapava. O
+# contrato dizia uma coisa e o código fazia outra, que é exatamente a classe de
+# defeito que este verificador existe para pegar.
+NUMERO_BRUTO = re.compile(r"\b\d+[.,]\d+\b")
+MIN_SIGNIFICATIVOS = 3
+
+
+def distintivo(n):
+    """Dígitos suficientes para que casar no texto signifique algo.
+
+    Sem este corte, valores como "5,0" apareceriam em toda parte e o
+    verificador viraria ruído -- e verificador ruidoso é desligado, que é a
+    forma mais comum de um controle morrer."""
+    return len(n.replace(",", "").replace(".", "").lstrip("0")) >= MIN_SIGNIFICATIVOS
+
+
+class _Numero:
+    @staticmethod
+    def findall(texto):
+        return [n for n in NUMERO_BRUTO.findall(texto) if distintivo(n)]
+
+    @staticmethod
+    def search(texto):
+        for n in NUMERO_BRUTO.finditer(texto):
+            if distintivo(n.group(0)):
+                return n
+        return None
+
+
+NUMERO = _Numero
 
 # A marca que declara o que caiu. Comentário HTML: invisível na renderização.
 MARCA = re.compile(r"<!--\s*retratado:\s*([^>]+?)\s*-->", re.IGNORECASE)

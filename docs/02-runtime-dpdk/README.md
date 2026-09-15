@@ -161,15 +161,33 @@ grandeza menos. A assimetria é o primeiro fato relevante: nascer é caro, morre
 A primeira hipótese natural é que o custo esteja na memória ou na varredura de
 dispositivos. As duas estão erradas:
 
-| Configuração | `rte_eal_init()` mediana |
-|---|---|
-| `-l 0 --in-memory` | 120,0 ms |
-| `-l 0 --in-memory --no-pci` | 122,3 ms |
-| `-l 0 --no-huge --in-memory --no-pci` | 120,7 ms |
+| Configuração | `rte_eal_init()` mediana | amplitude |
+|---|---:|---|
+| `-l 0 --in-memory` | 122,4 ms | 121,6–123,7 |
+| `-l 0 --in-memory --no-pci` | 121,1 ms | 120,0–122,5 |
+| `-l 0 --no-huge --in-memory --no-pci` | 120,8 ms | 120,2–121,8 |
+| `-l 0-3 --in-memory` | 123,5 ms | 122,8–125,7 |
 
 Desligar a varredura PCI não muda nada. Trocar hugepages por memória comum não
 muda nada. Usar quatro lcores em vez de um não muda nada. O custo é **um piso
-fixo**, e um piso fixo com dispersão de 0,6% não parece trabalho: parece espera.
+fixo**, e um piso fixo com essa dispersão não parece trabalho: parece espera.
+
+> **Duas correções de método nesta tabela.** A versão anterior publicava 120,0 ms
+> para `-l 0 --in-memory` — valor que caía **fora** da amplitude 121,3–123,9 da
+> tabela do início da seção, para a *mesma* configuração, sem que nada no texto
+> notasse. E afirmava que "usar quatro lcores não muda nada" sem publicar
+> nenhuma medição com quatro lcores: a tabela tinha três linhas.
+>
+> Esta coleta corrige as duas coisas. A amplitude aparece em todas as linhas,
+> `-l 0-3` foi efetivamente medido, e a mediana de `-l 0 --in-memory` (122,4,
+> amplitude 121,6–123,7) **contém** os 123,1 da tabela-título — as duas coletas
+> concordam, que é o que a versão anterior não conseguia dizer.
+>
+> <!-- retratado: 122,3 120,7 -->
+>
+> (O 120,0 NÃO entra na marca de propósito: os mesmos dígitos reaparecem, com
+> papel legítimo, como extremo inferior da amplitude 120,0–122,5 na linha do
+> `--no-pci`. A busca do verificador é textual e não separa os dois papéis.)
 
 **Trabalhando ou esperando?** A distinção é o problema, e a medição anterior não
 consegue fazê-la: 123 ms de relógio de parede são idênticos nos dois casos.
@@ -200,7 +218,7 @@ contra o relógio do sistema durante um décimo de segundo para descobrir sua
 frequência — a mesma que [`rte_get_tsc_hz()`][apitschz] devolve depois, e que
 todo código que converte ciclos em nanossegundos usa.
 
-**Ou seja: 100 dos 123 ms, 83% do custo de inicializar a EAL nesta máquina, não
+**Ou seja: 100 dos 123 ms, 81% do custo de inicializar a EAL nesta máquina, não
 são trabalho — são uma medição de relógio.**
 
 > **O que o `strace` não resolveu.** Ele mostrou *que* há uma espera de 100 ms e
