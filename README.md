@@ -68,15 +68,37 @@ A trilha principal está em:
 - `trilha/README.md`
 - `ROADMAP.md`
 
-A progressão sugerida é:
+**A ordem de estudo canônica é a dos dez níveis do
+[plano de estudo](docs/plano-estudo-dpdk.md).** É a única numeração que os
+módulos citam: cada documento abre declarando o seu "Nível N", e é esse número
+que vale. Os outros documentos de entrada têm papéis diferentes e não numeram a
+progressão:
 
-1. Fundamentos de sistema e rede
-2. Runtime e EAL do DPDK
-3. Mempool, ring e mbuf
-4. Pipeline de dados e batching
-5. NUMA, cache e CPU affinity
-6. Benchmarks e observabilidade
-7. Projeto final e comparação com C++23 puro
+| Documento | Para quê serve |
+|---|---|
+| [docs/plano-estudo-dpdk.md](docs/plano-estudo-dpdk.md) | **a ordem de estudo**, em dez níveis — é o que os módulos citam |
+| [trilha/README.md](trilha/README.md) | índice do que existe em código e teste, com o estado de cada tópico |
+| [ROADMAP.md](ROADMAP.md) | ordem de **construção** do material — não é ordem de leitura |
+
+Os dez níveis, e onde cada um está:
+
+| Nível | Assunto | Estado |
+|---:|---|---|
+| 1-2 | Fundamentos de sistema e de rede | [docs/01-fundamentos](docs/01-fundamentos/) |
+| 3 | Runtime e EAL | [docs/02-runtime-dpdk](docs/02-runtime-dpdk/) · [trilha 01-eal-hello](trilha/01-fundamentos/01-eal-hello/) |
+| 4 | Mempool, mbuf, ring e ciclo de dados | [docs/03-mempool-ring-mbuf](docs/03-mempool-ring-mbuf/) · [trilha 02-mempool-ring](trilha/01-fundamentos/02-mempool-ring/) |
+| 5 | Pipeline e contrapressão | [trilha/02-pipeline](trilha/02-pipeline/) — escopo registrado, sem código |
+| 6 | RX/TX e hardware | [trilha 01-rx-tx-burst](trilha/02-pipeline/01-rx-tx-burst/) — ambiente medido, sem código; depende de NIC |
+| 7 | NUMA, cache e desempenho | coberto dentro dos [fundamentos](docs/01-fundamentos/) |
+| 8 | Observabilidade e qualidade | [trilha/03-performance](trilha/03-performance/) — escopo registrado, sem código |
+| 9 | Virtualização e nuvem | **não iniciado** |
+| 10 | Projeto final e alternativas | [trilha/04-projeto-final](trilha/04-projeto-final/) |
+
+> **Esta tabela substituiu uma lista de sete passos que competia com os dez
+> níveis em vez de citá-los.** A colisão era concreta: o passo 5 da lista era
+> "NUMA, cache e CPU affinity" enquanto o Nível 5 é "Pipeline", de modo que
+> "nível 5" significava duas coisas conforme o documento. A lista também
+> omitia, sem dizer, os níveis 6 e 9.
 
 ## O que se pressupõe de você
 
