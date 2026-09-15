@@ -45,6 +45,12 @@
 struct config {
     uint64_t num_packets;
     unsigned burst;
+    /* Prazo de PROGRESSO em milissegundos; 0 desliga.
+     *
+     * Nao e prazo total de execucao: e quanto tempo se aceita sem que NENHUM
+     * pacote avance. A distincao importa -- uma execucao longa e legitima, uma
+     * execucao parada nao. */
+    uint64_t progresso_ms;
 };
 
 static int parse_config(int argc, char **argv, struct config *cfg)
@@ -52,13 +58,16 @@ static int parse_config(int argc, char **argv, struct config *cfg)
     int opt;
     cfg->num_packets = 10;
     cfg->burst = 32;
+    cfg->progresso_ms = 0;
     optind = 1;
-    while ((opt = getopt(argc, argv, "n:b:")) != -1) {
+    while ((opt = getopt(argc, argv, "n:b:t:")) != -1) {
         switch (opt) {
         case 'n': cfg->num_packets = strtoull(optarg, NULL, 10); break;
         case 'b': cfg->burst = (unsigned)strtoul(optarg, NULL, 10); break;
+        case 't': cfg->progresso_ms = strtoull(optarg, NULL, 10); break;
         default:
-            fprintf(stderr, "Uso: %s <EAL> -- [-n pacotes] [-b lote (1..%u)]\n", argv[0], BURST_MAX);
+            fprintf(stderr, "Uso: %s <EAL> -- [-n pacotes] [-b lote (1..%u)]"
+                            " [-t ms sem progresso]\n", argv[0], BURST_MAX);
             return -1;
         }
     }
@@ -78,6 +87,13 @@ struct consumer_context {
     unsigned burst;
     uint64_t target;
     struct summary r;
+    /* Pedido de parada, escrito pelo produtor e lido pelo consumidor.
+     *
+     * Existe porque a espera limitada precisa encerrar os DOIS lados: sem isto,
+     * o produtor desistiria por prazo e `rte_eal_wait_lcore` ficaria esperando
+     * para sempre um consumidor que nunca alcanca o alvo. Desistir de um lado
+     * so nao e desistir: e travar noutro lugar. */
+    volatile int parar;
 } __rte_cache_aligned;
 
 /* Executado no lcore trabalhador quando há dois ou mais lcores. */
@@ -86,12 +102,18 @@ static int consumer_loop(void *arg)
     struct consumer_context *c = arg;
     struct packet *burst[BURST_MAX];
 
-    while (c->r.packets < c->target) {
+    while (c->r.packets < c->target && !c->parar) {
+#ifndef DPDK_ACADEMY_INJECT_PAUSE
         const unsigned deq = rte_ring_dequeue_burst(c->ring, (void **)burst, c->burst, NULL);
         if (deq > 0) {
             packet_process_burst(burst, deq, &c->r);
             rte_mempool_put_bulk(c->pool, (void *const *)burst, deq);
         }
+#else
+        /* CONSUMIDOR PARADO DE PROPOSITO, compilado so na variante de teste.
+         * Ver o mesmo bloco no laco de um lcore so. */
+        rte_pause();
+#endif
     }
     return 0;
 }
@@ -223,6 +245,16 @@ int main(int argc, char **argv)
     struct packet *burst_cons[BURST_MAX];
     struct summary r = {0, 0};
     uint64_t produced = 0, did_not_fit = 0;
+    /* Espera limitada: quanto tempo se aceita SEM PROGRESSO antes de desistir.
+     *
+     * O relogio so anda quando nada avanca. Qualquer pacote produzido ou
+     * consumido rearma o prazo, entao uma execucao lenta nao e confundida com
+     * uma parada -- que e a diferenca entre demorar e travar. */
+    const uint64_t prazo_ciclos = cfg.progresso_ms
+                                      ? cfg.progresso_ms * (rte_get_tsc_hz() / 1000ULL)
+                                      : 0;
+    uint64_t marco_progresso = 0, ultimo_avanco = 0;
+    int sem_progresso = 0;
 
     /* Com dois ou mais lcores, o consumidor ganha núcleo próprio e a fila
      * passa a atravessar caches. Com um só, os dois papéis se alternam aqui. */
@@ -300,15 +332,65 @@ int main(int argc, char **argv)
 
         /* --- Consumidor: só neste laço quando há um único lcore --- */
         if (!two_cores) {
+#ifndef DPDK_ACADEMY_INJECT_PAUSE
             unsigned deq = rte_ring_dequeue_burst(ring, (void **)burst_cons, cfg.burst, NULL);
             if (deq > 0) {
                 packet_process_burst(burst_cons, deq, &r);
                 rte_mempool_put_bulk(pool, (void *const *)burst_cons, deq);
             }
+#else
+            /* CONSUMIDOR PARADO DE PROPOSITO, compilado so na variante de teste.
+             *
+             * Existe porque a espera limitada, como o invariante do pool,
+             * precisa de um teste NEGATIVO: um prazo que nunca estourou e
+             * indistinguivel de um prazo que nunca e conferido. Mesma razao do
+             * `pipeline_ring_vazado`. */
+#endif
+        }
+
+        /* O prazo so corre enquanto nada avanca. */
+        if (prazo_ciclos) {
+            const uint64_t agora_total = produced + r.packets;
+            const uint64_t agora = rte_rdtsc();
+            if (agora_total != marco_progresso) {
+                marco_progresso = agora_total;
+                ultimo_avanco = agora;
+            } else if (ultimo_avanco && agora - ultimo_avanco > prazo_ciclos) {
+                sem_progresso = 1;
+                break;
+            } else if (!ultimo_avanco) {
+                ultimo_avanco = agora;
+            }
         }
     }
 
     if (two_cores) {
+        /* O PRAZO VALE TAMBEM PARA A ESPERA, e isto nao e detalhe.
+         *
+         * Com dois lcores o produtor sai do laco assim que termina de produzir
+         * -- ele nunca chega a estourar o prazo. Quem pode travar e a espera
+         * pelo consumidor, e era exatamente ali que `rte_eal_wait_lcore`
+         * esperava para sempre por um alvo que nao vinha.
+         *
+         * Espera limitada que cobre so metade do programa nao e espera
+         * limitada. */
+        if (prazo_ciclos && !sem_progresso) {
+            uint64_t visto = ctx.r.packets, desde = rte_rdtsc();
+            while (ctx.r.packets < cfg.num_packets) {
+                if (ctx.r.packets != visto) {
+                    visto = ctx.r.packets;
+                    desde = rte_rdtsc();
+                } else if (rte_rdtsc() - desde > prazo_ciclos) {
+                    sem_progresso = 1;
+                    break;
+                }
+                rte_pause();
+            }
+        }
+        /* Pede a parada ANTES de esperar. Sem isto, desistir por prazo deixaria
+         * o consumidor girando ate alcancar um alvo que nunca chega. */
+        if (sem_progresso)
+            ctx.parar = 1;
         rte_eal_wait_lcore(lcore_consumer);
         r = ctx.r;
     }
@@ -329,6 +411,23 @@ int main(int argc, char **argv)
         printf("Modo: 2 lcores (produtor %u, consumidor %u)\n", rte_lcore_id(), lcore_consumer);
     else
         printf("Modo: 1 lcore (%u), produtor e consumidor alternados\n", rte_lcore_id());
+    /* DRENAGEM: o que ficou no anel volta ao pool antes de qualquer relato.
+     *
+     * Sem isto, desistir por prazo deixaria objetos presos no anel e o
+     * invariante do pool acusaria vazamento -- um defeito inventado pela
+     * propria desistencia. Encerrar sob falha nao autoriza encerrar sujo. */
+    uint64_t descartados = 0;
+    if (sem_progresso) {
+        void *sobra[BURST_MAX];
+        unsigned deq;
+        while ((deq = rte_ring_dequeue_burst(ring, sobra, BURST_MAX, NULL)) > 0) {
+            rte_mempool_put_bulk(pool, (void *const *)sobra, deq);
+            descartados += deq;
+        }
+        printf("SEM PROGRESSO: nenhum pacote avancou por %" PRIu64 " ms; encerrando.\n",
+               cfg.progresso_ms);
+        printf("Objetos descartados no encerramento: %" PRIu64 "\n", descartados);
+    }
     printf("Objetos livres no pool ao final: %u de %u\n", rte_mempool_avail_count(pool), pool_objs);
     if (r.packets >= MIN_TO_MEASURE) {
         printf("Tempo medio: %.1f ns/pacote\n", ns_per_packet);
@@ -366,5 +465,14 @@ int main(int argc, char **argv)
     rte_ring_free(ring);
     rte_mempool_free(pool);
     rte_eal_cleanup();
-    return intact ? EXIT_SUCCESS : EXIT_FAILURE;
+    /* Tres desfechos distintos, e a distincao e o ponto:
+     *   0  correu e o pool fechou
+     *   1  INVARIANTE VIOLADO -- objeto sumiu, defeito de posse
+     *   3  SEM PROGRESSO -- prazo estourado, pool devolvido inteiro
+     *
+     * Usar 1 para os dois faria "travou" e "vazou" indistinguiveis para a
+     * suite, e sao problemas diferentes com causas diferentes. */
+    if (!intact)
+        return EXIT_FAILURE;
+    return sem_progresso ? 3 : EXIT_SUCCESS;
 }
