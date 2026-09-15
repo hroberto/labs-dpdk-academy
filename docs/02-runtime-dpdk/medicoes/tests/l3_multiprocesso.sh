@@ -55,6 +55,17 @@ check() {
     fi
 }
 
+# Falha de verdade: o requisito ESTAVA disponivel e mesmo assim nao funcionou.
+# Existe separada de `pular` de proposito -- confundir as duas foi o defeito que
+# fazia binario quebrado ser reportado como ambiente insuficiente.
+falhar() {
+    echo "  FALHA - $1"
+    for arquivo in "${SAIDA_P:-}" "${SAIDA_S:-}"; do
+        [ -n "$arquivo" ] && [ -f "$arquivo" ] && sed 's/^/    | /' "$arquivo"
+    done
+    exit 1
+}
+
 pular() {
     echo "  PULADO - $1"
     echo ""
@@ -91,6 +102,20 @@ echo ""
 . "$(dirname "$0")/lib-hugetlbfs.sh"
 DPDK_ACADEMY_HUGE_DIR=$(descobrir_hugetlbfs)
 export DPDK_ACADEMY_HUGE_DIR
+
+# A PRECONDICAO DECIDE O PULO, E SO ELA.
+#
+# Antes, o pulo era INFERIDO do resultado: "a EAL nao subiu", "o primario
+# encerrou antes de publicar" viravam PULADO. A consequencia e que um binario
+# quebrado -- defeito de verdade -- era reportado como ambiente insuficiente, e
+# a suite passava sem ter verificado nada. lib-hugetlbfs.sh ja enuncia a regra
+# certa no proprio cabecalho: "uma falha da EAL DEPOIS desta verificacao e FAIL:
+# nao se infere falta de hardware pelo log".
+#
+# Agora e literal: se o requisito nao esta disponivel, pula aqui e so aqui.
+# Passado este ponto, qualquer falha e FAIL.
+hugetlbfs_disponivel "$DPDK_ACADEMY_HUGE_DIR" ||
+    pular "hugetlbfs gravavel com paginas livres"
 EXTRA_EAL=${DPDK_ACADEMY_HUGE_DIR:+--huge-dir=$DPDK_ACADEMY_HUGE_DIR}
 [ -n "$DPDK_ACADEMY_HUGE_DIR" ] && echo "  hugetlbfs: $DPDK_ACADEMY_HUGE_DIR"
 
@@ -109,14 +134,14 @@ done
 
 if grep -q "EAL nao inicializou" "$SAIDA_P" 2>/dev/null; then
     sed 's/^/    | /' "$SAIDA_P"
-    pular "a EAL nao subiu com memoria compartilhada real"
+    falhar "a EAL nao subiu, e o requisito de hugetlbfs ja fora apurado"
 fi
 
 if ! kill -0 "$pid_primario" 2>/dev/null; then
     wait "$pid_primario"
     rc=$?
     sed 's/^/    | /' "$SAIDA_P"
-    [ $rc -ne 0 ] && pular "o primario encerrou antes de publicar (codigo $rc)"
+    [ $rc -ne 0 ] && falhar "o primario encerrou antes de publicar (codigo $rc)"
 fi
 
 # --- secundário -----------------------------------------------------------
@@ -133,7 +158,7 @@ pid_primario=""
 
 if grep -q "EAL nao inicializou\|nao apareceu" "$SAIDA_S" 2>/dev/null && [ $rc_secundario -ne 0 ]; then
     sed 's/^/    | /' "$SAIDA_S"
-    pular "o secundario nao conseguiu se anexar a memoria do primario"
+    falhar "o secundario nao conseguiu se anexar a memoria do primario"
 fi
 
 # --- verificações ---------------------------------------------------------
