@@ -1,4 +1,9 @@
+<!-- cita-defeito -->
 # Qualidade — os verificadores e o gancho
+
+<!-- Este documento REPRODUZ as contas erradas que os verificadores pegam, para
+     explicar o que cada um faz. A marca acima o isenta do portão de aritmética
+     e aparece na contagem final dele: a isenção é declarada, não silenciosa. -->
 
 **Isto não é material de estudo, mas o material depende disto para poder afirmar
 que não mente.**
