@@ -1,7 +1,20 @@
 name: CI
 
+# GATILHO RESTRITO A main E A PULL REQUESTS, e a razao e uma so: `on: push` sem
+# filtro dispara tambem em TAG, e reconstruir uma tag antiga com o ferramental de
+# hoje produz vermelho permanente. Foi o que aconteceu com `v0.01.00` -- a arvore
+# daquele commit nao tem os verificadores que o pre-commit de hoje executa, entao
+# a CI dela nunca mais vai passar, por definicao.
+#
+# Vermelho que nao tem conserto treina quem le a lista a ignorar o vermelho, e
+# foi exatamente assim que cinco falhas reais passaram despercebidas nesta
+# arvore. Um sinal que nao pode ficar verde nao e sinal.
+#
+# Branch de trabalho continua coberta: entra por `pull_request`, onde o resultado
+# tem para onde ir.
 on:
   push:
+    branches: [main]
   pull_request:
 
 # Menor privilegio para o GITHUB_TOKEN. Sem este bloco ele herda o padrao da
