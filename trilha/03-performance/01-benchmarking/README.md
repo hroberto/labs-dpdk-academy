@@ -16,12 +16,20 @@ O projeto já tem uma metodologia em uso, em `statistics.h`, e ela é o material
 bruto deste submódulo. O que falta é o rigor de ambiente, que os próprios
 documentos declaram estar faltando:
 
-> *"Execução única por ponto, sem fixar frequência de CPU, sem isolar núcleos e
-> sem aquecimento controlado de cache. Serve para ordem de grandeza."*
+> *"melhor de três por ponto, com aquecimento nos dois lados, mas **sem fixar a
+> frequência da CPU** e sem isolar núcleos — por isso os programas imprimem a
+> frequência junto do tempo. Serve para ordem de grandeza e para a razão entre as
+> abordagens, que é o que esta seção afirma."*
 > — [Alternativa em C++23](../../01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md)
 
-Essa ressalva aparece em mais de um documento. Removê-la é o entregável central
-deste submódulo.
+Variantes dessa ressalva aparecem em cinco documentos além deste. Removê-las é o
+entregável central do submódulo, e o ponto de partida é melhor do que este
+parágrafo já afirmou: até 16/09/2026 ele citava a ressalva como *"execução única
+por ponto"* e *"sem aquecimento controlado de cache"*, quando a fonte diz o
+oposto nas duas — melhor de três, com aquecimento. A citação estava entre aspas
+e com link para a fonte, que é a forma mais crível que uma afirmação pode ter, e
+errava na direção de fazer o trabalho já feito parecer pior. Falta **fixar
+frequência e isolar núcleos**; o resto do rigor já existe.
 
 ## Escopo
 
