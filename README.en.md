@@ -74,6 +74,17 @@ than passing quietly: L1 is pure logic (no EAL), L2 needs the EAL but no
 privilege, L3 needs the host (hugetlbfs, multiple cache domains). Missing
 requirements exit 77, which Meson reports as SKIP.
 
+> **A reserved hugepage is not a usable hugepage** — the likeliest trap here, and
+> it does not look like an error. DPDK multi-process needs **both** reserved
+> pages **and** a `hugetlbfs` mount *your* user can write to. The systemd default
+> is `/dev/hugepages`, `root:root 755`, so the common case is a thousand free
+> pages and none of them reachable: the L3 tests skip and nothing looks wrong.
+> `check-env.sh` draws that conclusion for you; `sudo ./scripts/preparar-hugepages.sh`
+> fixes it, asking for privilege **once**. There is no unprivileged shortcut:
+> `hugetlbfs` cannot be mounted in a user namespace, and `--no-huge` does not
+> help because the secondary process attaches by mapping the hugepage backing
+> file. Measured, not assumed.
+
 ## Why the prose is not translated
 
 The value of this material is the measured numbers and the reasoning around

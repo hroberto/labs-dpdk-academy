@@ -229,6 +229,25 @@ else
   endforeach
 endif
 
+# O VEREDITO DE HUGEPAGES DO check-env.sh.
+#
+# `check-env.sh` e a primeira coisa que alguem roda aqui, e por muito tempo
+# relatou os dois fatos das hugepages SEPARADOS -- "1024 reservadas" e
+# "/dev/hugepages montado (root:root 755)" -- sem tirar a conclusao. As duas
+# linhas parecem boas; o leitor segue, e so descobre quando os L3 pulam.
+#
+# Para o DPDK multiprocesso e preciso das duas coisas ao mesmo tempo: paginas
+# reservadas E ponto hugetlbfs gravavel pelo usuario. Reservada nao e
+# utilizavel, e o caso comum e justamente esse.
+#
+# O teste confere que o veredito EXISTE e que ele CORRESPONDE a maquina --
+# re-apurando a condicao por conta propria, em vez de confiar no script. Um
+# veredito que sempre dissesse "pode rodar" passaria na primeira conferencia e
+# falharia na segunda.
+test('scripts - L1 (veredito de hugepages do check-env)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_check_env.sh'],
+     suite : ['l1', 'scripts'], timeout : 60)
+
 # Classificacao do modelo de driver de NIC (captura total x bifurcado).
 if python3.found()
   # RE-REGISTRADO EM 15/09/2026, DEPOIS DA RECONSTRUCAO DO OBJETO DE TESTE.

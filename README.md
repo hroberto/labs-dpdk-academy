@@ -153,6 +153,28 @@ ambiente. As decisões de ferramental estão explicadas em
 ./scripts/test-all.sh l3    # só o que exige concessão do host
 ```
 
+> **Antes de estranhar os testes que pulam: hugepage reservada não é hugepage
+> utilizável.** É a pegadinha mais provável desta lista, e ela não se parece com
+> um erro.
+>
+> Para o DPDK multiprocesso são necessárias **duas** coisas ao mesmo tempo:
+> páginas reservadas **e** um ponto `hugetlbfs` em que o *seu* usuário possa
+> escrever. A montagem padrão do systemd é `/dev/hugepages`, `root:root 755` —
+> então o caso comum é ter mil páginas livres e nenhuma delas alcançável, e os
+> testes **L3 pulam** sem que nada pareça errado.
+>
+> `check-env.sh` tira essa conclusão para você, em uma linha. Quando faltar:
+>
+> ```bash
+> sudo ./scripts/preparar-hugepages.sh
+> ```
+>
+> Pede privilégio **uma vez** e monta o ponto no seu nome — depois disso nenhuma
+> execução precisa de root. E não há atalho sem privilégio: `hugetlbfs` não é
+> montável em *user namespace* (o kernel não a marca como tal), e `--no-huge`
+> não serve porque o processo secundário se anexa mapeando o arquivo de respaldo
+> das hugepages — sem ele, não há anexação. Medido, não suposto.
+
 ### Os três níveis de teste, e o que separa um do outro
 
 O nome de cada teste começa por `l1`, `l2` ou `l3`, e o critério **não é o
