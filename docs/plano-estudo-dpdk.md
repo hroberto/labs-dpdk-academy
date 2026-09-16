@@ -1,5 +1,7 @@
 # Plano de estudo: DPDK para iniciantes e avançados
 
+*Read this in [English](plano-estudo-dpdk.en.md).*
+
 ## Objetivo
 
 Este plano foi pensado para construir uma base sólida em DPDK, com foco em:
