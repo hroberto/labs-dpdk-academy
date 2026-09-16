@@ -1,5 +1,7 @@
 # Primeira execução e leitura dos resultados
 
+*Read this in [English](execucao.en.md).*
+
 Este percurso exercita a versão em memória. Use Linux com compilador C/C++23,
 DPDK, Meson e Ninja, conforme o [ferramental](ferramental.md). Execute os comandos
 na raiz do repositório. A NIC futura não é necessária para este percurso.
