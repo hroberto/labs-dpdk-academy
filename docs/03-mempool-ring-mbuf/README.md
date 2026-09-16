@@ -1,5 +1,7 @@
 # Mempool, ring e mbuf — o modelo de dados do DPDK
 
+*Read this in [English](README.en.md).*
+
 > **Nível 4** do [plano de estudo](../plano-estudo-dpdk.md) ·
 > Pré-requisitos: [02 — Runtime do DPDK](../02-runtime-dpdk/README.md) e o tópico
 > prático [02 — Mempool, ring e lote](../../trilha/01-fundamentos/02-mempool-ring/)
@@ -19,15 +21,6 @@ O [tópico prático](../../trilha/01-fundamentos/02-mempool-ring/) já exercita 
 três e mede o efeito do lote. Este módulo faz o que o tópico não faz: **abre as
 estruturas**, mede o custo de cada operação, e trata o `rte_mbuf`, que até aqui
 só foi prometido.
-
-> **In English.** The three structures every DPDK program is built on, opened
-> up and measured. `malloc/free` at **2.18 ns** against **0.98 ns** for a
-> mempool with a per-lcore cache — and **10.45 ns** without it, which is *slower
-> than malloc*: the cache is nearly the whole advantage. Also: the four sizing
-> rules, three of which fail silently; SP/SC against MP/MC rings; the mbuf's
-> four length fields and why testing with 64-byte frames never reveals the bug.
-> Failure axis: `rte_mempool_get_bulk()` is all-or-nothing, and a drained pool
-> turns a naive retry loop into a livelock.
 
 ## Ao final deste módulo, você será capaz de
 
