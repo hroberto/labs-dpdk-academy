@@ -262,18 +262,26 @@ titulo "6. Assinatura de commit"
 # saúde do código, e escondia qualquer defeito real atrás de um falso.
 #
 # Lá a pergunta é sobre o PASSADO: o commit que está sendo construído carrega
-# assinatura? `%G?` responde, e distingue os três casos que importam:
-#   G  assinatura boa e verificada
-#   E  há assinatura e a chave pública não está no runner -- esperado na CI
-#   N  NÃO HÁ assinatura -- o único que é defeito
+# assinatura?
+#
+# E a resposta NÃO pode vir de `%G?`, que foi a primeira tentativa e falhou pelo
+# motivo que este projeto inteiro combate. `%G?` responde sobre VERIFICAÇÃO, não
+# sobre existência: estes commits são assinados por SSH, e sem
+# `gpg.ssh.allowedSignersFile` configurado o runner não tem como verificar --
+# então o git devolve `N`, que se lê "não há assinatura". Não apurado saindo
+# como fato negativo, dentro do conserto do teste que falhava por isso.
+#
+# `git cat-file` lê o OBJETO do commit, onde o cabeçalho `gpgsig` está presente
+# ou ausente. Serve para GPG e para SSH, não chama verificador nenhum, não
+# precisa de chave e não tem terceiro estado: o cabeçalho está lá ou não está.
 if [ -n "${CI:-}${GITHUB_ACTIONS:-}" ]; then
-    estado=$(git log -1 --format='%G?' 2>/dev/null || echo "?")
-    case "$estado" in
-        G) ok "HEAD assinado e verificado neste runner" ;;
-        E|U|X|Y|R) ok "HEAD carrega assinatura (estado $estado; a chave pública não está no runner)" ;;
-        N) falha "HEAD NÃO carrega assinatura — a main exige assinatura verificada" ;;
-        *) falha "estado de assinatura de HEAD não apurado (git respondeu \"$estado\")" ;;
-    esac
+    if ! cabecalho=$(git cat-file commit HEAD 2>/dev/null); then
+        falha "não consegui ler o objeto de HEAD; nada se pode dizer sobre a assinatura"
+    elif printf '%s' "$cabecalho" | grep -qE '^gpgsig'; then
+        ok "HEAD carrega assinatura no objeto (lida sem verificador, como o runner exige)"
+    else
+        falha "HEAD NÃO carrega assinatura — a main exige assinatura verificada"
+    fi
 elif [ "$(git config --get commit.gpgsign || echo false)" = "true" ]; then
     chave=$(git config --get user.signingkey || echo "")
     if [ -n "$chave" ]; then ok "commit.gpgsign ativo (chave ${chave:0:16}…)"
