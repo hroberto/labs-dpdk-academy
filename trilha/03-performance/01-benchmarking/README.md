@@ -1,19 +1,9 @@
 # Submódulo 01 — Benchmarking
 
+*Read this in [English](README.en.md).*
+
 > **Nível 8** do [plano de estudo](../../../docs/plano-estudo-dpdk.md) ·
 > Pré-requisito: [02 — Batching e contrapressão](../../02-pipeline/02-batching-backpressure/)
-
-> **In English.** What the "no fixed CPU frequency, no isolated cores" caveat
-> actually costs, measured instead of assumed. Twelve runs starting anywhere
-> between **0.61 and 5.62 GHz** — a 9× spread — produced 0.714 to 0.747 ns per
-> function call: **4.6% amplitude**. The measurement loop drives the core to its
-> ceiling in microseconds and the median absorbs the rest. What *does* cost is
-> the **first run after a long idle**: 0.926, 0.927 and 0.930 ns in three
-> independent observations, about **30% high** on the shortest operation. So
-> pinning the governor helps little; **discarding the first run helps a lot** —
-> the opposite of what the caveat suggests. `scripts/ambiente-medicao.sh` records
-> the environment and changes nothing. The mechanism behind the 30% was not
-> isolated; the effect was.
 
 Medir é fácil. Medir de um jeito que outra pessoa consiga repetir, e chegar ao
 mesmo número, é o que este submódulo trata.
