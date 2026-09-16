@@ -1,3 +1,5 @@
+![labs-dpdk-academy — guia de estudo e laboratório prático para DPDK: alto throughput, baixa latência, C/C++23, Linux, medições reproduzíveis. A ilustração mostra o caminho de um pacote: entrada pela RX, processamento no DPDK, rings e mempool, distribuição entre lcores e chegada à memória NUMA.](labs-dpdk-academy-preview.png)
+
 # DPDK Academy
 
 Guia de estudo para DPDK com base em engenharia de software, arquitetura de sistemas, C++23 e ensino técnico aprofundado.

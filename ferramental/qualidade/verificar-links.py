@@ -20,6 +20,20 @@ que viram **dois hífens**:
 
 Um validador que colapse espaços (`\\s+` -> `-`) produz um hífen só, considera o
 link válido e deixa passar uma âncora morta. Este script reproduz a regra real.
+
+O AUTOTESTE, e por que ele demorou a existir
+
+Este era o único dos cinco verificadores sem autoteste, e é o de maior alcance:
+sozinho, confere todos os links relativos e âncoras de título de todo `.md` da
+árvore -- o número sai na própria execução, e por isso não está escrito aqui.
+A assimetria importa: um verificador que passa a aceitar
+tudo continua imprimindo "N links verificados, 0 quebrados", e esse verde é
+indistinguível do verde legítimo. Quanto mais coisa ele cobre, mais cara sai a
+falha silenciosa.
+
+O caso 5 é o que justifica o arquivo inteiro: a âncora com hífen DUPLO precisa
+passar e a mesma com hífen simples precisa falhar. Se alguém "simplificar" o
+slug colapsando espaços, os outros casos continuam verdes e só esse acusa.
 """
 import os
 import re
@@ -98,5 +112,76 @@ def verificar(raiz="."):
     return problemas + orfas
 
 
+def autoteste():
+    import io as _io
+    import tempfile
+    from contextlib import redirect_stdout
+
+    def rodar(arqs):
+        with tempfile.TemporaryDirectory() as d:
+            for nome, conteudo in arqs.items():
+                caminho = os.path.join(d, nome)
+                os.makedirs(os.path.dirname(caminho), exist_ok=True)
+                open(caminho, "w", encoding="utf-8").write(conteudo)
+            buf = _io.StringIO()
+            with redirect_stdout(buf):
+                rc = verificar(d)
+            return rc, buf.getvalue()
+
+    falhas = 0
+
+    def caso(numero, descricao, arqs, esperado):
+        nonlocal falhas
+        rc, saida = rodar(arqs)
+        ok = (rc == 0) if esperado == 0 else (rc >= 1)
+        if not ok:
+            print(f"  AUTOTESTE {numero} FALHOU: {descricao} (rc={rc})")
+            print("    " + saida.strip().replace("\n", "\n    "))
+            falhas += 1
+
+    # 1/2. Arquivo de destino: existe passa, não existe falha.
+    caso(1, "link para arquivo existente acusado",
+         {"a.md": "# a\n\n[b](b.md)\n", "b.md": "# b\n"}, 0)
+    caso(2, "link para arquivo inexistente passou",
+         {"a.md": "# a\n\n[b](b.md)\n"}, 1)
+
+    # 3/4. Referência de rodapé: o GitHub não avisa, renderiza os colchetes.
+    caso(3, "referência definida acusada",
+         {"a.md": "# a\n\nveja [isto][r].\n\n[r]: https://exemplo\n"}, 0)
+    caso(4, "referência sem definição passou",
+         {"a.md": "# a\n\nveja [isto][r].\n"}, 1)
+
+    # 5. O MOTIVO DO ARQUIVO. "Nível 4 — Mempool" perde o travessão e fica com
+    #    dois espaços, que viram DOIS hífens. Quem colapsar produz um só, aceita
+    #    a âncora morta, e só este caso acusa.
+    doc = "# t\n\n## Nível 4 — Mempool\n\ntexto.\n"
+    caso(5, "âncora com hífen duplo (regra real do github-slugger) acusada",
+         {"a.md": doc + "\n[ir](#nível-4--mempool)\n"}, 0)
+    caso(6, "âncora com hífen colapsado passou -- o slug está errado",
+         {"a.md": doc + "\n[ir](#nível-4-mempool)\n"}, 1)
+
+    # 7. Títulos repetidos: o github-slugger desambigua com sufixo -1.
+    caso(7, "desambiguação de título repetido não reconhecida",
+         {"a.md": "# t\n\n## Exercícios\n\n## Exercícios\n\n[ir](#exercícios-1)\n"}, 0)
+
+    # 8. Âncora de LINHA (#L42) aponta para o GitHub, não para um título: não é
+    #    verificável aqui e não pode ser acusada. Quem confere é verificar-ancoras.
+    caso(8, "âncora de linha acusada como título inexistente",
+         {"a.md": "# a\n\n[ir](b.md#L42)\n", "b.md": "# b\n"}, 0)
+
+    # 9. URL externa não é alvo deste verificador: rede não entra na suíte.
+    caso(9, "URL externa acusada",
+         {"a.md": "# a\n\n[fora](https://exemplo/nao-existe)\n"}, 0)
+
+    # 10. Título com link dentro: o slug usa o texto VISÍVEL, não a marcação.
+    caso(10, "título com link dentro gerou slug errado",
+         {"a.md": "# t\n\n## O [guia][g] oficial\n\n[ir](#o-guia-oficial)\n\n[g]: https://x\n"}, 0)
+
+    print(f"\n  autoteste: {falhas} assercao(oes) falharam")
+    return falhas
+
+
 if __name__ == "__main__":
+    if "--autoteste" in sys.argv:
+        sys.exit(1 if autoteste() else 0)
     sys.exit(1 if verificar(sys.argv[1] if len(sys.argv) > 1 else ".") else 0)

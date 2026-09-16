@@ -88,6 +88,23 @@ if python3.found()
   # dizendo "0 assercao(oes) falharam". Ele trava as iscas de falso positivo e
   # a checagem de conteudo; NAO trava a reincidencia do heredoc que motivou sua
   # criacao. Registrar e melhor que nao registrar, e nao equivale a cobrir.
+  # O verificador de MAIOR alcance da arvore -- ele sozinho confere todos os
+  # links relativos e ancoras de titulo de todo .md, e o numero sai na propria
+  # execucao -- foi o ultimo a ganhar autoteste, e a assimetria era o problema:
+  # quanto mais coisa ele
+  # cobre, mais cara sai a falha silenciosa. Um verificador que passa a aceitar
+  # tudo continua imprimindo "N links verificados, 0 quebrados", e esse verde e
+  # indistinguivel do legitimo.
+  #
+  # Nao-vacuidade, medida: 4 mutantes plantados -- colapsar espacos no slug,
+  # nunca acusar arquivo inexistente, nunca acusar referencia sem definicao,
+  # ignorar a desambiguacao de titulo repetido --, 4 mortos, cada um pelo caso
+  # desenhado para ele. Reproduza antes de editar esta frase.
+  test('docs - autoteste do verificador de links', python3,
+       args : [meson.project_source_root() / 'ferramental/qualidade/verificar-links.py',
+               '--autoteste'],
+       suite : ['l1', 'docs'], timeout : 30)
+
   test('docs - autoteste do verificador de ancoras', python3,
        args : [meson.project_source_root() / 'ferramental/qualidade/verificar-ancoras.py',
                '--autoteste'],
@@ -160,6 +177,7 @@ else
   # verde -- e os tres sao justamente os que conferem se o material diz a
   # verdade. Ver ferramental/qualidade/pular-sem-python3.sh.
   foreach nome : ['docs - ancoras de linha atualizadas',
+                  'docs - autoteste do verificador de links',
                   'docs - autoteste do verificador de ancoras',
                   'docs - links e ancoras de titulo',
                   'docs - numeros retratados nao sobrevivem',
