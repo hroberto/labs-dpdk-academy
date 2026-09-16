@@ -1,5 +1,7 @@
 # Ferramental do projeto: build, compilação e testes
 
+*Read this in [English](ferramental.en.md).*
+
 Este documento explica **quais ferramentas o projeto usa, por que cada uma foi
 escolhida e o que foi descartado**. Ele é parte do conteúdo de estudo, não um
 apêndice administrativo: as decisões abaixo são as mesmas que aparecem em
