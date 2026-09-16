@@ -83,6 +83,21 @@ MARCADORES = (
     "publicava", "publicou", "ja publicou", "já publicou",
     "versao anterior", "versão anterior", "era artefato", "eram artefato",
     "estava errado", "estavam errados", "estavam erradas", "dizia",
+    # As mesmas frases em ingles, pelos pares `.en.md`.
+    #
+    # SEM ELAS, NENHUM BLOCO DE RETRATACAO EM INGLES ERA RECONHECIDO -- e a
+    # consequencia era pior que nao conferir: o proprio comentario
+    # `<!-- retratado: ... -->` do par contava como texto VIVO, e o verificador
+    # acusava o documento de republicar o que ele estava retratando. Foi assim
+    # que apareceu, em vermelho, ao traduzir a alternativa em C++23.
+    #
+    # A lista e deliberadamente ESPECIFICA. "published" e "said" sozinhos
+    # entrariam em prosa comum, e um falso positivo aqui REMOVE o bloco do texto
+    # conferido -- ele afrouxa o verificador em silencio, que e a direcao
+    # perigosa do erro.
+    "used to publish", "once published", "previously published",
+    "previous version", "used to say", "was an artefact", "was an artifact",
+    "was wrong", "were wrong", "retraction",
 )
 
 # Número decimal qualquer; o corte por dígitos significativos vem depois, em
@@ -355,6 +370,45 @@ def autoteste():
         print(f"  AUTOTESTE (paridade/isencao) FALHOU: citacao declarada em"
               f" portugues nao isentou a grafia inglesa (rc={rc})")
         print("    " + saida.strip().replace("\n", "\n    "))
+        falhas += 1
+
+    # Bloco de retratacao EM INGLES precisa ser reconhecido como bloco.
+    #
+    # Sem isto o par `.en.md` nao so deixava de ser conferido: a propria marca
+    # `<!-- retratado: ... -->` dele contava como texto vivo, e o verificador
+    # acusava o documento de republicar aquilo que estava retratando.
+    rc, saida = rodar({"a.en.md":
+        "# a\n\n> **This column used to publish 2.078 ns, and it does not"
+        " reproduce.**\n> The measured value is 1.628 ns.\n"
+        "> <!-- retratado: 2,078 -->\n\nThe ring costs 1.628 ns.\n"})
+    if rc != 0:
+        print(f"  AUTOTESTE (retratacao em ingles) FALHOU: bloco nao reconhecido"
+              f" (rc={rc})")
+        print("    " + saida.strip().replace("\n", "\n    "))
+        falhas += 1
+
+    # E o reconhecimento nao pode virar porta dos fundos: o valor retratado que
+    # sobrevive FORA do bloco continua sendo acusado, em qualquer das grafias.
+    rc, _ = rodar({"b.en.md":
+        "# b\n\n> **This column used to publish 2.078 ns.**\n"
+        "> <!-- retratado: 2,078 -->\n\nThe ring costs 2.078 ns.\n"})
+    if rc != 1:
+        print(f"  AUTOTESTE (retratacao em ingles) FALHOU: sobrevivente fora do"
+              f" bloco passou (rc={rc})")
+        falhas += 1
+
+    # A DIRECAO PERIGOSA: marcador frouxo afrouxa o verificador em silencio.
+    #
+    # Um bloco de citacao que apenas MENCIONA o valor, sem se anunciar como
+    # retratacao, tem de continuar sendo acusado. Sem este caso, acrescentar
+    # uma frase comum a MARCADORES -- "ring costs", "the cost is" -- isentaria
+    # prosa normal e nada falharia. Medido: o mutante sobrevivia.
+    rc, _ = rodar({"r.md": "# r\n\n> **This column used to publish 2.078 ns.**\n"
+                           "> <!-- retratado: 2,078 -->\n",
+                   "c.en.md": "# c\n\n> The ring costs 2.078 ns per hand-off.\n"})
+    if rc != 1:
+        print(f"  AUTOTESTE (marcador frouxo) FALHOU: citacao comum tratada como"
+              f" retratacao, e o valor retratado passou (rc={rc})")
         falhas += 1
 
     print(f"\n  autoteste: {falhas} assercao(oes) falharam")

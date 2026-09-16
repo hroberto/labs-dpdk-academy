@@ -1,16 +1,9 @@
 # Alternativa — o mesmo problema em C++23 puro
 
+*Read this in [English](README.en.md).*
+
 > Alternativa ao [tópico 02](../../) · Objetivo: tornar explícitos os **ganhos e
 > as perdas** de cada abordagem, com o mesmo contrato verificado nas duas.
-
-> **In English.** The same problem solved without DPDK — same verified contract
-> (10 packets, 695 bytes), different architecture. The comparison runs at four
-> levels, each restoring one factor the previous one removed, and **the verdict
-> flips**: in memory on one core the C++23 version is 1.6× faster; ring against
-> ring the DPDK one wins by up to 2.9× (bulk operations amortize the atomic);
-> under contention across 8 cores, by 32×. Turning the per-lcore cache off makes
-> the mempool *lose*. The point is not who wins — it is that a benchmark
-> measures the regime you gave it.
 
 ## 1. Fundamento: o que "C++23 puro" significa aqui
 
