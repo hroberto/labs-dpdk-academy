@@ -74,7 +74,7 @@ import os
 import re
 import sys
 
-IGNORAR = {".git", "build", "subprojects", "__pycache__"}
+IGNORAR = {".git", "build", "subprojects", "__pycache__", "temp"}
 
 # Marcadores de retratação, em minúsculas. Derivados dos blocos que o projeto
 # já escreveu: "Esta tabela já publicou", "Este bloco publicava", "Uma versão

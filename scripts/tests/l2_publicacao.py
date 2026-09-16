@@ -9,7 +9,7 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / 'docs/avaliacoes/evidencias/2026-09-14-controle-anel'
+SOURCE = ROOT / 'scripts/tests/fixtures/controle-anel'
 COLLECTOR = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'scripts/coletar-controle-anel.py'
 cases = ('integro', 'removida', 'cenario_ausente', 'duplicada', 'compensada',
          'nan', 'valor_divergente', 'unidade', 'fonte', 'execucao_falhou',

@@ -25,7 +25,7 @@ import os
 import re
 import sys
 
-IGNORAR = {".git", "build", "subprojects"}
+IGNORAR = {".git", "build", "subprojects", "temp"}
 # Pontuação removida pelo github-slugger (aproximação suficiente: tudo que não é
 # letra, dígito, sublinhado, espaço ou hífen). Acentos são PRESERVADOS.
 PONTUACAO = re.compile(r"[^\w\s-]", re.UNICODE)

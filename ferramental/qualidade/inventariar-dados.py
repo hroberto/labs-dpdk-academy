@@ -23,10 +23,10 @@ TARGETS = (
     'trilha/01-fundamentos/02-mempool-ring/README.md',
     'trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md',
     'trilha/04-projeto-final/README.md',
-    'docs/avaliacoes/evidencias/2026-09-14-controle-anel/tabela.md',
-    'docs/avaliacoes/evidencias/2026-09-15-controle-anel-validado/tabela.md',
 )
-OUTPUT = ROOT / 'docs/avaliacoes/inventario-tabelas.json'
+# O inventario e estado do FERRAMENTAL, nao material de estudo: fica junto do
+# verificador que o produz, e nao em docs/.
+OUTPUT = ROOT / 'ferramental/qualidade/inventario-tabelas.json'
 
 
 def blocks(text):

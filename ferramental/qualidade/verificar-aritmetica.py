@@ -45,7 +45,7 @@ import os
 import re
 import sys
 
-IGNORAR = {".git", "build", "subprojects", "__pycache__"}
+IGNORAR = {".git", "build", "subprojects", "__pycache__", "temp"}
 
 TOLERANCIA_PP = 1.0
 

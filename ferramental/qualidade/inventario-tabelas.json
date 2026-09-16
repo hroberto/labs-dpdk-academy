@@ -5,12 +5,10 @@
     "docs/03-mempool-ring-mbuf/README.md",
     "trilha/01-fundamentos/02-mempool-ring/README.md",
     "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-    "trilha/04-projeto-final/README.md",
-    "docs/avaliacoes/evidencias/2026-09-14-controle-anel/tabela.md",
-    "docs/avaliacoes/evidencias/2026-09-15-controle-anel-validado/tabela.md"
+    "trilha/04-projeto-final/README.md"
   ],
   "limites": "Tabelas Markdown e blocos numericos nas oito paginas listadas. Nao abrange todos os numeros em prosa nem verifica automaticamente sua origem.",
-  "total": 74,
+  "total": 72,
   "entradas": [
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -515,20 +513,6 @@
       "secao": "Navegação",
       "tipo": "tabela_markdown",
       "sha256": "1183ce0ee78a70faca54ef8b6bdb6f7dd9b8755e7464f60bd9f9064f09524e27"
-    },
-    {
-      "arquivo": "docs/avaliacoes/evidencias/2026-09-14-controle-anel/tabela.md",
-      "linha": 5,
-      "secao": "Controle do anel SPSC",
-      "tipo": "tabela_markdown",
-      "sha256": "42606521eba599930b17eddc3a29aa45c16933d5a61c766810d1067c46e3b103"
-    },
-    {
-      "arquivo": "docs/avaliacoes/evidencias/2026-09-15-controle-anel-validado/tabela.md",
-      "linha": 5,
-      "secao": "Controle do anel SPSC",
-      "tipo": "tabela_markdown",
-      "sha256": "ce18f2700397fda59070f806e439496fc3ff58ebf23c6cd73467f3b82056cfac"
     }
   ]
 }

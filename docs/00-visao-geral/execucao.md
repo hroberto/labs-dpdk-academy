@@ -44,7 +44,9 @@ Para estudar o mecanismo completo, siga o [tópico prático](../../trilha/01-fun
 
 ## Ler uma tabela
 
-Comece pelo [controle rastreável do anel](../avaliacoes/evidencias/2026-09-14-controle-anel/tabela.md).
+Comece pelas tabelas do próprio módulo: o
+[custo do anel](../03-mempool-ring-mbuf/README.md#3-o-anel-o-preço-da-generalidade)
+traz os números com amplitude entre execuções.
 Identifique API, lote, CPUs, número de repetições e unidade. As linhas descrevem
 custo amortizado; não são p99 de latência de pacote nem desempenho da NIC.
 Use os links da tabela para conferir ambiente, fontes e amostras.
@@ -61,6 +63,6 @@ investigar. A [política de validação](validacao.md) distingue o que foi escri
 implementado, testado e medido.
 
 Acompanhe os contratos e pendências na
-[matriz de requisitos](../avaliacoes/matriz-requisitos.md). As campanhas que
+[ROADMAP](../../ROADMAP.md). As campanhas que
 sustentam comparações quantitativas ficam no
-[inventário de dados](../avaliacoes/inventario-dados.md).
+[matriz de validação](validacao.md).

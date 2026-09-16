@@ -22,7 +22,7 @@ import os
 import re
 import sys
 
-IGNORAR = {".git", "build", "subprojects"}
+IGNORAR = {".git", "build", "subprojects", "temp"}
 # [`simbolo`](caminho#L123)  ou  [texto](caminho#L123-L130)
 PADRAO = re.compile(r"\[`?([^\]`]+)`?\]\(([^)#]+)#L(\d+)(?:-L\d+)?\)")
 

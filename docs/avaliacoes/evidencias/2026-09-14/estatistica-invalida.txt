@@ -1,4 +1,0 @@
-sentinela misturada: samples=5 minimum=-1 median=10 finite=1 valid=0 badge=[ ]
-NaN: samples=3 minimum=nan median=nan finite=0 valid=0 badge=[ ]
-infinito: samples=3 minimum=inf median=-nan finite=0 valid=0 badge=[ ]
-NaN no interior: samples=7 minimum=1 median=4 finite=1 valid=1 badge=[!]
