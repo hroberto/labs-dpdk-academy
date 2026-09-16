@@ -138,6 +138,24 @@ public:
         return true;
     }
 
+    // Retorno parcial: somente o prefixo aceito muda de posse.
+    [[nodiscard]] std::size_t enqueue_burst(std::span<const Packet> input) noexcept {
+        const auto tail = tail_.load(std::memory_order_relaxed);
+        const auto free = (head_.load(std::memory_order_acquire) - tail - 1) & mask_;
+        const auto count = std::min(input.size(), free);
+        for (std::size_t i = 0; i < count; ++i) buffer_[(tail + i) & mask_] = input[i];
+        tail_.store((tail + count) & mask_, std::memory_order_release);
+        return count;
+    }
+    [[nodiscard]] std::size_t dequeue_burst(std::span<Packet> output) noexcept {
+        const auto head = head_.load(std::memory_order_relaxed);
+        const auto available = (tail_.load(std::memory_order_acquire) - head) & mask_;
+        const auto count = std::min(output.size(), available);
+        for (std::size_t i = 0; i < count; ++i) output[i] = buffer_[(head + i) & mask_];
+        head_.store((head + count) & mask_, std::memory_order_release);
+        return count;
+    }
+
     [[nodiscard]] std::size_t usable_capacity() const noexcept { return mask_; }
 
 private:

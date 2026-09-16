@@ -148,7 +148,38 @@ ambiente. As decisões de ferramental estão explicadas em
 ./scripts/test-all.sh       # suíte completa
 ./scripts/test-all.sh l1    # só lógica pura (rápido, sem EAL)
 ./scripts/test-all.sh l2    # só integração com o runtime
+./scripts/test-all.sh l3    # só o que exige concessão do host
 ```
+
+### Os três níveis de teste, e o que separa um do outro
+
+O nome de cada teste começa por `l1`, `l2` ou `l3`, e o critério **não é o
+tamanho nem a importância** — é *o que o teste precisa da máquina para poder
+rodar*. Essa é a pergunta que decide onde ele mora:
+
+| Nível | Precisa de | Consequência prática |
+|---|---|---|
+| **L1** | nada além do compilador | roda em qualquer lugar, em milissegundos; é onde vive a lógica pura, sem EAL |
+| **L2** | a EAL de pé, um processo, sem privilégio | roda em qualquer lugar; paga ~123 ms de inicialização por caso |
+| **L3** | algo que o **host** precisa conceder: `hugetlbfs` gravável, vários núcleos | pode não rodar, e então **pula** em vez de falhar |
+
+A fonte canônica desta definição é [`scripts/test-all.sh`](scripts/test-all.sh),
+que é também quem a executa. Para contar quantos há de cada:
+
+```bash
+meson test -C build --list | grep -oE '^l[123]' | sort | uniq -c
+```
+
+**Um L3 que pula não é um teste que passou.** Quando a pré-condição não existe, o
+runner sai com o código 77 — que o Meson registra como `SKIP`, e não como `OK` —
+e imprime qual pré-condição faltou. Nesta máquina, como usuário comum, três L3
+pulam porque `/dev/hugepages` é `drwxr-xr-x root root`: a condição é conferida,
+não suposta. Confirme por conta própria com `ls -ld /dev/hugepages`, e rode
+`sudo ./scripts/test-all.sh l3` para exercitá-los de fato.
+
+A distinção existe porque a alternativa é pior: um teste que precisa de
+privilégio e *finge* passar sem ele publica um verde que não corresponde a
+verificação nenhuma.
 
 ## Fluxo recomendado
 

@@ -230,11 +230,16 @@ O que está decidido sobre **como** fazer, quando chegar a hora:
   manutenção do inglês.
 
 **Pré-requisito para começar esta etapa:** o conteúdo em português precisa estar
-maduro. Hoje, 7 dos 19 documentos ainda são esqueletos, de 62 a 98 linhas — todos
+maduro. Hoje, 6 dos 21 documentos ainda são esqueletos, de 62 a 132 linhas — todos
 em `trilha/02-pipeline/`, `trilha/03-performance/` e `trilha/04-projeto-final/`.
 
-> Contagens envelhecem em silêncio, e estas já envelheceram uma vez. Para
-> reconferir sem confiar neste parágrafo:
+> Contagens envelhecem em silêncio, e estas já envelheceram DUAS vezes: em
+> 15/09/2026 os quatro números desta frase estavam errados ao mesmo tempo, com
+> este aviso logo abaixo. Ceticismo declarado não confere nada — por isso a
+> frase passou a ser reconferida por
+> [`verificar-autodescricao.py`](ferramental/qualidade/verificar-autodescricao.py)
+> (regra 3), que roda na suíte `l1+docs` e fica vermelha quando o disco diverge
+> do texto. Para reconferir você mesmo, são os mesmos comandos que ela executa:
 >
 > ```bash
 > grep -rlE '^> \*\*Esqueleto\.\*\*' docs trilha --include='*.md' | wc -l   # esqueletos

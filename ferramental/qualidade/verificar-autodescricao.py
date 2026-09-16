@@ -42,7 +42,25 @@ O QUE ELE DELIBERADAMENTE NÃO PEGA:
   comporte diferente (não é sobre compilar, é sobre semântica);
 - banner de esqueleto ausente em documento que DEVERIA tê-lo -- o inverso desta
   regra, que exige julgar o que é conteúdo suficiente;
-- qualquer outra afirmação do material sobre si (cobertura, níveis, estado).
+- afirmações do material sobre si que não sejam o censo da regra 3 (níveis de
+  teste, cobertura de módulo, estado de uma etapa).
+
+REGRA 3 -- o censo de esqueletos que o ROADMAP publica
+
+O `ROADMAP.md` declara, em uma frase, QUANTOS documentos ainda são esqueletos,
+de um TOTAL, e entre que TAMANHOS. São quatro números derivados do disco, e o
+disco muda toda semana enquanto o texto não muda nunca.
+
+Em 15/09/2026 essa frase dizia "7 dos 19 documentos ainda são esqueletos, de 62
+a 98 linhas". O disco dizia 6, 21, 62 e 132: os quatro números estavam errados
+ao mesmo tempo. E o defeito é mais feio do que parece -- quatro linhas abaixo, o
+próprio parágrafo oferece os comandos para reconferir, com o aviso de que
+"contagens envelhecem em silêncio, e estas já envelheceram uma vez". Havia
+ceticismo declarado e nenhuma verificação executando: a intenção certa sem o
+mecanismo, que é como a contagem envelheceu a segunda vez.
+
+A regra roda os mesmos comandos que o parágrafo publica e compara com o que ele
+afirma. A partir daqui a frase não pode envelhecer sem a suíte ficar vermelha.
 """
 import os
 import re
@@ -60,6 +78,15 @@ GUARDAS = ("__x86_64__", "__i386__", "__aarch64__", "cpu_pause.h", "ACADEMY_CPU_
 
 # "Linux x86_64 ou arm64" na porta de entrada.
 PROMESSA_ARM = re.compile(r"arm64|aarch64", re.IGNORECASE)
+
+# "7 dos 19 documentos ainda são esqueletos, de 62 a 98 linhas".
+#
+# Os quatro numeros sao capturados por grupo nomeado para que a mensagem de erro
+# diga QUAL deles divergiu -- "a contagem esta errada" manda o leitor recontar os
+# quatro; "esqueletos: o texto diz 7, o disco tem 6" aponta o dedo.
+CENSO = re.compile(
+    r"(?P<n>\d+)\s+d[oe]s\s+(?P<total>\d+)\s+documentos\s+ainda\s+s[ãa]o\s+esqueletos"
+    r",\s*de\s+(?P<min>\d+)\s+a\s+(?P<max>\d+)\s+linhas")
 
 
 def arquivos(raiz, exts):
@@ -133,6 +160,43 @@ def verificar(raiz="."):
                       f" (só x86) sem guarda de arquitetura, e o README.md promete arm64")
                 problemas += 1
 
+    # --- Regra 3 -----------------------------------------------------------
+    roadmap = os.path.join(raiz, "ROADMAP.md")
+    censo = None
+    if os.path.exists(roadmap):
+        try:
+            censo = CENSO.search(open(roadmap, encoding="utf-8").read())
+        except (OSError, UnicodeDecodeError):
+            censo = None
+    if censo is not None:
+        conferidos += 1
+        esqueletos, docs = [], 0
+        for doc in sorted(arquivos(os.path.join(raiz, "docs"), {".md"})) + \
+                   sorted(arquivos(os.path.join(raiz, "trilha"), {".md"})):
+            docs += 1
+            try:
+                texto = open(doc, encoding="utf-8").read()
+            except (OSError, UnicodeDecodeError):
+                continue
+            if BANNER.search(texto):
+                esqueletos.append(len(texto.splitlines()))
+        # Sem esqueleto nenhum a frase inteira perde o referente, e comparar
+        # min/max de lista vazia seria inventar numero.
+        if not esqueletos:
+            print("  ROADMAP.md: publica um censo de esqueletos e nao ha esqueleto"
+                  " em docs/ nem trilha/; a frase perdeu o referente")
+            problemas += 1
+        else:
+            real = {"n": len(esqueletos), "total": docs,
+                    "min": min(esqueletos), "max": max(esqueletos)}
+            rotulo = {"n": "esqueletos", "total": "documentos",
+                      "min": "menor esqueleto (linhas)", "max": "maior esqueleto (linhas)"}
+            for chave, valor in real.items():
+                if int(censo.group(chave)) != valor:
+                    print(f"  ROADMAP.md: {rotulo[chave]} -- o texto diz"
+                          f" {censo.group(chave)}, o disco tem {valor}")
+                    problemas += 1
+
     print(f"\n  {conferidos} afirmação(ões) sobre o próprio material conferida(s);"
           f" {problemas} não se sustenta(m)")
     if not promete_arm:
@@ -187,6 +251,33 @@ def autoteste():
                    "src/a.c": "void f(void){ __builtin_ia32_pause(); }\n"})
     if rc != 0:
         print("  AUTOTESTE FALHOU: regra 2 aplicada sem a promessa"); falhas += 1
+
+    # 6. Censo do ROADMAP batendo com o disco: passa.
+    censo_ok = "# r\n\n1 dos 2 documentos ainda são esqueletos, de 5 a 5 linhas.\n"
+    rc, _ = rodar({"ROADMAP.md": censo_ok,
+                   "docs/a.md": esqueleto + "## Objetivo\n",
+                   "trilha/b.md": "# b\n\nconteudo real.\n"})
+    if rc != 0:
+        print(f"  AUTOTESTE FALHOU: censo correto acusado (rc={rc})"); falhas += 1
+
+    # 7. Cada um dos quatro numeros, errado sozinho: falha. Um por vez, porque um
+    #    unico caso com os quatro errados passaria mesmo se a regra so conferisse
+    #    um deles -- e foi assim que a frase real envelheceu sem ninguem ver.
+    for rotulo, alvo_str, troca in (("contagem", "1 dos 2", "2 dos 2"),
+                                    ("total", "1 dos 2", "1 dos 9"),
+                                    ("minimo", "de 5 a 5", "de 3 a 5"),
+                                    ("maximo", "a 5 linhas", "a 9 linhas")):
+        rc, _ = rodar({"ROADMAP.md": censo_ok.replace(alvo_str, troca),
+                       "docs/a.md": esqueleto + "## Objetivo\n",
+                       "trilha/b.md": "# b\n\nconteudo real.\n"})
+        if rc < 1:
+            print(f"  AUTOTESTE FALHOU: censo com {rotulo} errado passou (rc={rc})"); falhas += 1
+
+    # 8. Censo publicado sem esqueleto nenhum no disco: falha em vez de comparar
+    #    min/max de lista vazia.
+    rc, _ = rodar({"ROADMAP.md": censo_ok, "docs/a.md": "# a\n\nconteudo.\n"})
+    if rc < 1:
+        print(f"  AUTOTESTE FALHOU: censo sem referente passou (rc={rc})"); falhas += 1
 
     print(f"\n  autoteste: {falhas} assercao(oes) falharam")
     return falhas

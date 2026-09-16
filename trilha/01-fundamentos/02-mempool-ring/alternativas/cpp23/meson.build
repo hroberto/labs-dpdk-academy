@@ -66,3 +66,32 @@ custo_anel_cpp = executable(
 )
 test('02-mempool-ring/alt-cpp23 - L2 (anel SPSC em C++23)', custo_anel_cpp,
      suite : ['l2', 'alternativa'], timeout : 120)
+
+# Programa da campanha de controle publicada em 14/09/2026: varia publicacao por
+# objeto x por lote, e uma x duas CPUs, sobre o MESMO anel e o MESMO payload.
+#
+# POR QUE ELE PRECISA ESTAR AQUI, e nao so no fixture congelado.
+#
+# Ate 15/09/2026 este arquivo estava na arvore SEM registro nenhum, e nao
+# compilava: chamava `enqueue_burst`/`dequeue_burst`, que nao existiam mais em
+# packet.hpp. A causa foi a mesma que ja custou outros arquivos a este
+# repositorio -- um `git filter-branch` faz checkout ao terminar, e a API de
+# lote nunca chegara a ser commitada. O `git log` de packet.hpp tinha um commit
+# so.
+#
+# O codigo perdido foi recuperado de scripts/tests/fixtures/controle-anel/, que
+# congela as fontes da campanha com o SHA256 de cada uma no manifesto. Depois da
+# recuperacao o packet.hpp da arvore voltou a bater byte a byte com o declarado
+# (25e50cf8...), e a medicao publicada passou a ser reproduzivel a partir da
+# arvore, e nao apenas do fixture.
+#
+# O registro aqui e o que impede a repeticao: fonte que nenhum meson.build
+# referencia nao entra no portao de "build limpo, zero avisos" -- ele anuncia
+# que conferiu e nao conferiu. Compilar e barato; descobrir tarde, nao.
+controle_anel_cpp = executable(
+  'controle-anel',
+  'controle-anel.cpp',
+  include_directories : alt_cpp23_inc,
+  dependencies : [dependency('threads')],
+  install : false,
+)
