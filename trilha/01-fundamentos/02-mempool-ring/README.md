@@ -1,18 +1,9 @@
 # Tópico 02 — Mempool, ring e processamento em lote
 
+*Read this in [English](README.en.md).*
+
 > **Nível 4** do [plano de estudo](../../../docs/plano-estudo-dpdk.md) ·
 > Requer o [tópico 01](../01-eal-hello/) · Tem [alternativa sem DPDK](alternativas/cpp23/)
-
-> **In English.** A producer/consumer pipeline over `rte_mempool` and
-> `rte_ring`, with batching measured (1.8 ns/packet at burst 32, regressing at
-> 128 **on one lcore** — with two lcores in the same cache domain it does not
-> regress, and 128 and 256 are the best points) and core placement measured
-> separately — crossing cache domains costs
-> **4–5×**, more than any other decision in the topic. Failure axis: the partial
-> return of `rte_ring_enqueue_burst()`. The objects that did not fit are still
-> yours; not returning them leaks, and the defect **suppresses its own symptom**.
-> A deliberately leaky build is compiled from the same source and the test suite
-> *requires it to fail*.
 
 ## 1. Fundamento: por que não usar `malloc()`
 
