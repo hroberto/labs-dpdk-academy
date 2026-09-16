@@ -1,5 +1,7 @@
 # Documentação do projeto
 
+*Read this in [English](README.en.md).*
+
 Este diretório centraliza a base didática e a documentação técnica do projeto DPDK Academy.
 
 ## Objetivo

@@ -1,16 +1,10 @@
 # Módulo 02 — Pipeline e processamento em lote
 
+*Read this in [English](README.en.md).*
+
 > **Níveis 5 e 6** do [plano de estudo](../../docs/plano-estudo-dpdk.md) ·
 > Pré-requisito: [01 — Fundamentos práticos](../01-fundamentos/), em especial
 > [02 — Mempool, ring e lote](../01-fundamentos/02-mempool-ring/)
-
-> **In English.** Half delivered, and the missing half depends on hardware.
-> Submodule 02 (batching and backpressure) is **written**, with the depth × burst
-> surface measured; submodule 01 (RX/TX) has the reference NIC's capabilities
-> measured and waits for the card to leave the kernel — blocked by one line,
-> `enp8s0` still has `IFF_UP` set. The batch-size curve **depends on the mode**:
-> with one lcore it regresses at 128; with two lcores in the same cache domain it
-> does not, and 128 and 256 are the best points.
 
 Organizar o tratamento de pacotes como um **caminho de dados com estágios**, e
 tratar o que aparece quando os estágios têm velocidades diferentes: filas,

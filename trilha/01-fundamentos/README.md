@@ -4,14 +4,7 @@
 > Teoria correspondente: [01 — Fundamentos](../../docs/01-fundamentos/README.md)
 > e [02 — Runtime do DPDK](../../docs/02-runtime-dpdk/README.md)
 
-> **In English.** The two things every DPDK program does before touching a
-> packet: **bring the runtime up** and **get memory without allocating on the hot
-> path**. Two topics, both with runnable code, tests and measurements — EAL
-> initialization (including the two failure paths, only one of which reaches your
-> code) and mempool/ring/batching, with a **no-DPDK C++23 alternative** solving
-> the same problem under the same contract. The batching curve and the cost of
-> crossing a cache domain are measured here, and the second dominates: 4.0–4.8×,
-> more than any other decision in the topic.
+*Read this in [English](README.en.md).*
 
 Este módulo foi o primeiro da trilha a ficar completo, e por muito tempo o único
 — os módulos 02 e 03 passaram a ter conteúdo em 16/09/2026. Ele cobre as duas

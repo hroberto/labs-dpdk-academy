@@ -166,6 +166,29 @@ def arquivos(raiz, exts):
                 yield os.path.join(pasta, nome)
 
 
+def formas_do_numero(numero):
+    """As grafias que um mesmo valor tem nas duas linguas.
+
+    Portugues e ingles discordam em DOIS pontos ao mesmo tempo: o separador
+    decimal (`2,18` contra `2.18`) e o de milhar (`1 023` -- com espaco estreito,
+    U+202F -- contra `1,023`). Comparar sem normalizar acusaria as duas grafias
+    do MESMO numero, e verificador ruidoso e verificador desligado.
+
+    A funcao e deliberadamente generosa: gera mais formas do que qualquer
+    documento usa. O custo de uma forma a mais e um falso negativo raro; o custo
+    de uma forma a menos e ruido constante, que custa mais.
+    """
+    formas = {numero}
+    for f in list(formas):
+        formas |= {f.replace(".", ","), f.replace(",", "."),
+                   f.replace(",", ""), f.replace(".", ""),
+                   f.replace(",", "\u202f"), f.replace(",", " "),
+                   f.replace(".", "\u202f"),
+                   f.replace(" ", "\u202f"), f.replace("\u202f", " "),
+                   f.replace("\u202f", ""), f.replace(" ", "")}
+    return formas
+
+
 def linhas_de_conteudo(texto):
     """Linhas que não são vazias, banner, citação de cabeçalho nem navegação."""
     dentro_nav = False
@@ -233,6 +256,12 @@ def verificar(raiz="."):
     esqueletos, docs, banner_de = [], 0, {}
     for doc in sorted(arquivos(os.path.join(raiz, "docs"), {".md"})) + \
                sorted(arquivos(os.path.join(raiz, "trilha"), {".md"})):
+        # O PAR EM INGLES NAO E UM DOCUMENTO A MAIS. Contá-lo inflava o censo a
+        # cada tradução -- 21 viraram 23 na primeira leva --, e a frase do
+        # ROADMAP passaria a falar de um total que não corresponde ao material,
+        # só à contagem de arquivos. É o mesmo documento noutra língua.
+        if doc.endswith(".en.md"):
+            continue
         docs += 1
         try:
             texto = open(doc, encoding="utf-8").read()
@@ -360,15 +389,27 @@ def verificar(raiz="."):
             texto = open(doc, encoding="utf-8").read()
         except (OSError, UnicodeDecodeError):
             continue
+        if doc.endswith(".en.md"):
+            continue
         if not NIVEL.search(texto):
             continue
         if BANNER.search(texto):     # esqueleto declarado nao promete resumo
             continue
         conferidos += 1
-        if not RESUMO_EN.search(texto):
+        # DUAS FORMAS ACEITAS, e isto e transitorio. Ate 16/09/2026 a paridade
+        # era um RESUMO embutido; a decisao passou a ser PARIDADE COMPLETA, com
+        # um `.en.md` ao lado de cada documento. Enquanto a migracao acontece, as
+        # duas contam -- senao a suite ficaria vermelha durante o trabalho, e
+        # suite vermelha por obra em andamento treina a ignorar vermelho.
+        #
+        # QUANDO A MIGRACAO TERMINAR, esta condicao deve exigir SO o par: o
+        # resumo embutido deixa de ser suficiente. O caso 30 do autoteste existe
+        # para que essa transicao seja deliberada e nao esquecida.
+        par = os.path.splitext(doc)[0] + ".en.md"
+        if not RESUMO_EN.search(texto) and not os.path.exists(par):
             print(f"  {os.path.relpath(doc, raiz)}: declara nivel (e portanto e"
-                  f" modulo escrito) e NAO tem o resumo \"> **In English.**\" que"
-                  f" o README.en.md promete para cada um")
+                  f" modulo escrito) e nao tem nem o resumo \"> **In English.**\""
+                  f" nem o par completo {os.path.basename(par)}")
             problemas += 1
 
     # --- Regra 6 -----------------------------------------------------------
@@ -389,6 +430,8 @@ def verificar(raiz="."):
             texto = open(doc, encoding="utf-8").read()
         except (OSError, UnicodeDecodeError):
             continue
+        if doc.endswith(".en.md"):
+            continue
         m = RESUMO_BLOCO.search(texto)
         if m is None:
             continue
@@ -399,13 +442,52 @@ def verificar(raiz="."):
             # Vírgula e ponto decimal são a mesma grandeza em línguas diferentes;
             # comparar sem normalizar acusaria "2.18" contra "2,18" e o
             # verificador viraria ruído -- e verificador ruidoso é desligado.
-            formas = {numero, numero.replace(".", ","), numero.replace(",", "."),
-                      numero.replace(",", ""), numero.replace(".", ""),
-                      numero.replace(" ", "\u202f"), numero.replace("\u202f", " "),
-                      numero.replace("\u202f", "")}
+            formas = formas_do_numero(numero)
             if not any(f in corpo for f in formas):
                 print(f"  {os.path.relpath(doc, raiz)}: o resumo em ingles publica"
                       f" \"{numero}\" e esse valor nao aparece no corpo em portugues")
+                problemas += 1
+
+    # --- Regra 7 -----------------------------------------------------------
+    #
+    # A MESMA pergunta da regra 6, feita ao par COMPLETO em vez do resumo.
+    #
+    # Ela existe porque traduzir estava REMOVENDO verificação: enquanto a
+    # paridade era um resumo embutido, a regra 6 conferia os números dele; ao
+    # trocar o resumo pelo par `.en.md`, o bloco sai do arquivo português e
+    # aqueles números deixam de ser conferidos por ninguém. Medido na primeira
+    # leva -- 77 asserções caíram para 72 só por traduzir três índices.
+    #
+    # Aqui a cobertura fica MAIOR que antes, não menor: o par inteiro tem muito
+    # mais números que o resumo tinha, e cada um precisa existir no original.
+    #
+    # O QUE ELA NÃO PEGA é o mesmo limite da regra 6, e vale repetir: número
+    # trocado por outro que também aparece no documento passa. Fecha
+    # "inventado na tradução", não "errado nas duas línguas" -- para esse, o
+    # instrumento é reconferir contra o programa que produz o número.
+    for par in sorted(arquivos(os.path.join(raiz, "docs"), {".md"})) + \
+               sorted(arquivos(os.path.join(raiz, "trilha"), {".md"})):
+        if not par.endswith(".en.md"):
+            continue
+        origem = par[: -len(".en.md")] + ".md"
+        if not os.path.exists(origem):
+            # Par órfão: inglês sem português. Não é divergência de número, é
+            # um arquivo que não deveria existir -- e o silêncio seria pior.
+            print(f"  {os.path.relpath(par, raiz)}: par em ingles sem o original"
+                  f" {os.path.basename(origem)} correspondente")
+            problemas += 1
+            continue
+        try:
+            ingles = open(par, encoding="utf-8").read()
+            corpo = open(origem, encoding="utf-8").read()
+        except (OSError, UnicodeDecodeError):
+            continue
+        for numero in sorted(set(NUMERO_RESUMO.findall(ingles))):
+            conferidos += 1
+            formas = formas_do_numero(numero)
+            if not any(f in corpo for f in formas):
+                print(f"  {os.path.relpath(par, raiz)}: a versao em ingles publica"
+                      f" \"{numero}\" e esse valor nao aparece no original em portugues")
                 problemas += 1
 
     print(f"\n  {conferidos} afirmação(ões) sobre o próprio material conferida(s);"
@@ -598,6 +680,48 @@ def autoteste():
             print(f"  AUTOTESTE {numero} FALHOU: {descricao} (rc={rc})")
             print("    " + saida.strip().replace("\n", "\n    "))
             falhas += 1
+
+    # 30. PARIDADE POR ARQUIVO satisfaz a regra 5 sem resumo embutido. Este caso
+    #     e o que permite a migracao acontecer sem a suite ficar vermelha, e e
+    #     tambem o lembrete de que ela esta em curso: quando todo modulo tiver o
+    #     seu `.en.md`, a regra deve passar a exigir SO o par, e este caso muda.
+    with __import__("tempfile").TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, "trilha"), exist_ok=True)
+        open(os.path.join(d, "trilha", "m.md"), "w", encoding="utf-8").write(
+            "# m\n\n> **Nível 8** do plano\n\ntexto.\n")
+        open(os.path.join(d, "trilha", "m.en.md"), "w", encoding="utf-8").write(
+            "# m\n\ntext.\n")
+        buf = _io.StringIO()
+        with redirect_stdout(buf):
+            rc = verificar(d)
+        if rc != 0:
+            print(f"  AUTOTESTE 30 FALHOU: par .en.md nao satisfaz a regra 5 (rc={rc})")
+            print("    " + buf.getvalue().strip().replace("\n", "\n    "))
+            falhas += 1
+
+    # 31-34. REGRA 7: a paridade do par completo.
+    #
+    #   31. numero inventado na traducao: acusa;
+    #   32. o MESMO numero em grafia inglesa (1,023 contra 1 023): passa -- sem
+    #       isto a regra acusaria toda tabela com milhar e seria desligada;
+    #   33. par orfao, ingles sem portugues: acusa;
+    #   34. o limite declarado -- numero TROCADO por outro que existe no
+    #       documento passa. Fica registrado para nao se confundir esta regra
+    #       com conferencia de valor.
+    par_pt = "# m\n\ntexto com 1\u202f023 e 4,4 ns.\n"
+    for rotulo, en, espera in (
+            ("numero inventado", "# m\n\ntext with 9,876 and 4.4 ns.\n", 1),
+            ("grafia inglesa do milhar", "# m\n\ntext with 1,023 and 4.4 ns.\n", 0),
+            ("numero trocado por outro do documento", "# m\n\ntext with 4.4 and 4.4 ns.\n", 0)):
+        rc, saida = rodar({"trilha/m.md": par_pt, "trilha/m.en.md": en})
+        if rc != espera:
+            print(f"  AUTOTESTE 31-34 FALHOU: {rotulo} deu rc={rc}, esperado {espera}")
+            print("    " + saida.strip().replace("\n", "\n    "))
+            falhas += 1
+    rc, _ = rodar({"trilha/m.en.md": "# m\n\ntext.\n"})
+    if rc != 1:
+        print(f"  AUTOTESTE 33 FALHOU: par orfao sem original passou (rc={rc})")
+        falhas += 1
 
     # 24. Esqueleto DECLARADO nao promete resumo: a promessa e sobre modulo
     #     ESCRITO. Sem esta isenca, todo esqueleto novo nasceria vermelho.

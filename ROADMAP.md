@@ -208,10 +208,25 @@ O que foi **recusado** na mesma revisão, e por quê:
 
 O que está decidido sobre **como** fazer, quando chegar a hora:
 
-- **Assimetria deliberada, não projeto bilíngue.** Corpo didático em português;
-  superfície de descoberta em inglês.
-- **Em inglês:** `README.en.md`, um resumo curto por tópico, identificadores do
-  código, e `description` + `topics` do repositório.
+- **~~Assimetria deliberada, não projeto bilíngue.~~ PARIDADE COMPLETA**, decidida
+  em 16/09/2026. Corpo didático nas duas línguas, documento a documento.
+
+  > **A decisão anterior era a assimetria, e a razão contra a paridade continua
+  > verdadeira** — está três itens abaixo, e não foi apagada: uma versão em
+  > inglês defasada faz o leitor concluir que os números não são confiáveis.
+  >
+  > O que mudou não foi a avaliação do risco; foi a **contramedida**. Enquanto a
+  > paridade dependia de disciplina, a assimetria era a escolha segura. Com a
+  > paridade **verificada por máquina** — todo módulo precisa do seu par em
+  > inglês, e nenhum número publicado em inglês pode faltar no português, com
+  > mutação medida — o risco deixa de depender de alguém lembrar.
+  >
+  > O que a verificação **não** cobre continua sendo o risco real: se o texto em
+  > inglês *diz a mesma coisa*. Isso é semântica, nenhum padrão sintático decide,
+  > e está declarado no cabeçalho do verificador. A garantia ali é humana, com
+  > data.
+- **Em inglês:** `README.en.md` na raiz e **um `README.en.md` por documento**,
+  identificadores do código, e `description` + `topics` do repositório.
   **Feito em 2026-09-10, exceto `description`/`topics`,** que dependem do
   repositório existir remotamente. Os identificadores migraram numa passada
   verificada pela suíte: a saída dos programas e a prosa continuam em português,
@@ -219,9 +234,12 @@ O que está decidido sobre **como** fazer, quando chegar a hora:
   ficaram em português por serem **prosa** — são frases lidas no relatório de
   teste (`ResultadoIndependeDoLote.DezPacotesSempreSomam695Bytes`), não símbolos
   que alguém chama.
-- **Não traduzir** a prosa didática. O valor deste material são os números
-  medidos; uma versão em inglês defasada faz o leitor concluir que *os números
-  não são confiáveis*, não que a tradução está atrasada.
+- ~~**Não traduzir** a prosa didática.~~ **Revogado em 16/09/2026** — ver a
+  primeira linha desta lista. O argumento continua registrado porque continua
+  correto, e é ele que define o que a verificação precisa cobrir: o valor deste
+  material são os números medidos, e uma versão em inglês defasada faz o leitor
+  concluir que *os números não são confiáveis*, não que a tradução está atrasada.
+  Por isso a paridade entrou junto com a regra que a confere, e não antes dela.
 - **Descartado:** `docs/pt-br/` + `docs/en/` — a pasta `docs/` é árvore de build,
   com `meson.build` próprio e boa parte dos testes registrados lá, e os READMEs
   dos tópicos vivem em `trilha/` junto do código, pela regra de manter documento

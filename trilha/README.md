@@ -1,5 +1,7 @@
 # Trilha de aprendizagem
 
+*Read this in [English](README.en.md).*
+
 Esta trilha organiza o estudo do DPDK em módulos progressivos, alinhados ao plano mestre em [docs/plano-estudo-dpdk.md](../docs/plano-estudo-dpdk.md).
 
 ## Teoria e prática, e como uma chama a outra

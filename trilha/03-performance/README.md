@@ -1,14 +1,9 @@
 # Módulo 03 — Performance e observabilidade
 
+*Read this in [English](README.en.md).*
+
 > **Nível 8** do [plano de estudo](../../docs/plano-estudo-dpdk.md) ·
 > Pré-requisito: [02 — Pipeline](../02-pipeline/)
-
-> **In English.** Both submodules are written, and neither needed hardware this
-> machine lacks — which makes them reproducible by any reader. The project
-> already used most of what this module teaches (`statistics.h`: median and IQR
-> rather than mean, robust dispersion, published p99, declared instrument
-> resolution); the work here was turning practice into teachable content and
-> measuring what was still assumption.
 
 Medir com rigor e enxergar o que está acontecendo dentro de um programa de plano
 de dados — as duas coisas que separam "ficou mais rápido" de "sei por que ficou
