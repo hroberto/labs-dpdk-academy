@@ -94,6 +94,16 @@ PROMESSA_ARM = re.compile(r"arm64|aarch64", re.IGNORECASE)
 # Os quatro numeros sao capturados por grupo nomeado para que a mensagem de erro
 # diga QUAL deles divergiu -- "a contagem esta errada" manda o leitor recontar os
 # quatro; "esqueletos: o texto diz 7, o disco tem 6" aponta o dedo.
+# O censo em ingles. Um padrao so, usado pelos DOIS arquivos que o publicam.
+#
+# "scope skeleton" e "skeleton" convivem porque os dois textos existiram: o
+# `scope` e da epoca dos esqueletos de escopo, e exigi-lo hoje faria a regra
+# IGNORAR a frase atual em vez de conferi-la -- silencio no lugar de verificacao,
+# que e o modo como um controle morre sem ninguem notar.
+_CENSO_EN = re.compile(
+    r"(?:(?P<n>\d+)|(?P<zero>[Nn]one))\s+of\s+(?:the\s+)?(?P<total>\d+)\s+documents?\s+"
+    r"(?:are|is)\s+(?:still\s+)?(?:a\s+)?(?:scope\s+)?skeletons?")
+
 CENSO = {
     # A faixa de tamanhos e OPCIONAL, e deixou de ser publicada por decisao, nao
     # por esquecimento: ela acoplava o texto do ROADMAP a contagem exata de
@@ -126,17 +136,21 @@ CENSO = {
     # os grupos que o padrao tem e o que mantem as duas linguas sob a mesma
     # regra: a versao em ingles carregava "7 of 19" tres semanas depois de o
     # numero mudar, porque a regra lia um arquivo so.
-    "README.en.md": re.compile(
-        r"(?:(?P<n>\d+)|(?P<zero>[Nn]one))\s+of\s+(?P<total>\d+)\s+documents?\s+"
-        r"(?:are|is)\s+(?:still\s+)?(?:a\s+)?scope\s+skeletons?"),
+    "README.en.md": _CENSO_EN,
+    # O ROADMAP em ingles publica a MESMA frase que o portugues, e sem esta
+    # linha ela nao seria conferida por ninguem: o par nasceu com "None of the
+    # 21 documents is a skeleton" e o verificador nao olhava para ele. A regra 3
+    # existe justamente porque contagem envelhece em silencio -- e uma contagem
+    # numa lingua so envelhece igual.
+    "ROADMAP.en.md": _CENSO_EN,
 }
 
 # Frase que PARECE um censo e nao casa com o padrao do arquivo. Existe para que
 # uma reescrita nao desligue a regra 3 sem avisar: o erro passa a ser "o padrao
 # nao reconheceu esta frase", que e acionavel, em vez de silencio.
 QUASE_CENSO = re.compile(
-    r"\d+\s+(?:d[oe]s|of)\s+\d+\s+documentos?[^.\n]{0,40}(?:esqueleto|skeleton)"
-    r"|\d+\s+(?:d[oe]s|of)\s+\d+\s+documents?[^.\n]{0,40}(?:esqueleto|skeleton)",
+    r"(?:\d+|nenhum|none)\s+(?:d[oe]s|of)\s+(?:the\s+)?\d+\s+documentos?[^.\n]{0,40}(?:esqueleto|skeleton)"
+    r"|(?:\d+|nenhum|none)\s+(?:d[oe]s|of)\s+(?:the\s+)?\d+\s+documents?[^.\n]{0,40}(?:esqueleto|skeleton)",
     re.IGNORECASE)
 
 # Documento que declara o proprio nivel -- singular ou plural. E o marcador que
@@ -754,6 +768,42 @@ def autoteste():
             print(f"  AUTOTESTE {numero} FALHOU: {descricao} (rc={rc})")
             print("    " + saida.strip().replace("\n", "\n    "))
             falhas += 1
+
+    # 35-37. O CENSO EM INGLES, no ROADMAP tambem.
+    #
+    # O par `ROADMAP.en.md` nasceu publicando "None of the 21 documents is a
+    # skeleton" e ninguem o conferia: a regra 3 olhava para `ROADMAP.md` e
+    # `README.en.md` so. Contagem que envelhece em silencio e o defeito que esta
+    # regra existe para pegar, e ela envelhece igual em qualquer lingua.
+    base_en = {"docs/a.md": esqueleto + "## Objetivo\n",
+               "trilha/b.md": "# b\n\nconteudo real.\n"}
+    for rotulo, frase, espera in (
+            ("censo ingles correto", "1 of 2 documents is a skeleton.", 0),
+            ("contagem errada", "9 of 2 documents is a skeleton.", 1),
+            ("total errado", "1 of 9 documents is a skeleton.", 1),
+            # Esta ultima acusa DUAS coisas de uma vez -- a contagem e o total --,
+            # entao o que se afirma e "acusou", nao "acusou uma vez".
+            ("forma ZERO com total errado", "None of the 9 documents is a skeleton.", 2)):
+        rc, saida = rodar({"ROADMAP.en.md": f"# r\n\n{frase}\n", **base_en})
+        if (rc == 0) != (espera == 0) or (espera and rc < 1):
+            print(f"  AUTOTESTE 35-37 FALHOU: {rotulo} deu rc={rc}, esperado {espera}")
+            print("    " + saida.strip().replace("\n", "\n    "))
+            falhas += 1
+
+    # E a frase reescrita de um jeito que o padrao nao reconhece precisa ACUSAR,
+    # nao emudecer: e a defesa contra desligar a regra por descuido de redacao.
+    #
+    # O LIMITE, e ele e declarado: a defesa se apoia na palavra "skeleton". Uma
+    # reescrita que tambem troque essa palavra -- "unfinished sketch" -- sai do
+    # alcance dela, e nada acusa. Nao ha padrao sintatico que cubra isso; o que
+    # cobre e a frase existir nos dois arquivos, cada um conferindo o outro.
+    rc, saida = rodar({"ROADMAP.en.md":
+        "# r\n\n1 of 2 documents count as skeleton material.\n", **base_en})
+    if "parece um censo" not in saida:
+        print("  AUTOTESTE 37 FALHOU: frase que PARECE censo e nao casa com o"
+              " padrao passou calada")
+        print("    " + saida.strip().replace("\n", "\n    "))
+        falhas += 1
 
     print(f"\n  autoteste: {falhas} assercao(oes) falharam")
     return falhas

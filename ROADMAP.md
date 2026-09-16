@@ -1,5 +1,7 @@
 # Roadmap do projeto
 
+*Read this in [English](ROADMAP.en.md).*
+
 ## Visão estratégica
 
 Este projeto tem como objetivo construir uma base concreta e didática para estudo profissional de DPDK, cobrindo desde os fundamentos até arquiteturas de pipeline de dados em alto desempenho.
@@ -270,7 +272,12 @@ se declarar pronto.
 >
 > ```bash
 > grep -rlE '^> \*\*Esqueleto\.\*\*' docs trilha --include='*.md' | wc -l   # esqueletos
-> find docs trilha -name '*.md' | wc -l                                     # documentos
+> find docs trilha -name '*.md' ! -name '*.en.md' | wc -l                  # documentos
+>
+> O `! -name '*.en.md'` não é filigrana. Desde a paridade de 16/09/2026 cada
+> documento tem um par em inglês, e contá-lo dobraria o total sem haver um
+> documento novo: sem o filtro este comando devolve 37 para 21 documentos. O
+> verificador aplica o mesmo corte, e é por isso que os dois concordam.
 > ```
 
 ## Objetivo final
