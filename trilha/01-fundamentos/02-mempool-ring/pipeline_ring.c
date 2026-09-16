@@ -51,7 +51,25 @@ struct config {
      * pacote avance. A distincao importa -- uma execucao longa e legitima, uma
      * execucao parada nao. */
     uint64_t progresso_ms;
+    /* Profundidade da fila, em objetos.
+     *
+     * Era fixa em 1024, e o submodulo de contrapressao existe para medir
+     * justamente o que se ganha e o que se perde ao mexer nela -- nao dava para
+     * medir o que nao era ajustavel.
+     *
+     * `rte_ring_create` exige POTENCIA DE DOIS (sem RING_F_EXACT_SZ), e a
+     * capacidade util e a profundidade MENOS UM: o anel reserva uma posicao para
+     * distinguir cheio de vazio. Pedir 1024 da 1023 objetos, e essa diferenca
+     * aparece na conta de quem dimensiona o pool. */
+    unsigned profundidade;
 };
+
+/* Potencia de dois? Exigencia do rte_ring, conferida aqui para que o erro saia
+ * com a explicacao em vez de sair do DPDK como "invalid argument". */
+static int potencia_de_dois(unsigned n)
+{
+    return n != 0 && (n & (n - 1)) == 0;
+}
 
 static int parse_config(int argc, char **argv, struct config *cfg)
 {
@@ -59,20 +77,38 @@ static int parse_config(int argc, char **argv, struct config *cfg)
     cfg->num_packets = 10;
     cfg->burst = 32;
     cfg->progresso_ms = 0;
+    cfg->profundidade = 1024;
     optind = 1;
-    while ((opt = getopt(argc, argv, "n:b:t:")) != -1) {
+    while ((opt = getopt(argc, argv, "n:b:t:q:")) != -1) {
         switch (opt) {
         case 'n': cfg->num_packets = strtoull(optarg, NULL, 10); break;
         case 'b': cfg->burst = (unsigned)strtoul(optarg, NULL, 10); break;
         case 't': cfg->progresso_ms = strtoull(optarg, NULL, 10); break;
+        case 'q': cfg->profundidade = (unsigned)strtoul(optarg, NULL, 10); break;
         default:
             fprintf(stderr, "Uso: %s <EAL> -- [-n pacotes] [-b lote (1..%u)]"
-                            " [-t ms sem progresso]\n", argv[0], BURST_MAX);
+                            " [-t ms sem progresso] [-q profundidade da fila]\n",
+                    argv[0], BURST_MAX);
             return -1;
         }
     }
     if (cfg->burst == 0 || cfg->burst > BURST_MAX || cfg->num_packets == 0) {
         fprintf(stderr, "Parametros invalidos: -n deve ser > 0 e -b entre 1 e %u\n", BURST_MAX);
+        return -1;
+    }
+    if (!potencia_de_dois(cfg->profundidade)) {
+        fprintf(stderr, "Parametros invalidos: -q deve ser potencia de dois"
+                        " (exigencia do rte_ring); recebido %u\n", cfg->profundidade);
+        return -1;
+    }
+    /* A fila precisa caber um lote inteiro, senao o produtor nunca consegue
+     * enfileirar e o programa gira sem avancar ate o prazo de progresso. Recusar
+     * aqui e melhor que descobrir depois de 5 s de nada. A capacidade util e
+     * profundidade-1, dai o `<=`. */
+    if (cfg->profundidade <= cfg->burst) {
+        fprintf(stderr, "Parametros invalidos: -q %u nao comporta um lote de %u"
+                        " (capacidade util e profundidade-1)\n",
+                cfg->profundidade, cfg->burst);
         return -1;
     }
     return 0;
@@ -236,7 +272,7 @@ int main(int argc, char **argv)
     }
 
     /* Fila de ponteiros entre produtor e consumidor (um de cada: SP/SC). */
-    struct rte_ring *ring = rte_ring_create("fila", 1024, rte_socket_id(),
+    struct rte_ring *ring = rte_ring_create("fila", cfg.profundidade, rte_socket_id(),
                                             RING_F_SP_ENQ | RING_F_SC_DEQ);
     if (ring == NULL) {
         fprintf(stderr, "rte_ring_create falhou: %s\n", rte_strerror(rte_errno));
