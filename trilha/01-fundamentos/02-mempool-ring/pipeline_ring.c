@@ -100,7 +100,11 @@ struct consumer_context {
 static int consumer_loop(void *arg)
 {
     struct consumer_context *c = arg;
+#ifndef DPDK_ACADEMY_INJECT_PAUSE
+    /* So existe no caminho que consome: na variante de injecao o consumidor
+     * nao esvazia o anel, e o vetor de lote seria variavel nao usada. */
     struct packet *burst[BURST_MAX];
+#endif
 
     while (c->r.packets < c->target && !c->parar) {
 #ifndef DPDK_ACADEMY_INJECT_PAUSE
@@ -242,7 +246,9 @@ int main(int argc, char **argv)
     }
 
     struct packet *burst_prod[BURST_MAX];
+#ifndef DPDK_ACADEMY_INJECT_PAUSE
     struct packet *burst_cons[BURST_MAX];
+#endif
     struct summary r = {0, 0};
     uint64_t produced = 0, did_not_fit = 0;
     /* Espera limitada: quanto tempo se aceita SEM PROGRESSO antes de desistir.

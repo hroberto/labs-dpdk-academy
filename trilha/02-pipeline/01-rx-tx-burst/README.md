@@ -219,9 +219,7 @@ que esta seção dizia antes. E cada um precisa declarar o que prova:
 | `--vdev=net_null` | fluxo de mbuf, semântica de burst, posse | descritor, DMA, PCIe — devolve pacotes vazios e libera tudo no TX |
 | `--vdev=net_tap` | integração com a pilha do kernel | caminho de dados rápido: paga syscall e cópia, o oposto do que se mede |
 
-**Sequência de binding, reversível.** `enp8s0` está DOWN e não é a interface de
-gerência desta máquina — a rota default vai por Wi-Fi —, então tirá-la do kernel
-não custa acesso. Confirme isso na *sua* máquina antes de rodar:
+**Sequência de binding, reversível.**
 
 ```bash
 ./scripts/preparar-nic.sh --status        # o que existe, sem alterar nada
@@ -229,22 +227,74 @@ sudo ./scripts/preparar-nic.sh 08:00.0    # binda, com as travas
 sudo ./scripts/preparar-nic.sh --desfazer 08:00.0
 ```
 
-[`scripts/preparar-nic.sh`](../../../scripts/preparar-nic.sh) recusa antes de
-tentar quando a interface carrega a rota default, quando ela tem IP, quando o
-IOMMU está desligado, quando há outro *endpoint* no grupo IOMMU, e avisa quando
-nenhum PMD reivindica o par PCI. O `dpdk-devbind.py` sozinho não faz nada disso
-— ele avisa em alguns casos e obedece em todos.
+[`scripts/preparar-nic.sh`](../../../scripts/preparar-nic.sh) **recusa antes de
+tentar** quando a interface carrega a rota default, quando ela está UP, quando
+ela tem endereço configurado (contornável com `--forcar`), quando não há link de
+grupo IOMMU, quando há outro *endpoint* no grupo, e quando nenhum PMD declara
+suporte à identidade PCI completa. Recusa também — e esta é a parte que o
+`dpdk-devbind.py` não tem como ter — quando **não conseguiu apurar** qualquer
+uma dessas coisas: rota que não pôde ser consultada, `flags` ilegível, driver de
+um vizinho de grupo que não resolve. O `dpdk-devbind.py` avisa em alguns casos e
+obedece em todos.
 
-A saída nesta máquina, com as travas passando:
+**Nesta máquina, hoje, as travas NÃO passam — e isso é o resultado correto.**
+`enp8s0` tem `operstate` em `down` e mesmo assim `flags = 0x1003`: o bit
+`IFF_UP` está ligado, a interface está administrativamente no ar e só falta
+*carrier*. "Sem cabo" não é "fora de uso", e capturar uma interface que o kernel
+considera ativa é justamente o que a trava existe para impedir:
 
 ```
-  ok    - enp8s0 nao carrega a rota default (wlp7s0)
-  ok    - enp8s0 sem endereco IP configurado
-  ok    - IOMMU ativo
-  info  - grupo 17: 0000:03:07.0 (pcieport) - ponte ou livre, nao impede
-  ok    - grupo IOMMU 17 tem a NIC como unico endpoint
-  ok    - PMD encontrado para 10ec:8125: librte_net_r8169.so
+0000:07:00.0: recusa -- interface wlp7s0 carrega rota default
+0000:08:00.0: recusa -- interface enp8s0 esta UP; captura recusada
 ```
+
+Para seguir, `sudo ip link set enp8s0 down` — um comando explícito, de quem
+opera a máquina, e não uma mutação que o script faça por conta própria. A versão
+anterior deste script chamava `ip link set down` sozinha; hoje ela é
+pré-condição, não efeito colateral, porque descer uma interface no meio de uma
+sequência de verificação é alterar o que ainda está sendo verificado.
+
+O que o `--status` mostra aqui, sem alterar nada:
+
+```
+  rota default: default via 192.168.1.1 dev wlp7s0 proto dhcp src 192.168.1.224 metric 600
+  grupos IOMMU no sistema: 28
+
+  modelo de driver por dispositivo:
+    0000:07:00.0   captura
+    0000:08:00.0   captura
+
+  0000:07:00.0 'MT7925 (RZ717) Wi-Fi 7 160MHz 0717' if=wlp7s0 drv=mt7925e unused= *Active*
+  0000:08:00.0 'RTL8125 2.5GbE Controller 8125' if=enp8s0 drv=r8169 unused=
+```
+
+Duas coisas dessa saída valem mais que o resto:
+
+**O grupo IOMMU 17 tem dois membros**, `0000:08:00.0` e `0000:03:07.0`. O
+segundo é uma ponte (`pcieport`), e o VFIO as permite no grupo — por isso o
+script conta *endpoints*, não membros. Exigir grupo com um membro só recusaria
+esta máquina sem motivo. Membro cujo driver **não puder ser lido**, porém, conta
+como *endpoint*: não se sabe o que é, e não saber não libera.
+
+**O campo `unused=` está vazio nas duas placas.** É o campo de que a versão
+anterior deste script deduzia o driver de origem na hora de desfazer — nesta
+máquina ele não teria dito nada. Hoje o driver de origem é **gravado em disco**
+(`/var/lib/dpdk-academy/nic/<BDF>.state`, modo 700) antes do bind, junto com a
+identidade PCI, e `--desfazer` o lê de lá. Sem registro, o script não adivinha:
+exige `--driver=<nome>` explícito.
+
+E a confirmação de PMD, que é a trava que separa "bindou" de "serve para
+alguma coisa", casa a identidade **completa** — *vendor*, *device* e os dois
+campos de *subsystem*:
+
+```
+0000:08:00.0 0x10ec 0x8125 0x1849 0x8125 -> Suporte PCI declarado: net_r8169
+0000:07:00.0 0x14c3 0x0717 0x14c3 0x0717 -> PMD nao confirmado
+```
+
+A Wi-Fi não tem PMD, e é recusada por isso — antes de sair do kernel, e não
+depois. A versão anterior apenas avisava e bindava assim mesmo, o que deixava a
+placa fora do kernel e invisível para qualquer aplicação.
 
 ## Fora do escopo
 

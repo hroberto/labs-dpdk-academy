@@ -176,27 +176,29 @@ endif
 
 # Classificacao do modelo de driver de NIC (captura total x bifurcado).
 if python3.found()
-  # DESREGISTRADO EM 15/09/2026, POR PERDA DO OBJETO DE TESTE.
-#
-# O teste esta no disco e e valido: monta um /sys falso, stubs no PATH e um PMD
-# sintetico, e exercita as recusas e a restauracao de preparar-nic.sh. Ele foi
-# escrito contra uma versao do script que tinha verificacao de root
-# (`(( EUID == 0 ))`), estado persistente em /var/lib/dpdk-academy/nic,
-# verificacao de PMD por scripts/verificar-pmd-pci.py e leitura de
-# subsystem_vendor/class.
-#
-# O script na arvore nao tem NADA disso: zero ocorrencias dos quatro. A causa e
-# conhecida e esta registrada para nao virar misterio -- um `git filter-branch`
-# executado durante a correcao do e-mail de autoria faz checkout ao terminar, e
-# descartou alteracoes nao commitadas de preparar-nic.sh.
-#
-# PARA RE-REGISTRAR: restaure a camada que o teste espera e confira com
-# `python3 scripts/tests/l1_preparar_nic.py`. O teste e a especificacao -- as
-# assercoes dizem, uma a uma, qual recusa cada caminho deve produzir.
-#
-# test('scripts - L1 (preparar NIC: recusas e restauracao)', python3,
-#        args : [meson.project_source_root() / 'scripts/tests/l1_preparar_nic.py'],
-#        suite : ['l1', 'scripts'], timeout : 60)else
+  # RE-REGISTRADO EM 15/09/2026, DEPOIS DA RECONSTRUCAO DO OBJETO DE TESTE.
+  #
+  # O teste ficou desregistrado por um dia. A causa esta registrada para nao
+  # virar misterio: um `git filter-branch` executado durante a correcao do
+  # e-mail de autoria faz checkout ao terminar, e descartou alteracoes nao
+  # commitadas de preparar-nic.sh -- a camada inteira que o teste exercita
+  # (verificacao de root, estado em /var/lib/dpdk-academy/nic, confirmacao de
+  # PMD, leitura de subsystem_vendor e class).
+  #
+  # O script foi reconstruido A PARTIR DESTE TESTE, que e uma especificacao
+  # executavel: 66 invocacoes da CLI, 25 recusas cada uma com a frase exigida,
+  # o ciclo de captura e restauracao, e o que precisa sobreviver a uma falha no
+  # meio. Nao e o mesmo texto que se perdeu; e equivalente em todos os caminhos
+  # que tem assercao.
+  #
+  # NAO-VACUIDADE, medida: 18 mutantes plantados nas travas, 16 mortos. Os dois
+  # sobreviventes sao pares redundantes de proposito -- as duas passagens de
+  # `nic_bind_guard` e as duas validacoes de `--driver` --, e removendo o PAR o
+  # teste pega os dois. Reproduza antes de editar esta frase.
+  test('scripts - L1 (preparar NIC: recusas e restauracao)', python3,
+       args : [meson.project_source_root() / 'scripts/tests/l1_preparar_nic.py'],
+       suite : ['l1', 'scripts'], timeout : 60)
+else
   test('scripts - L1 (preparar NIC: recusas e restauracao)', bash,
        args : ['-c', 'echo "SKIP: python3 ausente; contrato de preparar-nic nao executado"; exit 77'],
        suite : ['l1', 'scripts'], timeout : 30)
