@@ -85,9 +85,18 @@ PROMESSA_ARM = re.compile(r"arm64|aarch64", re.IGNORECASE)
 # diga QUAL deles divergiu -- "a contagem esta errada" manda o leitor recontar os
 # quatro; "esqueletos: o texto diz 7, o disco tem 6" aponta o dedo.
 CENSO = {
+    # A faixa de tamanhos e OPCIONAL, e deixou de ser publicada por decisao, nao
+    # por esquecimento: ela acoplava o texto do ROADMAP a contagem exata de
+    # linhas de seis arquivos, de modo que QUALQUER edicao legitima num esqueleto
+    # deixava a suite vermelha ate alguem atualizar uma frase que nao informava
+    # nada. Um portao que dispara em trabalho correto treina o leitor a ignora-lo.
+    #
+    # O que restou e o que interessa e nao gera atrito: quantos esqueletos, de
+    # quantos documentos. O tamanho maximo continua travado -- pela regra 1, que
+    # recusa banner de esqueleto acima de LIMITE_ESQUELETO linhas de conteudo.
     "ROADMAP.md": re.compile(
         r"(?P<n>\d+)\s+d[oe]s\s+(?P<total>\d+)\s+documentos\s+ainda\s+s[ãa]o\s+esqueletos"
-        r",\s*de\s+(?P<min>\d+)\s+a\s+(?P<max>\d+)\s+linhas"),
+        r"(?:,\s*de\s+(?P<min>\d+)\s+a\s+(?P<max>\d+)\s+linhas)?"),
     # A traducao repete a contagem e NAO repete a faixa de tamanhos. Conferir so
     # os grupos que o padrao tem e o que mantem as duas linguas sob a mesma
     # regra: a versao em ingles carregava "7 of 19" tres semanas depois de o
@@ -211,6 +220,8 @@ def verificar(raiz="."):
             problemas += 1
             continue
         for chave in censo.groupdict():
+            if censo.group(chave) is None:      # grupo opcional que a frase omite
+                continue
             if int(censo.group(chave)) != real[chave]:
                 print(f"  {nome}: {rotulo[chave]} -- o texto diz"
                       f" {censo.group(chave)}, o disco tem {real[chave]}")

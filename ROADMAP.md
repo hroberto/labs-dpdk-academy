@@ -230,7 +230,7 @@ O que está decidido sobre **como** fazer, quando chegar a hora:
   manutenção do inglês.
 
 **Pré-requisito para começar esta etapa:** o conteúdo em português precisa estar
-maduro. Hoje, 6 dos 21 documentos ainda são esqueletos, de 62 a 132 linhas — todos
+maduro. Hoje, 6 dos 21 documentos ainda são esqueletos — todos
 em `trilha/02-pipeline/`, `trilha/03-performance/` e `trilha/04-projeto-final/`.
 
 > Contagens envelhecem em silêncio, e estas já envelheceram DUAS vezes: em
