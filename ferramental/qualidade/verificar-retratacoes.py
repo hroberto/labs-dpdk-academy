@@ -170,6 +170,19 @@ def arquivos(raiz, exts):
                 yield os.path.join(pasta, nome)
 
 
+def grafias(numero):
+    """O mesmo valor nas duas linguas do material.
+
+    A PARIDADE pt/en ABRIU ESTE BURACO, e ele foi medido antes de ser fechado:
+    `122,3` declarado retratado sobrevivia como `122.3` no par `.en.md`, e este
+    verificador ficava VERDE. O numero seguia publicado, so que com ponto.
+
+    E o defeito que o projeto inteiro combate -- ausencia de deteccao lida como
+    ausencia de problema --, cometido pela propria decisao de traduzir.
+    """
+    return {numero, numero.replace(",", "."), numero.replace(".", ",")}
+
+
 def verificar(raiz="."):
     docs = sorted(arquivos(raiz, {".md"}))
     # Onde cada número retratado foi declarado morto.
@@ -187,7 +200,10 @@ def verificar(raiz="."):
                     sem_marca.append((os.path.relpath(doc, raiz), bloco.strip()[:70]))
                 continue
             for n in NUMERO.findall(marca.group(1)):
-                mortos.setdefault(n, []).append(doc)
+                # Cada grafia entra como chave propria: o laço abaixo procura
+                # literal, e o par em ingles escreve o mesmo valor com ponto.
+                for g in grafias(n):
+                    mortos.setdefault(g, []).append(doc)
 
     problemas = 0
     isentos = {}
@@ -199,7 +215,11 @@ def verificar(raiz="."):
         vivo = fora_de_retratacao(texto)
         citados = set()
         for m in CITA.finditer(texto):
-            citados.update(NUMERO.findall(m.group(1)))
+            # A isencao vale para as duas grafias: quem declara citar `2,078`
+            # de proposito esta citando o mesmo valor que o ingles escreve
+            # `2.078`, e exigir as duas marcas seria burocracia sem ganho.
+            for n in NUMERO.findall(m.group(1)):
+                citados.update(grafias(n))
         if citados:
             isentos[os.path.relpath(doc, raiz)] = sorted(citados)
         for n, origens in sorted(mortos.items()):
@@ -308,6 +328,33 @@ def autoteste():
     if "COBERTURA PARCIAL" in saida:
         print("  AUTOTESTE FALHOU: bloco sem marca, com numero de 1 significativo,"
               " gerou aviso de cobertura parcial")
+        falhas += 1
+
+    # PARIDADE pt/en: o mesmo valor, a outra grafia.
+    #
+    # Este caso registra um buraco que existiu de verdade. Enquanto a paridade
+    # era um resumo embutido em portugues, so havia uma grafia no material. Com
+    # os pares `.en.md`, `122,3` retratado passou a poder sobreviver como
+    # `122.3`, e o verificador ficava verde -- medido antes de ser fechado.
+    rc, saida = rodar({"a.md": "# a\n\n> **Publicava 122,3 ms, e estava errado.**\n"
+                               "> <!-- retratado: 122,3 -->\n",
+                       "a.en.md": "# a\n\nThe cost is 122.3 ms, measured.\n"})
+    if rc != 1:
+        print(f"  AUTOTESTE (paridade) FALHOU: valor retratado sobreviveu na"
+              f" grafia inglesa sem ser acusado (rc={rc})")
+        print("    " + saida.strip().replace("\n", "\n    "))
+        falhas += 1
+
+    # E a isencao declarada tambem atravessa a lingua: quem cita de proposito
+    # nao deve precisar de uma marca por grafia.
+    rc, saida = rodar({"b.md": "# b\n\n> **Publicava 122,3 ms, e estava errado.**\n"
+                               "> <!-- retratado: 122,3 -->\n",
+                       "b.en.md": "# b\n\n<!-- cita-retratado: 122,3 -->\n"
+                                  "The old figure was 122.3 ms.\n"})
+    if rc != 0:
+        print(f"  AUTOTESTE (paridade/isencao) FALHOU: citacao declarada em"
+              f" portugues nao isentou a grafia inglesa (rc={rc})")
+        print("    " + saida.strip().replace("\n", "\n    "))
         falhas += 1
 
     print(f"\n  autoteste: {falhas} assercao(oes) falharam")

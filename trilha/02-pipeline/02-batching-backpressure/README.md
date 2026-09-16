@@ -1,22 +1,9 @@
 # Submódulo 02 — Batching e contrapressão
 
+*Read this in [English](README.en.md).*
+
 > **Nível 5** do [plano de estudo](../../../docs/plano-estudo-dpdk.md) ·
 > Pré-requisito: [01 — RX/TX em lote](../01-rx-tx-burst/)
-
-> **In English.** What to do when the queue fills — and the answer is not about
-> the queue. The ring's usable capacity is `depth − 1` and the pool holds 4095
-> objects, so once capacity reaches the pool the ring can hold everything that
-> exists and **can no longer fill**. The measured boundary lands exactly where
-> the arithmetic says: below it there is refusal in **every** run, at it there is
-> **zero** in every run. Backpressure is governed by the **pool-to-queue ratio**,
-> not by depth alone. Burst size matters more than depth, and in the
-> counterintuitive direction: at depth 256, going from burst 8 to 128 takes
-> **8.4 ns to 4.4 ns** (median of 7 runs, non-overlapping ranges). The refusal
-> *count* is deliberately not published: eight runs of one configuration spanned
-> 118 626 to 286 625 — it answers *whether* there was backpressure, not how much.
-> Of the three policies in scope, only
-> **drop** was measured; blocking and pushing back are described without an
-> experiment, and the gap is stated.
 
 Responder à pergunta que o tópico de mempool deixa em aberto: **o que fazer
 quando a fila enche.**
