@@ -230,8 +230,10 @@ O que está decidido sobre **como** fazer, quando chegar a hora:
   manutenção do inglês.
 
 **Pré-requisito para começar esta etapa:** o conteúdo em português precisa estar
-maduro. Hoje, 1 dos 21 documentos ainda é esqueleto — o
-`trilha/04-projeto-final/`, que depende dos módulos anteriores.
+maduro. Nenhum dos 21 documentos é esqueleto: o último,
+`trilha/04-projeto-final/`, virou conteúdo em 16/09/2026. O que ainda falta lá é
+a aplicação de ponta a ponta, e o documento diz isso na primeira seção em vez de
+se declarar pronto.
 
 > Contagens envelhecem em silêncio, e estas já envelheceram DUAS vezes: em
 > 15/09/2026 os quatro números desta frase estavam errados ao mesmo tempo, com

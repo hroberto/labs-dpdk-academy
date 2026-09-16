@@ -35,6 +35,16 @@ REGRA 1 -- todo programa citado existe.
     `executable()` em algum meson.build, um arquivo da árvore, ou uma ferramenta
     externa DECLARADA na lista abaixo.
 
+REGRA 3 -- todo comando `./caminho.sh` de bloco de código aponta para arquivo.
+    Um bloco ```bash com `./scripts/foo.sh` é a forma mais literal da promessa
+    executável: o leitor vai copiar e colar. Se o arquivo não existir, ele
+    descobre sozinho, depois de tentar.
+
+    Só entram caminhos que começam com `./`, resolvidos a partir da RAIZ do
+    repositório -- que é de onde este projeto manda rodar tudo. Um comando sem
+    `./` (`meson`, `dpdk-testpmd`) é ferramenta do sistema e não é conferido
+    aqui; quem cuida dele é a regra 1.
+
 REGRA 2 -- toda fonte da trilha entra na compilação.
     Todo `.c`/`.cpp` sob `docs/` e `trilha/` precisa ser referenciado por algum
     meson.build. Fonte órfã não é compilada, e portanto não é conferida por nada
@@ -57,8 +67,10 @@ O QUE ELE DELIBERADAMENTE NÃO PEGA
 - se o programa citado FAZ o que o texto diz que faz: isso é o que a suíte mede;
 - se o exercício é respondível: promessa executável se cumpre executando, e a
   execução é dos testes L2/L3, não deste verificador;
-- programa citado dentro de bloco de código: ali é saída de terminal ou exemplo,
-  não referência do texto;
+- programa citado dentro de bloco de código SEM `./`: ali é saída de terminal ou
+  exemplo. Com `./`, é a regra 3 -- e a distinção foi aprendida errando: o
+  projeto final mandava rodar `./ferramental/af-xdp/xdp-zerocopy.sh` meses depois
+  de o AF_XDP sair do repositório, e a regra 1 não via porque ignorava blocos;
 - clareza da prosa, que não tem proxy sintático -- quatro instrumentos foram
   testados contra este corpus e os quatro produziram ruído.
 """
@@ -107,6 +119,12 @@ CANDIDATO = re.compile(
     r"`([a-z][a-z0-9]*(?:-[a-z0-9]+)+(?:\.(?:sh|py))?|[a-z][a-z0-9_-]*\.(?:sh|py))`")
 
 FONTES = {".c", ".cpp"}
+
+# Bloco cercado, com ou sem linguagem declarada.
+BLOCO = re.compile(r"```[a-zA-Z]*\n(.*?)```", re.S)
+
+# `./caminho/para/programa.sh` dentro de um bloco: promessa executável literal.
+COMANDO = re.compile(r"(?:^|\s)(\./[A-Za-z0-9_./-]+\.(?:sh|py))")
 
 
 def arquivos(raiz, exts=None):
@@ -188,6 +206,24 @@ def verificar(raiz="."):
                   f" esta fonte -- ela nao e compilada, e portanto nao e conferida"
                   f" por nada")
             problemas += 1
+
+    # --- Regra 3 -----------------------------------------------------------
+    for doc in sorted(arquivos(raiz, {".md"})):
+        try:
+            bruto = open(doc, encoding="utf-8").read()
+        except (OSError, UnicodeDecodeError):
+            continue
+        vistos = set()
+        for bloco in BLOCO.findall(bruto):
+            for cmd in COMANDO.findall(bloco):
+                if cmd in vistos:
+                    continue
+                vistos.add(cmd)
+                conferidos += 1
+                if not os.path.exists(os.path.join(raiz, cmd)):
+                    print(f"  {os.path.relpath(doc, raiz)}: manda rodar \"{cmd}\""
+                          f" e esse arquivo nao existe na arvore")
+                    problemas += 1
 
     print(f"\n  {conferidos} promessa(s) do material conferida(s) contra a arvore;"
           f" {problemas} nao se sustenta(m)")
@@ -272,6 +308,19 @@ def autoteste():
     caso(9, "palavra unica tratada como programa do projeto",
          {"meson.build": "project('x','c')\n",
           "d.md": "# d\n\nUse `meson` e `ninja`, depois `cat` o arquivo.\n"}, False)
+
+    # 11/12. REGRA 3, e o caso real que a motivou: o projeto final mandava rodar
+    #        `./ferramental/af-xdp/xdp-zerocopy.sh` depois de o AF_XDP sair do
+    #        repositorio, e a regra 1 nao via porque ignorava blocos de codigo.
+    caso(11, "comando ./ de bloco apontando para arquivo inexistente passou",
+         {"meson.build": "project('x','c')\n",
+          "d.md": "# d\n\n```bash\n./scripts/sumiu.sh --status\n```\n"}, True)
+    caso(12, "comando ./ de bloco apontando para arquivo existente acusado",
+         {"meson.build": "project('x','c')\n", "scripts/existe.sh": "#!/bin/bash\n",
+          "d.md": "# d\n\n```bash\n./scripts/existe.sh --status\n```\n"}, False)
+    caso(13, "comando do sistema sem ./ dentro de bloco tratado como do projeto",
+         {"meson.build": "project('x','c')\n",
+          "d.md": "# d\n\n```bash\nmeson test -C build\ndpdk-testpmd --help\n```\n"}, False)
 
     # 10. REGRESSAO do custo declarado: ferramenta externa NAO declarada falha, e
     #     a mensagem precisa dizer onde declarar. Sem isto o mantenedor futuro

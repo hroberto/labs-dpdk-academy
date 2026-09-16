@@ -27,7 +27,7 @@ de teoria sem o tópico vira leitura. A tabela abaixo liga os dois.
 | 7 — NUMA, cache e desempenho | [01 — Fundamentos §4 e §5](../docs/01-fundamentos/README.md#4-memória-onde-o-desempenho-realmente-se-decide) | a definir | teoria escrita; prática pendente |
 | 8 — observabilidade e qualidade | — | [03-performance/](03-performance/) | **escrito** |
 | 9 — virtualização, SR-IOV, [vhost-user][cVhost] | — | — | não iniciado |
-| 10 — projeto final e alternativas ([AF_XDP][cAfxdp]) | — | [04-projeto-final/](04-projeto-final/) | esqueleto |
+| 10 — projeto final e alternativas ([AF_XDP][cAfxdp]) | — | [04-projeto-final/](04-projeto-final/) | **consolidação escrita**; a aplicação não existe |
 
 ## Estrutura atual
 
@@ -36,7 +36,7 @@ de teoria sem o tópico vira leitura. A tabela abaixo liga os dois.
 | [01-fundamentos/](01-fundamentos/) | inicialização da EAL; mempool, ring e batching, com alternativa em C++23 | **dois tópicos completos**, com testes L1 e L2 |
 | [02-pipeline/](02-pipeline/) | batching, contrapressão, RX/TX | **escrito**; RX/TX espera a placa |
 | [03-performance/](03-performance/) | benchmarking e observabilidade | **escrito** |
-| [04-projeto-final/](04-projeto-final/) | consolidação e comparação com as alternativas | esqueleto |
+| [04-projeto-final/](04-projeto-final/) | consolidação e comparação com as alternativas | **consolidação escrita**; falta a aplicação |
 
 ## O cenário que atravessa os módulos
 
@@ -77,13 +77,17 @@ A cada módulo, o estudante deve ser capaz de:
 Os níveis 1 a 4 têm conteúdo real, dos dois lados: teoria em `docs/`, prática em
 `trilha/`, com código, testes e medições reproduzíveis.
 
-Os níveis 5 e 8 passaram a ter conteúdo em 16/09/2026: contrapressão e
+Os níveis 5, 8 e 10 passaram a ter conteúdo em 16/09/2026: contrapressão e
 profundidade de fila em [02-pipeline](02-pipeline/), metodologia de medição e
-telemetria em [03-performance](03-performance/), tudo medido nesta máquina. O
-que resta de escopo declarado sem conteúdo é o
-[projeto final](04-projeto-final/), que depende dos anteriores, e o submódulo de
-[RX/TX](02-pipeline/01-rx-tx-burst/), que tem ambiente e capacidades da NIC
-medidos e espera a placa sair do kernel.
+telemetria em [03-performance](03-performance/), e a consolidação em
+[04-projeto-final](04-projeto-final/) — tudo medido nesta máquina. **Nenhum
+documento é esqueleto.**
+
+Isso não quer dizer que tudo esteja pronto, e a diferença importa: o projeto
+final tem a consolidação escrita e **não tem a aplicação**, o que ele declara na
+primeira seção em vez de se dizer concluído. O submódulo de
+[RX/TX](02-pipeline/01-rx-tx-burst/) tem ambiente e capacidades da NIC medidos, e
+espera a placa sair do kernel.
 
 A tabela de estado acima é mantida junto com o material — se divergir do que
 existe em disco, o disco é que está certo, e a tabela precisa de correção. Desde

@@ -103,17 +103,22 @@ CENSO = {
     #
     # Dai as duas defesas: o padrao aceita as duas flexoes, e QUASE_CENSO abaixo
     # acusa o arquivo que parece publicar um censo e nao casa com nada.
+    # ZERO tem forma propria, e precisa ter. Quando o ultimo esqueleto virou
+    # conteudo, "0 dos 21 documentos ainda e esqueleto" seria portugues torto, e
+    # apagar a frase deixaria o ROADMAP sem afirmacao nenhuma para conferir --
+    # de modo que o proximo esqueleto a aparecer nao teria quem o contasse. Por
+    # isso "Nenhum dos 21 documentos" e lido como n=0 e continua verificado.
     "ROADMAP.md": re.compile(
-        r"(?P<n>\d+)\s+d[oe]s\s+(?P<total>\d+)\s+documentos?\s+ainda\s+"
-        r"(?:s[ãa]o\s+esqueletos|[ée]\s+esqueleto)"
+        r"(?:(?P<n>\d+)|(?P<zero>[Nn]enhum))\s+d[oe]s\s+(?P<total>\d+)\s+documentos?\s+"
+        r"(?:ainda\s+)?(?:s[ãa]o\s+esqueletos?|[ée]\s+esqueleto|permanece\s+esqueleto)"
         r"(?:,\s*de\s+(?P<min>\d+)\s+a\s+(?P<max>\d+)\s+linhas)?"),
     # A traducao repete a contagem e NAO repete a faixa de tamanhos. Conferir so
     # os grupos que o padrao tem e o que mantem as duas linguas sob a mesma
     # regra: a versao em ingles carregava "7 of 19" tres semanas depois de o
     # numero mudar, porque a regra lia um arquivo so.
     "README.en.md": re.compile(
-        r"(?P<n>\d+)\s+of\s+(?P<total>\d+)\s+documents?\s+(?:are|is)\s+still\s+"
-        r"(?:a\s+)?scope\s+skeletons?"),
+        r"(?:(?P<n>\d+)|(?P<zero>[Nn]one))\s+of\s+(?P<total>\d+)\s+documents?\s+"
+        r"(?:are|is)\s+(?:still\s+)?(?:a\s+)?scope\s+skeletons?"),
 }
 
 # Frase que PARECE um censo e nao casa com o padrao do arquivo. Existe para que
@@ -243,15 +248,23 @@ def verificar(raiz="."):
                 problemas += 1
             continue
         conferidos += 1
-        # Sem esqueleto nenhum a frase inteira perde o referente, e comparar
-        # min/max de lista vazia seria inventar numero.
-        if not esqueletos:
-            print(f"  {nome}: publica um censo de esqueletos e nao ha esqueleto"
-                  " em docs/ nem trilha/; a frase perdeu o referente")
+        # Sem esqueleto nenhum, min/max nao existem: comparar seria inventar
+        # numero. A CONTAGEM, essa continua conferivel -- e e o caso "Nenhum".
+        if not esqueletos and (censo.groupdict().get("min") is not None):
+            print(f"  {nome}: publica faixa de tamanhos de esqueleto e nao ha"
+                  " esqueleto em docs/ nem trilha/; a faixa perdeu o referente")
             problemas += 1
             continue
         for chave in censo.groupdict():
-            if censo.group(chave) is None:      # grupo opcional que a frase omite
+            if chave == "zero":
+                continue
+            if censo.group(chave) is None:
+                # "Nenhum dos 21" -> o grupo `n` nao casou; a afirmacao e zero.
+                if chave == "n" and censo.groupdict().get("zero"):
+                    if real["n"] != 0:
+                        print(f"  {nome}: {rotulo['n']} -- o texto diz nenhum,"
+                              f" o disco tem {real['n']}")
+                        problemas += 1
                 continue
             if int(censo.group(chave)) != real[chave]:
                 print(f"  {nome}: {rotulo[chave]} -- o texto diz"
@@ -438,6 +451,27 @@ def autoteste():
          {"ROADMAP.md": "# r\n\nEste arquivo nao publica censo algum.\n"}, False),
     ):
         rc, saida = rodar({**arqs, **base13})
+        ok = (rc >= 1) if espera_defeito else (rc == 0)
+        if not ok:
+            print(f"  AUTOTESTE {numero} FALHOU: {descricao} (rc={rc})")
+            print("    " + saida.strip().replace("\n", "\n    "))
+            falhas += 1
+
+    # 18-20. ZERO. Quando o ultimo esqueleto virou conteudo, "0 dos 21" seria
+    #        portugues torto e apagar a frase deixaria o ROADMAP sem afirmacao
+    #        nenhuma -- o proximo esqueleto a aparecer nao teria quem o contasse.
+    #        "Nenhum dos N" e lido como zero e SEGUE conferido.
+    sem_esqueleto = {"docs/a.md": "# a\n\nconteudo.\n", "trilha/b.md": "# b\n\nconteudo.\n"}
+    for numero, descricao, arqs, base, espera_defeito in (
+        (18, "'Nenhum dos N' nao reconhecido como zero",
+         {"ROADMAP.md": "# r\n\nNenhum dos 2 documentos e esqueleto.\n"}, sem_esqueleto, False),
+        (19, "'Nenhum' afirmado com esqueleto no disco passou",
+         {"ROADMAP.md": "# r\n\nNenhum dos 2 documentos e esqueleto.\n"}, base13, True),
+        (20, "'None of the N' em ingles nao reconhecido",
+         {"README.en.md": "# r\n\nNone of the 2 documents is a scope skeleton.\n"},
+         sem_esqueleto, False),
+    ):
+        rc, saida = rodar({**arqs, **base})
         ok = (rc >= 1) if espera_defeito else (rc == 0)
         if not ok:
             print(f"  AUTOTESTE {numero} FALHOU: {descricao} (rc={rc})")

@@ -52,7 +52,7 @@ publishes that.
 | 4.5 · RX/TX and ethdev | planned; NIC probed, hardware limits documented |
 | 5–10 · pipeline, performance, virtualization, final project | scope declared, not written |
 
-1 of 21 documents is still a scope skeleton, and each one says so at the top.
+None of the 21 documents is a scope skeleton any more; what is still missing is stated inside each one.
 
 ## Running it
 
