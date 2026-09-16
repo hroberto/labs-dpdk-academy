@@ -257,39 +257,6 @@ test('scripts - L1 (modelo de driver de NIC)', bash,
      args : [meson.project_source_root() / 'scripts/tests/l1_lib_nic.sh'],
      suite : ['l1', 'scripts'], timeout : 30)
 
-# Shell e decodificador têm dependências diferentes e resultados separados.
-test('scripts - L1 (veredito AF_XDP zero-copy)', bash,
-     args : [meson.project_source_root() / 'ferramental/af-xdp/l1_xdp.sh'],
-     suite : ['l1', 'scripts'], timeout : 30)
-test('scripts - L1 (bitmask AF_XDP)', bash,
-     args : [meson.project_source_root() / 'ferramental/af-xdp/l1_xdp_bitmask.sh'],
-     suite : ['l1', 'scripts'], timeout : 30)
-
-# Camada NETLINK de ferramental/af-xdp/xdp-features.py: parse de TLV, alinhamento NLA,
-# truncamento, ext_ack e higienizacao de nome de interface.
-#
-# E L1 apesar do nome: nao abre socket nenhum. O modulo e importado com
-# `socket.socket` trocado por uma sentinela que aborta se for chamada, e os
-# bytes de entrada sao montados a mao com `struct.pack` -- nao com o proprio
-# construtor do modulo, para que um erro de alinhamento no construtor nao
-# cancele o erro simetrico no parser.
-#
-# Registrado FORA do `if python3.found()` pelo mesmo motivo do teste acima, e
-# aqui a diferenca em relacao a ele importa: sem python3 este teste sai 77, que
-# o Meson (protocolo 'exitcode', o padrao) le como SKIP -- nao como sucesso.
-# Com interpretador, o teste informa a contagem de assercoes; sem ele, zero e
-# um SKIP que nomeia as OITO funcoes que ficaram sem cobertura (o numero era
-# "sete" aqui e "oito" no proprio SKIP, escritos em paralelo sobre o mesmo
-# bloco de saida; conferido com
-#     PATH=<sem python3> bash ferramental/af-xdp/l1_xdp_netlink.sh | grep -c '^  SKIP      '
-# ). Um gate aqui
-# apagaria essa distincao, que e justamente a que este conjunto de arquivos
-# existe para defender: "nao consegui apurar" nao pode ter a mesma cara de
-# "esta correto".
-test('scripts - L1 (camada netlink de xdp-features.py)', bash,
-     args : [meson.project_source_root() / 'ferramental/af-xdp/l1_xdp_netlink.sh'],
-     suite : ['l1', 'scripts'], timeout : 30)
-
 # xdp-zerocopy.sh EXECUTADO, com fontes controladas.
 #
 # INCIDENTE que este registro fecha: ate agora nenhum teste da arvore executava
@@ -308,34 +275,18 @@ test('scripts - L1 (camada netlink de xdp-features.py)', bash,
 # modulos sao ELFs sinteticos escritos byte a byte, e /sys/class/net e
 # redirecionado por DPDK_ACADEMY_SYSFS_NET. Sem gate, pelo mesmo motivo dos
 # dois testes acima.
-# DESREGISTRADO EM 15/09/2026, E ISTO PRECISA SER LIDO ANTES DE RE-REGISTRAR.
+# AF_XDP SAIU DO REPOSITORIO EM 15/09/2026.
 #
-# O teste continua no disco, correto e valioso: 619 linhas, e ele foi escrito
-# contra um `xdp-zerocopy.sh` de 1276 linhas. O script na arvore hoje tem 312 --
-# um `reset --hard` levou a camada de diagnostico inteira, e nao ha copia.
+# O diagnostico inteiro -- 3371 linhas em 10 arquivos, 43% de todo o codigo de
+# script do projeto -- foi para temp/, fora do controle de versao, junto com o
+# documento de preparacao. A razao e de escopo e esta medida: a NIC de
+# referencia anuncia `xdp_features = 0x00`, entao nada ali produz resultado util
+# nesta maquina, e o material nao ganha nada com a presenca do codigo.
 #
-# Resultado medido: 22 assercoes passam, 41 FALHAM. O que falta nao e um detalhe,
-# e o vocabulario completo de apuracao -- "NAO APURADO" distinguido de resposta
-# negativa, integridade de ELF, nomeacao da familia netlink ausente, travessia de
-# sysfs, distincao entre falta de privilegio e inexistencia, classificacao pelo
-# fallback.
+# O que se perde ao remover: quatro testes L1 que exercitavam a logica de
+# decisao com fontes controladas e passavam sem hardware. Eram bons testes de um
+# assunto que o projeto decidiu nao cobrir nesta versao.
 #
-# POR QUE DESREGISTRAR E NAO DEIXAR VERMELHO: uma suite permanentemente vermelha
-# deixa de comunicar. Vermelho precisa significar "algo quebrou agora".
-#
-# POR QUE NAO PULAR COM 77: pulo significa "o host nao concede o requisito", e
-# nao e o caso. O objeto de teste REGREDIU. Usar 77 aqui seria a mesma confusao
-# que este projeto corrigiu nos runners L3 -- inferir ambiente insuficiente a
-# partir de um defeito.
-#
-# PARA RE-REGISTRAR: restaure a camada de diagnostico de xdp-zerocopy.sh e
-# confira com `bash ferramental/af-xdp/l1_xdp_zerocopy.sh`. Quando as 63
-# assercoes passarem, descomente. O teste e a especificacao: os nomes das
-# assercoes dizem, uma a uma, qual frase cada caminho deve publicar.
-#
-# test('scripts - L1 (xdp-zerocopy.sh com fontes controladas)', bash,
-#      args : [meson.project_source_root() / 'ferramental/af-xdp/l1_xdp_zerocopy.sh'],
-#      suite : ['l1', 'scripts'], timeout : 60)
 
 subdir('docs/01-fundamentos/medicoes')
 test('scripts - L1 (apuracao e mutacoes)', bash,
@@ -367,7 +318,3 @@ else
     args : ['-c', 'echo "SKIP: supervisor exige python3"; exit 77'],
     suite : ['l2', 'runtime'], timeout : 20)
 endif
-
-test('scripts - L1 (dependencias separadas do XDP)', bash,
-  args : [meson.project_source_root() / 'ferramental/af-xdp/l1_xdp_dependencias.sh'],
-  suite : ['l1', 'scripts'], timeout : 30)

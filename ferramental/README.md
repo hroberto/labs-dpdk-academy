@@ -10,37 +10,40 @@ tinha 39 arquivos e 7792 linhas, e **o que o estudante efetivamente executa era
 
 | Finalidade | Arquivos | Linhas | Onde ficou |
 |---|---:|---:|---|
-| AF_XDP | 8 | 3335 | [`ferramental/af-xdp/`](af-xdp/) |
 | Verificadores e processo | 12 | 1444 | [`ferramental/qualidade/`](qualidade/) |
 | NIC (segurança) | 6 | 716 | `scripts/` — protege a máquina de quem estuda |
 | Uso do estudante | 6 | 544 | `scripts/` |
 
-O AF_XDP sozinho era 43% de todo o código de script, para uma capacidade que a
-NIC de referência não tem.
+O AF_XDP era 43% de todo o código de script, para uma capacidade que a NIC de
+referência não tem -- ela anuncia `xdp_features = 0x00`. Em 15/09/2026 ele saiu
+do repositório inteiro, com o documento de preparação junto: escopo que não
+produz resultado nesta máquina não justifica o custo de leitura.
 
-## Por que continua versionado, e não ignorado
+## Versionado ou descartado: o critério mudou conforme a pergunta
 
-A proposta inicial era mover para fora do controle de versão. Três motivos
-mudaram a decisão, e o primeiro é experiência direta deste repositório:
+Quando esta pasta foi criada, a proposta era tirar tudo do controle de versão.
+Foi recusada por três razões, e a primeira é experiência direta deste
+repositório: um `reset --hard` destruiu horas de trabalho não rastreado, e
+colocar milhares de linhas nesse estado repetiria a condição do acidente. A
+segunda: a CI executa os verificadores. A terceira: esconder é a classe de
+defeito que este projeto combate -- teste que não roda, evidência fora do git,
+verificação que some sem avisar.
 
-1. **Um `reset --hard` destruiu horas de trabalho não rastreado.** Colocar 3335
-   linhas nesse estado repete a condição exata do acidente.
-2. **A CI depende dos verificadores.** Ignorá-los desliga a etapa de consistência
-   do `.github/workflows/ci.yml`.
-3. **Esconder é a classe de defeito que este projeto combate.** Teste que não
-   roda, evidência fora do git, verificação que some sem avisar — o material
-   inteiro persegue isso. Ignorar seria o mesmo movimento com outro nome.
+Esse raciocínio vale para o que **fica**, e é por isso que `qualidade/` continua
+versionado.
 
-O que reduz volumetria é **separar e declarar**, não ocultar. Quem abre
-`scripts/` agora vê o que usa; quem abre `ferramental/` sabe, pelo nome do
-diretório e por este arquivo, que está olhando para outra coisa.
+Para o AF_XDP a pergunta era outra, e a resposta também. Ali não se tratava de
+onde guardar código útil, mas de **manter código que não produz resultado**: a
+NIC de referência não tem XDP, então nada daquilo respondia a uma pergunta do
+material. O que não agrega não precisa de lugar melhor -- precisa sair. Foi para
+`temp/`, fora do git, e o que se perdeu está declarado no `meson.build`: quatro
+testes L1 que exercitavam a lógica de decisão com fontes controladas.
+
+A distinção, em uma linha: **separar e declarar** quando o código serve e
+atrapalha a leitura; **descartar e declarar** quando ele não serve.
 
 ## Nesta pasta
 
-- **[af-xdp/](af-xdp/)** — diagnóstico e verificação de AF_XDP zero-copy. Não
-  executável no hardware de referência; preservado para quando houver placa que
-  o suporte. O contexto está em
-  [af-xdp-preparacao.md](../trilha/04-projeto-final/af-xdp-preparacao.md).
 - **[qualidade/](qualidade/)** — os verificadores que rodam na suíte `l1+docs` e
   o gancho de pré-commit que a CI executa. Registrados no `meson.build` da raiz:
   saem de `scripts/`, não saem da verificação.
