@@ -42,8 +42,12 @@ O QUE ELE DELIBERADAMENTE NÃO PEGA:
   comporte diferente (não é sobre compilar, é sobre semântica);
 - banner de esqueleto ausente em documento que DEVERIA tê-lo -- o inverso desta
   regra, que exige julgar o que é conteúdo suficiente;
-- afirmações do material sobre si que não sejam o censo da regra 3 (níveis de
-  teste, cobertura de módulo, estado de uma etapa).
+- afirmações do material sobre si que não sejam o censo da regra 3 nem a
+  promessa de resumo da regra 5 (níveis de teste, cobertura de módulo, estado de
+  uma etapa);
+- se o resumo em inglês DIZ a mesma coisa que o documento em português. A regra
+  5 confere que ele EXISTE, que é decidível; se o conteúdo corresponde exige ler
+  as duas línguas e comparar sentido, e disso nenhum programa dá conta.
 
 REGRA 3 -- o censo de esqueletos que o ROADMAP publica
 
@@ -128,6 +132,13 @@ QUASE_CENSO = re.compile(
     r"\d+\s+(?:d[oe]s|of)\s+\d+\s+documentos?[^.\n]{0,40}(?:esqueleto|skeleton)"
     r"|\d+\s+(?:d[oe]s|of)\s+\d+\s+documents?[^.\n]{0,40}(?:esqueleto|skeleton)",
     re.IGNORECASE)
+
+# Documento que declara o proprio nivel -- singular ou plural. E o marcador que
+# distingue MODULO/TOPICO de indice nesta arvore: indices nao declaram nivel.
+NIVEL = re.compile(r"^>\s*\*\*N[íi]ve(?:l|is)\s", re.MULTILINE)
+
+# O resumo em ingles, pela convencao do projeto.
+RESUMO_EN = re.compile(r"^>\s*\*\*In English\.\*\*", re.MULTILINE)
 
 # Linha de tabela que aponta um diretorio e opina sobre o estado dele:
 #   | 6 -- RX/TX | -- | [02-pipeline/01-rx-tx-burst/](02-pipeline/01-rx-tx-burst/) | esqueleto |
@@ -315,6 +326,38 @@ def verificar(raiz="."):
                       f" NAO tem o banner -- o documento tem conteudo")
                 problemas += 1
 
+    # --- Regra 5 -----------------------------------------------------------
+    #
+    # `README.en.md` promete, em texto: "English covers the surface that matters
+    # for reading and reuse: code, file names, this page, and a short summary at
+    # the top of each written module".
+    #
+    # Era promessa sem verificacao, e quebrou calada: seis modulos escritos em
+    # 16/09/2026 sairam sem resumo nenhum, e a frase continuou publicada. Quem
+    # nao le portugues abria o documento e nao encontrava o que a porta de
+    # entrada prometia.
+    #
+    # O marcador de "modulo escrito" e a DECLARACAO DE NIVEL: nesta arvore,
+    # topico e modulo declaram `> **Nivel N**`, indice nao declara. Isso torna a
+    # regra decidivel sem julgar o que e conteudo suficiente -- o mesmo cuidado
+    # da regra 1.
+    for doc in sorted(arquivos(os.path.join(raiz, "docs"), {".md"})) + \
+               sorted(arquivos(os.path.join(raiz, "trilha"), {".md"})):
+        try:
+            texto = open(doc, encoding="utf-8").read()
+        except (OSError, UnicodeDecodeError):
+            continue
+        if not NIVEL.search(texto):
+            continue
+        if BANNER.search(texto):     # esqueleto declarado nao promete resumo
+            continue
+        conferidos += 1
+        if not RESUMO_EN.search(texto):
+            print(f"  {os.path.relpath(doc, raiz)}: declara nivel (e portanto e"
+                  f" modulo escrito) e NAO tem o resumo \"> **In English.**\" que"
+                  f" o README.en.md promete para cada um")
+            problemas += 1
+
     print(f"\n  {conferidos} afirmação(ões) sobre o próprio material conferida(s);"
           f" {problemas} não se sustenta(m)")
     if not promete_arm:
@@ -477,6 +520,41 @@ def autoteste():
             print(f"  AUTOTESTE {numero} FALHOU: {descricao} (rc={rc})")
             print("    " + saida.strip().replace("\n", "\n    "))
             falhas += 1
+
+    # 21-23. REGRA 5: a promessa do README.en.md de um resumo em ingles no topo
+    #        de cada modulo escrito. Quebrou calada em 16/09/2026 -- seis modulos
+    #        novos sairam sem resumo e a frase continuou publicada.
+    nivel = "> **Nível 8** do plano\n"
+    resumo = "> **In English.** A short summary.\n"
+    for numero, descricao, doc, espera_defeito in (
+        (21, "modulo com nivel e resumo acusado",
+         "# m\n\n" + nivel + "\n" + resumo + "\ntexto.\n", False),
+        (22, "modulo com nivel e SEM resumo passou",
+         "# m\n\n" + nivel + "\ntexto.\n", True),
+        (23, "indice sem declaracao de nivel exigido a ter resumo",
+         "# i\n\n| a | b |\n|---|---|\n\ntexto.\n", False),
+        # PLURAL. `trilha/01-fundamentos/` declara "Niveis 3 e 4", e foi
+        # exatamente essa forma que escapou de uma conferencia manual feita com
+        # regex singular. A regra le as duas; o caso 25 impede que volte a ler
+        # so uma.
+        (25, "modulo com 'Niveis' no plural e SEM resumo passou",
+         "# m\n\n> **Níveis 3 e 4** do plano\n\ntexto.\n", True),
+        (26, "modulo com 'Niveis' no plural e COM resumo acusado",
+         "# m\n\n> **Níveis 3 e 4** do plano\n\n" + resumo + "\ntexto.\n", False),
+    ):
+        rc, saida = rodar({"trilha/m.md": doc})
+        ok = (rc >= 1) if espera_defeito else (rc == 0)
+        if not ok:
+            print(f"  AUTOTESTE {numero} FALHOU: {descricao} (rc={rc})")
+            print("    " + saida.strip().replace("\n", "\n    "))
+            falhas += 1
+
+    # 24. Esqueleto DECLARADO nao promete resumo: a promessa e sobre modulo
+    #     ESCRITO. Sem esta isenca, todo esqueleto novo nasceria vermelho.
+    rc, _ = rodar({"trilha/e.md": "# e\n\n" + nivel + "\n" + esqueleto + "## Objetivo\n"})
+    if rc != 0:
+        print(f"  AUTOTESTE 24 FALHOU: esqueleto declarado exigido a ter resumo (rc={rc})")
+        falhas += 1
 
     print(f"\n  autoteste: {falhas} assercao(oes) falharam")
     return falhas

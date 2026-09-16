@@ -3,6 +3,18 @@
 > **Nível 10** do [plano de estudo](../../docs/plano-estudo-dpdk.md) ·
 > Pré-requisito: todos os módulos anteriores
 
+> **In English.** The consolidation is written; **the application does not
+> exist**, and the document says so in its first section rather than calling
+> itself finished. It collects the eight measured findings of the whole project —
+> a syscall costs 36 function calls, the EAL takes 123 ms to start, crossing a
+> cache domain costs 4.0–4.8×, parallelising can make things worse — and the
+> thesis that survives them is modest: DPDK removes the syscall and the copy; it
+> does not remove the physics of the machine. Three of the eight findings are
+> about the machine, not the framework. The AF_XDP comparison is decided
+> explicitly as **conceptual**: this NIC answers `NETDEV_XDP_ACT_BASIC: no`, so
+> measuring generic mode and calling it AF_XDP would measure a scenario that
+> removes what the technology charges for.
+
 Consolidar o material num sistema executável, documentado e medido, e usá-lo para
 responder à pergunta que atravessa o projeto inteiro: **quando o DPDK compensa, e
 quando não compensa.**

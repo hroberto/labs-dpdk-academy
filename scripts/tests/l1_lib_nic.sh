@@ -69,6 +69,38 @@ contem "explicacao da o comando de uso"              "dpdk-testpmd" "$explicacao
 # --- vendor_de num dispositivo inexistente nao pode explodir ---------------
 check "vendor_de de BDF inexistente devolve vazio" "$(vendor_de 0000:99:99.9)" ""
 
+# --- vendor_apurar: a versao que NAO falha aberto --------------------------
+#
+# ESTE BLOCO NASCEU DE UM MUTANTE SOBREVIVENTE. `vendor_apurar` existe para
+# fechar a cadeia "vendor ilegivel -> vendor_de devolve '' -> modelo_de_driver
+# responde captura -> bind aplica", que e a decisao mais destrutiva do projeto
+# tomada a partir de uma NAO-LEITURA. Ela foi escrita e ficou sem teste: remover
+# a guarda de vazio deixava a suite verde.
+#
+# Repare que o teste acima exige `modelo_de_driver ''` = "captura". Os dois
+# convivem de proposito: `modelo_de_driver` classifica o que recebe e nao tem
+# como saber se o vazio veio de leitura falha; quem precisa recusar e quem LE.
+. "$(dirname "$0")/../lib-apuracao.sh"
+
+vendor_apurar 0000:99:99.9 2>/dev/null
+check "vendor_apurar de BDF inexistente recusa"        "$?"                 "1"
+check "e deixa motivo, em vez de silencio"             "$([ -n "$_APUR_MOTIVO" ]; echo $?)" "0"
+
+# Arquivo VAZIO e o caso que a guarda fecha: apur_ler devolve SUCESSO (leu, e
+# esta vazio -- fato legitimo), e e vendor_apurar que precisa recusar. Sem a
+# guarda, `$_APUR` vazio segue para modelo_de_driver e vira "captura".
+tmp=$(mktemp -d)
+mkdir -p "$tmp/sys/bus/pci/devices/0000:01:00.0"
+: > "$tmp/sys/bus/pci/devices/0000:01:00.0/vendor"
+copia=$tmp/lib-nic.sh
+sed "s|/sys/|$tmp/sys/|g" "$(dirname "$0")/../lib-nic.sh" > "$copia"
+# shellcheck disable=SC1090
+( . "$(dirname "$0")/../lib-apuracao.sh"; . "$copia"
+  vendor_apurar 0000:01:00.0 2>/dev/null; rc=$?
+  [ "$rc" != 0 ] && [ -n "$_APUR_MOTIVO" ] )
+check "vendor_apurar recusa vendor VAZIO (arquivo legivel e em branco)" "$?" "0"
+rm -rf "$tmp"
+
 # --- rdma_core_ok reporta o que falta, sem falhar o teste -------------------
 if rdma_core_ok; then
     echo "  info  - rdma-core completo nesta maquina"

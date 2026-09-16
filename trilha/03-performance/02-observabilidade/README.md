@@ -3,6 +3,19 @@
 > **Nível 8** do [plano de estudo](../../../docs/plano-estudo-dpdk.md) ·
 > Pré-requisito: [01 — Benchmarking](../01-benchmarking/)
 
+> **In English.** Seeing a DPDK program while it runs, without stopping it and
+> without instrumenting the hot path. Telemetry is **on by default** — the EAL
+> help lists `--telemetry` and `--no-telemetry` side by side as if one enabled
+> it, but the socket appeared in both runs; only `--no-telemetry` changes
+> anything. The argument of the module: when the NIC drops for lack of a
+> descriptor, **no instruction of your process executes**, so a CPU profiler
+> shows a healthy program and what it never received is invisible. The counter is
+> `imissed`, readable live. Measured against real traffic with `net_null`:
+> 409 697 376 packets in ~4 s, and `/mempool/info` closing the account of where
+> objects are right now — 378 in per-lcore caches, 3 686 in the common pool, 32
+> in flight. Two traps measured: an unknown path returns `null` while a valid
+> empty one returns `[]`, and queries in the same batch are **not atomic**.
+
 Enxergar o que um programa DPDK está fazendo **enquanto ele roda**, sem parar e
 sem instrumentar o caminho quente.
 
