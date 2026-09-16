@@ -43,15 +43,21 @@ Escrever um teste ou uma linha nesta matriz não altera seu estado para aprovado
 
 **Nível e estímulo:** L2: anel reduzido e vazamento deliberado
 
-**Teste / evidência:** [l2_failure.sh](../../trilha/01-fundamentos/02-mempool-ring/tests/l2_failure.sh)
+**Teste / evidência:** [l2_run.sh](../../trilha/01-fundamentos/02-mempool-ring/tests/l2_run.sh),
+que verifica a pré-condição antes de afirmar — repete com `-n` crescente até a
+fila encher de fato, e só então exige que a variante vazada seja detectada.
 
-**Limite:** Conferir retorno, estímulo e invariante.
+**Limite:** Conferir retorno, estímulo e invariante. O modo `leak` de
+`l2_failure.sh` NÃO cobre este contrato e não está registrado: invoca `-n 64`,
+e com 64 pacotes o anel de 4096 nunca enche — o retorno parcial, que é o
+caminho onde o vazamento vive, não chega a executar.
 
 ### C06 — Consumidor parado termina e devolve objetos
 
 **Nível e estímulo:** L2: mesmo lcore e outro lcore
 
-**Teste / evidência:** Mesmo runner de falhas
+**Teste / evidência:** [l2_failure.sh](../../trilha/01-fundamentos/02-mempool-ring/tests/l2_failure.sh),
+modos `paused` (um lcore) e `pausedtwo` (dois lcores), ambos registrados
 
 **Limite:** Limite de progresso, não garantia de tempo real rígido.
 
@@ -115,7 +121,10 @@ Escrever um teste ou uma linha nesta matriz não altera seu estado para aprovado
 
 **Nível e estímulo:** L1/docs: links, âncoras, contas, retratações, inventário
 
-**Teste / evidência:** Verificadores em `scripts/`
+**Teste / evidência:** Os cinco verificadores em
+[`ferramental/qualidade/`](../../ferramental/qualidade/) — links, âncoras de
+linha, aritmética publicada, retratações e autodescrição — mais
+`inventariar-dados.py`, todos registrados na suíte `l1+docs`
 
 **Limite:** Escopos e exclusões explícitos; não prova revisão semântica completa.
 
