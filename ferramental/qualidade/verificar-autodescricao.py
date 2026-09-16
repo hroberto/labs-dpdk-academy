@@ -410,20 +410,20 @@ def verificar(raiz="."):
         if BANNER.search(texto):     # esqueleto declarado nao promete resumo
             continue
         conferidos += 1
-        # DUAS FORMAS ACEITAS, e isto e transitorio. Ate 16/09/2026 a paridade
-        # era um RESUMO embutido; a decisao passou a ser PARIDADE COMPLETA, com
-        # um `.en.md` ao lado de cada documento. Enquanto a migracao acontece, as
-        # duas contam -- senao a suite ficaria vermelha durante o trabalho, e
-        # suite vermelha por obra em andamento treina a ignorar vermelho.
+        # O PAR COMPLETO, e SO ele. A condicao ja foi transitoria: ate
+        # 16/09/2026 a paridade era um RESUMO embutido, e durante a migracao as
+        # duas formas contavam, para que a suite nao ficasse vermelha por obra
+        # em andamento -- suite vermelha por obra treina a ignorar vermelho.
         #
-        # QUANDO A MIGRACAO TERMINAR, esta condicao deve exigir SO o par: o
-        # resumo embutido deixa de ser suficiente. O caso 30 do autoteste existe
-        # para que essa transicao seja deliberada e nao esquecida.
+        # A migracao terminou no mesmo dia: 23 documentos, 23 pares, nenhum
+        # resumo embutido restante. Manter o resumo como alternativa deixaria a
+        # porta aberta para o proximo modulo nascer so com ele, e a arvore
+        # regredir sem nada acusar. Esta linha e o fecho da decisao.
         par = os.path.splitext(doc)[0] + ".en.md"
-        if not RESUMO_EN.search(texto) and not os.path.exists(par):
+        if not os.path.exists(par):
             print(f"  {os.path.relpath(doc, raiz)}: declara nivel (e portanto e"
-                  f" modulo escrito) e nao tem nem o resumo \"> **In English.**\""
-                  f" nem o par completo {os.path.basename(par)}")
+                  f" modulo escrito) e nao tem o par completo"
+                  f" {os.path.basename(par)}")
             problemas += 1
 
     # --- Regra 6 -----------------------------------------------------------
@@ -673,8 +673,8 @@ def autoteste():
     nivel = "> **Nível 8** do plano\n"
     resumo = "> **In English.** A short summary.\n"
     for numero, descricao, doc, espera_defeito in (
-        (21, "modulo com nivel e resumo acusado",
-         "# m\n\n" + nivel + "\n" + resumo + "\ntexto.\n", False),
+        (21, "modulo com nivel e PAR acusado",
+         "# m\n\n" + nivel + "\ntexto.\n", False),
         (22, "modulo com nivel e SEM resumo passou",
          "# m\n\n" + nivel + "\ntexto.\n", True),
         (23, "indice sem declaracao de nivel exigido a ter resumo",
@@ -685,20 +685,26 @@ def autoteste():
         # so uma.
         (25, "modulo com 'Niveis' no plural e SEM resumo passou",
          "# m\n\n> **Níveis 3 e 4** do plano\n\ntexto.\n", True),
-        (26, "modulo com 'Niveis' no plural e COM resumo acusado",
-         "# m\n\n> **Níveis 3 e 4** do plano\n\n" + resumo + "\ntexto.\n", False),
+        (26, "modulo com 'Niveis' no plural e COM par acusado",
+         "# m\n\n> **Níveis 3 e 4** do plano\n\ntexto.\n", False),
     ):
-        rc, saida = rodar({"trilha/m.md": doc})
+        # O PAR entra so nos casos que devem PASSAR. Nos que devem falhar, a
+        # ausencia dele e justamente o defeito -- e o motivo mudou junto com a
+        # regra: antes era "sem resumo", agora e "sem par".
+        arqs = {"trilha/m.md": doc}
+        if not espera_defeito:
+            arqs["trilha/m.en.md"] = "# m\n\ntext.\n"
+        rc, saida = rodar(arqs)
         ok = (rc >= 1) if espera_defeito else (rc == 0)
         if not ok:
             print(f"  AUTOTESTE {numero} FALHOU: {descricao} (rc={rc})")
             print("    " + saida.strip().replace("\n", "\n    "))
             falhas += 1
 
-    # 30. PARIDADE POR ARQUIVO satisfaz a regra 5 sem resumo embutido. Este caso
-    #     e o que permite a migracao acontecer sem a suite ficar vermelha, e e
-    #     tambem o lembrete de que ela esta em curso: quando todo modulo tiver o
-    #     seu `.en.md`, a regra deve passar a exigir SO o par, e este caso muda.
+    # 30. PARIDADE POR ARQUIVO e agora a UNICA forma aceita pela regra 5.
+    #     Este caso nasceu como o que permitia a migracao acontecer sem a suite
+    #     ficar vermelha; com ela terminada, virou o que trava o fecho. O caso
+    #     30b abaixo e o outro lado: resumo embutido SEM par nao basta mais.
     with __import__("tempfile").TemporaryDirectory() as d:
         os.makedirs(os.path.join(d, "trilha"), exist_ok=True)
         open(os.path.join(d, "trilha", "m.md"), "w", encoding="utf-8").write(
@@ -737,6 +743,19 @@ def autoteste():
         print(f"  AUTOTESTE 33 FALHOU: par orfao sem original passou (rc={rc})")
         falhas += 1
 
+    # 30b. O RESUMO EMBUTIDO SOZINHO nao basta mais.
+    #
+    #      Sem este caso, voltar a aceita-lo seria uma edicao de uma linha que
+    #      nada acusaria -- e o proximo modulo nasceria so com o resumo, com a
+    #      arvore regredindo em silencio para a assimetria revogada.
+    rc, saida = rodar({"trilha/m.md":
+        "# m\n\n" + nivel + "\n> **In English.** A summary, and nothing else.\n\ntexto.\n"})
+    if rc != 1:
+        print(f"  AUTOTESTE 30b FALHOU: resumo embutido sem par satisfez a"
+              f" regra 5 (rc={rc})")
+        print("    " + saida.strip().replace("\n", "\n    "))
+        falhas += 1
+
     # 24. Esqueleto DECLARADO nao promete resumo: a promessa e sobre modulo
     #     ESCRITO. Sem esta isenca, todo esqueleto novo nasceria vermelho.
     rc, _ = rodar({"trilha/e.md": "# e\n\n" + nivel + "\n" + esqueleto + "## Objetivo\n"})
@@ -762,7 +781,11 @@ def autoteste():
         (29, "troca de atribuicao (0,63 e o custo de ENCERRAR) -- limite declarado",
          "> **In English.** The EAL starts in 0.63 ms.\n", False),
     ):
-        rc, saida = rodar({"trilha/m.md": corpo.format(res=res)})
+        # O par vem SEM numero de proposito: ele existe aqui para satisfazer a
+        # regra 5, e um numero nele entraria tambem na regra 7, misturando duas
+        # regras num caso que existe para exercitar a 6.
+        rc, saida = rodar({"trilha/m.md": corpo.format(res=res),
+                           "trilha/m.en.md": "# m\n\ntext.\n"})
         ok = (rc >= 1) if espera_defeito else (rc == 0)
         if not ok:
             print(f"  AUTOTESTE {numero} FALHOU: {descricao} (rc={rc})")
