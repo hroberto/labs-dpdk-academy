@@ -222,10 +222,17 @@ O que está decidido sobre **como** fazer, quando chegar a hora:
 - **Não traduzir** a prosa didática. O valor deste material são os números
   medidos; uma versão em inglês defasada faz o leitor concluir que *os números
   não são confiáveis*, não que a tradução está atrasada.
-- **Descartado:** `docs/pt-br/` + `docs/en/` — a pasta `docs/` é árvore de build
-  (tem `meson.build` e 16 dos 23 testes), e 12 READMEs vivem em `trilha/` junto
-  do código, pela regra de manter documento e código no mesmo tópico. Descartados
-  também a tradução automática por Action e o site estático, por ora.
+- **Descartado:** `docs/pt-br/` + `docs/en/` — a pasta `docs/` é árvore de build,
+  com `meson.build` próprio e boa parte dos testes registrados lá, e os READMEs
+  dos tópicos vivem em `trilha/` junto do código, pela regra de manter documento
+  e código no mesmo tópico. Descartados também a tradução automática por Action e
+  o site estático, por ora.
+
+  > Esta frase publicava "16 dos 23 testes" até 16/09/2026. Os dois números
+  > envelheceram sem ninguém notar — a suíte passou de 23 para 52 —, e nenhum
+  > verificador os conferia: não são censo de esqueleto nem conta aritmética. A
+  > contagem saiu porque não sustentava o argumento, que é sobre **onde** as
+  > coisas ficam. Número que ninguém reconfere é retratação agendada.
 - **Reabrir `docs/en/` completo** só se aparecer uma segunda pessoa que assuma a
   manutenção do inglês.
 

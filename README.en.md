@@ -50,7 +50,10 @@ publishes that.
 | 3 · EAL and runtime | written, incl. primary/secondary shared memory |
 | 4 · mempool, ring, mbuf | written, incl. sizing rules verified against a live pool |
 | 4.5 · RX/TX and ethdev | planned; NIC probed, hardware limits documented |
-| 5–10 · pipeline, performance, virtualization, final project | scope declared, not written |
+| 5 · pipeline and backpressure | written; queue depth and refusal measured |
+| 8 · performance and observability | written; benchmarking method and telemetry measured |
+| 9 · virtualization and cloud | not started |
+| 10 · final project | consolidation written; **the application does not exist** |
 
 None of the 21 documents is a scope skeleton any more; what is still missing is stated inside each one.
 
@@ -60,7 +63,7 @@ None of the 21 documents is a scope skeleton any more; what is still missing is 
 ./scripts/check-env.sh      # what is installed and what is missing
 ./scripts/ambiente.sh       # records the machine the numbers came from
 ./scripts/build-all.sh
-./scripts/test-all.sh       # 29 tests
+./scripts/test-all.sh       # the whole suite
 ```
 
 Requires Linux, GCC 14+ or Clang 18+, DPDK via `pkg-config`, Meson and Ninja.

@@ -89,12 +89,12 @@ Os dez níveis, e onde cada um está:
 | 1-2 | Fundamentos de sistema e de rede | [docs/01-fundamentos](docs/01-fundamentos/) |
 | 3 | Runtime e EAL | [docs/02-runtime-dpdk](docs/02-runtime-dpdk/) · [trilha 01-eal-hello](trilha/01-fundamentos/01-eal-hello/) |
 | 4 | Mempool, mbuf, ring e ciclo de dados | [docs/03-mempool-ring-mbuf](docs/03-mempool-ring-mbuf/) · [trilha 02-mempool-ring](trilha/01-fundamentos/02-mempool-ring/) |
-| 5 | Pipeline e contrapressão | [trilha/02-pipeline](trilha/02-pipeline/) — escopo registrado, sem código |
+| 5 | Pipeline e contrapressão | [trilha/02-pipeline](trilha/02-pipeline/) — **escrito**; profundidade de fila e recusa medidas |
 | 6 | RX/TX e hardware | [trilha 01-rx-tx-burst](trilha/02-pipeline/01-rx-tx-burst/) — ambiente medido, sem código; depende de NIC |
 | 7 | NUMA, cache e desempenho | coberto dentro dos [fundamentos](docs/01-fundamentos/) |
-| 8 | Observabilidade e qualidade | [trilha/03-performance](trilha/03-performance/) — escopo registrado, sem código |
+| 8 | Observabilidade e qualidade | [trilha/03-performance](trilha/03-performance/) — **escrito**; método de medição e telemetria medidos |
 | 9 | Virtualização e nuvem | **não iniciado** |
-| 10 | Projeto final e alternativas | [trilha/04-projeto-final](trilha/04-projeto-final/) |
+| 10 | Projeto final e alternativas | [trilha/04-projeto-final](trilha/04-projeto-final/) — **consolidação escrita**; a aplicação não existe |
 
 > **Esta tabela substituiu uma lista de sete passos que competia com os dez
 > níveis em vez de citá-los.** A colisão era concreta: o passo 5 da lista era

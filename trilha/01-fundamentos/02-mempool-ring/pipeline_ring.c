@@ -130,6 +130,16 @@ struct consumer_context {
      * para sempre um consumidor que nunca alcanca o alvo. Desistir de um lado
      * so nao e desistir: e travar noutro lugar. */
     volatile int parar;
+    /* Maior lote REALMENTE desenfileirado de uma vez.
+     *
+     * Existe por causa de um defeito do TESTE, nao do programa: o runner L2
+     * conferia `grep "Lote (burst): 64"`, que imprime o valor PEDIDO. Um mutante
+     * que ignorasse `cfg.burst` e processasse de um em um continuava anunciando
+     * 64, e o teste passava. O parametro ecoado nao e evidencia de uso.
+     *
+     * Este contador nao pode ser falsificado pelo eco: so chega a 64 se uma
+     * chamada tiver movido 64 objetos. */
+    unsigned maior_deq;
 } __rte_cache_aligned;
 
 /* Executado no lcore trabalhador quando há dois ou mais lcores. */
@@ -145,6 +155,7 @@ static int consumer_loop(void *arg)
     while (c->r.packets < c->target && !c->parar) {
 #ifndef DPDK_ACADEMY_INJECT_PAUSE
         const unsigned deq = rte_ring_dequeue_burst(c->ring, (void **)burst, c->burst, NULL);
+        if (deq > c->maior_deq) c->maior_deq = deq;
         if (deq > 0) {
             packet_process_burst(burst, deq, &c->r);
             rte_mempool_put_bulk(c->pool, (void *const *)burst, deq);
@@ -287,6 +298,9 @@ int main(int argc, char **argv)
 #endif
     struct summary r = {0, 0};
     uint64_t produced = 0, did_not_fit = 0;
+    /* Maiores lotes REALMENTE movidos, produtor e consumidor. Ver o comentario
+     * em `struct consumer_context`: o valor PEDIDO nao prova uso. */
+    unsigned maior_enq = 0, maior_deq_local = 0;
     /* Espera limitada: quanto tempo se aceita SEM PROGRESSO antes de desistir.
      *
      * O relogio so anda quando nada avanca. Qualquer pacote produzido ou
@@ -351,6 +365,7 @@ int main(int argc, char **argv)
             for (unsigned i = 0; i < n; i++)
                 packet_fill(burst_prod[i], produced + i, 64u + (uint32_t)((produced + i) % 32u));
             unsigned enq = rte_ring_enqueue_burst(ring, (void *const *)burst_prod, n, NULL);
+            if (enq > maior_enq) maior_enq = enq;
             produced += enq;
             /* Fila cheia: os que não couberam voltam ao pool (nunca vazam). */
             if (enq < n) {
@@ -376,6 +391,7 @@ int main(int argc, char **argv)
         if (!two_cores) {
 #ifndef DPDK_ACADEMY_INJECT_PAUSE
             unsigned deq = rte_ring_dequeue_burst(ring, (void **)burst_cons, cfg.burst, NULL);
+            if (deq > maior_deq_local) maior_deq_local = deq;
             if (deq > 0) {
                 packet_process_burst(burst_cons, deq, &r);
                 rte_mempool_put_bulk(pool, (void *const *)burst_cons, deq);
@@ -449,6 +465,8 @@ int main(int argc, char **argv)
      * os dois batem exatamente. */
     printf("Lote (burst): %u | objetos que nao couberam na fila: %" PRIu64 "\n",
            cfg.burst, did_not_fit);
+    printf("Maior lote movido de fato: enfileirado %u, desenfileirado %u\n",
+           maior_enq, two_cores ? ctx.maior_deq : maior_deq_local);
     if (two_cores)
         printf("Modo: 2 lcores (produtor %u, consumidor %u)\n", rte_lcore_id(), lcore_consumer);
     else
