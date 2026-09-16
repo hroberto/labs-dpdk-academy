@@ -19,7 +19,7 @@ measurement disagrees**. Three examples that survived into the text:
 | Claim that circulates | What we measured |
 |---|---|
 | `malloc()` costs "tens of nanoseconds", which is why mempools exist | **2.18 ns.** glibc has a per-thread cache and the alloc/free pair lands in it. The real case for mempools appears under *contention*, not in isolation |
-| A syscall costs ~294× a function call | **36×.** The old baseline measured nothing: GCC const-folded the reference function and hoisted the call out of the loop. Verified by disassembly |
+| A syscall costs ~294× a function call | **36× cold, 46× warm.** The old baseline measured nothing: GCC const-folded the reference function and hoisted the call out of the loop. And the ratio itself depends on the regime — a first run after idle inflates the *denominator*, so it reads low. Both verified: by disassembly, and by eight consecutive runs |
 | DPDK's mempool wins by 91× under contention | **32×.** The old figure was an affinity artifact — `pthread_create` inherits the EAL-pinned mask, so 8 `malloc` threads shared one core while the mempool used eight |
 
 The fourth is the one we like most: the DPDK documentation says that with
@@ -80,7 +80,11 @@ requirements exit 77, which Meson reports as SKIP.
 > is `/dev/hugepages`, `root:root 755`, so the common case is a thousand free
 > pages and none of them reachable: the L3 tests skip and nothing looks wrong.
 > `check-env.sh` draws that conclusion for you; `sudo ./scripts/preparar-hugepages.sh`
-> fixes it, asking for privilege **once**. There is no unprivileged shortcut:
+> fixes it, asking for privilege **once**. It also warns when
+> `$XDG_RUNTIME_DIR/dpdk` fills up: every run with a fresh `--file-prefix` leaves
+> tens of MB of `fbarray` files on a *tmpfs*, and when it is full the EAL dies
+> with **SIGBUS** — even under `--no-huge` — with a message about the bus, not
+> about a full disk. There is no unprivileged shortcut:
 > `hugetlbfs` cannot be mounted in a user namespace, and `--no-huge` does not
 > help because the secondary process attaches by mapping the hugepage backing
 > file. Measured, not assumed.

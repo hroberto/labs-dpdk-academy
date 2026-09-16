@@ -7,11 +7,14 @@
 > the queue. The ring's usable capacity is `depth − 1` and the pool holds 4095
 > objects, so once capacity reaches the pool the ring can hold everything that
 > exists and **can no longer fill**. The measured boundary lands exactly where
-> the arithmetic says: capacity 1023 → 62 529 refusals, 2047 → 104 866,
-> **4095 → zero**. Backpressure is governed by the **pool-to-queue ratio**, not
-> by depth alone. Burst size matters more than depth, and in the counterintuitive
-> direction: at depth 256, going from burst 8 to 128 takes 8.5 ns to 2.8 ns and
-> cuts refusals from 219 292 to 85 143. Of the three policies in scope, only
+> the arithmetic says: below it there is refusal in **every** run, at it there is
+> **zero** in every run. Backpressure is governed by the **pool-to-queue ratio**,
+> not by depth alone. Burst size matters more than depth, and in the
+> counterintuitive direction: at depth 256, going from burst 8 to 128 takes
+> **8.4 ns to 4.4 ns** (median of 7 runs, non-overlapping ranges). The refusal
+> *count* is deliberately not published: eight runs of one configuration spanned
+> 118 626 to 286 625 — it answers *whether* there was backpressure, not how much.
+> Of the three policies in scope, only
 > **drop** was measured; blocking and pushing back are described without an
 > experiment, and the gap is stated.
 
@@ -125,68 +128,104 @@ quando os dois lados correm de verdade em paralelo.
 ## 6. Quando dá errado — a superfície medida
 
 Duas CPUs (`-l 0,2`), 200 000 pacotes, pool de 4095 objetos. Cada ponto é a
-mediana de três execuções, **descartando a primeira** — pelo motivo medido no
+mediana de **sete** execuções, descartando a primeira — pelo motivo medido no
 [submódulo de benchmarking](../../03-performance/01-benchmarking/), onde a
-primeira execução após ociosidade sai ~30% alta.
+primeira execução após ociosidade sai ~30% alta. Cada célula traz a mediana e,
+entre colchetes, a **faixa observada**, porque sem ela o número engana.
 
 | Profundidade | Capacidade | Lote 8 | Lote 32 | Lote 128 |
 |---|---|---|---|---|
-| 64 | 63 | 6,7 ns · 146 704 | 5,2 ns · 270 684 | — |
-| 256 | 255 | 8,5 ns · 219 292 | 3,6 ns · 114 822 | 2,8 ns · 85 143 |
-| 1 024 | 1 023 | 5,2 ns · 70 897 | 3,6 ns · 109 060 | 3,5 ns · 188 098 |
-| 4 096 | **4 095** | 4,8 ns · **0** | 3,0 ns · **0** | 2,4 ns · **0** |
-| 16 384 | 16 383 | 5,9 ns · **0** | 3,1 ns · **0** | 2,5 ns · **0** |
+| 256 | 255 | 8,4 ns [7,5–9,0] | 5,2 ns [4,6–6,4] | 4,4 ns [3,4–5,0] |
+| 1 024 | 1 023 | 7,7 ns [6,5–8,9] | 4,8 ns [4,3–6,3] | 3,2 ns [3,2–4,1] |
+| 4 096 | **4 095** | 7,1 ns [6,1–7,4] | 4,9 ns [3,8–6,0] | 4,1 ns [3,0–4,9] |
 
-(tempo por pacote · objetos que não couberam; o mesmo objeto recusado várias
-vezes conta cada vez, e é por isso que a contagem pode passar do número de
-pacotes.)
+> **RETRATAÇÃO — 16/09/2026.** Esta tabela publicou, no mesmo dia em que foi
+> escrita, **quinze valores pontuais** de tempo e de recusa, obtidos com três
+> execuções por ponto. Reconferida com sete execuções, **dois dos três valores de
+> tempo da linha 256 ficaram FORA da faixa medida** — o publicado "2,8 ns" contra
+> uma faixa de 3,4 a 5,0.
+>
+>
+> Pior foi a contagem de recusas. Oito execuções da **mesma** configuração
+> (profundidade 1024, lote 32) deram de 118 626 a 286 625: **128% de amplitude
+> sobre a mediana**. Publicar "219 292" e "85 143" como se fossem medidas é dar
+> três algarismos significativos a uma grandeza que varia por um fator de dois e
+> meio. Os números saíram da tabela.
+>
+>
+> **Esta retratação NÃO é conferida por máquina, e vale dizer por quê.** O
+> `verificar-retratacoes.py` rastreia decimais com três algarismos significativos
+> ou mais -- `0,115`, `2,18`, `65,84`. Os valores derrubados aqui ficam fora dos
+> dois lados: `8,5` e `2,8` têm dois significativos, e o corte existe para que
+> "5,0" não vire ruído em todo documento; `219 292` e `62 529` são inteiros com
+> separador de milhar, que o padrão de número decimal nem casa.
+>
+> Então a garantia aqui é humana, não automática. Registrar isso é o mínimo: uma
+> marca `<!-- retratado: -->` inerte seria pior que nenhuma, porque sugeriria uma
+> conferência que não acontece.
+>
+> A recusa depende da corrida entre produtor e consumidor, que o escalonador
+> arbitra a cada execução. Ela serve para responder **se houve** contrapressão --
+> e essa resposta é estável, como a fronteira abaixo mostra. Não serve para dizer
+> **quanta**.
+>
+> O defeito é meu e é exatamente o que o submódulo de benchmarking ao lado
+> descreve: tratei três execuções como suficientes sem medir a dispersão. A
+> metodologia estava escrita no documento vizinho e não foi aplicada aqui.
 
 ### A fronteira cai onde a aritmética manda
 
 O pool tem 4095 objetos. Capacidade `4096 − 1 = 4095` é o primeiro valor que
 alcança o pool inteiro:
 
-| Profundidade | Capacidade | vs. pool | Não couberam |
+| Profundidade | Capacidade | vs. pool | Houve recusa? |
 |---|---|---|---|
-| 1 024 | 1 023 | menor | 62 529 |
-| 2 048 | 2 047 | menor | 104 866 |
-| 4 096 | **4 095** | **igual** | **0** |
+| 1 024 | 1 023 | menor | **sim**, em todas as execuções |
+| 2 048 | 2 047 | menor | **sim**, em todas as execuções |
+| 4 096 | **4 095** | **igual** | **não — zero, em todas as execuções** |
+
+**Este é o resultado estável**, e a instabilidade da contagem não o afeta: a
+pergunta "houve recusa?" tem resposta binária, e ela nunca variou em 7 execuções
+por ponto. Abaixo da fronteira, sempre houve; na fronteira, nunca.
 
 A transição é abrupta e está exatamente no ponto previsto. Isso confirma o
 mecanismo da seção 2: **a fila deixou de encher porque passou a caber tudo o que
 existe**, não porque ficou "grande o bastante".
 
-É também um aviso sobre leitura apressada. Olhando só a primeira tabela, a
-conclusão natural seria *"profundidade ≥ 4096 elimina a contrapressão"* — uma
-afirmação sobre a fila. A afirmação verdadeira é sobre a **razão**, e num sistema
-com pool maior a mesma profundidade voltaria a recusar.
+É também um aviso sobre leitura apressada. A conclusão natural seria
+*"profundidade ≥ 4096 elimina a contrapressão"* — uma afirmação sobre a fila. A
+afirmação verdadeira é sobre a **razão**, e num sistema com pool maior a mesma
+profundidade voltaria a recusar.
 
 ### O lote pesa mais que a profundidade
 
-Do pior ponto ao melhor há **3,5×**: 8,5 ns (profundidade 256, lote 8) contra
-2,4 ns (profundidade 4096, lote 128). E o lote domina: na profundidade 256, ir de
-lote 8 para 128 leva de 8,5 a 2,8 ns e corta a recusa de 219 292 para 85 143.
+Na profundidade 256, ir de lote 8 para 128 leva de **8,4 para 4,4 ns** — quase
+metade. Em 1024, de 7,7 para 3,2. A direção é a mesma nas três profundidades, e
+as faixas não se sobrepõem entre lote 8 e lote 128 em nenhuma delas: é diferença,
+não ruído.
 
-Lotes grandes reduzem a recusa. O contrário do que a intuição sugere — e o motivo
-é que o custo por objeto cai dos dois lados, então o consumidor drena mais rápido
-do que o produtor enche.
+Aprofundar, no mesmo lote, move muito menos: de 256 para 4096 com lote 8 vai de
+8,4 para 7,1 ns, e as faixas **se tocam**. **O lote domina a profundidade.**
 
-### Aprofundar além da fronteira não compra nada
+O motivo é que o custo por objeto cai dos dois lados com lotes maiores, então o
+consumidor drena mais rápido do que o produtor enche — o contrário do que a
+intuição sugere, que é "lote maior enche a fila mais depressa".
 
-Comparando 16 384 com 4 096, já sem recusa em ambos:
+### Aprofundar além da fronteira: não medido
 
-- **lote 8**: 5,9 contra 4,8 ns — 23%, acima do ruído
-- **lote 32**: 3,1 contra 3,0 ns — 3%
-- **lote 128**: 2,5 contra 2,4 ns — 4%
+A versão anterior desta seção comparava profundidade 16 384 com 4 096 e concluía
+que o excesso custava pegada de cache. **A comparação saiu**, por dois motivos:
 
-Os dois últimos **não são diferença**: a amplitude entre execuções medida no
-submódulo de benchmarking é de 4,6%, e 3% e 4% cabem dentro dela. Publicá-los
-como piora seria ler ruído.
+1. os valores vinham da mesma coleta de três execuções que a retratação acima
+   invalidou;
+2. na reconferência com `-m 512`, a configuração de 16 384 **não completou** — e
+   uma medição que não roda não vira número.
 
-O caso do lote 8 está fora do ruído e é consistente com pegada de cache — uma
-fila de 16 383 ponteiros ocupa 128 KB, e com lotes pequenos há muito mais idas e
-vindas ao anel. Mas **uma medição acima do ruído não é uma causa estabelecida**,
-e este documento não afirma mais do que mediu.
+O que se pode afirmar com os dados de sete execuções: de 1 024 para 4 096, no
+lote 128, a mediana **piora** (3,2 para 4,1 ns) e as faixas se sobrepõem
+([3,2–4,1] contra [3,0–4,9]). Ou seja: **passar da fronteira não comprou nada
+mensurável aqui**, e pode ter custado. Afirmar qual dos dois exigiria mais
+repetições do que foram feitas.
 
 ## 7. Limitações
 

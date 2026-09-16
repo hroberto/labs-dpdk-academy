@@ -67,19 +67,23 @@ explícito"*. O que fazer com essa recusa é o assunto do submódulo 02.
 `profundidade − 1`, e o pool tem 4095 objetos. Quando a capacidade alcança o
 pool, o anel passa a caber tudo o que existe e não tem mais como encher:
 
-| Capacidade | vs. pool | Não couberam |
+| Capacidade | vs. pool | Houve recusa? |
 |---|---|---|
-| 1 023 | menor | 62 529 |
-| 2 047 | menor | 104 866 |
-| **4 095** | **igual** | **0** |
+| 1 023 | menor | **sim**, em todas as execuções |
+| 2 047 | menor | **sim**, em todas as execuções |
+| **4 095** | **igual** | **não — zero, sempre** |
 
 A fronteira cai exatamente onde a aritmética manda. É a **razão** entre pool e
 fila que governa, e não a profundidade sozinha — com pool maior, a mesma
 profundidade volta a recusar.
 
 **O lote pesa mais que a profundidade.** Na profundidade 256, ir de lote 8 para
-128 leva de 8,5 a 2,8 ns e corta a recusa de 219 292 para 85 143. Lotes grandes
-reduzem a recusa, o contrário do que a intuição sugere.
+128 leva de **8,4 para 4,4 ns** (mediana de 7 execuções, faixas sem sobreposição);
+aprofundar no mesmo lote move muito menos, e as faixas se tocam.
+
+> A contagem de recusas **não** entra aqui, e a razão está na retratação do
+> submódulo: oito execuções da mesma configuração deram de 118 626 a 286 625 --
+> 128% de amplitude. Ela responde **se houve** contrapressão, não **quanta**.
 
 ## Compromissos já publicados
 

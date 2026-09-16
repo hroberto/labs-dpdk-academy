@@ -143,6 +143,29 @@ Orcamento de 10 GbE com quadros de 64 B: 67.2 ns por pacote
 > de publicar.** Um laço rápido demais é hipótese de erro de medição antes de
 > ser resultado.
 
+> **A RAZÃO 36× É DO REGIME FRIO, e isto foi medido em 16/09/2026.** A tabela
+> acima é transcrição fiel de uma execução — mas de uma **primeira execução após
+> ociosidade**, e nesse regime a chamada de função mede 0,92 ns. Oito execuções
+> seguidas, com a máquina já em uso, dão 0,72 a 0,75 ns para a mesma chamada, e a
+> razão sobe para **45× a 49×** (mediana 46×).
+>
+> Os dois regimes são reais e reprodutíveis, cada um com dispersão interna baixa
+> — a tabela acima mostra 0,4% de amplitude. O que faltava era **declarar em qual
+> deles se mediu**.
+>
+> O efeito é o mesmo que o [submódulo de benchmarking](../../trilha/03-performance/01-benchmarking/)
+> mede e explica: a primeira execução após ociosidade sai ~30% alta na operação
+> mais curta. Aqui ele não inflou um número solto — inflou o **denominador** de
+> uma razão, e por isso a razão saiu para **menos**: 33,5/0,92 = 36, contra
+> 33,8/0,73 = 46.
+>
+> **O argumento desta seção não muda**, porque ele nunca dependeu da razão: sai de
+> 33,5 ns contra 67,2 ns de orçamento, e a chamada de função não entra na conta.
+> Mas a razão é a frase que as pessoas repetem, e ela estava 22% baixa.
+>
+> Reproduza: rode `custo-syscall` uma vez depois de alguns minutos de máquina
+> parada, e depois oito vezes seguidas. A diferença aparece na primeira linha.
+
 As colunas da tabela são explicadas na [§7](#percentil-o-que-quer-dizer-p99) e
 na [§9](#9-validação-reproduza-na-sua-máquina); por ora basta a mediana.
 
@@ -152,8 +175,9 @@ toca em memória do usuário, não dorme. Uma `recvmsg()` real custa muito mais.
 
 Repare que esse resultado **não dependia** do número errado: ele sai de 33,55 ns
 contra 67,2 ns de orçamento, e a chamada de função não entra na conta. O que a
-correção mudou foi a razão syscall/chamada — de "294×" para 36× —, que é uma
-frase de efeito, não o argumento. O argumento é o orçamento.
+correção mudou foi a razão syscall/chamada — de "294×" para a faixa de 36× a 46×
+conforme o regime de medição, tratada no aviso acima —, que é uma frase de
+efeito, não o argumento. O argumento é o orçamento.
 
 O caso do [vDSO][vdso] merece atenção porque antecipa a ideia toda: o kernel
 mapeia algumas funções diretamente no espaço do processo, de modo que

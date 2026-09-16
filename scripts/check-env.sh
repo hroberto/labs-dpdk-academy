@@ -88,6 +88,34 @@ else
     info "  Sem isso, os testes L3 PULAM (codigo 77) -- nao falham, e nao mentem."
 fi
 
+# DIRETORIO DE RUNTIME DA EAL, e este aviso custou uma suite inteira vermelha.
+#
+# Cada execucao com `--file-prefix` novo cria um diretorio sob
+# $XDG_RUNTIME_DIR/dpdk com os arquivos `fbarray`, que chegam a dezenas de MB. A
+# suite limpa os seus; execucao ad-hoc, nao. Em 16/09/2026 umas centenas de
+# execucoes manuais deixaram 847 diretorios e 1,5 GB -- o tamanho INTEIRO do
+# tmpfs de /run/user.
+#
+# O sintoma nao aponta para a causa: a EAL morre com SIGBUS (codigo 135) ao
+# mapear o fbarray, inclusive com --no-huge, e a mensagem fala de barramento, nao
+# de disco cheio. Nove testes falharam ao mesmo tempo e pareciam regressao de
+# codigo.
+runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+if [ -d "$runtime_dir" ]; then
+    uso=$(df --output=pcent "$runtime_dir" 2>/dev/null | tail -1 | tr -dc '0-9')
+    sobras=$(find "$runtime_dir/dpdk" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+    if [ "${uso:-0}" -ge 80 ]; then
+        info "$runtime_dir em ${uso}% -- a EAL pode morrer com SIGBUS ao mapear fbarray"
+        info "  $sobras diretorio(s) de runtime acumulado(s). Com nenhum DPDK rodando:"
+        info "      rm -rf $runtime_dir/dpdk/*"
+    elif [ "${sobras:-0}" -gt 20 ]; then
+        info "$sobras diretorios de runtime em $runtime_dir/dpdk (${uso:-?}% usado)"
+        info "  sobras de execucoes com --file-prefix proprio; limpe se crescer"
+    else
+        ok "$runtime_dir com folga (${uso:-?}% usado, $sobras diretorio(s) de runtime)"
+    fi
+fi
+
 echo "Drivers para NIC fisica (opcionais ate os topicos de RX/TX):"
 if lsmod 2>/dev/null | grep -q '^vfio_pci'; then ok "vfio-pci carregado"; else info "vfio-pci nao carregado (modprobe vfio-pci quando for usar uma NIC real)"; fi
 

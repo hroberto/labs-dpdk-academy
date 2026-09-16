@@ -170,7 +170,16 @@ ambiente. As decisões de ferramental estão explicadas em
 > ```
 >
 > Pede privilégio **uma vez** e monta o ponto no seu nome — depois disso nenhuma
-> execução precisa de root. E não há atalho sem privilégio: `hugetlbfs` não é
+> execução precisa de root.
+>
+> **E se você experimentar muito à mão, limpe o diretório de runtime.** Cada
+> execução com `--file-prefix` novo deixa dezenas de MB em
+> `$XDG_RUNTIME_DIR/dpdk`, que é *tmpfs*. A suíte limpa os seus; execução avulsa,
+> não. Quando enche, a EAL morre com **SIGBUS** ao mapear o `fbarray` — inclusive
+> com `--no-huge` —, e a mensagem fala de barramento, não de disco cheio. Aqui
+> isso derrubou nove testes de uma vez e parecia regressão de código.
+> `check-env.sh` avisa antes; com nenhum DPDK rodando, `rm -rf $XDG_RUNTIME_DIR/dpdk/*`
+> resolve. E não há atalho sem privilégio: `hugetlbfs` não é
 > montável em *user namespace* (o kernel não a marca como tal), e `--no-huge`
 > não serve porque o processo secundário se anexa mapeando o arquivo de respaldo
 > das hugepages — sem ele, não há anexação. Medido, não suposto.
