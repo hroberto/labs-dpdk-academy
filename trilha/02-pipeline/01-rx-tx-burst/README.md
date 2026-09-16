@@ -1,5 +1,7 @@
 # Submódulo 01 — RX/TX em lote
 
+*Read this in [English](README.en.md).*
+
 > **Nível 6** do [plano de estudo](../../../docs/plano-estudo-dpdk.md) ·
 > Pré-requisito: [02 — Mempool, ring e lote](../../01-fundamentos/02-mempool-ring/)
 
@@ -14,17 +16,6 @@
 > O banner anterior dizia "o conteúdo ainda não foi escrito" em um documento com
 > 171 linhas de conteúdo medido. Um documento que erra sobre si mesmo é o mesmo
 > defeito que este material combate nos números.
-
-> **In English.** Scope and environment are measured; the code is not written,
-> and what blocks it is one line. The reference NIC (RTL8125, `r8169`) was probed
-> with real tooling: **zero `xdp_` symbols**, and the capture guard refuses the
-> card because `enp8s0` still has `IFF_UP` set — `operstate` says `down`, but no
-> carrier is not out of use. `sudo ip link set enp8s0 down` unblocks it, and the
-> script deliberately does not do that itself: bringing an interface down in the
-> middle of a verification changes what is still being verified. The module also
-> teaches the distinction most material skips — **two driver models**: full
-> capture (`vfio-pci`, the card leaves the kernel) and bifurcated (`mlx5`, kernel
-> and DPDK share the device), where binding to `vfio-pci` would be a mistake.
 
 ## Objetivo
 
