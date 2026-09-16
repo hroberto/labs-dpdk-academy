@@ -8,7 +8,7 @@
 **Isto não é material de estudo, mas o material depende disto para poder afirmar
 que não mente.**
 
-## Os cinco verificadores
+## Os seis verificadores
 
 Rodam na suíte `l1+docs`, registrados no `meson.build` da raiz. Cada um nasceu de
 um defeito medido, não de teoria:
@@ -20,9 +20,20 @@ um defeito medido, não de teoria:
 | `verificar-retratacoes.py` | valor declarado retratado não sobrevive fora do bloco | retratação escrita, e o número derrubado continuou publicado noutra página |
 | `verificar-aritmetica.py` | percentual que o texto torna conferível fecha | "100 dos 123 ms, 83%" — e 100/123 é 81,3% |
 | `verificar-autodescricao.py` | o que o material afirma sobre si corresponde ao disco | banner "conteúdo não escrito" em documento de 171 linhas medidas |
+| `verificar-promessa.py` | todo programa citado existe na árvore, e toda fonte entra na compilação | `controle-anel.cpp` na árvore sem registro e sem compilar |
 
-Quatro deles têm **autoteste** registrado: verificam o próprio verificador contra
-casos montados, incluindo iscas de falso positivo.
+**Os seis têm autoteste** registrado, e eles verificam o próprio verificador
+contra casos montados, incluindo iscas de falso positivo. `verificar-links.py`
+foi o último a ganhar o seu, e a demora era o problema: é o de maior alcance, e
+um verificador que passa a aceitar tudo continua imprimindo "N links
+verificados, 0 quebrados" — verde indistinguível do legítimo.
+
+O último da lista nasceu de uma medição, não de teoria. As promessas executáveis
+deste material são todas da forma *"Rode `X` e observe `Y`"*; **nenhuma é
+pergunta de compreensão**. O projeto não promete que o leitor entenda — promete
+que ele consiga refazer. Clareza não tem proxy sintático (quatro instrumentos
+foram testados contra este corpus e os quatro produziram ruído), mas "o programa
+citado existe e é construído" é decidível, e é a promessa que de fato foi feita.
 
 E todos **pulam com código 77** quando falta `python3`, em vez de sumir da
 suíte — `pular-sem-python3.sh` existe porque a ausência do `else` fazia a suíte
