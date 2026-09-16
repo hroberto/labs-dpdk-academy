@@ -37,7 +37,9 @@ folclore.
 > **In English.** Why data-plane software needs different foundations. Measures,
 > on a named machine: the **67.2 ns** per-packet budget at 10 GbE with 64-byte
 > frames; a real syscall at **33.5 ns** — about 2 fit in that budget — against
-> **0.92 ns** for a function call; the cost of losing cache locality and of
+> **0.92 ns** for a function call on a cold first run — **0.73 ns** once the
+> machine is warm, so the ratio reads 36× or 46× depending on the regime, and §2
+> says why; the cost of losing cache locality and of
 > crossing NUMA. Ends at the other side of the budget: when service time passes
 > arrival time, loss is a **cliff, not a ramp**, and the p99 degrades *before*
 > the median does. Programs in [`medicoes/`](medicoes/).

@@ -5,7 +5,9 @@
 
 > **In English.** A producer/consumer pipeline over `rte_mempool` and
 > `rte_ring`, with batching measured (1.8 ns/packet at burst 32, regressing at
-> 128) and core placement measured separately — crossing cache domains costs
+> 128 **on one lcore** — with two lcores in the same cache domain it does not
+> regress, and 128 and 256 are the best points) and core placement measured
+> separately — crossing cache domains costs
 > **4–5×**, more than any other decision in the topic. Failure axis: the partial
 > return of `rte_ring_enqueue_burst()`. The objects that did not fit are still
 > yours; not returning them leaks, and the defect **suppresses its own symptom**.
@@ -100,6 +102,17 @@ milhões de pacotes:
 O ganho é grande até 8, marginal até 32, e **regride** em 128 — o lote deixa de
 caber confortavelmente no cache. Não existe "quanto maior melhor"; existe um
 ponto ótimo que se mede.
+
+> **Este resultado é de UM lcore, e não vale para dois.** A [§3](#3-trade-offs)
+> mede a mesma curva com o consumidor em núcleo próprio, e lá ela **não regride**:
+> 128 e 256 são os melhores pontos. O lote é o antídoto para o custo de
+> travessia, e sem travessia esse benefício não existe.
+>
+> A frase acima já foi repetida sem o qualificador no índice do
+> [módulo 02](../../02-pipeline/), onde virou "regressão em 128" como se valesse
+> sempre — e o submódulo de contrapressão, medindo com dois lcores, encontrou o
+> oposto. Uma medição correta, comprimida sem o seu regime, vira uma falsidade
+> que o documento de origem não tem.
 
 > **Como estes números foram obtidos.** `-n 5000000` por ponto, com o
 > aquecimento que o programa faz antes de cronometrar. Três execuções seguidas

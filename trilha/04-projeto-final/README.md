@@ -6,7 +6,8 @@
 > **In English.** The consolidation is written; **the application does not
 > exist**, and the document says so in its first section rather than calling
 > itself finished. It collects the eight measured findings of the whole project —
-> a syscall costs 36 function calls, the EAL takes 123 ms to start, crossing a
+> a syscall costs 46 function calls warm (36 on a cold first run), the EAL takes
+> 123 ms to start, crossing a
 > cache domain costs 4.0–4.8×, parallelising can make things worse — and the
 > thesis that survives them is modest: DPDK removes the syscall and the copy; it
 > does not remove the physics of the machine. Three of the eight findings are
@@ -36,7 +37,7 @@ citação.
 
 | Achado | Número | Onde |
 |---|---|---|
-| Uma syscall custa 36 chamadas de função | 33,3 ns contra 0,93 ns | [fundamentos §2](../../docs/01-fundamentos/README.md) |
+| Uma syscall custa dezenas de chamadas de função | 33,8 ns contra 0,73 ns quente (**46×**) ou 0,92 frio (36×) | [fundamentos §2](../../docs/01-fundamentos/README.md) |
 | Subir a EAL não é grátis | **123 ms** | [runtime §2](../../docs/02-runtime-dpdk/README.md#2-o-custo-de-existir-quanto-a-eal-leva-para-nascer) |
 | Atravessar domínio de cache domina tudo | **4,0 a 4,8×** | [mempool-ring](../01-fundamentos/02-mempool-ring/) |
 | Paralelizar pode piorar | 1 lcore vence 2 em quase toda a tabela | [mempool-ring](../01-fundamentos/02-mempool-ring/) |
