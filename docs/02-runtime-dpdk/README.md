@@ -1,5 +1,7 @@
 # Runtime do DPDK — a EAL como sistema de execução
 
+*Read this in [English](README.en.md).*
+
 > **Nível 3** do [plano de estudo](../plano-estudo-dpdk.md) ·
 > Pré-requisito: [Fundamentos](../01-fundamentos/README.md) e o tópico prático
 > [01 — Inicialização da EAL](../../trilha/01-fundamentos/01-eal-hello/)
@@ -17,14 +19,6 @@ como o caso canônico de latência ultrabaixa, e serve bem aqui porque força to
 as perguntas deste nível de uma vez: quanto tempo o processo leva para ficar
 pronto, onde a memória é reservada, como uma estratégia lê o livro sem copiar
 dado, e o que acontece quando um dos processos cai no meio do pregão.
-
-> **In English.** The DPDK runtime as a system, not an API tour. Measures
-> `rte_eal_init()` at **123 ms** against **0.63 ms** for cleanup (`-l 0
-> --no-huge`, no `-m`) — two orders of magnitude between birth and death, which
-> is why a DPDK process is a long-running service. Covers the EAL memory model, lcore identity and states,
-> IOVA, and a working primary/secondary pair sharing memory at the **same
-> virtual address**. Failure axis: when the primary is killed, the secondary
-> never finds out — the memory outlives its owner and nothing signals.
 
 ## Ao final deste módulo, você será capaz de
 
