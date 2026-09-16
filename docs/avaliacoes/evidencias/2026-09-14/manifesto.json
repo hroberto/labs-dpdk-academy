@@ -1,6 +1,6 @@
 {
   "instante_utc": "2026-09-15T01:50:47.826629+00:00",
-  "commit_base": "4f20ec376668a7c4acd125ad6be3761c682bc952",
+  "commit_base": "7418b1d9ee88b5245a4d7d5494858497c17b04a8",
   "arvore_com_alteracoes_locais": true,
   "limite": "Identifica os arquivos examinados; não arquiva uma cópia integral dos fontes nem certifica reprodutibilidade histórica.",
   "sha256": {

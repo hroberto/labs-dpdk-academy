@@ -1,0 +1,14 @@
+[
+  {
+    "caso": "suporte_declarado",
+    "returncode": 0,
+    "stdout": "Suporte PCI declarado: net_e1000_em; probe real ainda nao validado\n",
+    "stderr": ""
+  },
+  {
+    "caso": "sem_suporte",
+    "returncode": 1,
+    "stdout": "",
+    "stderr": "PMD nao confirmado: nenhum PMD declara suporte a identidade PCI completa\n"
+  }
+]

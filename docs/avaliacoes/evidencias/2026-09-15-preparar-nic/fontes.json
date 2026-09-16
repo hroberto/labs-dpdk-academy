@@ -1,0 +1,6 @@
+{
+  "preparar-nic.sh": "d0872e7d7605a5f939286d96fbdb05d36d817dc860ac195311082f63eca59588",
+  "lib-nic.sh": "bfb0477c35780a011b0721a4b32700c177a4e899c54eb0c19ae88b14aedec4d1",
+  "lib-apuracao.sh": "5eead235260de186131779ec9d3b3d1c83b07ec7eb9cadf88f2d3b2f55e58007",
+  "lib-bind-guard.sh": "676a0f04de898d1045adb36eea437eb7c45cc811f46a6d19d1065cb310d12301"
+}

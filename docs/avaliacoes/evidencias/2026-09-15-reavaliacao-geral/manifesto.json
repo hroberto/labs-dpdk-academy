@@ -1,6 +1,6 @@
 {
   "inicio_utc": "2026-09-15T17:01:36.956215+00:00",
-  "base_commit": "4f20ec376668a7c4acd125ad6be3761c682bc952",
+  "base_commit": "7418b1d9ee88b5245a4d7d5494858497c17b04a8",
   "fontes_sha256": {
     ".github/dependabot.yml": "5d1cbe090fea9c6c4d4b41908eae049865ddbf246450b3b8f6537bb8af1a9f4f",
     ".github/workflows/ci.yml": "d1848620c53462a25205e507ca42db7060b85589ed3d6b1899f04ed36b3d9f1e",

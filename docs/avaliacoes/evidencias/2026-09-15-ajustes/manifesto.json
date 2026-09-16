@@ -1,5 +1,5 @@
 {
-  "commit_base": "4f20ec376668a7c4acd125ad6be3761c682bc952",
+  "commit_base": "7418b1d9ee88b5245a4d7d5494858497c17b04a8",
   "arvore_modificada": true,
   "fontes": "fontes-ajustes.tar.gz",
   "escopo": "Fontes, scripts, Meson e documentacao da entrega. Campanhas em evidencias e dependencias externas nao estao no arquivo; permanecem referenciadas no repositorio.",

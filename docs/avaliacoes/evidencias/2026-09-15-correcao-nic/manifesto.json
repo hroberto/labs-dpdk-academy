@@ -1,0 +1,25 @@
+{
+  "comando": [
+    "meson",
+    "test",
+    "-C",
+    "build",
+    "--num-processes",
+    "1",
+    "--print-errorlogs",
+    "--logbase",
+    "correcao-nic-geral"
+  ],
+  "parametros": {
+    "DPDK_ACADEMY_AMOSTRAS": "3",
+    "DPDK_ACADEMY_RODADAS": "20000"
+  },
+  "fontes_sha256": {
+    "scripts/preparar-nic.sh": "bca6f3fafa87683512cb99128903c10597c975ee37e53b78126c63be79e6e10c",
+    "scripts/lib-nic.sh": "f7b54836c0cc2e5987bff573012486e3fe990d495935f58d19a6ff236c703970",
+    "scripts/verificar-pmd-pci.py": "91e36be7c0d1a76d39c9fb87414015a2007b45638b95e67fe5ad09ed4905f5c6",
+    "scripts/tests/l1_preparar_nic.py": "07d18ca56804fc81e276017907d7f9df8e75650dc3e3eb710c98e0e6100d3220",
+    "meson.build": "69031370b410b0be79baccba6c1ae6cd9722d20517cbc7e534a4c46c81f23839"
+  },
+  "base": "cbdd29ddf48b4b1537ea7deea6cadf71b27551b8"
+}
