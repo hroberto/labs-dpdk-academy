@@ -83,11 +83,26 @@ if python3.found()
   # escrito para fechar: verificacao que existe e nao e executada. E hermetico
   # (nao toca a arvore) e leva ~0,05 s.
   #
-  # RESSALVA MEDIDA, para que este registro nao prometa demais: removendo a
-  # guarda DEPOIS_DA_PALAVRA do scanner de heredoc, o --autoteste continua
-  # dizendo "0 assercao(oes) falharam". Ele trava as iscas de falso positivo e
-  # a checagem de conteudo; NAO trava a reincidencia do heredoc que motivou sua
-  # criacao. Registrar e melhor que nao registrar, e nao equivale a cobrir.
+  # ESTE REGISTRO JA FOI UM VERDE LIGADO A NADA, e a correcao e de 16/09/2026.
+  #
+  # Ate entao verificar-ancoras.py NAO TINHA a opcao --autoteste. A string virava
+  # o diretorio-raiz; `os.walk` de um caminho inexistente nao devolve nada; o
+  # script imprimia "0 ancoras verificadas, 0 desatualizadas" e saia ZERO. O
+  # teste passava sem conferir coisa alguma, contado entre os da suite e
+  # executado pela CI.
+  #
+  # E o comentario que estava aqui descrevia as garantias desse autoteste em
+  # detalhe, citando uma guarda `DEPOIS_DA_PALAVRA` que nunca existiu em codigo
+  # nenhum -- `git log -S` a encontra apenas dentro deste proprio comentario.
+  # Uma ressalva que parecia cautelosa documentava um programa imaginario.
+  #
+  # Hoje ha autoteste de verdade, com caso para cada uma das tres regras, isca de
+  # falso positivo, e o caso 7 travando o proprio defeito: raiz inexistente
+  # precisa ACUSAR em vez de sair zero.
+  #
+  # Nao-vacuidade, medida: 5 mutantes plantados -- ignorar alvo inexistente,
+  # ignorar linha fora do arquivo, ignorar simbolo ausente, remover o
+  # fail-closed, e estreitar o padrao para nao casar faixa --, 5 mortos.
   # O verificador de MAIOR alcance da arvore -- ele sozinho confere todos os
   # links relativos e ancoras de titulo de todo .md, e o numero sai na propria
   # execucao -- foi o ultimo a ganhar autoteste, e a assimetria era o problema:

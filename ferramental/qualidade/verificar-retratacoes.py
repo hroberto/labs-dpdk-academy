@@ -277,6 +277,39 @@ def autoteste():
     if "COBERTURA PARCIAL" not in saida:
         print("  AUTOTESTE FALHOU: retratação sem marca passou silenciosa"); falhas += 1
 
+    # DISTINTIVO, e este caso nasceu de uma campanha de mutacao: trocando o
+    # corte por `return True`, o autoteste continuava verde. O corte existe para
+    # que "5,0" nao vire ruido -- e um verificador ruidoso e desligado, que e a
+    # forma mais comum de um controle morrer. Sem caso proprio, ninguem
+    # perceberia se ele deixasse de cortar.
+    #
+    # Dois numeros no mesmo bloco: "120,0" tem tres significativos e E rastreado;
+    # "5,0" tem um so e NAO deve ser. Se o corte cair, o "5,0" vivo la fora vira
+    # sobrevivente e o caso acusa.
+    # A marca declara "5,0", que tem UM significativo, e "5,0" aparece vivo fora
+    # do bloco. Com o corte, ele nao e rastreado e nada acontece. Sem o corte,
+    # vira sobrevivente e o verificador acusa -- entao este caso, que espera
+    # SILENCIO, e quem morre quando o corte cai.
+    bloco = ("# d\n\n> **Este bloco publicava 5,0 ns, e estava errado.** O medido\n"
+             "> e 1,234 ns.\n> <!-- retratado: 5,0 -->\n\nA folga segue em 5,0 ns.\n")
+    rc, saida = rodar({"d.md": bloco})
+    if rc != 0:
+        print(f"  AUTOTESTE (distintivo) FALHOU: numero de 1 significativo"
+              f" tratado como rastreavel (rc={rc})")
+        print("    " + saida.strip().replace("\n", "\n    "))
+        falhas += 1
+
+    # O corte tambem governa o AVISO de cobertura parcial: um bloco sem marca so
+    # merece aviso se tiver numero rastreavel. Com "5,0" sozinho, avisar seria
+    # ruido -- e verificador ruidoso e desligado. Este caso trava esse ramo, que
+    # e de RELATO e nao muda o veredito; sem ele, a mutacao passava despercebida.
+    rc, saida = rodar({"baixo.md":
+        "# b\n\n> **Este bloco publicava 5,0 ns, e estava errado.** Agora e outro.\n"})
+    if "COBERTURA PARCIAL" in saida:
+        print("  AUTOTESTE FALHOU: bloco sem marca, com numero de 1 significativo,"
+              " gerou aviso de cobertura parcial")
+        falhas += 1
+
     print(f"\n  autoteste: {falhas} assercao(oes) falharam")
     return falhas
 
