@@ -84,9 +84,21 @@ PROMESSA_ARM = re.compile(r"arm64|aarch64", re.IGNORECASE)
 # Os quatro numeros sao capturados por grupo nomeado para que a mensagem de erro
 # diga QUAL deles divergiu -- "a contagem esta errada" manda o leitor recontar os
 # quatro; "esqueletos: o texto diz 7, o disco tem 6" aponta o dedo.
-CENSO = re.compile(
-    r"(?P<n>\d+)\s+d[oe]s\s+(?P<total>\d+)\s+documentos\s+ainda\s+s[ãa]o\s+esqueletos"
-    r",\s*de\s+(?P<min>\d+)\s+a\s+(?P<max>\d+)\s+linhas")
+CENSO = {
+    "ROADMAP.md": re.compile(
+        r"(?P<n>\d+)\s+d[oe]s\s+(?P<total>\d+)\s+documentos\s+ainda\s+s[ãa]o\s+esqueletos"
+        r",\s*de\s+(?P<min>\d+)\s+a\s+(?P<max>\d+)\s+linhas"),
+    # A traducao repete a contagem e NAO repete a faixa de tamanhos. Conferir so
+    # os grupos que o padrao tem e o que mantem as duas linguas sob a mesma
+    # regra: a versao em ingles carregava "7 of 19" tres semanas depois de o
+    # numero mudar, porque a regra lia um arquivo so.
+    "README.en.md": re.compile(
+        r"(?P<n>\d+)\s+of\s+(?P<total>\d+)\s+documents\s+are\s+still\s+scope\s+skeletons"),
+}
+
+# Linha de tabela que aponta um diretorio e opina sobre o estado dele:
+#   | 6 -- RX/TX | -- | [02-pipeline/01-rx-tx-burst/](02-pipeline/01-rx-tx-burst/) | esqueleto |
+LINHA_INDICE = re.compile(r"^\|.*\]\((?P<destino>[^)]+/)\).*\|", re.MULTILINE)
 
 
 def arquivos(raiz, exts):
@@ -161,41 +173,92 @@ def verificar(raiz="."):
                 problemas += 1
 
     # --- Regra 3 -----------------------------------------------------------
-    roadmap = os.path.join(raiz, "ROADMAP.md")
-    censo = None
-    if os.path.exists(roadmap):
+    esqueletos, docs, banner_de = [], 0, {}
+    for doc in sorted(arquivos(os.path.join(raiz, "docs"), {".md"})) + \
+               sorted(arquivos(os.path.join(raiz, "trilha"), {".md"})):
+        docs += 1
         try:
-            censo = CENSO.search(open(roadmap, encoding="utf-8").read())
+            texto = open(doc, encoding="utf-8").read()
         except (OSError, UnicodeDecodeError):
-            censo = None
-    if censo is not None:
+            continue
+        tem = bool(BANNER.search(texto))
+        banner_de[os.path.realpath(doc)] = tem
+        if tem:
+            esqueletos.append(len(texto.splitlines()))
+
+    real = {"n": len(esqueletos), "total": docs,
+            "min": min(esqueletos) if esqueletos else None,
+            "max": max(esqueletos) if esqueletos else None}
+    rotulo = {"n": "esqueletos", "total": "documentos",
+              "min": "menor esqueleto (linhas)", "max": "maior esqueleto (linhas)"}
+
+    for nome, padrao in CENSO.items():
+        caminho = os.path.join(raiz, nome)
+        if not os.path.exists(caminho):
+            continue
+        try:
+            censo = padrao.search(open(caminho, encoding="utf-8").read())
+        except (OSError, UnicodeDecodeError):
+            continue
+        if censo is None:
+            continue
         conferidos += 1
-        esqueletos, docs = [], 0
-        for doc in sorted(arquivos(os.path.join(raiz, "docs"), {".md"})) + \
-                   sorted(arquivos(os.path.join(raiz, "trilha"), {".md"})):
-            docs += 1
-            try:
-                texto = open(doc, encoding="utf-8").read()
-            except (OSError, UnicodeDecodeError):
-                continue
-            if BANNER.search(texto):
-                esqueletos.append(len(texto.splitlines()))
         # Sem esqueleto nenhum a frase inteira perde o referente, e comparar
         # min/max de lista vazia seria inventar numero.
         if not esqueletos:
-            print("  ROADMAP.md: publica um censo de esqueletos e nao ha esqueleto"
+            print(f"  {nome}: publica um censo de esqueletos e nao ha esqueleto"
                   " em docs/ nem trilha/; a frase perdeu o referente")
             problemas += 1
-        else:
-            real = {"n": len(esqueletos), "total": docs,
-                    "min": min(esqueletos), "max": max(esqueletos)}
-            rotulo = {"n": "esqueletos", "total": "documentos",
-                      "min": "menor esqueleto (linhas)", "max": "maior esqueleto (linhas)"}
-            for chave, valor in real.items():
-                if int(censo.group(chave)) != valor:
-                    print(f"  ROADMAP.md: {rotulo[chave]} -- o texto diz"
-                          f" {censo.group(chave)}, o disco tem {valor}")
-                    problemas += 1
+            continue
+        for chave in censo.groupdict():
+            if int(censo.group(chave)) != real[chave]:
+                print(f"  {nome}: {rotulo[chave]} -- o texto diz"
+                      f" {censo.group(chave)}, o disco tem {real[chave]}")
+                problemas += 1
+
+    # --- Regra 4 -----------------------------------------------------------
+    #
+    # Um indice que rotula diretorio por diretorio envelhece pior que o censo: o
+    # total pode continuar certo enquanto UMA linha passou a mentir. Foi o que
+    # houve com `trilha/02-pipeline/01-rx-tx-burst/`, marcado "esqueleto" no
+    # indice depois de o banner sair do documento -- 325 linhas de escopo,
+    # restricoes de ambiente e capacidades de NIC medidas, anunciadas como
+    # promessa vazia.
+    #
+    # A REGRA VALE NUMA DIRECAO SO, e isto foi aprendido errando: a primeira
+    # versao conferia tambem o inverso -- diretorio com banner que o indice NAO
+    # chama de esqueleto -- e acusou 13 defeitos inexistentes, todos linhas de
+    # tabela de NAVEGACAO ("| Proximo | [02 -- Batching](../02-batching/) |").
+    # Uma linha dessas aponta um diretorio e nao afirma nada sobre o estado
+    # dele; exigir que afirme e inventar um defeito.
+    #
+    # Distinguir "linha de status" de "linha de navegacao" por sintaxe e o mesmo
+    # problema indecidivel que a regra 1 evita. Entao a regra confere so o que e
+    # decidivel: QUEM CHAMA de esqueleto precisa estar certo. O inverso -- o
+    # documento que virou conteudo e ninguem atualizou o indice -- continua
+    # fora, e isto esta declarado em vez de disfarcado.
+    for indice in sorted(arquivos(os.path.join(raiz, "trilha"), {".md"})) + \
+                  sorted(arquivos(os.path.join(raiz, "docs"), {".md"})):
+        try:
+            texto = open(indice, encoding="utf-8").read()
+        except (OSError, UnicodeDecodeError):
+            continue
+        for linha in texto.splitlines():
+            if not linha.startswith("|") or "esqueleto" not in linha.lower():
+                continue
+            m = LINHA_INDICE.match(linha + "\n")
+            if m is None:
+                continue
+            destino = os.path.realpath(
+                os.path.join(os.path.dirname(indice), m.group("destino"), "README.md"))
+            if destino not in banner_de:
+                continue
+            conferidos += 1
+            if not banner_de[destino]:
+                print(f"  {os.path.relpath(indice, raiz)}: chama"
+                      f" {m.group('destino')} de esqueleto e o README.md de la"
+                      f" NAO tem o banner -- o documento tem conteudo")
+                problemas += 1
 
     print(f"\n  {conferidos} afirmação(ões) sobre o próprio material conferida(s);"
           f" {problemas} não se sustenta(m)")
@@ -278,6 +341,39 @@ def autoteste():
     rc, _ = rodar({"ROADMAP.md": censo_ok, "docs/a.md": "# a\n\nconteudo.\n"})
     if rc < 1:
         print(f"  AUTOTESTE FALHOU: censo sem referente passou (rc={rc})"); falhas += 1
+
+    # 9. O censo em INGLES, que nao tem faixa de tamanhos: confere so os dois
+    #    numeros que o padrao dele captura.
+    en_ok = "# p\n\n1 of 2 documents are still scope skeletons, and each says so.\n"
+    base = {"docs/a.md": esqueleto + "## Objetivo\n", "trilha/b.md": "# b\n\nconteudo.\n"}
+    rc, _ = rodar({"README.en.md": en_ok, **base})
+    if rc != 0:
+        print(f"  AUTOTESTE FALHOU: censo em ingles correto acusado (rc={rc})"); falhas += 1
+    rc, _ = rodar({"README.en.md": en_ok.replace("1 of 2", "9 of 2"), **base})
+    if rc < 1:
+        print(f"  AUTOTESTE FALHOU: censo em ingles errado passou (rc={rc})"); falhas += 1
+
+    # 10. Indice que chama de esqueleto um diretorio que E esqueleto: passa.
+    linha_ok = "| 5 | [d/](d/) | esqueleto |\n"
+    rc, _ = rodar({"trilha/README.md": "# i\n\n" + linha_ok,
+                   "trilha/d/README.md": esqueleto + "## Objetivo\n"})
+    if rc != 0:
+        print(f"  AUTOTESTE FALHOU: rotulo de esqueleto correto acusado (rc={rc})"); falhas += 1
+
+    # 11. Indice que chama de esqueleto um diretorio com CONTEUDO: falha.
+    rc, _ = rodar({"trilha/README.md": "# i\n\n" + linha_ok,
+                   "trilha/d/README.md": "# d\n\n" + "\n".join(f"linha {i}." for i in range(50))})
+    if rc < 1:
+        print(f"  AUTOTESTE FALHOU: rotulo de esqueleto mentiroso passou (rc={rc})"); falhas += 1
+
+    # 12. REGRESSAO. Linha de NAVEGACAO apontando um esqueleto, sem dizer
+    #     "esqueleto": passa. A primeira versao da regra 4 acusava 13 defeitos
+    #     inexistentes exatamente aqui -- toda tabela "| Proximo | [x](x/) |" da
+    #     arvore. O caso existe para que a direcao inversa nao volte por engano.
+    rc, _ = rodar({"trilha/README.md": "# i\n\n| **Proximo** | [d/](d/) |\n",
+                   "trilha/d/README.md": esqueleto + "## Objetivo\n"})
+    if rc != 0:
+        print(f"  AUTOTESTE FALHOU: linha de navegacao acusada como rotulo (rc={rc})"); falhas += 1
 
     print(f"\n  autoteste: {falhas} assercao(oes) falharam")
     return falhas

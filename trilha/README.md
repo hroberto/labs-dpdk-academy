@@ -23,7 +23,7 @@ de teoria sem o tópico vira leitura. A tabela abaixo liga os dois.
 | 3 — [EAL][cEAL] e runtime | [02 — Runtime do DPDK](../docs/02-runtime-dpdk/README.md) | [01-eal-hello/](01-fundamentos/01-eal-hello/) | **escrito** |
 | 4 — mempool, ring e mbuf | [03 — Mempool, ring e mbuf](../docs/03-mempool-ring-mbuf/README.md) | [02-mempool-ring/](01-fundamentos/02-mempool-ring/) | **escrito** |
 | 5 — pipeline e design | — | [02-pipeline/](02-pipeline/) | esqueleto |
-| 6 — RX/TX, burst e hardware | — | [02-pipeline/01-rx-tx-burst/](02-pipeline/01-rx-tx-burst/) | esqueleto |
+| 6 — RX/TX, burst e hardware | — | [02-pipeline/01-rx-tx-burst/](02-pipeline/01-rx-tx-burst/) | escopo e ambiente medidos; o hardware e que falta |
 | 7 — NUMA, cache e desempenho | [01 — Fundamentos §4 e §5](../docs/01-fundamentos/README.md#4-memória-onde-o-desempenho-realmente-se-decide) | a definir | teoria escrita; prática pendente |
 | 8 — observabilidade e qualidade | — | [03-performance/](03-performance/) | esqueleto |
 | 9 — virtualização, SR-IOV, [vhost-user][cVhost] | — | — | não iniciado |
