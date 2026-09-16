@@ -245,9 +245,36 @@ fi
 # --- 6. Assinatura ----------------------------------------------------------
 titulo "6. Assinatura de commit"
 
-# A branch main exige assinatura verificada. Descobrir isso no `git push`,
-# depois de escrever a mensagem, é atrito evitável.
-if [ "$(git config --get commit.gpgsign || echo false)" = "true" ]; then
+# A branch main exige assinatura verificada -- o ruleset `main protegida` do
+# GitHub tem `required_signatures` e lista de bypass vazia. Descobrir isso no
+# `git push`, depois de escrever a mensagem, é atrito evitável.
+#
+# DUAS PERGUNTAS DIFERENTES, e confundi-las deixou a CI vermelha em cinco
+# publicações seguidas.
+#
+# Na máquina de quem escreve, a pergunta é sobre o FUTURO: os próximos commits
+# vão sair assinados? Quem responde é `commit.gpgsign`, configuração local.
+#
+# No runner da CI, essa pergunta não tem sentido: ele não faz commit e não tem
+# chave, então `commit.gpgsign` é sempre falso e o teste falhava SEMPRE, por
+# construção. Pior: falhava na etapa 6, antes de `meson setup`, de modo que a
+# CI nunca chegava a compilar nem testar -- o X vermelho não dizia nada sobre a
+# saúde do código, e escondia qualquer defeito real atrás de um falso.
+#
+# Lá a pergunta é sobre o PASSADO: o commit que está sendo construído carrega
+# assinatura? `%G?` responde, e distingue os três casos que importam:
+#   G  assinatura boa e verificada
+#   E  há assinatura e a chave pública não está no runner -- esperado na CI
+#   N  NÃO HÁ assinatura -- o único que é defeito
+if [ -n "${CI:-}${GITHUB_ACTIONS:-}" ]; then
+    estado=$(git log -1 --format='%G?' 2>/dev/null || echo "?")
+    case "$estado" in
+        G) ok "HEAD assinado e verificado neste runner" ;;
+        E|U|X|Y|R) ok "HEAD carrega assinatura (estado $estado; a chave pública não está no runner)" ;;
+        N) falha "HEAD NÃO carrega assinatura — a main exige assinatura verificada" ;;
+        *) falha "estado de assinatura de HEAD não apurado (git respondeu \"$estado\")" ;;
+    esac
+elif [ "$(git config --get commit.gpgsign || echo false)" = "true" ]; then
     chave=$(git config --get user.signingkey || echo "")
     if [ -n "$chave" ]; then ok "commit.gpgsign ativo (chave ${chave:0:16}…)"
     else falha "commit.gpgsign ativo mas user.signingkey não definido"; fi

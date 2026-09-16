@@ -59,8 +59,14 @@ jobs:
       # contra merge de major sem revisao. Um gancho LOCAL de commit nao roda em
       # PR do Dependabot por construcao; rodando aqui, a afirmacao passa a ser
       # verdadeira, porque a CI executa em pull_request.
+      # --rapido, e a razao importa: sem ele o pre-commit roda a SUITE INTEIRA
+      # aqui dentro, e os passos de L1/L2/L3 logo abaixo a rodam de novo. Alem do
+      # tempo dobrado, uma falha ficava sem endereco -- o X vermelho aparecia
+      # nesta etapa, antes de `meson setup`, sem dizer qual suite quebrou. Com
+      # --rapido esta etapa confere sintaxe, consistencia, segredos, documentacao
+      # e assinatura; medir o codigo e das etapas nomeadas.
       - name: Consistencia do projeto (regras do pre-commit)
-        run: ./ferramental/qualidade/pre-commit.sh
+        run: ./ferramental/qualidade/pre-commit.sh --rapido
 
       # GTest vem do subprojeto do Meson (subprojects/gtest.wrap), com hash fixo.
       - name: Configurar

@@ -100,6 +100,26 @@ if python3.found()
   # nunca acusar arquivo inexistente, nunca acusar referencia sem definicao,
   # ignorar a desambiguacao de titulo repetido --, 4 mortos, cada um pelo caso
   # desenhado para ele. Reproduza antes de editar esta frase.
+  # A promessa que o material faz e EXECUTAVEL, nao retorica: as 17 promessas do
+  # corpus sao todas "Rode X e observe Y", e nenhuma e pergunta de compreensao.
+  # Isso foi medido antes de este verificador existir, e e o que o torna
+  # possivel -- clareza nao tem proxy sintatico, "o programa citado existe e e
+  # construido" tem.
+  #
+  # Guarda a classe que ja custou dois arquivos a este repositorio:
+  # controle-anel.cpp na arvore sem registro e sem compilar, e
+  # l1_preparar_nic.py desregistrado do meson. Nos dois casos a documentacao
+  # seguiu citando o que existia no texto e nao na compilacao.
+  test('docs - promessas executaveis existem na arvore', python3,
+       args : [meson.project_source_root() / 'ferramental/qualidade/verificar-promessa.py',
+               meson.project_source_root()],
+       suite : ['l1', 'docs'], timeout : 30)
+
+  test('docs - autoteste do verificador de promessas', python3,
+       args : [meson.project_source_root() / 'ferramental/qualidade/verificar-promessa.py',
+               '--autoteste'],
+       suite : ['l1', 'docs'], timeout : 30)
+
   test('docs - autoteste do verificador de links', python3,
        args : [meson.project_source_root() / 'ferramental/qualidade/verificar-links.py',
                '--autoteste'],
@@ -177,6 +197,8 @@ else
   # verde -- e os tres sao justamente os que conferem se o material diz a
   # verdade. Ver ferramental/qualidade/pular-sem-python3.sh.
   foreach nome : ['docs - ancoras de linha atualizadas',
+                  'docs - promessas executaveis existem na arvore',
+                  'docs - autoteste do verificador de promessas',
                   'docs - autoteste do verificador de links',
                   'docs - autoteste do verificador de ancoras',
                   'docs - links e ancoras de titulo',
