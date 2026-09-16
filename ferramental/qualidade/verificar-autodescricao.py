@@ -46,8 +46,14 @@ O QUE ELE DELIBERADAMENTE NÃO PEGA:
   promessa de resumo da regra 5 (níveis de teste, cobertura de módulo, estado de
   uma etapa);
 - se o resumo em inglês DIZ a mesma coisa que o documento em português. A regra
-  5 confere que ele EXISTE, que é decidível; se o conteúdo corresponde exige ler
-  as duas línguas e comparar sentido, e disso nenhum programa dá conta.
+  5 confere que ele EXISTE e a regra 6 que ele não INVENTA números; se o conteúdo
+  corresponde exige ler as duas línguas e comparar sentido, e disso nenhum
+  programa dá conta;
+- se um número do resumo está ATRIBUÍDO à grandeza certa. A regra 6 é vácua
+  contra troca, e isso foi medido: pôr "rte_eal_init() at 0.63 ms" no resumo --
+  afirmação grosseiramente falsa, porque 0,63 ms é o custo de ENCERRAR -- passa,
+  já que o número existe no corpo. Ela fecha a classe "número que não está em
+  lugar nenhum", não a classe "número trocado".
 
 REGRA 3 -- o censo de esqueletos que o ROADMAP publica
 
@@ -139,6 +145,13 @@ NIVEL = re.compile(r"^>\s*\*\*N[íi]ve(?:l|is)\s", re.MULTILINE)
 
 # O resumo em ingles, pela convencao do projeto.
 RESUMO_EN = re.compile(r"^>\s*\*\*In English\.\*\*", re.MULTILINE)
+
+# O BLOCO inteiro do resumo, para a regra 6 poder separá-lo do corpo.
+RESUMO_BLOCO = re.compile(r"^> \*\*In English\.\*\*(.*?)(?=\n\n)", re.S | re.M)
+
+# Número com dois dígitos ou mais. Dígito solto ("2 fit in that budget") é ruído:
+# aparece em qualquer texto e não identifica grandeza nenhuma.
+NUMERO_RESUMO = re.compile(r"\d[\d.,\u202f]*\d")
 
 # Linha de tabela que aponta um diretorio e opina sobre o estado dele:
 #   | 6 -- RX/TX | -- | [02-pipeline/01-rx-tx-burst/](02-pipeline/01-rx-tx-burst/) | esqueleto |
@@ -358,6 +371,43 @@ def verificar(raiz="."):
                   f" o README.en.md promete para cada um")
             problemas += 1
 
+    # --- Regra 6 -----------------------------------------------------------
+    #
+    # Número que aparece no resumo em inglês e em lugar nenhum do corpo em
+    # português. É a forma mais crua de divergência entre as duas línguas, e ela
+    # ACONTECEU: `docs/02-runtime-dpdk` publicava 0,08 ms no corpo e 0.30 ms no
+    # resumo -- duas afirmações diferentes sobre a mesma grandeza, no mesmo
+    # arquivo, e nenhuma reproduzia.
+    #
+    # O QUE ELA NÃO PEGA, e está no cabeçalho: número trocado por outro que
+    # também existe no documento. Medido -- "rte_eal_init() at 0.63 ms" passa,
+    # porque 0,63 é o custo de encerrar e está lá. Fecha "inventado", não
+    # "errado".
+    for doc in sorted(arquivos(os.path.join(raiz, "docs"), {".md"})) + \
+               sorted(arquivos(os.path.join(raiz, "trilha"), {".md"})):
+        try:
+            texto = open(doc, encoding="utf-8").read()
+        except (OSError, UnicodeDecodeError):
+            continue
+        m = RESUMO_BLOCO.search(texto)
+        if m is None:
+            continue
+        ingles = m.group(1)
+        corpo = texto.replace(ingles, "")
+        for numero in sorted(set(NUMERO_RESUMO.findall(ingles))):
+            conferidos += 1
+            # Vírgula e ponto decimal são a mesma grandeza em línguas diferentes;
+            # comparar sem normalizar acusaria "2.18" contra "2,18" e o
+            # verificador viraria ruído -- e verificador ruidoso é desligado.
+            formas = {numero, numero.replace(".", ","), numero.replace(",", "."),
+                      numero.replace(",", ""), numero.replace(".", ""),
+                      numero.replace(" ", "\u202f"), numero.replace("\u202f", " "),
+                      numero.replace("\u202f", "")}
+            if not any(f in corpo for f in formas):
+                print(f"  {os.path.relpath(doc, raiz)}: o resumo em ingles publica"
+                      f" \"{numero}\" e esse valor nao aparece no corpo em portugues")
+                problemas += 1
+
     print(f"\n  {conferidos} afirmação(ões) sobre o próprio material conferida(s);"
           f" {problemas} não se sustenta(m)")
     if not promete_arm:
@@ -555,6 +605,31 @@ def autoteste():
     if rc != 0:
         print(f"  AUTOTESTE 24 FALHOU: esqueleto declarado exigido a ter resumo (rc={rc})")
         falhas += 1
+
+    # 27-29. REGRA 6, e o caso 29 registra o que ela NAO pega.
+    #
+    # A divergencia real que a motivou: `docs/02-runtime-dpdk` publicava 0,08 ms
+    # no corpo e 0.30 ms no resumo -- duas afirmacoes sobre a mesma grandeza, no
+    # mesmo arquivo, e nenhuma reproduzia.
+    corpo = "# m\n\n> **Nível 8** do plano\n\n{res}\nA EAL sobe em 123 ms e encerra em 0,63 ms.\n"
+    for numero, descricao, res, espera_defeito in (
+        (27, "numero do resumo presente no corpo acusado",
+         "> **In English.** The EAL starts in 123 ms and stops in 0.63 ms.\n", False),
+        (28, "numero INVENTADO no resumo passou",
+         "> **In English.** The EAL starts in 999 ms.\n", True),
+        # O QUE ELA NAO PEGA, registrado como caso que PASSA de proposito: o
+        # numero existe no corpo, esta atribuido a grandeza errada, e a regra nao
+        # tem como saber. Se um dia alguem fizer a regra pegar isso, este caso
+        # falha e obriga a reescrever o comentario -- que e o ponto.
+        (29, "troca de atribuicao (0,63 e o custo de ENCERRAR) -- limite declarado",
+         "> **In English.** The EAL starts in 0.63 ms.\n", False),
+    ):
+        rc, saida = rodar({"trilha/m.md": corpo.format(res=res)})
+        ok = (rc >= 1) if espera_defeito else (rc == 0)
+        if not ok:
+            print(f"  AUTOTESTE {numero} FALHOU: {descricao} (rc={rc})")
+            print("    " + saida.strip().replace("\n", "\n    "))
+            falhas += 1
 
     print(f"\n  autoteste: {falhas} assercao(oes) falharam")
     return falhas
