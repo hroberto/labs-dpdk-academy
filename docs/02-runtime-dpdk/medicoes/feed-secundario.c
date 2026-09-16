@@ -123,6 +123,29 @@ int main(int argc, char **argv)
     uint64_t lacunas_vistas = 0;
     uint64_t degenerados = 0; /* amostras impossíveis: TSC desalinhado */
 
+    /* --- PROTOCOLO COM O SUPERVISOR ------------------------------------------
+     *
+     * `scripts/feed-supervisor.py` decide o que fazer a seguir lendo a SAÍDA
+     * deste processo: ele espera "LIVRO ATIVO", depois "Primeiro lote
+     * consumido:", e só então injeta a queda do primário no teste de
+     * recuperação. Sem essas linhas, o supervisor fica esperando, desiste, e
+     * encerra tudo com SIGTERM marcando a sessão como fracasso.
+     *
+     * ERA EXATAMENTE O QUE ACONTECIA, e passou despercebido por um motivo que
+     * vale registrar: o teste L2 do supervisor usa um DUBLÊ em Python que
+     * imprime os marcadores; o programa real nunca os imprimiu. `git log -S`
+     * confirma -- a string "LIVRO ATIVO" só existiu no supervisor e no dublê. O
+     * único teste que cruzaria os dois é o L3, e ele PULAVA nesta máquina por
+     * falta de hugetlbfs gravável. Um teste que pula não reprova; ele silencia.
+     *
+     * O `fflush` não é zelo: a saída vai para arquivo, portanto é bufferizada em
+     * blocos, e o supervisor lê o arquivo ENQUANTO ele é escrito. Sem descarga
+     * explícita a linha existiria e chegaria tarde demais. */
+    const char *ambiente_geracao = getenv("DPDK_ACADEMY_GENERATION");
+    const char *geracao = ambiente_geracao != NULL ? ambiente_geracao : "0";
+    int livro_anunciado = 0;
+    int lote_anunciado = 0;
+
     while (lidos < total) {
         /* acquire: emparelha com o release do produtor. Garante que, ao ver o
          * índice, o conteúdo do tick correspondente já está visível. */
@@ -154,10 +177,32 @@ int main(int argc, char **argv)
                 lacunas_vistas++;
 
             /* ...e só então o preço, no livro DO PAPEL que veio no tick. */
-            if (r != FLUXO_DESCARTADO && t->instrument < FEED_INSTRUMENTOS)
+            if (r != FLUXO_DESCARTADO && t->instrument < FEED_INSTRUMENTOS) {
                 order_book_apply(&livros[t->instrument], t);
+                if (!livro_anunciado) {
+                    /* "Lados" são as pontas de livro já populadas: um livro com
+                     * compra e venda vale 2. É o que torna a linha informativa
+                     * em vez de decorativa -- o supervisor só precisa da
+                     * geração, quem lê precisa saber que há livro de verdade. */
+                    unsigned lados = 0;
+                    for (unsigned k = 0; k < FEED_INSTRUMENTOS; k++) {
+                        if (livros[k].best_bid != 0) lados++;
+                        if (livros[k].best_ask != 0) lados++;
+                    }
+                    printf("  LIVRO ATIVO: geracao=%s tick=%" PRIu64 " lados=%u\n",
+                           geracao, t->sequence, lados);
+                    fflush(stdout);
+                    livro_anunciado = 1;
+                }
+            }
 
             lidos++;
+        }
+
+        if (!lote_anunciado && lidos > 0) {
+            printf("  Primeiro lote consumido: %" PRIu64 "\n", lidos);
+            fflush(stdout);
+            lote_anunciado = 1;
         }
 
         atomic_store_explicit(&f->consumidos, lidos, memory_order_release);
@@ -217,6 +262,22 @@ int main(int argc, char **argv)
            cruzados == 0 ? "(nenhum: compra sempre abaixo da venda)"
                          : "<- ANOMALIA: investigar");
     printf("    precos em centavos; spread e venda menos compra\n");
+
+    /* Terceiro e último marcador do protocolo com o supervisor: o veredito.
+     *
+     * VÁLIDO exige as duas coisas -- nenhum livro cruzado (compra acima da
+     * venda é impossível num livro consistente) e nenhuma amostra degenerada
+     * (TSC desalinhado invalidaria a medição de travessia). Publicar VALIDO com
+     * qualquer das duas quebrada seria o defeito que este projeto combate.
+     *
+     * "reconstrucoes" conta as lacunas de sequência vistas: cada uma é um ponto
+     * em que o livro precisou seguir com dado faltando. Zero é o caso limpo. */
+    const int livro_valido = feed_assinatura_valida(cruzados, degenerados);
+    printf("\n  Validade do livro: %s; reconstrucoes: %" PRIu64 "\n",
+           livro_valido ? "VALIDO" : "INVALIDO", lacunas_vistas);
+    if (!livro_valido)
+        printf("    (cruzados=%d, amostras degeneradas=%" PRIu64 ")\n", cruzados, degenerados);
+    fflush(stdout);
 
     printf("\n  Leitura: o minimo se aproxima do custo de a linha de cache com o\n");
     printf("  tick migrar de um nucleo para o outro; a mediana e o p99 incluem\n");

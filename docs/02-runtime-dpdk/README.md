@@ -1071,7 +1071,7 @@ não perde o mapeamento e não recebe `SIGSEGV`: ele continua lendo, e o que lê
 o **último estado publicado**, indefinidamente.
 
 **Nada avisa.** Não há batimento cardíaco, contrato de *liveness* nem sinal. O
-secundário fica preso em [`while (lidos < total)`](medicoes/feed-secundario.c#L126),
+secundário fica preso em [`while (lidos < total)`](medicoes/feed-secundario.c#L149),
 esperando dados que não virão. O processo não travou por defeito — ele espera
 correta e indefinidamente por um produtor que não existe mais.
 
