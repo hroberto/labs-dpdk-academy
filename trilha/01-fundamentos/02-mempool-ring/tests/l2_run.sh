@@ -89,7 +89,13 @@ ultima_saida="$saida"
 check "n=100000 b=64: codigo de saida 0" "$([ $rc -eq 0 ]; echo $?)"
 grep -q "^Pacotes processados: 100000$" <<<"$saida"; check "n=100000: contagem exata sob reuso do pool" $?
 pool_integro "$saida"; check "n=100000: pool integro apos ~25x de reuso" $?
-grep -q "^Lote (burst): 64 " <<<"$saida"; check "n=100000: tamanho de lote aplicado" $?
+grep -q "^Lote (burst): 64 " <<<"$saida"; check "n=100000: lote 64 reportado" $?
+# O ECO DO PARAMETRO NAO PROVA USO, e isto foi medido: um mutante que ignorasse
+# `cfg.burst` e movesse um objeto por vez continuava imprimindo "Lote (burst):
+# 64", e a assercao acima passava. O programa passou a publicar o maior lote
+# REALMENTE movido, que so chega a 64 se uma chamada tiver carregado 64 objetos.
+grep -q "^Maior lote movido de fato: enfileirado 64, desenfileirado 64$" <<<"$saida"
+check "n=100000: lote 64 EFETIVAMENTE movido, nos dois lados" $?
 
 # --- Modo de dois lcores: o consumidor ganha nucleo proprio e a fila passa a
 # --- atravessar caches. O resultado precisa ser IDENTICO ao de um lcore: mudar
@@ -113,6 +119,11 @@ else
     ultima_saida="$saida"
     grep -q "^Pacotes processados: 200000$" <<<"$saida"; check "2 lcores: 200k pacotes sem perda entre nucleos" $?
     pool_integro "$saida"; check "2 lcores: sem vazamento sob concorrencia" $?
+    # O consumidor de 2 lcores roda em `consumer_loop`, que e OUTRO caminho de
+    # codigo: a assercao do bloco de um lcore nao o cobre. Medido -- com so
+    # aquela, um mutante que ignorasse `c->burst` passava.
+    grep -q "^Maior lote movido de fato: enfileirado 32, desenfileirado 32$" <<<"$saida"
+    check "2 lcores: lote 32 EFETIVAMENTE movido no consumidor proprio" $?
 fi
 
 "$BIN" $EAL_ARGS -- -b 0 >/dev/null 2>&1;   check "lote 0 e rejeitado"           "$([ $? -ne 0 ]; echo $?)"

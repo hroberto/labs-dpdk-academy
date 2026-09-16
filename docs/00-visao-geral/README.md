@@ -1,5 +1,7 @@
 # Visão geral — o que este material é, e como lê-lo
 
+*Read this in [English](README.en.md).*
+
 Esta seção responde às perguntas que vêm antes do conteúdo técnico: **o que se
 estuda aqui, o que se pressupõe do leitor, com que método, e em que máquina os
 números foram obtidos.**

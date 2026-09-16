@@ -1,5 +1,7 @@
 # Validação, dados e evolução com hardware
 
+*Read this in [English](validacao.en.md).*
+
 Esta página define os critérios comuns aos módulos. O estado de implementação
 fica no [índice da trilha](../../trilha/README.md); o trabalho futuro, no
 [roadmap](../../ROADMAP.md). Não confunda conteúdo escrito, teste executado e

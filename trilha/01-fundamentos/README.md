@@ -4,7 +4,11 @@
 > Teoria correspondente: [01 — Fundamentos](../../docs/01-fundamentos/README.md)
 > e [02 — Runtime do DPDK](../../docs/02-runtime-dpdk/README.md)
 
-Este é o único módulo da trilha com conteúdo completo. Ele cobre as duas coisas
+*Read this in [English](README.en.md).*
+
+Este módulo foi o primeiro da trilha a ficar completo, e por muito tempo o único
+— os módulos 02 e 03 passaram a ter conteúdo em 16/09/2026. Ele cobre as duas
+coisas
 que todo programa DPDK faz antes de tratar o primeiro pacote: **subir o runtime**
 e **conseguir memória sem alocar no caminho quente**.
 

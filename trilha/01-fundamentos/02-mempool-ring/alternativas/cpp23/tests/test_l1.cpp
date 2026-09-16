@@ -179,6 +179,57 @@ TEST(SpscRing, CheioRecusaEmVezDeSobrescrever)
     EXPECT_EQ(p.id, 0u);
 }
 
+// O CAMINHO DE LOTE TINHA TESTE DE ORDEM E NAO TINHA TESTE DE LIMITE, e a
+// diferenca foi medida: trocando o calculo de espaco de `enqueue_burst` por
+// `mask_` -- isto e, fazendo o anel acreditar que sempre cabe --, os tres testes
+// registrados da alternativa C++23 continuavam VERDES. O anel passaria a
+// sobrescrever dado nao consumido e ninguem acusaria.
+//
+// `enqueue` unitario ja tinha `CheioRecusaEmVezDeSobrescrever`. Este e o mesmo
+// contrato para `enqueue_burst`, que e outro caminho de codigo.
+TEST(SpscRing, LoteRespeitaACapacidadeEDevolveOPrefixoAceito)
+{
+    academy::SpscRing ring(4);              // 4 posicoes, 3 uteis
+    std::array<academy::Packet, 8> entrada{};
+    for (std::size_t i = 0; i < entrada.size(); ++i)
+        entrada[i] = academy::make(i, 64);
+
+    // Pedir 8 num anel de 3 uteis: aceita 3, e diz que aceitou 3.
+    EXPECT_EQ(ring.enqueue_burst(std::span{entrada}), 3u);
+    // Anel cheio: o proximo lote nao entra nenhum.
+    EXPECT_EQ(ring.enqueue_burst(std::span{entrada}), 0u);
+
+    // E o conteudo e o PREFIXO, na ordem, sem sobrescrita.
+    std::array<academy::Packet, 8> saida{};
+    ASSERT_EQ(ring.dequeue_burst(std::span{saida}), 3u);
+    EXPECT_EQ(saida[0].id, 0u);
+    EXPECT_EQ(saida[1].id, 1u);
+    EXPECT_EQ(saida[2].id, 2u);
+}
+
+TEST(SpscRing, LoteNaoSobrescreveDadoNaoConsumido)
+{
+    // Enche, consome um, e tenta enfileirar dois: so um cabe.
+    academy::SpscRing ring(4);
+    std::array<academy::Packet, 3> tres{academy::make(10, 64), academy::make(11, 64),
+                                        academy::make(12, 64)};
+    ASSERT_EQ(ring.enqueue_burst(std::span{tres}), 3u);
+
+    academy::Packet p{};
+    ASSERT_TRUE(ring.dequeue(p));
+    EXPECT_EQ(p.id, 10u);
+
+    std::array<academy::Packet, 2> dois{academy::make(20, 64), academy::make(21, 64)};
+    EXPECT_EQ(ring.enqueue_burst(std::span{dois}), 1u);
+
+    // O que ficou: 11, 12, 20 -- nada perdido, nada sobrescrito.
+    std::array<academy::Packet, 8> saida{};
+    ASSERT_EQ(ring.dequeue_burst(std::span{saida}), 3u);
+    EXPECT_EQ(saida[0].id, 11u);
+    EXPECT_EQ(saida[1].id, 12u);
+    EXPECT_EQ(saida[2].id, 20u);
+}
+
 TEST(SpscRing, CirculaSemPerderPacote)
 {
     // Da varias voltas no anel: e onde um erro de mascara apareceria.

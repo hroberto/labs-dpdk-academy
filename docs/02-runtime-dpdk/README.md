@@ -1,5 +1,7 @@
 # Runtime do DPDK — a EAL como sistema de execução
 
+*Read this in [English](README.en.md).*
+
 > **Nível 3** do [plano de estudo](../plano-estudo-dpdk.md) ·
 > Pré-requisito: [Fundamentos](../01-fundamentos/README.md) e o tópico prático
 > [01 — Inicialização da EAL](../../trilha/01-fundamentos/01-eal-hello/)
@@ -17,14 +19,6 @@ como o caso canônico de latência ultrabaixa, e serve bem aqui porque força to
 as perguntas deste nível de uma vez: quanto tempo o processo leva para ficar
 pronto, onde a memória é reservada, como uma estratégia lê o livro sem copiar
 dado, e o que acontece quando um dos processos cai no meio do pregão.
-
-> **In English.** The DPDK runtime as a system, not an API tour. Measures
-> `rte_eal_init()` at **123 ms** against **0.30 ms** for cleanup — two orders of
-> magnitude between birth and death, which is why a DPDK process is a
-> long-running service. Covers the EAL memory model, lcore identity and states,
-> IOVA, and a working primary/secondary pair sharing memory at the **same
-> virtual address**. Failure axis: when the primary is killed, the secondary
-> never finds out — the memory outlives its owner and nothing signals.
 
 ## Ao final deste módulo, você será capaz de
 
@@ -152,9 +146,28 @@ cronometra e devolve o resultado por um *pipe*; o pai apenas agrega.
     e fica de pe: reinicia-lo em producao nao e uma operacao barata.
 ```
 
-Subir a EAL custa **123 ms**; encerrá-la custa **0,08 ms** — três ordens de
+Subir a EAL custa **123 ms**; encerrá-la custa **0,63 ms** — duas ordens de
 grandeza menos. A assimetria é o primeiro fato relevante: nascer é caro, morrer
 é barato.
+
+> **RETRATAÇÃO — 16/09/2026: o custo de encerramento estava desatualizado, e as
+> duas línguas discordavam entre si.** O corpo em português publicava **0,08 ms**
+> e "três ordens de grandeza"; o resumo em inglês deste mesmo documento publicava
+> **0.30 ms** e "two orders of magnitude". Nenhum dos dois reproduz.
+>
+> Reconferido com seis execuções nos parâmetros do teste L2
+> (`-l 0 --no-huge`, sem `-m`): **0,63 ms**, faixa de 0,56 a 0,67. A razão contra
+> a inicialização é de **195×**, ou seja **duas** ordens de grandeza — o inglês
+> estava mais perto na ordem e errado no número, o português errado nos dois.
+>
+> O `rte_eal_init()` de 123 ms, esse **reproduz**: 123,0 a 123,6 ms nas mesmas
+> execuções. E o custo de encerramento depende do que foi reservado — com
+> `-m 256` ele sobe para 1,2 a 1,4 ms. Por isso a configuração vai declarada
+> junto do número, o que faltava antes.
+>
+> **A conclusão da seção não muda**, e é a razão de ela existir: encerrar continua
+> sendo ordens de grandeza mais barato que subir. Mas "três ordens" virou frase
+> repetida, e ela estava errada por um fator de oito.
 
 ### 2.1 De onde vêm os 123 ms
 
@@ -835,8 +848,10 @@ trabalho que a EAL faz para descobrir o endereço físico de cada página.
 
 ## 7. Encerramento: o que fica para trás
 
-[`rte_eal_cleanup()`][apiealclean] custa 0,08 ms — três ordens de grandeza menos
-que a inicialização. Sendo tão barato, a pergunta é o que acontece quando ele
+[`rte_eal_cleanup()`][apiealclean] custa 0,63 ms — duas ordens de grandeza menos
+que a inicialização, com `-l 0 --no-huge` e sem `-m` (ver a retratação na
+[§2](#2-o-custo-de-existir-quanto-a-eal-leva-para-nascer): o número anterior,
+0,08 ms, não reproduzia). Sendo tão barato, a pergunta é o que acontece quando ele
 não é chamado.
 
 **A ordem importa.** Recursos criados sobre a memória da EAL devem ser liberados
@@ -897,7 +912,7 @@ da [§2.3](#23-o-que-isso-decide-na-arquitetura):
 | Operação | Custo mediano | Ordem de grandeza |
 |---|---|---|
 | `rte_eal_init()` | 123 ms | 10⁵ µs |
-| `rte_eal_cleanup()` | 0,082 ms | 10¹ µs |
+| `rte_eal_cleanup()` | 0,63 ms | 10² µs |
 | orçamento por pacote em 10 GbE, quadro de 64 B | 67,2 ns | 10⁻¹ µs |
 
 Um processo de plano de dados passa a vida inteira operando na terceira linha.
@@ -1071,7 +1086,7 @@ não perde o mapeamento e não recebe `SIGSEGV`: ele continua lendo, e o que lê
 o **último estado publicado**, indefinidamente.
 
 **Nada avisa.** Não há batimento cardíaco, contrato de *liveness* nem sinal. O
-secundário fica preso em [`while (lidos < total)`](medicoes/feed-secundario.c#L126),
+secundário fica preso em [`while (lidos < total)`](medicoes/feed-secundario.c#L149),
 esperando dados que não virão. O processo não travou por defeito — ele espera
 correta e indefinidamente por um produtor que não existe mais.
 

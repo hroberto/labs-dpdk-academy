@@ -265,3 +265,33 @@ TEST(Tick, LayoutEstavelParaMemoriaCompartilhada)
 }
 
 }  // namespace
+
+// --- O VEREDITO DE VALIDADE DA ASSINATURA ---------------------------------
+//
+// Estes casos nasceram de um mutante sobrevivente: trocar a decisao por "sempre
+// VALIDO" nao mudava nada NESTA maquina, onde o livro e valido. Com a decisao
+// isolada, os dois ramos passam a ser exercitaveis em qualquer lugar.
+TEST(AssinaturaValida, LimpoEmAmbasAsCondicoes)
+{
+    EXPECT_TRUE(feed_assinatura_valida(0, 0));
+}
+
+TEST(AssinaturaValida, LivroCruzadoInvalida)
+{
+    // Compra acima da venda e impossivel num livro consistente.
+    EXPECT_FALSE(feed_assinatura_valida(1, 0));
+    EXPECT_FALSE(feed_assinatura_valida(42, 0));
+}
+
+TEST(AssinaturaValida, AmostraDegeneradaInvalida)
+{
+    // O livro pode estar certo e a MEDICAO publicada junto dele nao: TSC
+    // desalinhado entre nucleos produz travessias impossiveis. Um selo unico de
+    // "valido" cobre as duas coisas, entao exige as duas boas.
+    EXPECT_FALSE(feed_assinatura_valida(0, 1));
+}
+
+TEST(AssinaturaValida, AsDuasQuebradasTambemInvalida)
+{
+    EXPECT_FALSE(feed_assinatura_valida(3, 7));
+}

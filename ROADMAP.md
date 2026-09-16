@@ -1,5 +1,7 @@
 # Roadmap do projeto
 
+*Read this in [English](ROADMAP.en.md).*
+
 ## Visão estratégica
 
 Este projeto tem como objetivo construir uma base concreta e didática para estudo profissional de DPDK, cobrindo desde os fundamentos até arquiteturas de pipeline de dados em alto desempenho.
@@ -208,10 +210,25 @@ O que foi **recusado** na mesma revisão, e por quê:
 
 O que está decidido sobre **como** fazer, quando chegar a hora:
 
-- **Assimetria deliberada, não projeto bilíngue.** Corpo didático em português;
-  superfície de descoberta em inglês.
-- **Em inglês:** `README.en.md`, um resumo curto por tópico, identificadores do
-  código, e `description` + `topics` do repositório.
+- **~~Assimetria deliberada, não projeto bilíngue.~~ PARIDADE COMPLETA**, decidida
+  em 16/09/2026. Corpo didático nas duas línguas, documento a documento.
+
+  > **A decisão anterior era a assimetria, e a razão contra a paridade continua
+  > verdadeira** — está três itens abaixo, e não foi apagada: uma versão em
+  > inglês defasada faz o leitor concluir que os números não são confiáveis.
+  >
+  > O que mudou não foi a avaliação do risco; foi a **contramedida**. Enquanto a
+  > paridade dependia de disciplina, a assimetria era a escolha segura. Com a
+  > paridade **verificada por máquina** — todo módulo precisa do seu par em
+  > inglês, e nenhum número publicado em inglês pode faltar no português, com
+  > mutação medida — o risco deixa de depender de alguém lembrar.
+  >
+  > O que a verificação **não** cobre continua sendo o risco real: se o texto em
+  > inglês *diz a mesma coisa*. Isso é semântica, nenhum padrão sintático decide,
+  > e está declarado no cabeçalho do verificador. A garantia ali é humana, com
+  > data.
+- **Em inglês:** `README.en.md` na raiz e **um `README.en.md` por documento**,
+  identificadores do código, e `description` + `topics` do repositório.
   **Feito em 2026-09-10, exceto `description`/`topics`,** que dependem do
   repositório existir remotamente. Os identificadores migraram numa passada
   verificada pela suíte: a saída dos programas e a prosa continuam em português,
@@ -219,19 +236,31 @@ O que está decidido sobre **como** fazer, quando chegar a hora:
   ficaram em português por serem **prosa** — são frases lidas no relatório de
   teste (`ResultadoIndependeDoLote.DezPacotesSempreSomam695Bytes`), não símbolos
   que alguém chama.
-- **Não traduzir** a prosa didática. O valor deste material são os números
-  medidos; uma versão em inglês defasada faz o leitor concluir que *os números
-  não são confiáveis*, não que a tradução está atrasada.
-- **Descartado:** `docs/pt-br/` + `docs/en/` — a pasta `docs/` é árvore de build
-  (tem `meson.build` e 16 dos 23 testes), e 12 READMEs vivem em `trilha/` junto
-  do código, pela regra de manter documento e código no mesmo tópico. Descartados
-  também a tradução automática por Action e o site estático, por ora.
+- ~~**Não traduzir** a prosa didática.~~ **Revogado em 16/09/2026** — ver a
+  primeira linha desta lista. O argumento continua registrado porque continua
+  correto, e é ele que define o que a verificação precisa cobrir: o valor deste
+  material são os números medidos, e uma versão em inglês defasada faz o leitor
+  concluir que *os números não são confiáveis*, não que a tradução está atrasada.
+  Por isso a paridade entrou junto com a regra que a confere, e não antes dela.
+- **Descartado:** `docs/pt-br/` + `docs/en/` — a pasta `docs/` é árvore de build,
+  com `meson.build` próprio e boa parte dos testes registrados lá, e os READMEs
+  dos tópicos vivem em `trilha/` junto do código, pela regra de manter documento
+  e código no mesmo tópico. Descartados também a tradução automática por Action e
+  o site estático, por ora.
+
+  > Esta frase publicava "16 dos 23 testes" até 16/09/2026. Os dois números
+  > envelheceram sem ninguém notar — a suíte passou de 23 para 52 —, e nenhum
+  > verificador os conferia: não são censo de esqueleto nem conta aritmética. A
+  > contagem saiu porque não sustentava o argumento, que é sobre **onde** as
+  > coisas ficam. Número que ninguém reconfere é retratação agendada.
 - **Reabrir `docs/en/` completo** só se aparecer uma segunda pessoa que assuma a
   manutenção do inglês.
 
 **Pré-requisito para começar esta etapa:** o conteúdo em português precisa estar
-maduro. Hoje, 6 dos 21 documentos ainda são esqueletos — todos
-em `trilha/02-pipeline/`, `trilha/03-performance/` e `trilha/04-projeto-final/`.
+maduro. Nenhum dos 21 documentos é esqueleto: o último,
+`trilha/04-projeto-final/`, virou conteúdo em 16/09/2026. O que ainda falta lá é
+a aplicação de ponta a ponta, e o documento diz isso na primeira seção em vez de
+se declarar pronto.
 
 > Contagens envelhecem em silêncio, e estas já envelheceram DUAS vezes: em
 > 15/09/2026 os quatro números desta frase estavam errados ao mesmo tempo, com
@@ -243,7 +272,12 @@ em `trilha/02-pipeline/`, `trilha/03-performance/` e `trilha/04-projeto-final/`.
 >
 > ```bash
 > grep -rlE '^> \*\*Esqueleto\.\*\*' docs trilha --include='*.md' | wc -l   # esqueletos
-> find docs trilha -name '*.md' | wc -l                                     # documentos
+> find docs trilha -name '*.md' ! -name '*.en.md' | wc -l                  # documentos
+>
+> O `! -name '*.en.md'` não é filigrana. Desde a paridade de 16/09/2026 cada
+> documento tem um par em inglês, e contá-lo dobraria o total sem haver um
+> documento novo: sem o filtro este comando devolve 37 para 21 documentos. O
+> verificador aplica o mesmo corte, e é por isso que os dois concordam.
 > ```
 
 ## Objetivo final

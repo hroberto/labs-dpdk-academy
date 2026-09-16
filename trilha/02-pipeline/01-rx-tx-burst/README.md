@@ -1,5 +1,7 @@
 # Submódulo 01 — RX/TX em lote
 
+*Read this in [English](README.en.md).*
+
 > **Nível 6** do [plano de estudo](../../../docs/plano-estudo-dpdk.md) ·
 > Pré-requisito: [02 — Mempool, ring e lote](../../01-fundamentos/02-mempool-ring/)
 

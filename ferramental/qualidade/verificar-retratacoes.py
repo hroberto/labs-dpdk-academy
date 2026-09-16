@@ -83,6 +83,21 @@ MARCADORES = (
     "publicava", "publicou", "ja publicou", "já publicou",
     "versao anterior", "versão anterior", "era artefato", "eram artefato",
     "estava errado", "estavam errados", "estavam erradas", "dizia",
+    # As mesmas frases em ingles, pelos pares `.en.md`.
+    #
+    # SEM ELAS, NENHUM BLOCO DE RETRATACAO EM INGLES ERA RECONHECIDO -- e a
+    # consequencia era pior que nao conferir: o proprio comentario
+    # `<!-- retratado: ... -->` do par contava como texto VIVO, e o verificador
+    # acusava o documento de republicar o que ele estava retratando. Foi assim
+    # que apareceu, em vermelho, ao traduzir a alternativa em C++23.
+    #
+    # A lista e deliberadamente ESPECIFICA. "published" e "said" sozinhos
+    # entrariam em prosa comum, e um falso positivo aqui REMOVE o bloco do texto
+    # conferido -- ele afrouxa o verificador em silencio, que e a direcao
+    # perigosa do erro.
+    "used to publish", "once published", "previously published",
+    "previous version", "used to say", "was an artefact", "was an artifact",
+    "was wrong", "were wrong", "retraction",
 )
 
 # Número decimal qualquer; o corte por dígitos significativos vem depois, em
@@ -170,6 +185,19 @@ def arquivos(raiz, exts):
                 yield os.path.join(pasta, nome)
 
 
+def grafias(numero):
+    """O mesmo valor nas duas linguas do material.
+
+    A PARIDADE pt/en ABRIU ESTE BURACO, e ele foi medido antes de ser fechado:
+    `122,3` declarado retratado sobrevivia como `122.3` no par `.en.md`, e este
+    verificador ficava VERDE. O numero seguia publicado, so que com ponto.
+
+    E o defeito que o projeto inteiro combate -- ausencia de deteccao lida como
+    ausencia de problema --, cometido pela propria decisao de traduzir.
+    """
+    return {numero, numero.replace(",", "."), numero.replace(".", ",")}
+
+
 def verificar(raiz="."):
     docs = sorted(arquivos(raiz, {".md"}))
     # Onde cada número retratado foi declarado morto.
@@ -187,7 +215,10 @@ def verificar(raiz="."):
                     sem_marca.append((os.path.relpath(doc, raiz), bloco.strip()[:70]))
                 continue
             for n in NUMERO.findall(marca.group(1)):
-                mortos.setdefault(n, []).append(doc)
+                # Cada grafia entra como chave propria: o laço abaixo procura
+                # literal, e o par em ingles escreve o mesmo valor com ponto.
+                for g in grafias(n):
+                    mortos.setdefault(g, []).append(doc)
 
     problemas = 0
     isentos = {}
@@ -199,7 +230,11 @@ def verificar(raiz="."):
         vivo = fora_de_retratacao(texto)
         citados = set()
         for m in CITA.finditer(texto):
-            citados.update(NUMERO.findall(m.group(1)))
+            # A isencao vale para as duas grafias: quem declara citar `2,078`
+            # de proposito esta citando o mesmo valor que o ingles escreve
+            # `2.078`, e exigir as duas marcas seria burocracia sem ganho.
+            for n in NUMERO.findall(m.group(1)):
+                citados.update(grafias(n))
         if citados:
             isentos[os.path.relpath(doc, raiz)] = sorted(citados)
         for n, origens in sorted(mortos.items()):
@@ -276,6 +311,105 @@ def autoteste():
         "# m\n\n> **Este bloco publicava 9,876 ns, e estava errado.**\n"})
     if "COBERTURA PARCIAL" not in saida:
         print("  AUTOTESTE FALHOU: retratação sem marca passou silenciosa"); falhas += 1
+
+    # DISTINTIVO, e este caso nasceu de uma campanha de mutacao: trocando o
+    # corte por `return True`, o autoteste continuava verde. O corte existe para
+    # que "5,0" nao vire ruido -- e um verificador ruidoso e desligado, que e a
+    # forma mais comum de um controle morrer. Sem caso proprio, ninguem
+    # perceberia se ele deixasse de cortar.
+    #
+    # Dois numeros no mesmo bloco: "120,0" tem tres significativos e E rastreado;
+    # "5,0" tem um so e NAO deve ser. Se o corte cair, o "5,0" vivo la fora vira
+    # sobrevivente e o caso acusa.
+    # A marca declara "5,0", que tem UM significativo, e "5,0" aparece vivo fora
+    # do bloco. Com o corte, ele nao e rastreado e nada acontece. Sem o corte,
+    # vira sobrevivente e o verificador acusa -- entao este caso, que espera
+    # SILENCIO, e quem morre quando o corte cai.
+    bloco = ("# d\n\n> **Este bloco publicava 5,0 ns, e estava errado.** O medido\n"
+             "> e 1,234 ns.\n> <!-- retratado: 5,0 -->\n\nA folga segue em 5,0 ns.\n")
+    rc, saida = rodar({"d.md": bloco})
+    if rc != 0:
+        print(f"  AUTOTESTE (distintivo) FALHOU: numero de 1 significativo"
+              f" tratado como rastreavel (rc={rc})")
+        print("    " + saida.strip().replace("\n", "\n    "))
+        falhas += 1
+
+    # O corte tambem governa o AVISO de cobertura parcial: um bloco sem marca so
+    # merece aviso se tiver numero rastreavel. Com "5,0" sozinho, avisar seria
+    # ruido -- e verificador ruidoso e desligado. Este caso trava esse ramo, que
+    # e de RELATO e nao muda o veredito; sem ele, a mutacao passava despercebida.
+    rc, saida = rodar({"baixo.md":
+        "# b\n\n> **Este bloco publicava 5,0 ns, e estava errado.** Agora e outro.\n"})
+    if "COBERTURA PARCIAL" in saida:
+        print("  AUTOTESTE FALHOU: bloco sem marca, com numero de 1 significativo,"
+              " gerou aviso de cobertura parcial")
+        falhas += 1
+
+    # PARIDADE pt/en: o mesmo valor, a outra grafia.
+    #
+    # Este caso registra um buraco que existiu de verdade. Enquanto a paridade
+    # era um resumo embutido em portugues, so havia uma grafia no material. Com
+    # os pares `.en.md`, `122,3` retratado passou a poder sobreviver como
+    # `122.3`, e o verificador ficava verde -- medido antes de ser fechado.
+    rc, saida = rodar({"a.md": "# a\n\n> **Publicava 122,3 ms, e estava errado.**\n"
+                               "> <!-- retratado: 122,3 -->\n",
+                       "a.en.md": "# a\n\nThe cost is 122.3 ms, measured.\n"})
+    if rc != 1:
+        print(f"  AUTOTESTE (paridade) FALHOU: valor retratado sobreviveu na"
+              f" grafia inglesa sem ser acusado (rc={rc})")
+        print("    " + saida.strip().replace("\n", "\n    "))
+        falhas += 1
+
+    # E a isencao declarada tambem atravessa a lingua: quem cita de proposito
+    # nao deve precisar de uma marca por grafia.
+    rc, saida = rodar({"b.md": "# b\n\n> **Publicava 122,3 ms, e estava errado.**\n"
+                               "> <!-- retratado: 122,3 -->\n",
+                       "b.en.md": "# b\n\n<!-- cita-retratado: 122,3 -->\n"
+                                  "The old figure was 122.3 ms.\n"})
+    if rc != 0:
+        print(f"  AUTOTESTE (paridade/isencao) FALHOU: citacao declarada em"
+              f" portugues nao isentou a grafia inglesa (rc={rc})")
+        print("    " + saida.strip().replace("\n", "\n    "))
+        falhas += 1
+
+    # Bloco de retratacao EM INGLES precisa ser reconhecido como bloco.
+    #
+    # Sem isto o par `.en.md` nao so deixava de ser conferido: a propria marca
+    # `<!-- retratado: ... -->` dele contava como texto vivo, e o verificador
+    # acusava o documento de republicar aquilo que estava retratando.
+    rc, saida = rodar({"a.en.md":
+        "# a\n\n> **This column used to publish 2.078 ns, and it does not"
+        " reproduce.**\n> The measured value is 1.628 ns.\n"
+        "> <!-- retratado: 2,078 -->\n\nThe ring costs 1.628 ns.\n"})
+    if rc != 0:
+        print(f"  AUTOTESTE (retratacao em ingles) FALHOU: bloco nao reconhecido"
+              f" (rc={rc})")
+        print("    " + saida.strip().replace("\n", "\n    "))
+        falhas += 1
+
+    # E o reconhecimento nao pode virar porta dos fundos: o valor retratado que
+    # sobrevive FORA do bloco continua sendo acusado, em qualquer das grafias.
+    rc, _ = rodar({"b.en.md":
+        "# b\n\n> **This column used to publish 2.078 ns.**\n"
+        "> <!-- retratado: 2,078 -->\n\nThe ring costs 2.078 ns.\n"})
+    if rc != 1:
+        print(f"  AUTOTESTE (retratacao em ingles) FALHOU: sobrevivente fora do"
+              f" bloco passou (rc={rc})")
+        falhas += 1
+
+    # A DIRECAO PERIGOSA: marcador frouxo afrouxa o verificador em silencio.
+    #
+    # Um bloco de citacao que apenas MENCIONA o valor, sem se anunciar como
+    # retratacao, tem de continuar sendo acusado. Sem este caso, acrescentar
+    # uma frase comum a MARCADORES -- "ring costs", "the cost is" -- isentaria
+    # prosa normal e nada falharia. Medido: o mutante sobrevivia.
+    rc, _ = rodar({"r.md": "# r\n\n> **This column used to publish 2.078 ns.**\n"
+                           "> <!-- retratado: 2,078 -->\n",
+                   "c.en.md": "# c\n\n> The ring costs 2.078 ns per hand-off.\n"})
+    if rc != 1:
+        print(f"  AUTOTESTE (marcador frouxo) FALHOU: citacao comum tratada como"
+              f" retratacao, e o valor retratado passou (rc={rc})")
+        falhas += 1
 
     print(f"\n  autoteste: {falhas} assercao(oes) falharam")
     return falhas

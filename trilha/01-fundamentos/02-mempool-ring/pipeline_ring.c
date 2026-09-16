@@ -51,7 +51,25 @@ struct config {
      * pacote avance. A distincao importa -- uma execucao longa e legitima, uma
      * execucao parada nao. */
     uint64_t progresso_ms;
+    /* Profundidade da fila, em objetos.
+     *
+     * Era fixa em 1024, e o submodulo de contrapressao existe para medir
+     * justamente o que se ganha e o que se perde ao mexer nela -- nao dava para
+     * medir o que nao era ajustavel.
+     *
+     * `rte_ring_create` exige POTENCIA DE DOIS (sem RING_F_EXACT_SZ), e a
+     * capacidade util e a profundidade MENOS UM: o anel reserva uma posicao para
+     * distinguir cheio de vazio. Pedir 1024 da 1023 objetos, e essa diferenca
+     * aparece na conta de quem dimensiona o pool. */
+    unsigned profundidade;
 };
+
+/* Potencia de dois? Exigencia do rte_ring, conferida aqui para que o erro saia
+ * com a explicacao em vez de sair do DPDK como "invalid argument". */
+static int potencia_de_dois(unsigned n)
+{
+    return n != 0 && (n & (n - 1)) == 0;
+}
 
 static int parse_config(int argc, char **argv, struct config *cfg)
 {
@@ -59,20 +77,38 @@ static int parse_config(int argc, char **argv, struct config *cfg)
     cfg->num_packets = 10;
     cfg->burst = 32;
     cfg->progresso_ms = 0;
+    cfg->profundidade = 1024;
     optind = 1;
-    while ((opt = getopt(argc, argv, "n:b:t:")) != -1) {
+    while ((opt = getopt(argc, argv, "n:b:t:q:")) != -1) {
         switch (opt) {
         case 'n': cfg->num_packets = strtoull(optarg, NULL, 10); break;
         case 'b': cfg->burst = (unsigned)strtoul(optarg, NULL, 10); break;
         case 't': cfg->progresso_ms = strtoull(optarg, NULL, 10); break;
+        case 'q': cfg->profundidade = (unsigned)strtoul(optarg, NULL, 10); break;
         default:
             fprintf(stderr, "Uso: %s <EAL> -- [-n pacotes] [-b lote (1..%u)]"
-                            " [-t ms sem progresso]\n", argv[0], BURST_MAX);
+                            " [-t ms sem progresso] [-q profundidade da fila]\n",
+                    argv[0], BURST_MAX);
             return -1;
         }
     }
     if (cfg->burst == 0 || cfg->burst > BURST_MAX || cfg->num_packets == 0) {
         fprintf(stderr, "Parametros invalidos: -n deve ser > 0 e -b entre 1 e %u\n", BURST_MAX);
+        return -1;
+    }
+    if (!potencia_de_dois(cfg->profundidade)) {
+        fprintf(stderr, "Parametros invalidos: -q deve ser potencia de dois"
+                        " (exigencia do rte_ring); recebido %u\n", cfg->profundidade);
+        return -1;
+    }
+    /* A fila precisa caber um lote inteiro, senao o produtor nunca consegue
+     * enfileirar e o programa gira sem avancar ate o prazo de progresso. Recusar
+     * aqui e melhor que descobrir depois de 5 s de nada. A capacidade util e
+     * profundidade-1, dai o `<=`. */
+    if (cfg->profundidade <= cfg->burst) {
+        fprintf(stderr, "Parametros invalidos: -q %u nao comporta um lote de %u"
+                        " (capacidade util e profundidade-1)\n",
+                cfg->profundidade, cfg->burst);
         return -1;
     }
     return 0;
@@ -94,6 +130,16 @@ struct consumer_context {
      * para sempre um consumidor que nunca alcanca o alvo. Desistir de um lado
      * so nao e desistir: e travar noutro lugar. */
     volatile int parar;
+    /* Maior lote REALMENTE desenfileirado de uma vez.
+     *
+     * Existe por causa de um defeito do TESTE, nao do programa: o runner L2
+     * conferia `grep "Lote (burst): 64"`, que imprime o valor PEDIDO. Um mutante
+     * que ignorasse `cfg.burst` e processasse de um em um continuava anunciando
+     * 64, e o teste passava. O parametro ecoado nao e evidencia de uso.
+     *
+     * Este contador nao pode ser falsificado pelo eco: so chega a 64 se uma
+     * chamada tiver movido 64 objetos. */
+    unsigned maior_deq;
 } __rte_cache_aligned;
 
 /* Executado no lcore trabalhador quando há dois ou mais lcores. */
@@ -109,6 +155,7 @@ static int consumer_loop(void *arg)
     while (c->r.packets < c->target && !c->parar) {
 #ifndef DPDK_ACADEMY_INJECT_PAUSE
         const unsigned deq = rte_ring_dequeue_burst(c->ring, (void **)burst, c->burst, NULL);
+        if (deq > c->maior_deq) c->maior_deq = deq;
         if (deq > 0) {
             packet_process_burst(burst, deq, &c->r);
             rte_mempool_put_bulk(c->pool, (void *const *)burst, deq);
@@ -236,7 +283,7 @@ int main(int argc, char **argv)
     }
 
     /* Fila de ponteiros entre produtor e consumidor (um de cada: SP/SC). */
-    struct rte_ring *ring = rte_ring_create("fila", 1024, rte_socket_id(),
+    struct rte_ring *ring = rte_ring_create("fila", cfg.profundidade, rte_socket_id(),
                                             RING_F_SP_ENQ | RING_F_SC_DEQ);
     if (ring == NULL) {
         fprintf(stderr, "rte_ring_create falhou: %s\n", rte_strerror(rte_errno));
@@ -251,6 +298,9 @@ int main(int argc, char **argv)
 #endif
     struct summary r = {0, 0};
     uint64_t produced = 0, did_not_fit = 0;
+    /* Maiores lotes REALMENTE movidos, produtor e consumidor. Ver o comentario
+     * em `struct consumer_context`: o valor PEDIDO nao prova uso. */
+    unsigned maior_enq = 0, maior_deq_local = 0;
     /* Espera limitada: quanto tempo se aceita SEM PROGRESSO antes de desistir.
      *
      * O relogio so anda quando nada avanca. Qualquer pacote produzido ou
@@ -315,6 +365,7 @@ int main(int argc, char **argv)
             for (unsigned i = 0; i < n; i++)
                 packet_fill(burst_prod[i], produced + i, 64u + (uint32_t)((produced + i) % 32u));
             unsigned enq = rte_ring_enqueue_burst(ring, (void *const *)burst_prod, n, NULL);
+            if (enq > maior_enq) maior_enq = enq;
             produced += enq;
             /* Fila cheia: os que não couberam voltam ao pool (nunca vazam). */
             if (enq < n) {
@@ -340,6 +391,7 @@ int main(int argc, char **argv)
         if (!two_cores) {
 #ifndef DPDK_ACADEMY_INJECT_PAUSE
             unsigned deq = rte_ring_dequeue_burst(ring, (void **)burst_cons, cfg.burst, NULL);
+            if (deq > maior_deq_local) maior_deq_local = deq;
             if (deq > 0) {
                 packet_process_burst(burst_cons, deq, &r);
                 rte_mempool_put_bulk(pool, (void *const *)burst_cons, deq);
@@ -413,6 +465,8 @@ int main(int argc, char **argv)
      * os dois batem exatamente. */
     printf("Lote (burst): %u | objetos que nao couberam na fila: %" PRIu64 "\n",
            cfg.burst, did_not_fit);
+    printf("Maior lote movido de fato: enfileirado %u, desenfileirado %u\n",
+           maior_enq, two_cores ? ctx.maior_deq : maior_deq_local);
     if (two_cores)
         printf("Modo: 2 lcores (produtor %u, consumidor %u)\n", rte_lcore_id(), lcore_consumer);
     else

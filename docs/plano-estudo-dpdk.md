@@ -1,5 +1,7 @@
 # Plano de estudo: DPDK para iniciantes e avançados
 
+*Read this in [English](plano-estudo-dpdk.en.md).*
+
 ## Objetivo
 
 Este plano foi pensado para construir uma base sólida em DPDK, com foco em:
@@ -324,13 +326,18 @@ e em XDP genérico, que roda o eBPF já depois da alocação de `sk_buff` — pe
 a maior parte do ganho. Verificável no módulo do driver:
 
 ```bash
-./ferramental/af-xdp/xdp-zerocopy.sh              # o driver da interface padrão
-./ferramental/af-xdp/xdp-zerocopy.sh i40e ice     # drivers nomeados, para comparar
+m=$(modinfo -n r8169)                      # caminho do módulo
+tmp=$(mktemp); zstdcat "$m" > "$tmp"       # DESCOMPRIMIR antes é obrigatório
+nm "$tmp" | grep -c 'xdp_'                 # 0 aqui; 37 no i40e
+rm -f "$tmp"
 ```
 
-O script existe porque a forma direta erra em silêncio: módulos do kernel vêm
-comprimidos, o `nm` recusa o arquivo e o `grep -c` devolve `0` — a mesma resposta
-que daria um driver realmente sem suporte.
+A descompressão não é detalhe: módulos do kernel vêm comprimidos, o `nm` recusa o
+arquivo e o `grep -c` devolve `0` — a mesma resposta que daria um driver
+realmente sem suporte. A forma direta sobre o `.ko.zst` responde `0` para
+**todo** driver do sistema, inclusive os que têm suporte. A tabela completa, com
+as três colunas que separam "sem XDP" de "com XDP, sem zero-copy", está no
+[projeto final](../trilha/04-projeto-final/README.md#4-af_xdp-a-decisão-tomada).
 
 **O `tcpdump` não vê o que foi redirecionado.** A interface continua
 administrável, e o tráfego *não* redirecionado segue normalmente pela pilha —

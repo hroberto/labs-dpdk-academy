@@ -89,12 +89,12 @@ Os dez níveis, e onde cada um está:
 | 1-2 | Fundamentos de sistema e de rede | [docs/01-fundamentos](docs/01-fundamentos/) |
 | 3 | Runtime e EAL | [docs/02-runtime-dpdk](docs/02-runtime-dpdk/) · [trilha 01-eal-hello](trilha/01-fundamentos/01-eal-hello/) |
 | 4 | Mempool, mbuf, ring e ciclo de dados | [docs/03-mempool-ring-mbuf](docs/03-mempool-ring-mbuf/) · [trilha 02-mempool-ring](trilha/01-fundamentos/02-mempool-ring/) |
-| 5 | Pipeline e contrapressão | [trilha/02-pipeline](trilha/02-pipeline/) — escopo registrado, sem código |
+| 5 | Pipeline e contrapressão | [trilha/02-pipeline](trilha/02-pipeline/) — **escrito**; profundidade de fila e recusa medidas |
 | 6 | RX/TX e hardware | [trilha 01-rx-tx-burst](trilha/02-pipeline/01-rx-tx-burst/) — ambiente medido, sem código; depende de NIC |
 | 7 | NUMA, cache e desempenho | coberto dentro dos [fundamentos](docs/01-fundamentos/) |
-| 8 | Observabilidade e qualidade | [trilha/03-performance](trilha/03-performance/) — escopo registrado, sem código |
+| 8 | Observabilidade e qualidade | [trilha/03-performance](trilha/03-performance/) — **escrito**; método de medição e telemetria medidos |
 | 9 | Virtualização e nuvem | **não iniciado** |
-| 10 | Projeto final e alternativas | [trilha/04-projeto-final](trilha/04-projeto-final/) |
+| 10 | Projeto final e alternativas | [trilha/04-projeto-final](trilha/04-projeto-final/) — **consolidação escrita**; a aplicação não existe |
 
 > **Esta tabela substituiu uma lista de sete passos que competia com os dez
 > níveis em vez de citá-los.** A colisão era concreta: o passo 5 da lista era
@@ -152,6 +152,37 @@ ambiente. As decisões de ferramental estão explicadas em
 ./scripts/test-all.sh l2    # só integração com o runtime
 ./scripts/test-all.sh l3    # só o que exige concessão do host
 ```
+
+> **Antes de estranhar os testes que pulam: hugepage reservada não é hugepage
+> utilizável.** É a pegadinha mais provável desta lista, e ela não se parece com
+> um erro.
+>
+> Para o DPDK multiprocesso são necessárias **duas** coisas ao mesmo tempo:
+> páginas reservadas **e** um ponto `hugetlbfs` em que o *seu* usuário possa
+> escrever. A montagem padrão do systemd é `/dev/hugepages`, `root:root 755` —
+> então o caso comum é ter mil páginas livres e nenhuma delas alcançável, e os
+> testes **L3 pulam** sem que nada pareça errado.
+>
+> `check-env.sh` tira essa conclusão para você, em uma linha. Quando faltar:
+>
+> ```bash
+> sudo ./scripts/preparar-hugepages.sh
+> ```
+>
+> Pede privilégio **uma vez** e monta o ponto no seu nome — depois disso nenhuma
+> execução precisa de root.
+>
+> **E se você experimentar muito à mão, limpe o diretório de runtime.** Cada
+> execução com `--file-prefix` novo deixa dezenas de MB em
+> `$XDG_RUNTIME_DIR/dpdk`, que é *tmpfs*. A suíte limpa os seus; execução avulsa,
+> não. Quando enche, a EAL morre com **SIGBUS** ao mapear o `fbarray` — inclusive
+> com `--no-huge` —, e a mensagem fala de barramento, não de disco cheio. Aqui
+> isso derrubou nove testes de uma vez e parecia regressão de código.
+> `check-env.sh` avisa antes; com nenhum DPDK rodando, `rm -rf $XDG_RUNTIME_DIR/dpdk/*`
+> resolve. E não há atalho sem privilégio: `hugetlbfs` não é
+> montável em *user namespace* (o kernel não a marca como tal), e `--no-huge`
+> não serve porque o processo secundário se anexa mapeando o arquivo de respaldo
+> das hugepages — sem ele, não há anexação. Medido, não suposto.
 
 ### Os três níveis de teste, e o que separa um do outro
 

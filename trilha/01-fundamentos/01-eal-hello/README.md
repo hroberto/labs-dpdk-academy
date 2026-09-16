@@ -1,15 +1,9 @@
 # Tópico 01 — Inicialização da EAL
 
+*Read this in [English](README.en.md).*
+
 > **Nível 3** do [plano de estudo](../../../docs/plano-estudo-dpdk.md) ·
 > Pré-requisito: DPDK instalado ([ferramental](../../../docs/00-visao-geral/ferramental.md))
-
-> **In English.** The smallest complete DPDK program: initialize the EAL, report
-> what it created, shut down. The lesson is in the failure paths — there are
-> **two**, and only one reaches your code. An unknown argument makes the EAL
-> terminate the process itself (exit 234, which is `-EINVAL` truncated to 8
-> bits); a valid argument with an impossible value returns `-1` and lets you
-> handle it. The L2 test asserts both, including the *absence* of your error
-> message in the first case.
 
 ## 1. Fundamento: o que a EAL resolve
 

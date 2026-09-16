@@ -1,6 +1,27 @@
 # libm: estatistica.h usa sqrt() para o desvio padrao.
 libm = meson.get_compiler('c').find_library('m', required : false)
 
+# --- L1 NEGATIVO: o aborto de collect_or_fail dispara mesmo? ---------------
+#
+# `collect_or_fail` e usado por SETE programas sem EAL, e existe para encerrar o
+# processo quando a coleta nao e publicavel. O caminho de aborto estava SEM
+# TESTE, e a ausencia foi medida: trocando a condicao por `if (0)`, a suite
+# inteira continuava verde. O teste de "coleta invalida deve falhar" que ja
+# existia exercita o OUTRO caminho, o dos programas com EAL.
+#
+# `should_fail : true` e o ponto: se este programa um dia sair com SUCESSO, o
+# meson reporta UNEXPECTEDPASS e a suite fica vermelha -- porque sucesso aqui
+# significa que o aborto sumiu.
+coleta_zero = executable(
+  'coleta-zero',
+  'tests/coleta_zero.c',
+  dependencies : [libm],
+  include_directories : include_directories('.'),
+  install : false,
+)
+test('fundamentos - L1 (coleta que nao aconteceu deve abortar)', coleta_zero,
+     suite : ['l1', 'fundamentos'], timeout : 30, should_fail : true)
+
 # --- L1: o modulo de estatistica, sem EAL e sem DPDK -----------------------
 #
 # estatistica.h calcula a mediana, o IQR, o p99, a dispersao e o CV de TODA

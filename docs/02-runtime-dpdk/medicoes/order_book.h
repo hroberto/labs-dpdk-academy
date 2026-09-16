@@ -134,6 +134,27 @@ int32_t livro_spread(const struct order_book *l);
  */
 int order_book_crossed(const struct order_book *l);
 
+/* Veredito de validade da assinatura inteira, a partir das duas condições que a
+ * invalidam. Recebe os números APURADOS em vez de lê-los, e a razão é medida:
+ *
+ * Enquanto esta decisão vivia embutida no final de `feed-secundario.c`, um
+ * mutante que a trocasse por "sempre VALIDO" SOBREVIVIA à suíte -- porque nesta
+ * máquina o livro é de fato válido, e "sempre sim" é indistinguível de "sim
+ * porque apurei" quando a resposta é sim. É o mesmo padrão de `modelo_de_driver`
+ * em lib-nic.sh e de `hugepages_veredito` em lib-hugepages.sh: decisão que lê o
+ * ambiente sozinha só pode ser testada no ambiente em que se está.
+ *
+ *   cruzados     livros com compra acima da venda -- impossível num livro
+ *                consistente, logo qualquer valor > 0 invalida;
+ *   degenerados  amostras de latência impossíveis (TSC desalinhado entre os
+ *                núcleos). Não invalidam o LIVRO, invalidam a MEDIÇÃO que se
+ *                publica junto dele -- e publicar as duas coisas sob um único
+ *                selo de "válido" exige que as duas estejam boas. */
+static inline int feed_assinatura_valida(int cruzados, unsigned long long degenerados)
+{
+    return cruzados == 0 && degenerados == 0;
+}
+
 #ifdef __cplusplus
 }
 #endif
