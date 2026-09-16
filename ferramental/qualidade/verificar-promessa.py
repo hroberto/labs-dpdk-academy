@@ -84,6 +84,9 @@ EXTERNAS = {
     "net-tap", "af-packet", "uio-pci-generic",
     # utilitarios do sistema
     "ibv-devinfo", "xdp-sock", "bpf-tool", "numa-ctl",
+    # drivers de escalonamento de frequencia, citados pelo submodulo de
+    # benchmarking: sao do kernel, nao da arvore
+    "amd-pstate", "amd-pstate-epp", "intel-pstate", "acpi-cpufreq",
 }
 
 # Um token com CARA de programa deste projeto: HIFEN separando, ou terminado em
