@@ -94,16 +94,35 @@ CENSO = {
     # O que restou e o que interessa e nao gera atrito: quantos esqueletos, de
     # quantos documentos. O tamanho maximo continua travado -- pela regra 1, que
     # recusa banner de esqueleto acima de LIMITE_ESQUELETO linhas de conteudo.
+    # SINGULAR E PLURAL, e isto nao e purismo: quando a contagem caiu para 1, a
+    # frase precisou virar "1 dos 21 documentos ainda E esqueleto", e o padrao
+    # que exigia "sao esqueletos" deixou de casar. `censo is None` fazia a regra
+    # PULAR EM SILENCIO -- a afirmacao continuava publicada e ninguem mais a
+    # conferia. Um verificador que se desliga sozinho ao reescreverem a frase e
+    # pior que nenhum, porque o verde continua saindo.
+    #
+    # Dai as duas defesas: o padrao aceita as duas flexoes, e QUASE_CENSO abaixo
+    # acusa o arquivo que parece publicar um censo e nao casa com nada.
     "ROADMAP.md": re.compile(
-        r"(?P<n>\d+)\s+d[oe]s\s+(?P<total>\d+)\s+documentos\s+ainda\s+s[ãa]o\s+esqueletos"
+        r"(?P<n>\d+)\s+d[oe]s\s+(?P<total>\d+)\s+documentos?\s+ainda\s+"
+        r"(?:s[ãa]o\s+esqueletos|[ée]\s+esqueleto)"
         r"(?:,\s*de\s+(?P<min>\d+)\s+a\s+(?P<max>\d+)\s+linhas)?"),
     # A traducao repete a contagem e NAO repete a faixa de tamanhos. Conferir so
     # os grupos que o padrao tem e o que mantem as duas linguas sob a mesma
     # regra: a versao em ingles carregava "7 of 19" tres semanas depois de o
     # numero mudar, porque a regra lia um arquivo so.
     "README.en.md": re.compile(
-        r"(?P<n>\d+)\s+of\s+(?P<total>\d+)\s+documents\s+are\s+still\s+scope\s+skeletons"),
+        r"(?P<n>\d+)\s+of\s+(?P<total>\d+)\s+documents?\s+(?:are|is)\s+still\s+"
+        r"(?:a\s+)?scope\s+skeletons?"),
 }
+
+# Frase que PARECE um censo e nao casa com o padrao do arquivo. Existe para que
+# uma reescrita nao desligue a regra 3 sem avisar: o erro passa a ser "o padrao
+# nao reconheceu esta frase", que e acionavel, em vez de silencio.
+QUASE_CENSO = re.compile(
+    r"\d+\s+(?:d[oe]s|of)\s+\d+\s+documentos?[^.\n]{0,40}(?:esqueleto|skeleton)"
+    r"|\d+\s+(?:d[oe]s|of)\s+\d+\s+documents?[^.\n]{0,40}(?:esqueleto|skeleton)",
+    re.IGNORECASE)
 
 # Linha de tabela que aponta um diretorio e opina sobre o estado dele:
 #   | 6 -- RX/TX | -- | [02-pipeline/01-rx-tx-burst/](02-pipeline/01-rx-tx-burst/) | esqueleto |
@@ -210,6 +229,18 @@ def verificar(raiz="."):
         except (OSError, UnicodeDecodeError):
             continue
         if censo is None:
+            # FAIL-CLOSED: o arquivo tem cara de publicar um censo e o padrao nao
+            # reconheceu. Pode ser reescrita legitima ou erro de digitacao; as
+            # duas exigem alguem olhar, e nenhuma delas e "nada a conferir".
+            try:
+                bruto = open(caminho, encoding="utf-8").read()
+            except (OSError, UnicodeDecodeError):
+                continue
+            if QUASE_CENSO.search(bruto):
+                conferidos += 1
+                print(f"  {nome}: ha uma frase que parece um censo de esqueletos e o"
+                      f" padrao nao a reconhece -- a regra 3 deixaria de conferi-la")
+                problemas += 1
             continue
         conferidos += 1
         # Sem esqueleto nenhum a frase inteira perde o referente, e comparar
@@ -385,6 +416,33 @@ def autoteste():
                    "trilha/d/README.md": esqueleto + "## Objetivo\n"})
     if rc != 0:
         print(f"  AUTOTESTE FALHOU: linha de navegacao acusada como rotulo (rc={rc})"); falhas += 1
+
+    # 13-17. As duas defesas que a contagem chegar a 1 obrigou a criar.
+    #
+    # Quando o censo virou "1 dos 2 documentos ainda E esqueleto", o padrao que
+    # exigia plural parou de casar -- e a regra 3 se DESLIGAVA SOZINHA, sem
+    # avisar. A afirmacao seguia publicada e ninguem mais a conferia. Daqui em
+    # diante, flexao reconhecida (13-15) e reescrita acusada (16), com o caso 17
+    # garantindo que arquivo sem censo nenhum nao vire falso positivo.
+    base13 = {"docs/a.md": esqueleto + "## Objetivo\n", "trilha/b.md": "# b\n\nconteudo.\n"}
+    for numero, descricao, arqs, espera_defeito in (
+        (13, "censo no singular nao reconhecido",
+         {"ROADMAP.md": "# r\n\n1 dos 2 documentos ainda \u00e9 esqueleto.\n"}, False),
+        (14, "censo no singular com numero errado passou",
+         {"ROADMAP.md": "# r\n\n9 dos 2 documentos ainda \u00e9 esqueleto.\n"}, True),
+        (15, "censo em ingles no singular nao reconhecido",
+         {"README.en.md": "# r\n\n1 of 2 documents is still a scope skeleton.\n"}, False),
+        (16, "frase de censo reescrita fora do padrao passou em silencio",
+         {"ROADMAP.md": "# r\n\n1 dos 2 documentos permanece como esqueleto.\n"}, True),
+        (17, "arquivo sem censo nenhum acusado",
+         {"ROADMAP.md": "# r\n\nEste arquivo nao publica censo algum.\n"}, False),
+    ):
+        rc, saida = rodar({**arqs, **base13})
+        ok = (rc >= 1) if espera_defeito else (rc == 0)
+        if not ok:
+            print(f"  AUTOTESTE {numero} FALHOU: {descricao} (rc={rc})")
+            print("    " + saida.strip().replace("\n", "\n    "))
+            falhas += 1
 
     print(f"\n  autoteste: {falhas} assercao(oes) falharam")
     return falhas
