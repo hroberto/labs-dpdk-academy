@@ -4,7 +4,7 @@
  *
  * POR QUE ELE EXISTE
  *
- * `collect_or_fail()` é o adaptador usado por SETE programas de medição sem EAL.
+ * `collect_or_fail()` é o adaptador usado por OITO programas de medição sem EAL.
  * Ele existe para uma coisa só: encerrar o processo quando a coleta não é
  * publicável, em vez de deixar o programa imprimir zero como se fosse tempo.
  *

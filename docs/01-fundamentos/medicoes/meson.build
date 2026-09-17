@@ -3,7 +3,7 @@ libm = meson.get_compiler('c').find_library('m', required : false)
 
 # --- L1 NEGATIVO: o aborto de collect_or_fail dispara mesmo? ---------------
 #
-# `collect_or_fail` e usado por SETE programas sem EAL, e existe para encerrar o
+# `collect_or_fail` e usado por OITO programas sem EAL, e existe para encerrar o
 # processo quando a coleta nao e publicavel. O caminho de aborto estava SEM
 # TESTE, e a ausencia foi medida: trocando a condicao por `if (0)`, a suite
 # inteira continuava verde. O teste de "coleta invalida deve falhar" que ja
@@ -54,6 +54,38 @@ else
 endif
 
 
+# --- L1: a cadeia de ponteiros que TRÊS programas montam -------------------
+#
+# `cadeia.h` existe porque a terceira cópia da mesma construção saiu errada e a
+# suíte nao percebeu: `efeito-cache` publicou 0,9 ns como latencia da RAM com um
+# ciclo degenerado, e o teste do programa -- "executa" -- continuou verde,
+# porque um programa que mede a coisa errada tambem sai com zero.
+#
+# A propriedade quebrada e combinatoria (K ciclos disjuntos cobrindo cada no uma
+# vez), nao depende de hardware nem de tempo, e por isso cabe em L1.
+if gtest_dep.found()
+  test_l1_cadeia = executable(
+    'test_l1_cadeia',
+    'tests/test_l1_cadeia.cpp',
+    dependencies : [gtest_dep],
+    include_directories : include_directories('.'),
+    install : false,
+  )
+  test(
+    'fundamentos - L1 (cadeia de ponteiros)',
+    test_l1_cadeia,
+    protocol : 'gtest',
+    suite : ['l1', 'fundamentos'],
+    timeout : 30,
+  )
+else
+  test('fundamentos - L1 (cadeia de ponteiros)', bash,
+       args : [meson.project_source_root() / 'ferramental/qualidade/pular-sem-gtest.sh',
+               'fundamentos - L1 (cadeia de ponteiros)'],
+       suite : ['l1', 'fundamentos'], timeout : 30)
+endif
+
+
 # Medições dos fundamentos (níveis 1 e 2).
 #
 # Não dependem do DPDK: o objetivo é medir as propriedades da MÁQUINA que
@@ -63,6 +95,13 @@ endif
 custo_syscall = executable('custo-syscall', 'custo-syscall.c', dependencies : [libm], install : false)
 efeito_cache = executable('efeito-cache', 'efeito-cache.c', dependencies : [libm], install : false)
 custo_traducao = executable('custo-traducao', 'custo-traducao.c', dependencies : [libm], install : false)
+# L3: mede CONCORRENCIA de memoria (latencia x vazao). Usa hugepages apenas
+# para tirar a TLB da conta; sem elas sai com 77 (PULADO).
+custo_paralelismo = executable('custo-paralelismo', 'custo-paralelismo.c',
+                               dependencies : [dependency('threads'), libm], install : false)
+test('fundamentos - custo-paralelismo (L3)', custo_paralelismo,
+     suite : ['l3', 'fundamentos'], timeout : 300)
+
 custo_comunicacao = executable('custo-comunicacao', 'custo-comunicacao.c',
                                dependencies : [dependency('threads'), libm], install : false)
 # Reproduz a Tabela 3.1 de McKenney nesta maquina, para confronto direto com a

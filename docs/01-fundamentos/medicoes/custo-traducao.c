@@ -38,6 +38,7 @@
 #include <sys/mman.h>
 #include <time.h>
 
+#include "cadeia.h"
 #include "clock_ns.h"
 #include "statistics.h"
 
@@ -52,11 +53,6 @@
 static volatile size_t sumidouro;
 
 
-static uint64_t aleatorio_64(void)
-{
-    return ((uint64_t)rand() << 31) ^ (uint64_t)rand();
-}
-
 /* Monta uma permutação cíclica sobre as linhas de cache da região e a percorre.
  * Devolve o tempo médio por acesso. */
 static double medir(void *mem, size_t bytes)
@@ -67,19 +63,16 @@ static double medir(void *mem, size_t bytes)
     if (ordem == NULL)
         return -1.0;
 
-    for (size_t i = 0; i < n; i++)
-        ordem[i] = i;
-    /* Fisher-Yates: destrói qualquer previsibilidade para o prefetcher. */
-    for (size_t i = n - 1; i > 0; i--) {
-        const size_t j = (size_t)(aleatorio_64() % (i + 1));
-        const size_t t = ordem[i];
-        ordem[i] = ordem[j];
-        ordem[j] = t;
-    }
-    /* Cada posição guarda o índice da próxima: o acesso vira uma cadeia. */
-    for (size_t i = 0; i < n; i++)
+    /* Permutação e encadeamento vêm de `cadeia.h`, com a propriedade
+     * "ciclo único que visita cada linha uma vez" verificada em L1. Estava
+     * escrito à mão aqui, e a terceira cópia da mesma construção saiu errada
+     * em `efeito-cache.c` — ver o cabeçalho de `cadeia.h`. */
+    static uint64_t semente = 0x2545F4914F6CDD1Dull;
+    academy_permutar(ordem, n, &semente);
+    const size_t nos = academy_cadeia_nos(n, 1);
+    for (size_t i = 0; i < nos; i++)
         p[ordem[i] * (LINHA_CACHE / sizeof(size_t))] =
-            ordem[(i + 1) % n] * (LINHA_CACHE / sizeof(size_t));
+            academy_sucessor(ordem, n, 1, i) * (LINHA_CACHE / sizeof(size_t));
     free(ordem);
 
     size_t idx = 0;
