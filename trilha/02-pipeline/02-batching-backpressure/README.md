@@ -75,6 +75,12 @@ O lote tem efeito oposto e maior do que se espera: lotes grandes amortizam o
 custo por objeto dos dois lados, e com isso o consumidor drena mais rápido — o
 que reduz a recusa em vez de aumentá-la.
 
+> **A razão física está um nível abaixo.** O trade-off dos dois parágrafos acima
+> é o mesmo da [§4.2 dos fundamentos](../../../docs/01-fundamentos/README.md#42-cache-e-localidade),
+> uma escala menor: lá o lote não dilui o custo de um anel, e sim o de um acesso
+> à memória, e a curva medida mostra onde ele para de compensar. A mesma conta —
+> vazão = concorrência ÷ latência — governa os dois.
+
 ## 4. Implementação
 
 A profundidade da fila era **fixa em 1024** no código, o que tornava o primeiro
