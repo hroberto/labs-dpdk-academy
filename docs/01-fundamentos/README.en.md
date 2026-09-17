@@ -369,18 +369,40 @@ Lookaside Buffer*).
   happen.
 - **TLB miss:** the hardware performs the full walk and stores the result.
 
-The TLB is small — a few hundred to a few thousand entries. What matters is not the
-number of entries, but the **reach** (*TLB reach*): how much memory they cover
-together.
+The TLB is small, and **how** small is a number your machine knows — but one the
+operating system may not report correctly. On this one, `/proc/cpuinfo` publishes
+`TLB size: 192 4K pages`, and the hardware has **4,096 entries** at the second
+level. The error is 21×, and the cause is documented: from Zen 5 on, AMD encodes
+the last-level TLB size in **multiples of 32**, with a bit (`L2TlbSizeX32`)
+telling software to multiply; Linux [never learned to check that bit][zen5tlb],
+and the fix only lands in kernel 7.4.
+
+Ask the processor, not the kernel ([`tlb-real.c`](medicoes/tlb-real.c)):
+
+```c
+/* CPUID 0x80000021 EAX bit 14 = L2TlbSizeX32; if 1, multiply by 32 */
+__get_cpuid(0x80000006, &a, &b, &c, &d);   /* L2 TLB: EBX 4 KB, EAX 2 MB */
+__get_cpuid(0x80000021, &e, &f, &g, &h);   /* the bit the kernel ignores  */
+```
+
+On this machine the bit is set, the raw value is 128, and the real one is 128 × 32:
+
+```
+                    L1 DTLB   L2 DTLB   reach at this level
+  4 KB pages             96     4 096                 16 MB
+  2 MB hugepages         96     4 096                  8 GB
+  1 GB pages             96        32                 32 GB
+```
+
+What matters is not the number of entries, but the **reach** (*TLB reach*): how
+much memory they cover together.
 
 ```
 reach = entries × page size
 ```
 
-With 4 KB pages, a thousand entries cover 4 MB — and "a thousand" here is a round
-number, chosen so the arithmetic works in your head; that is the right order of
-magnitude. What decides the outcome is not the absolute size of the TLB, but the
-**ratio between reach and working set**. In a scattered walk — with no pattern the
+What decides the outcome is not the absolute size of the TLB, but the **ratio
+between reach and working set**. In a scattered walk — with no pattern the
 processor can predict — the chance that a translation is already in the TLB is
 roughly that ratio:
 
@@ -388,26 +410,35 @@ roughly that ratio:
 P(hit) ≈ reach / working set
 ```
 
-Applying the formula with 4 KB pages and ~1 000 entries:
+Applying it with the 4,096 entries measured above and 4 KB pages:
 
-| Working set | Entries needed | Fraction covered | In practice |
+| Working set | Entries needed | Fraction covered | Prediction |
 |---|---|---|---|
-| 4 MB | 1 024 | ~100% | almost every access hits |
-| 64 MB | 16 384 | 6.1% | most miss |
-| 512 MB | 131 072 | 0.8% | practically everything misses |
+| 4 MB | 1,024 | 100% | hugepages buy nothing |
+| 16 MB | 4,096 | 100% | still at the limit |
+| 64 MB | 16,384 | 25% | the gain should appear here |
+| 512 MB | 131,072 | 3.1% | practically everything misses |
 
-That last row is the case measured in this document. Covering 512 MB with 4 KB
-pages would require **131 072 TLB entries** — one to two orders of magnitude beyond
-what current processors offer. Fewer than 1% of accesses hit; the other 99% pay the
-full walk described above. And the argument does not depend on the round number:
-even a 4 000-entry TLB, the top of what is seen today, would cover 16 MB — still 3%
-of the region.
+**And the table is a prediction, not a description.** It says the hugepage gain
+should be irrelevant up to ~16 MB and be born between 16 and 64 MB. Measuring the
+same scattered walk with both page sizes, on this machine:
+
+```
+  region     4 KB     2 MB     gain
+     8 MB    12.69    10.94    1.75 ns   <- covered: as predicted, almost nothing
+    64 MB    86.09    79.45    6.64 ns   <- 25% covered: the gain appears
+   512 MB   104.20    93.40   10.80 ns   <- 3% covered: full gain
+```
+
+The prediction holds. That is the kind of confirmation worth more than the
+isolated number: the model does not merely describe the result, it **anticipated**
+it.
 
 **And asking for a bigger TLB does not help.** It is consulted on *every* memory
-access, in parallel with L1, and has to answer in ~1 cycle — which forces it to stay
-small and highly associative. Growing it costs latency and power on the hottest path
-in the processor, and the return is linear: doubling the entries takes coverage from
-0.8% to 1.6%. That solves nothing.
+access, in parallel with L1, and has to answer in ~1 cycle — which forces it to
+stay small and highly associative. Growing it costs latency and power on the
+hottest path in the processor, and the return is linear: doubling the entries
+takes coverage from 3.1% to 6.2%. That solves nothing.
 
 **In other words:** the TLB does not fail for being small — it fails because, with
 4 KB pages, **each entry covers far too little**. Reach is the product of two
@@ -419,8 +450,15 @@ one of the two factors that multiplies.
 
 2 MB [hugepages][hugetlb] attack the formula from both sides.
 
-**They increase the reach 512×.** The same thousand entries come to cover 2 GB instead
-of 4 MB.
+**They increase the reach 512×.** The same 4,096 entries come to cover 8 GB instead
+of 16 MB.
+
+> **The formula carries a premise it does not declare**: that the number of
+> entries **does not change** with the page size. For 4 KB → 2 MB that holds on
+> this machine — 4,096 entries in both cases, and the 512× is real. For 1 GB the
+> premise breaks: the second level holds **32 entries**, not 4,096. Reach rises
+> from 8 to 32 GB, a factor of 4, not 512. Check yours before generalising; it is
+> a microarchitecture decision, not arithmetic.
 
 **They shorten the walk.** With a 2 MB page, the offset becomes 21 bits (2²¹ = 2 MB),
 consuming the 9 bits that would have been level 1. The level 2 entry points directly at
@@ -436,6 +474,35 @@ the physical frame: **three accesses instead of four**.
  └──────────┴──────────┴──────────┴───────────────────────┘
                             └── points straight at the 2 MB frame
 ```
+
+> **And why 2 MB, and not 1 GB?** Both costs of choosing a page size depend on
+> the same quantity: **how many pages the region consumes**, `n = S/P`. Too few
+> pages and the rounding weighs — with `n` pages, the waste reaches `1/n` of the
+> region. Too many pages and the TLB stops covering, which is the effect measured
+> above. The band where neither hurts runs from ~100 to ~4,000 pages.
+>
+> Hence the answer: 4 KB serves regions from 400 KB to 16 MB; 2 MB, from 200 MB
+> to 8 GB. A 512 MB mempool gives 256 pages of 2 MB — mid-band. That is why 2 MB
+> is the de facto default, and not tradition. For 1 GB both problems add up: the
+> region would have to exceed 100 GB for the waste to vanish, and the TLB's second
+> level holds only 32 of those entries.
+>
+> Note that the bands **do not touch**: the useful one is ~40× wide and the page
+> sizes jump 512×. Between 16 MB and 200 MB no size is good, and you pick the
+> lesser evil — in a data plane, almost always time.
+
+> **And when a hugepage hurts.** So far this document has shown only the gain, and
+> that is half the truth. The clear case is *transparent hugepages*, which the
+> kernel promotes on its own: the [official documentation][thp] records
+> applications losing 30% or more with them enabled, for three reasons —
+> **latency spikes during compaction** (poison for a data plane), **memory bloat**
+> from the 2 MB granularity, and promotion in regions that do not benefit. That is
+> why the `madvise` mode exists, off by default, letting the application ask.
+>
+> DPDK does not use THP: it asks for `MAP_HUGETLB` over a pre-reserved pool, and
+> background promotion does not happen. But the price of the reservation remains —
+> see [the reserved area](#the-reserved-area-256-hugepages-and-why-the-recipe-asks-for-512),
+> further down. **A hugepage is not free; it is cheap for this use case.**
 
 The effect is measurable ([`custo-traducao.c`](medicoes/custo-traducao.c)), with a
 scattered walk over 512 MB:
@@ -984,7 +1051,7 @@ lcores' counters fall in the same line, and every increment invalidates the neig
 placement, so the inspection is objective:
 
 ```bash
-objdump -t ./seu_binario | grep -E 'variavel_a|variavel_b'
+objdump -t ./your_binary | grep -E 'variable_a|variable_b'
 # if the distance between the addresses is under 64, they share a line
 ```
 
@@ -1882,7 +1949,10 @@ is the same as not arriving.
 | CPU C-states | active | `intel_idle.max_cstate=0 processor.max_cstate=1` |
 | Cores | shared with the system | `isolcpus` + `nohz_full`, dedicated |
 | `irqbalance` | active | **off**, IRQ pinned manually |
-| Hugepages | 1024 × 2 MB | reserved, often of **1 GB** |
+| Hugepages | 1024 × 2 MB | reserved, often of **1 GB** · [Transparent Hugepages][thp] |
+| **Superpages (canonical paper)** | Navarro, Iyer, Druschel & Cox, *[Practical, Transparent OS Support for Superpages][superpages]* — OSDI 2002 |
+| **TLB and page-walk cost** | Gorman, *[Huge pages part 5][lwntlb]* (LWN) — kernel memory maintainer |
+| Zen 5 TLB (and what the kernel reports wrong) | [Hardware Busters][zen5tlb] · [Chips and Cheese][zen5cc] · [Hot Chips 2024, AMD][zen5hc] |
 | NUMA | a single node | NIC, memory and cores **on the same node**, mandatorily |
 
 Note that nearly the whole right-hand column is the subject of **this document**:
@@ -2129,7 +2199,7 @@ No number in this document needs to be taken on trust.
 > yourself and you will see the same numbers under Portuguese labels — which is the
 > point of publishing the programs alongside the tables.
 
-The eight programs use the **same methodology**, defined in
+The eight MEASUREMENT programs use the **same methodology**, defined in
 [`medicoes/statistics.h`](medicoes/statistics.h): warm-up, several samples per measurement,
 and publication of the median, the interquartile range, the full amplitude and two quality
 indicators. The robust dispersion (IQR over the median) triggers the `~` and `!` seals,
@@ -2149,6 +2219,11 @@ Read together: **a CV similar to `disp`** indicates a well-behaved distribution;
 larger than `disp`** indicates a firm middle with isolated samples outside — sporadic
 interference, not instability of the value.
 
+> **`tlb-real` is the ninth program, and it sits outside that rule on purpose.**
+> It does not measure time: it reads a declared hardware property from CPUID.
+> There is no sample, no dispersion and no seal — there is a fact. Publishing it
+> with the others' statistics would suggest an uncertainty that does not exist.
+
 There is no binary marker for an outlier, and the absence is deliberate. A threshold of the
 "maximum above 1.25× the median" kind produces an arbitrary cliff: two rows with practically
 equal excursion — 1.246× and 1.264× — would receive opposite seals over a 1.4% difference.
@@ -2157,6 +2232,7 @@ continuity behind a threshold.**
 
 ```bash
 ./scripts/build-all.sh
+./build/docs/01-fundamentos/medicoes/tlb-real          # real TLB, via CPUID
 ./build/docs/01-fundamentos/medicoes/custo-syscall
 ./build/docs/01-fundamentos/medicoes/efeito-cache
 ./build/docs/01-fundamentos/medicoes/custo-traducao   # needs hugepages
@@ -2228,6 +2304,7 @@ internal statistic would detect.
 |---|---:|---:|---|
 | Core-to-core latency, same CCD | 17–22 ns | < 25 ns ([Tom's Hardware][th]) | **agrees** |
 | Core-to-core latency, distinct CCDs | 83–100 ns, unstable | 180–200 ns with the bug; ~75 ns fixed ([Tom's][th], [TechSpot][ts]) | **intermediate — see below** |
+| TLB miss / *page walk* | 11–18 ns | 8.80 ns on a Core Duo T2600; 18.17 ns on an Athlon 64 ([Gorman][lwntlb]) | **between the two — agrees** |
 | Cost of a syscall | ~33 ns | hundreds of ns; < 100 ns in the best cases ([Gregg][gregg], [Stoll][syscalls]) | **below — explained** |
 | Memory latency (scattered access) | ~100 ns | ~70 ns on a 9950X ([ChipsAndCheese][cc]); 139,5 ns on an Opteron 844 ([McKenney][perfbook]) | **between the two — explained** |
 | Waking a blocked thread | ~1300 ns | on the order of µs; a slow path by design ([futex][futex]) | agrees |
@@ -2502,6 +2579,12 @@ where the loss happens in a real system — the subject of the
 [napi]: https://www.kernel.org/doc/html/latest/networking/napi.html
 [scaling]: https://www.kernel.org/doc/html/latest/networking/scaling.html
 [hugetlb]: https://www.kernel.org/doc/html/latest/admin-guide/mm/hugetlbpage.html
+[thp]: https://docs.kernel.org/admin-guide/mm/transhuge.html
+[superpages]: https://www.usenix.org/legacy/event/osdi02/tech/full_papers/navarro/navarro.pdf
+[lwntlb]: https://lwn.net/Articles/379748/
+[zen5tlb]: https://hwbusters.com/news/linux-has-under-reported-zen-5-tlb-sizes-by-32x-since-2024-and-the-fix-misses-kernel-7-3/
+[zen5cc]: https://chipsandcheese.com/p/zen-5s-leaked-slides
+[zen5hc]: https://hc2024.hotchips.org/assets/program/conference/day2/24_HC2024.AMD.Cohen.Subramony.final.pdf
 [kparams]: https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html
 [numa]: https://man7.org/linux/man-pages/man7/numa.7.html
 [mempolicy]: https://www.kernel.org/doc/html/latest/admin-guide/mm/numa_memory_policy.html

@@ -375,45 +375,75 @@ processador mantém uma cache específica para traduções já resolvidas: a
 - **Acerto na TLB:** a tradução sai em ~1 ciclo, e o *page walk* não acontece.
 - **Falta na TLB:** o hardware executa a caminhada completa e guarda o resultado.
 
-A TLB é pequena — algumas centenas a poucos milhares de entradas. O que importa
-não é o número de entradas, e sim o **alcance** (*TLB reach*): quanta memória
-elas cobrem juntas.
+A TLB é pequena, e **quão** pequena é um número que a sua máquina sabe — mas que
+o sistema operacional talvez não conte direito. Nesta, o `/proc/cpuinfo` publica
+`TLB size: 192 4K pages`, e o hardware tem **4 096 entradas** no segundo nível.
+O erro é de 21×, e a causa está documentada: a partir do Zen 5 a AMD passou a
+codificar o tamanho do último nível em **múltiplos de 32**, com um bit
+(`L2TlbSizeX32`) mandando o software multiplicar; o Linux [nunca aprendeu a
+checar esse bit][zen5tlb], e a correção só entra no kernel 7.4.
+
+Pergunte ao processador, não ao kernel ([`tlb-real.c`](medicoes/tlb-real.c)):
+
+```c
+/* CPUID 0x80000021 EAX bit 14 = L2TlbSizeX32; se 1, multiplique por 32 */
+__get_cpuid(0x80000006, &a, &b, &c, &d);   /* L2 TLB: EBX 4 KB, EAX 2 MB */
+__get_cpuid(0x80000021, &e, &f, &g, &h);   /* o bit que o kernel ignora   */
+```
+
+Nesta máquina o bit está ligado, o valor bruto é 128, e o real é 128 × 32:
+
+```
+                    L1 DTLB   L2 DTLB   alcance com este nível
+  páginas de 4 KB        96     4 096                  16 MB
+  hugepages de 2 MB      96     4 096                   8 GB
+  páginas de 1 GB        96        32                  32 GB
+```
+
+O que importa não é o número de entradas, e sim o **alcance** (*TLB reach*):
+quanta memória elas cobrem juntas.
 
 ```
 alcance = entradas × tamanho da página
 ```
 
-Com páginas de 4 KB, mil entradas cobrem 4 MB — e "mil" aqui é número redondo,
-escolhido para a conta sair de cabeça; a ordem de grandeza é essa. O que decide
-o resultado não é o tamanho absoluto da TLB, e sim a **razão entre o alcance e o
-conjunto de trabalho**. Num percurso disperso — sem padrão que o processador
-consiga prever —, a chance de a tradução já estar na TLB é aproximadamente essa
-razão:
+O que decide o resultado não é o tamanho absoluto da TLB, e sim a **razão entre
+o alcance e o conjunto de trabalho**. Num percurso disperso — sem padrão que o
+processador consiga prever —, a chance de a tradução já estar na TLB é
+aproximadamente essa razão:
 
 ```
 P(acerto) ≈ alcance / conjunto de trabalho
 ```
 
-Aplicando a fórmula com páginas de 4 KB e ~1 000 entradas:
+Aplicando com as 4 096 entradas medidas acima e páginas de 4 KB:
 
-| Conjunto de trabalho | Entradas necessárias | Fração coberta | Na prática |
+| Conjunto de trabalho | Entradas necessárias | Fração coberta | Previsão |
 |---|---|---|---|
-| 4 MB | 1 024 | ~100% | quase todo acesso acerta |
-| 64 MB | 16 384 | 6,1% | a maioria falta |
-| 512 MB | 131 072 | 0,8% | praticamente tudo falta |
+| 4 MB | 1 024 | 100% | hugepage não compra nada |
+| 16 MB | 4 096 | 100% | ainda no limite |
+| 64 MB | 16 384 | 25% | o ganho deve aparecer aqui |
+| 512 MB | 131 072 | 3,1% | praticamente tudo falta |
 
-A última linha é o caso medido neste documento. Cobrir 512 MB com páginas de
-4 KB exigiria **131 072 entradas de TLB** — uma a duas ordens de grandeza acima
-do que os processadores atuais oferecem. Menos de 1% dos acessos acerta; os
-outros 99% pagam a caminhada inteira descrita acima. E o argumento não depende
-do número redondo: mesmo uma TLB de 4 000 entradas, o topo do que se vê hoje,
-cobriria 16 MB — ainda 3% da região.
+**E a tabela é uma previsão, não uma descrição.** Ela diz que o ganho das
+hugepages deve ser irrelevante até ~16 MB e nascer entre 16 e 64 MB. Medindo o
+mesmo percurso disperso com os dois tamanhos de página, nesta máquina:
+
+```
+  região     4 KB     2 MB     ganho
+     8 MB    12.69    10.94    1.75 ns   <- coberto: como previsto, quase nada
+    64 MB    86.09    79.45    6.64 ns   <- 25% coberto: o ganho aparece
+   512 MB   104.20    93.40   10.80 ns   <- 3% coberto: ganho cheio
+```
+
+A previsão se sustenta. É o tipo de confirmação que vale mais que o número
+isolado: o modelo não só descreve o resultado, ele o **antecipou**.
 
 **E não adianta pedir uma TLB maior.** Ela é consultada em *todo* acesso à
 memória, em paralelo com a L1, e precisa responder em ~1 ciclo — o que a obriga
 a ser pequena e altamente associativa. Crescer custa latência e energia no
 caminho mais quente do processador, e o retorno é linear: dobrar as entradas
-leva a cobertura de 0,8% para 1,6%. Não resolve.
+leva a cobertura de 3,1% para 6,2%. Não resolve.
 
 **Ou seja:** a TLB não falha por ser pequena — ela falha porque, com páginas de
 4 KB, **cada entrada cobre pouco demais**. O alcance é o produto de dois
@@ -425,8 +455,15 @@ dos dois fatores que multiplica.
 
 As [hugepages][hugetlb] de 2 MB atacam a fórmula pelos dois lados.
 
-**Aumentam o alcance em 512×.** As mesmas mil entradas passam a cobrir 2 GB em
-vez de 4 MB.
+**Aumentam o alcance em 512×.** As mesmas 4 096 entradas passam a cobrir 8 GB
+em vez de 16 MB.
+
+> **A fórmula tem uma premissa que ela não declara**: que o número de entradas
+> **não muda** com o tamanho da página. Para 4 KB → 2 MB isso vale nesta máquina
+> — são 4 096 entradas nos dois casos, e o 512× é real. Para 1 GB a premissa
+> quebra: o segundo nível guarda **32 entradas**, não 4 096. O alcance sobe de
+> 8 para 32 GB, um fator de 4, não de 512. Confira na sua antes de generalizar;
+> é decisão de microarquitetura, não da aritmética.
 
 **Encurtam a caminhada.** Com página de 2 MB, o offset passa a ter 21 bits
 (2²¹ = 2 MB), consumindo os 9 bits que seriam do nível 1. A entrada do nível 2
@@ -442,6 +479,37 @@ aponta diretamente para o quadro físico: **três acessos em vez de quatro**.
  └──────────┴──────────┴──────────┴───────────────────────┘
                             └── aponta direto para o quadro de 2 MB
 ```
+
+> **E por que 2 MB, e não 1 GB?** Os dois custos de escolher um tamanho de
+> página dependem da mesma grandeza: **quantas páginas a região consome**,
+> `n = S/P`. Poucas páginas e o arredondamento pesa — com `n` páginas, o
+> desperdício chega a `1/n` da região. Páginas demais e a TLB deixa de cobrir,
+> que é o efeito medido acima. A faixa em que nenhum dos dois incomoda vai de
+> ~100 a ~4 000 páginas.
+>
+> Daí sai a resposta: 4 KB serve regiões de 400 KB a 16 MB; 2 MB, de 200 MB a
+> 8 GB. Um mempool de 512 MB dá 256 páginas de 2 MB — no meio da faixa. É por
+> isso que 2 MB é o padrão de fato, e não tradição. Para 1 GB somam-se os dois
+> problemas: a região precisaria passar de 100 GB para o desperdício sumir, e o
+> segundo nível da TLB só guarda 32 dessas entradas.
+>
+> Repare que as faixas **não se encostam**: a útil tem ~40× de largura e os
+> tamanhos de página saltam 512×. Entre 16 MB e 200 MB nenhum tamanho é bom, e
+> você escolhe o mal menor — num plano de dados, quase sempre o tempo.
+
+> **E quando a hugepage atrapalha.** O documento até aqui só mostrou o ganho, e
+> isso é meia verdade. O caso claro é o das *transparent hugepages*, que o kernel
+> promove sozinho: a [documentação oficial][thp] registra que aplicações chegaram
+> a perder 30% ou mais com elas ligadas, por três motivos — **picos de latência
+> durante a compactação** (veneno para plano de dados), **inchaço de memória**
+> pela granularidade de 2 MB, e promoção em regiões que não se beneficiam. É por
+> isso que existe o modo `madvise`, que desliga por padrão e deixa a aplicação
+> pedir.
+>
+> O DPDK não usa THP: ele pede `MAP_HUGETLB` sobre um pool reservado, e a
+> promoção em segundo plano não acontece. Mas o preço da reserva continua — ver
+> [a área reservada](#a-área-reservada-256-hugepages-e-por-que-a-receita-pede-512),
+> mais abaixo. **Hugepage não é gratuita; ela é barata para este caso de uso.**
 
 O efeito é mensurável ([`custo-traducao.c`](medicoes/custo-traducao.c)), com
 percurso disperso sobre 512 MB:
@@ -2160,7 +2228,7 @@ perder tudo isso?* Para um servidor web, quase nunca. Para um roteador virtual a
 
 Nenhum número deste documento precisa ser aceito por confiança.
 
-Os oito programas usam a **mesma metodologia**, definida em
+Os oito programas de MEDIÇÃO usam a **mesma metodologia**, definida em
 [`medicoes/statistics.h`](medicoes/statistics.h): aquecimento, várias amostras
 por medição, e publicação de mediana, intervalo interquartil, amplitude completa
 e dois indicadores de qualidade. A dispersão robusta (IQR sobre mediana) dispara
@@ -2169,6 +2237,11 @@ de variação, sensível a uma amostra isolada, é lido em relação a ela — m
 maior denuncia interferência esporádica. Assim **o próprio resultado diz quando
 não merece confiança**, e distingue "o número oscila" de "houve uma
 interferência pontual".
+
+> **`tlb-real` é o nono programa, e fica fora dessa régua de propósito.** Ele não
+> mede tempo: lê do CPUID uma propriedade declarada do hardware. Não há amostra,
+> não há dispersão e não há selo — há um fato. Publicá-lo com a estatística dos
+> outros sugeriria uma incerteza que não existe.
 
 Em detalhe, as duas colunas respondem perguntas diferentes:
 
@@ -2189,6 +2262,7 @@ juntos é mais honesto que esconder a continuidade atrás de um limiar.**
 
 ```bash
 ./scripts/build-all.sh
+./build/docs/01-fundamentos/medicoes/tlb-real          # TLB real, via CPUID
 ./build/docs/01-fundamentos/medicoes/custo-syscall
 ./build/docs/01-fundamentos/medicoes/efeito-cache
 ./build/docs/01-fundamentos/medicoes/custo-traducao   # requer hugepages
@@ -2263,6 +2337,7 @@ revelou um viés que nenhuma estatística interna detectaria.
 |---|---:|---:|---|
 | Latência entre núcleos, mesmo CCD | 17–22 ns | < 25 ns ([Tom's Hardware][th]) | **concorda** |
 | Latência entre núcleos, CCDs distintos | 83–100 ns, instável | 180–200 ns com bug; ~75 ns corrigido ([Tom's][th], [TechSpot][ts]) | **intermediário — ver abaixo** |
+| Falta de TLB / *page walk* | 11–18 ns | 8,80 ns em Core Duo T2600; 18,17 ns em Athlon 64 ([Gorman][lwntlb]) | **entre os dois — concorda** |
 | Custo de uma syscall | ~33 ns | centenas de ns; < 100 ns nos melhores casos ([Gregg][gregg], [Stoll][syscalls]) | **abaixo — explicado** |
 | Latência de memória (acesso disperso) | ~100 ns | ~70 ns em 9950X ([ChipsAndCheese][cc]); 139,5 ns em Opteron 844 ([McKenney][perfbook]) | **entre os dois — explicado** |
 | Acordar thread bloqueada | ~1300 ns | ordem de µs; caminho lento por projeto ([futex][futex]) | concorda |
@@ -2527,7 +2602,10 @@ reproduz é a **aritmética** da sobrecarga, que é a mesma; o que ela não repr
 |---|---|
 | Chamadas de sistema | [syscall(2)][syscall] · [vdso(7)][vdso] |
 | Recepção no kernel | [NAPI][napi] · [Scaling / RSS][scaling] |
-| Hugepages | [HugeTLB no kernel][hugetlb] · [Requisitos do DPDK][dpdkreq] |
+| Hugepages | [HugeTLB no kernel][hugetlb] · [Requisitos do DPDK][dpdkreq] · [Transparent Hugepages][thp] |
+| **Superpages (artigo canônico)** | Navarro, Iyer, Druschel & Cox, *[Practical, Transparent OS Support for Superpages][superpages]* — OSDI 2002 |
+| **TLB e custo do page walk** | Gorman, *[Huge pages part 5][lwntlb]* (LWN) — mantenedor de memória do kernel |
+| TLB do Zen 5 (e o que o kernel reporta errado) | [Hardware Busters][zen5tlb] · [Chips and Cheese][zen5cc] · [Hot Chips 2024, AMD][zen5hc] |
 | NUMA | [Visão geral no kernel][kernelnuma] · [numa(7)][numa] · [Política de memória][mempolicy] · [numactl(8)][numactlman] · [numa_maps][numamaps] |
 | Afinidade de CPU | [sched_setaffinity(2)][affinity] · [isolcpus][kparams] |
 | Topologia no DPDK | [rte_ethdev.h][ethdev] · [rte_lcore.h][lcore] |
@@ -2553,6 +2631,12 @@ reproduz é a **aritmética** da sobrecarga, que é a mesma; o que ela não repr
 [napi]: https://www.kernel.org/doc/html/latest/networking/napi.html
 [scaling]: https://www.kernel.org/doc/html/latest/networking/scaling.html
 [hugetlb]: https://www.kernel.org/doc/html/latest/admin-guide/mm/hugetlbpage.html
+[thp]: https://docs.kernel.org/admin-guide/mm/transhuge.html
+[superpages]: https://www.usenix.org/legacy/event/osdi02/tech/full_papers/navarro/navarro.pdf
+[lwntlb]: https://lwn.net/Articles/379748/
+[zen5tlb]: https://hwbusters.com/news/linux-has-under-reported-zen-5-tlb-sizes-by-32x-since-2024-and-the-fix-misses-kernel-7-3/
+[zen5cc]: https://chipsandcheese.com/p/zen-5s-leaked-slides
+[zen5hc]: https://hc2024.hotchips.org/assets/program/conference/day2/24_HC2024.AMD.Cohen.Subramony.final.pdf
 [kparams]: https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html
 [numa]: https://man7.org/linux/man-pages/man7/numa.7.html
 [mempolicy]: https://www.kernel.org/doc/html/latest/admin-guide/mm/numa_memory_policy.html
