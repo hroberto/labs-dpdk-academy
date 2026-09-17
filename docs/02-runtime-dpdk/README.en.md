@@ -2,10 +2,15 @@
 
 *Leia em [português](README.md).*
 
-> **Level 3** of the [study plan](../plano-estudo-dpdk.md) ·
-> Prerequisite: [Fundamentals](../01-fundamentos/README.md) and the practical topic
+> **Level 3** of the [study plan](../plano-estudo-dpdk.en.md) ·
+> Prerequisite: [Fundamentals](../01-fundamentos/README.en.md) and the practical topic
 > [01 — EAL initialisation](../../trilha/01-fundamentos/01-eal-hello/)
 
+> **Note on the blocks in this English edition.** The measurement programs print in
+> Portuguese; this document translates their **labels and captions** so the tables
+> and outputs can be read here. Numbers, seals and column positions are exactly what
+> the program emitted. When a command in this page greps that output, the pattern
+> stays in Portuguese — it has to match what the program really prints.
 Topic 01 of the track shows a minimal program bringing the [EAL][cEAL] up and
 shutting it down. This module deals with what comes after that first run: how the
 runtime behaves as a **system**, what it costs, what it leaves on the host, and which
@@ -14,7 +19,7 @@ production and keep it there.
 
 The guiding example is the same as the fundamentals': a ***market data* server**
 receiving an exchange's *feed* for a heavily traded instrument. It was chosen in
-[§6.2 of the fundamentals](../01-fundamentos/README.md#62-o-barramento-também-tem-orçamento)
+[§6.2 of the fundamentals](../01-fundamentos/README.en.md#62-the-bus-has-a-budget-too)
 as the canonical ultra-low-latency case, and it serves well here because it forces
 all of this level's questions at once: how long the process takes to be ready, where
 memory is reserved, how a strategy reads the book without copying data, and what
@@ -130,23 +135,23 @@ requires a process**. The program does a `fork()` per sample; the child initiali
 times it and returns the result through a *pipe*; the parent only aggregates.
 
 ```
-== Custo de inicializar e encerrar a EAL ==
+== Cost of starting and shutting down the EAL ==
 
-  configuracao medida: -l 0 --in-memory
-  amostras: 11 (uma por processo; rte_eal_init nao e reentrante)
+  configuration measured: -l 0 --in-memory
+  samples: 11 (one per process; rte_eal_init is not reentrant)
 
-  valores em MILISSEGUNDOS
+  values in MILLISECONDS
 
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                          median   p25-p75 (IQR)   min-max range      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
   rte_eal_init()                         123.1  122.4-123.1     121.3-123.9         0.6%   0.6%  
   rte_eal_cleanup()                      0.082  0.079-0.102     0.071-0.147        28.6%  25.9% !
 
-  Leitura:
-    Em 10 GbE com quadros de 64 B chega 1 pacote a cada 67,2 ns.
-    A janela de 123 ms da inicializacao equivale a 2 milhoes de pacotes
-    nao atendidos. Por isso o processo de plano de dados sobe uma vez
-    e fica de pe: reinicia-lo em producao nao e uma operacao barata.
+  Reading:
+    On 10 GbE with 64 B frames, one packet arrives every 67.2 ns.
+    The 123 ms startup window is worth 2 million packets
+    unserved. This is why a data-plane process starts once
+    and stays up: restarting it in production is not a cheap operation.
 ```
 
 Bringing the EAL up costs **123 ms**; shutting it down costs **0.63 ms** — two orders
@@ -218,7 +223,7 @@ unexplained. A profiler sees work; what is being looked for here is a wait.
 
 `strace` answers on exactly that axis. It intercepts the boundary with the kernel —
 the same one from
-[§2 of the fundamentals](../01-fundamentos/README.md#2-a-fronteira-user-space--kernel-space)
+[§2 of the fundamentals](../01-fundamentos/README.en.md#2-the-user-space--kernel-space-boundary)
 — and the `-T` option reports how long each call was blocked. Since the hypothesis was
 already formed, the filter `-e trace=clock_nanosleep` reduces thousands of calls to the
 only one that matters:
@@ -289,7 +294,7 @@ designs:
 - **Restarting in production is an event, not a routine.** Back to the example:
   restarting the *feed handler* during the trading session means 123 ms without
   receiving, plus the time to re-subscribe to the *feed* and rebuild the book.
-  [§7 of the fundamentals](../01-fundamentos/README.md#7-métricas-o-vocabulário-para-não-se-enganar)
+  [§7 of the fundamentals](../01-fundamentos/README.en.md#7-metrics-the-vocabulary-for-not-fooling-yourself)
   treats latency by percentiles precisely because rare, expensive events are what
   define observed behaviour — and 123 ms is an extremely expensive event in a system
   whose requirement is measured in microseconds.
@@ -322,11 +327,11 @@ the EAL administers, identified by a **name**. You reserve it with
 [`rte_memzone_lookup()`][apimzlookup]:
 
 ```c
-/* no processo que cria */
+/* in the process that creates it */
 const struct rte_memzone *mz =
     rte_memzone_reserve("academia_feed_marketdata", tamanho, rte_socket_id(), 0);
 
-/* em OUTRO processo, que apenas se anexa */
+/* in ANOTHER process, which only attaches */
 const struct rte_memzone *mz = rte_memzone_lookup("academia_feed_marketdata");
 ```
 
@@ -342,7 +347,7 @@ argument is the *socket id*. Passing [`rte_socket_id()`][apisocketid] reserves o
 current lcore's node; in a *market data* server the correct value is the **NIC's**
 node, so that card, memory and core sit on the same node — the requirement that closes
 the configuration table in
-[§6.2 of the fundamentals](../01-fundamentos/README.md#62-o-barramento-também-tem-orçamento).
+[§6.2 of the fundamentals](../01-fundamentos/README.en.md#62-the-bus-has-a-budget-too).
 The alternative `SOCKET_ID_ANY` lets the EAL choose, which is acceptable in a lab and
 is not in production.
 
@@ -415,7 +420,7 @@ By default the EAL reserves whatever it finds available. Two options give contro
 On a single-node machine, like this project's reference, the two do practically the
 same thing. On a multi-socket machine, `--numa-mem` is the option that prevents the
 scenario described in
-[§4.3 of the fundamentals](../01-fundamentos/README.md#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só):
+[§4.3 of the fundamentals](../01-fundamentos/README.en.md#43-numa-when-memory-stops-being-one-thing):
 the process reserving everything on the wrong node and paying for remote access on
 every packet.
 
@@ -493,10 +498,10 @@ it decides is worth reading:
 
 ```c
 struct feed_compartilhado {
-    /* --- escrito SÓ pelo produtor (primário) --- */
+    /* --- written ONLY by the producer (primary) --- */
     _Alignas(FEED_LINHA) _Atomic uint64_t publicados;
 
-    /* --- escrito SÓ pelo consumidor (secundário) --- */
+    /* --- written ONLY by the consumer (secondary) --- */
     _Alignas(FEED_LINHA) _Atomic uint64_t consumidos;
     ...
 };
@@ -504,7 +509,7 @@ struct feed_compartilhado {
 
 The `_Alignas(64)` separating `publicados` from `consumidos` is not decorative care. It
 is the direct fix for the problem measured in
-[§4.2.1 of the fundamentals](../01-fundamentos/README.md#421-falso-compartilhamento-o-erro-mais-comum-de-quem-escreve-plano-de-dados),
+[§4.2.1 of the fundamentals](../01-fundamentos/README.en.md#421-false-sharing-the-most-common-mistake-of-data-plane-programmers),
 where two variables in the same cache line took an operation from 8 ns to 53 ns. Here
 the error would be worse: the contended line would cross the process boundary, and the
 symptom would appear as "DPDK multiprocess is slow", with no clue about the real
@@ -533,11 +538,11 @@ as the primary process whose shared memory they are connecting to"*
 Translated into the example:
 
 ```bash
-# instância de produção
+# production instance
 ./feed-primario   -l 0 --file-prefix=producao  ...
 ./feed-secundario -l 1 --file-prefix=producao  --proc-type=secondary
 
-# instância de simulação, na MESMA máquina, sem interferir
+# replay instance, on the SAME machine, without interfering
 ./feed-primario   -l 2 --file-prefix=replay    ...
 ./feed-secundario -l 3 --file-prefix=replay    --proc-type=secondary
 ```
@@ -588,13 +593,13 @@ no way for a second process to attach.
 the memzone, prints everything one expects. The secondary fails:
 
 ```console
-$ ./probe -l 0 --no-huge --file-prefix=academia --no-pci &      # primário
-PROBE: init ok, consumiu 5 args, proc_type=PRIMARY
-PROBE: memzone criada em 0x1040f2f80 (iova=0x1040f2f80), dormindo 8s
+$ ./probe -l 0 --no-huge --file-prefix=academia --no-pci &      # primary
+PROBE: init ok, consumed 5 args, proc_type=PRIMARY
+PROBE: memzone created at 0x1040f2f80 (iova=0x1040f2f80), sleeping 8s
 
 $ ./probe -l 1 --no-huge --file-prefix=academia --no-pci --proc-type=secondary
 EAL: Cannot init memory
-PROBE: init falhou: Cannot allocate memory
+PROBE: init failed: Cannot allocate memory
 ```
 
 The underlying reason is the same: `--no-huge` makes the EAL use ordinary anonymous
@@ -619,7 +624,7 @@ $ grep HugePages_Free /proc/meminfo     # antes
 HugePages_Free:     1024
 $ grep HugePages_Free /proc/meminfo     # durante, com --in-memory
 HugePages_Free:     1023
-$ grep HugePages_Free /proc/meminfo     # depois de sair
+$ grep HugePages_Free /proc/meminfo     # after exiting
 HugePages_Free:     1024
 ```
 
@@ -650,22 +655,22 @@ before publishing it; the consumer reads the stamp and compares it with its own 
 Two hundred thousand ticks, producer on lcore 0 and consumer on lcore 1:
 
 ```
-  --- travessia entre processos, por tick (nanossegundos) ---
+  --- crossing between processes, per tick (nanoseconds) ---
 
-  medicao                           minimo   mediana       p75       p99  amostras
+  measurement                       minimum  median        p75       p99  samples 
   ------------------------------ --------- --------- --------- ---------  -------
-  publicacao -> observacao           10.02     20.04     30.06     40.08   200000
+  publish -> observe                 10.02     20.04     30.06     40.08   200000
 
-    resolucao do instrumento: 11.8 ns (uma sondagem do consumidor).
-    amostras degeneradas: 0 de 200000 (TSC alinhado entre os dois nucleos)
-    Os valores acima sao LIMITE SUPERIOR: entre duas sondagens o
-    consumidor esta cego, entao a travessia real cabe dentro do
-    ultimo passo. Diferencas menores que 11.8 ns nao sao mensuraveis aqui.
+    instrument resolution: 11.8 ns (one consumer poll).
+    degenerate samples: 0 of 200000 (TSC aligned across the two cores)
+    The values above are an UPPER BOUND: between two polls the
+    the consumer is blind, so the real crossing fits inside the
+    last step. Differences under 11.8 ns are not measurable here.
 ```
 
 **Ten nanoseconds in the best case, forty at p99.** For scale: the budget of a 64 B
 packet on 10 GbE is 67.2 ns
-([§1 of the fundamentals](../01-fundamentos/README.md#1-o-orçamento-quanto-tempo-existe-por-pacote)).
+([§1 of the fundamentals](../01-fundamentos/README.en.md#1-the-budget-how-much-time-exists-per-packet)).
 The process crossing consumes 15% to 60% of that budget — expensive enough not to be
 done per packet without thinking, cheap enough to make the separation between *feed
 handler* and strategy viable, which is what you get in return.
@@ -691,7 +696,7 @@ cycles. That is, the table says "the tick was seen at the 1st, 2nd, 3rd or 4th p
 after being published", and the values are an **upper bound** on the real crossing.
 
 > This is the same phenomenon as
-> [§5.2 of the fundamentals](../01-fundamentos/README.md#52-polling-a-pergunta-que-o-plano-de-dados-responde-de-outro-jeito),
+> [§5.2 of the fundamentals](../01-fundamentos/README.en.md#52-polling-the-question-the-data-plane-answers-differently),
 > seen from the other side. There, polling appears as the choice that trades CPU for
 > deterministic latency. Here it appears as the **measuring instrument**: a consumer
 > that polls cannot resolve differences smaller than its own polling period. Publishing
@@ -716,22 +721,22 @@ The program [`medicoes/estado-lcore.c`](medicoes/estado-lcore.c) shows the two c
 side by side. With `-l 0-3`:
 
 ```
-  lcore    CPU(s) reais   papel        indice no no   no NUMA 
+  lcore    real CPU(s)    role         index in node  NUMA no 
   -----    ------------   -----        ------------   ------- 
-  0        0              principal    0              0       
-  1        1              trabalhador  1              0       
-  2        2              trabalhador  2              0       
-  3        3              trabalhador  3              0       
+  0        0              main         0              0       
+  1        1              worker       1              0       
+  2        2              worker       2              0       
+  3        3              worker       3              0       
 ```
 
 With `--lcores '0@6,1@7,2@18'`, the same machine:
 
 ```
-  lcore    CPU(s) reais   papel        indice no no   no NUMA 
+  lcore    real CPU(s)    role         index in node  NUMA no 
   -----    ------------   -----        ------------   ------- 
-  0        6              principal    0              0       
-  1        7              trabalhador  1              0       
-  2        18             trabalhador  2              0       
+  0        6              main         0              0       
+  1        7              worker       1              0       
+  2        18             worker       2              0       
 ```
 
 Lcore 0 now executes on CPU 6. And note the fourth column: it did **not** change.
@@ -748,7 +753,7 @@ delivers the set of CPUs the lcore is pinned to — the table's third column.
 
 The syntax of [`--lcores`][optlcore] matters on a machine with relevant topology. The
 one in
-[§4.3 of the fundamentals](../01-fundamentos/README.md#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só)
+[§4.3 of the fundamentals](../01-fundamentos/README.en.md#43-numa-when-memory-stops-being-one-thing)
 has two CCDs, and communication between them cost 83 to 123 ns against 17.5 ns within
 the same CCD. With [`-l`][optlcore], lcores fall wherever the numbers dictate; with
 `--lcores`, the mapping is chosen — and that is how you guarantee that the producer and
@@ -763,16 +768,16 @@ observable through [`rte_eal_get_lcore_state()`][apilcorestate].
 The direct observation, in `estado-lcore`'s output:
 
 ```
-  apos rte_eal_init:     lcore 1: WAIT     lcore 2: WAIT     lcore 3: WAIT    
-  apos remote_launch:    lcore 1: RUNNING  lcore 2: RUNNING  lcore 3: RUNNING 
-  durante o trabalho:    lcore 1: RUNNING  lcore 2: RUNNING  lcore 3: RUNNING 
+  after rte_eal_init:    lcore 1: WAIT     lcore 2: WAIT     lcore 3: WAIT    
+  after remote_launch:   lcore 1: RUNNING  lcore 2: RUNNING  lcore 3: RUNNING 
+  during the work:       lcore 1: RUNNING  lcore 2: RUNNING  lcore 3: RUNNING 
 
-  valores devolvidos pelos trabalhadores:
+  values returned by the workers:
     lcore 1 -> 107
     lcore 2 -> 207
     lcore 3 -> 307
 
-  apos wait_lcore:       lcore 1: WAIT     lcore 2: WAIT     lcore 3: WAIT    
+  after wait_lcore:      lcore 1: WAIT     lcore 2: WAIT     lcore 3: WAIT    
 ```
 
 Two points:
@@ -826,7 +831,7 @@ EAL: Selected IOVA mode 'VA'
 
 VA mode is what makes running a data plane without privilege viable, and it depends
 directly on the IOMMU described in
-[§6.1 of the fundamentals](../01-fundamentos/README.md#61-iommu-como-entregar-dma-a-um-processo-sem-abrir-o-sistema).
+[§6.1 of the fundamentals](../01-fundamentos/README.en.md#61-iommu-how-to-hand-dma-to-a-process-without-opening-up-the-system).
 The IOMMU translates the address the device presents, the same way the MMU translates
 the CPU's — and, like any translation, it has its own cache and its own miss cost,
 which is the IOTLB discussed there.
@@ -923,11 +928,11 @@ Bringing this module's decisions together in the guiding example, the command li
 justified choices:
 
 ```bash
-# --lcores '0@2,1@3'      lcores no MESMO domínio de cache   (§5.1)
-# --numa-mem 4096         memória no nó da NIC               (§3.4)
-# --file-prefix=producao  isola esta instância               (§4.3)
-# --huge-dir=/mnt/huge-md hugetlbfs próprio, sem root        (§4.5)
-# -a 0000:c1:00.0         só a NIC do feed
+# --lcores '0@2,1@3'      lcores in the SAME cache domain    (§5.1)
+# --numa-mem 4096         memory on the NIC's node           (§3.4)
+# --file-prefix=producao  isolates this instance             (§4.3)
+# --huge-dir=/mnt/huge-md its own hugetlbfs, no root         (§4.5)
+# -a 0000:c1:00.0         only the feed's NIC
 ./feed-primario \
     --lcores '0@2,1@3' \
     --numa-mem 4096 \
@@ -995,7 +1000,7 @@ but it is also not a verification performed.
 **Tests:**
 
 ```bash
-./scripts/test-all.sh l1    # lógica do livro de ofertas, sem EAL
+./scripts/test-all.sh l1    # order-book logic, without the EAL
 ./scripts/test-all.sh l2    # runtime real
 ```
 
@@ -1034,7 +1039,7 @@ same virtual address on both sides.
    with the crossing's p99. What changed, and why?
 7. On a machine with several cache domains, place producer and consumer on different
    CCDs with `--lcores` and redo the crossing measurement. Compare with the values in
-   [§4.3 of the fundamentals](../01-fundamentos/README.md#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só).
+   [§4.3 of the fundamentals](../01-fundamentos/README.en.md#43-numa-when-memory-stops-being-one-thing).
 
 ---
 
@@ -1057,17 +1062,17 @@ pair, waits for the secondary to attach, and kills the primary with **SIGKILL** 
 death, with no orderly shutdown, as the *OOM killer* or a hardware failure would.
 
 ```
-== L3: o primario morre, o secundario continua ==
+== L3: the primary dies, the secondary carries on ==
 
-  ok    - secundario anexou-se a memoria do primario
+  ok    - secondary attached to the primary's memory
 
-  matando o primario (SIGKILL, sem encerramento ordenado)...
-  ok    - primario morreu por sinal (codigo 137, esperado != 0)
-  ok    - secundario sobreviveu a morte do primario (nao houve segfault)
-  ok    - secundario NAO detectou a morte apos 5s: segue esperando
-  ok    - secundario nao emitiu nenhum aviso de produtor ausente
-  ok    - secundario nao concluiu: ficou no laco 'while (lidos < total)'
-  ok    - so um sinal externo encerra o secundario
+  killing the primary (SIGKILL, no orderly shutdown)...
+  ok    - primary died by signal (code 137, expected != 0)
+  ok    - secondary survived the primary's death (no segfault)
+  ok    - secondary did NOT detect the death after 5s: still waiting
+  ok    - secondary issued no warning about the missing producer
+  ok    - secondary did not finish: stuck in 'while (lidos < total)'
+  ok    - only an external signal ends the secondary
 ```
 
 ### 10.2 What is learned from it
@@ -1144,7 +1149,7 @@ belong in a runtime module.
 
 **From this project**
 
-- [Fundamentals](../01-fundamentos/README.md) — per-packet budget, cache, NUMA, false
+- [Fundamentals](../01-fundamentos/README.en.md) — per-packet budget, cache, NUMA, false
   sharing and metrics
 - [Topic 01 — EAL initialisation](../../trilha/01-fundamentos/01-eal-hello/) — the
   minimal program and `rte_eal_init()`'s contract
@@ -1157,10 +1162,10 @@ belong in a runtime module.
 
 | | |
 |---|---|
-| **Previous** | [01 — Fundamentals](../01-fundamentos/README.md) |
+| **Previous** | [01 — Fundamentals](../01-fundamentos/README.en.md) |
 | **Practical** | [Topic 01 — EAL initialisation](../../trilha/01-fundamentos/01-eal-hello/) |
 | **Next** | [03 — Mempool, ring and mbuf](../03-mempool-ring-mbuf/) |
-| **Plan** | [Study plan](../plano-estudo-dpdk.md) |
+| **Plan** | [Study plan](../plano-estudo-dpdk.en.md) |
 
 [apiealinit]: https://doc.dpdk.org/api/rte__eal_8h.html#a5c3f4dddc25e38c5a186ecd8a69260e3
 [apiealclean]: https://doc.dpdk.org/api/rte__eal_8h.html#a7a745887f62a82dc83f1524e2ff2a236

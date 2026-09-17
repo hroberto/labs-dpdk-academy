@@ -8,9 +8,9 @@ C++23 and in-depth technical teaching.
 *Leia em [português](README.md).*
 
 > **Full parity, and what it costs.** This page is a **complete counterpart** of
-> [`README.md`](README.md), not a summary — same sections, same tables, same
+> [`README.md`](README.en.md), not a summary — same sections, same tables, same
 > numbers. The project kept an English summary for a long time, for a reason
-> written down in the [roadmap](ROADMAP.md): *a stale English version does not
+> written down in the [roadmap](ROADMAP.en.md): *a stale English version does not
 > make the reader think the translation is behind, it makes them think the
 > numbers are unreliable.*
 >
@@ -87,16 +87,16 @@ The main trail lives in:
 - `ROADMAP.md`
 
 **The canonical study order is the ten levels of the
-[study plan](docs/plano-estudo-dpdk.md).** It is the only numbering the modules
-cite: each document opens by declaring its "Nível N", and that is the number
+[study plan](docs/plano-estudo-dpdk.en.md).** It is the only numbering the modules
+cite: each document opens by declaring its "Nível N" (level), and that is the number
 that counts. The other entry documents play different roles and do not number
 the progression:
 
 | Document | What it is for |
 |---|---|
-| [docs/plano-estudo-dpdk.md](docs/plano-estudo-dpdk.md) | **the study order**, in ten levels — what the modules cite |
-| [trilha/README.md](trilha/README.md) | index of what exists in code and tests, with each topic's state |
-| [ROADMAP.md](ROADMAP.md) | the **build** order of the material — not a reading order |
+| [docs/plano-estudo-dpdk.md](docs/plano-estudo-dpdk.en.md) | **the study order**, in ten levels — what the modules cite |
+| [trilha/README.md](trilha/README.en.md) | index of what exists in code and tests, with each topic's state |
+| [ROADMAP.md](ROADMAP.en.md) | the **build** order of the material — not a reading order |
 
 The ten levels, and where each one is:
 
@@ -126,14 +126,14 @@ is expected; knowing NUMA, TLB, hugepages, cache coherence, IOMMU or anything
 DPDK-specific is **not** — the material teaches those from zero.
 
 The full list, with what is taught and what is not, is in
-[docs/00-visao-geral](docs/00-visao-geral/README.md#2-o-que-se-pressupõe-do-leitor).
+[docs/00-visao-geral](docs/00-visao-geral/README.en.md#2-what-is-assumed-of-the-reader).
 
 ## Tooling requirements
 
 - Linux x86_64 or arm64
 - GCC 14+ or Clang 18+ (C11 and C++23; POSIX declarations come from
   `_GNU_SOURCE`, declared per file — see
-  [ferramental §2.2](docs/00-visao-geral/ferramental.md))
+  [ferramental §2.2](docs/00-visao-geral/ferramental.en.md))
 - **DPDK 23.11 or newer**, with `pkg-config --modversion libdpdk` working
   (Debian/Ubuntu: `dpdk-dev`; Fedora/RHEL: `dpdk-devel`)
 
@@ -147,7 +147,7 @@ The full list, with what is taught and what is not, is in
   already produced two defects that show up in only one of them —
   `--in-memory --no-huge` together, and the exit code for an unknown argument.
   Both are documented in
-  [topic 01](trilha/01-fundamentos/01-eal-hello/README.md).
+  [topic 01](trilha/01-fundamentos/01-eal-hello/README.en.md).
 - Meson 1.1+ and Ninja
 
 Optional, and only from the benchmarking and quality stage onwards:
@@ -158,7 +158,7 @@ list above.
 GoogleTest, used by the L1 tests, is fetched automatically by Meson and does not
 need to be installed. Run `./scripts/check-env.sh` to diagnose the environment.
 The tooling decisions are explained in
-[docs/00-visao-geral/ferramental.md](docs/00-visao-geral/ferramental.md).
+[docs/00-visao-geral/ferramental.md](docs/00-visao-geral/ferramental.en.md).
 
 ## Quick start
 

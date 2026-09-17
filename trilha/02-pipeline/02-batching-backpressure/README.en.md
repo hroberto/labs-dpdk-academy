@@ -2,9 +2,14 @@
 
 *Leia em [português](README.md).*
 
-> **Level 5** of the [study plan](../../../docs/plano-estudo-dpdk.md) ·
+> **Level 5** of the [study plan](../../../docs/plano-estudo-dpdk.en.md) ·
 > Prerequisite: [01 — RX/TX in bursts](../01-rx-tx-burst/)
 
+> **Note on the blocks in this English edition.** The measurement programs print in
+> Portuguese; this document translates their **labels and captions** so the tables
+> and outputs can be read here. Numbers, seals and column positions are exactly what
+> the program emitted. When a command in this page greps that output, the pattern
+> stays in Portuguese — it has to match what the program really prints.
 Answering the question the mempool topic leaves open: **what to do when the queue
 fills.**
 
@@ -59,7 +64,7 @@ The mempool topic counts "attempts with a full queue" and retries. In a system
 where the producer is an exchange transmitting by multicast, that option does not
 exist: the datagram that was not read is lost, and what you detect afterwards is a
 **jump in the sequence number** — the mechanism the
-[runtime module](../../../docs/02-runtime-dpdk/README.md#4-processos-primário-e-secundário)
+[runtime module](../../../docs/02-runtime-dpdk/README.en.md#4-primary-and-secondary-processes)
 already implements and tests.
 
 ## 3. Trade-offs: a deep queue is not free
@@ -74,6 +79,12 @@ The batch has the opposite effect, and a larger one than expected: large batches
 amortise the per-object cost on both sides, and with that the consumer drains
 faster — which reduces refusal instead of increasing it.
 
+> **The physical reason is one level down.** The trade-off in the two paragraphs
+> above is the same one as in [§4.2 of the fundamentals](../../../docs/01-fundamentos/README.en.md#42-cache-and-locality),
+> at a smaller scale: there the batch dilutes not the cost of a ring but that of a
+> memory access, and the measured curve shows where it stops paying off. The same
+> arithmetic — throughput = concurrency ÷ latency — governs both.
+
 ## 4. Implementation
 
 The queue depth was **fixed at 1024** in the code, which made the first item in
@@ -87,8 +98,8 @@ $B --no-huge -m 512 --no-pci -l 0,2 -- -n 200000 -b 32 -q 1024 -t 8000
 Two usage refusals, both with the explanation alongside:
 
 ```
--q 1000   → deve ser potencia de dois (exigencia do rte_ring)
--q 8 -b 32 → -q 8 nao comporta um lote de 32 (capacidade util e profundidade-1)
+-q 1000   → must be a power of two (rte_ring requirement)
+-q 8 -b 32 → -q 8 cannot hold a batch of 32 (usable capacity is depth-1)
 ```
 
 The second exists because, without it, a batch larger than the queue makes the
@@ -98,7 +109,7 @@ seconds of nothing instead of one line saying what is wrong.
 ## 5. Validation
 
 ```bash
-./scripts/ambiente-medicao.sh --uma-linha   # carimbe o ambiente junto
+./scripts/ambiente-medicao.sh --uma-linha   # stamp the environment alongside
 B=build/trilha/01-fundamentos/02-mempool-ring/pipeline_ring
 for q in 1024 2048 4096; do
   printf 'prof=%-6s ' "$q"
@@ -232,7 +243,7 @@ kernel, which is what [submodule 01](../01-rx-tx-burst/) is blocked waiting for.
 
 **One machine, one pair of cores.** Everything measured with `-l 0,2`, inside the
 same L3 domain. Crossing domains changes the crossing cost and probably the shape
-of the surface — see [fundamentals §4.3](../../../docs/01-fundamentos/README.md#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só).
+of the surface — see [fundamentals §4.3](../../../docs/01-fundamentos/README.en.md#43-numa-when-memory-stops-being-one-thing).
 
 **No comparison against pure C++23 was made.** It was in the deliverables and did
 not get in.
@@ -243,5 +254,5 @@ not get in.
 |---|---|
 | **Previous** | [01 — RX/TX in bursts](../01-rx-tx-burst/) |
 | **Next** | [03 — Performance and observability](../../03-performance/) |
-| **Module** | [02 — Pipeline](../README.md) |
+| **Module** | [02 — Pipeline](../README.en.md) |
 | **Program** | [`pipeline_ring.c`](../../01-fundamentos/02-mempool-ring/pipeline_ring.c) |

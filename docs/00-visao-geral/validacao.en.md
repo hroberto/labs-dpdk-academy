@@ -3,8 +3,8 @@
 *Leia em [português](validacao.md).*
 
 This page defines the criteria common to the modules. The implementation state
-lives in the [track index](../../trilha/README.md); future work, in the
-[roadmap](../../ROADMAP.md). Do not confuse written content, an executed test, and
+lives in the [track index](../../trilha/README.en.md); future work, in the
+[roadmap](../../ROADMAP.en.md). Do not confuse written content, an executed test, and
 a published performance result.
 
 ## Current version and next stage
@@ -46,7 +46,7 @@ validate the historical values published.
 ./scripts/test-all.sh l1
 ./scripts/test-all.sh l2
 ./scripts/test-all.sh l3
-meson test -C build --list       # inventário atual, sem contagem duplicada na prosa
+meson test -C build --list       # current inventory, no double counting in prose
 ```
 
 The runner must distinguish:
@@ -67,7 +67,7 @@ exclusions, alongside the counts.
 ### Editorial conventions for numbers and units
 
 - In Portuguese prose and editorial tables, use the decimal comma: `1,8 ns`.
-  Separate thousands with a space when needed: `200 000 objetos`.
+  Separate thousands with a space when needed: `200 000 objects`.
 - Separate number and unit: `25 GbE`, `64 B`, `40,08 ns`, `1,5 %`.
   `GbE` names the technology; a measured rate needs a unit such as `Gbit/s`.
 - Use `B` for bytes and `bit` for bits. `MB` and `MiB` are not interchangeable;

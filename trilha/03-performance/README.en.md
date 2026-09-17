@@ -2,7 +2,7 @@
 
 *Leia em [português](README.md).*
 
-> **Level 8** of the [study plan](../../docs/plano-estudo-dpdk.md) ·
+> **Level 8** of the [study plan](../../docs/plano-estudo-dpdk.en.md) ·
 > Prerequisite: [02 — Pipeline](../02-pipeline/)
 
 Measure rigorously and see what is happening inside a data-plane program — the two
@@ -25,7 +25,7 @@ and [`docs/02-runtime-dpdk/medicoes/`](../../docs/02-runtime-dpdk/medicoes/) fol
 a common methodology, implemented in `statistics.h`:
 
 - median and interquartile range instead of the mean, because
-  [the mean lies](../../docs/01-fundamentos/README.md#7-métricas-o-vocabulário-para-não-se-enganar)
+  [the mean lies](../../docs/01-fundamentos/README.en.md#7-metrics-the-vocabulary-for-not-fooling-yourself)
   in the presence of a tail;
 - robust dispersion as a confidence seal, instead of the coefficient of variation;
 - percentiles for latency, with p99 published;
@@ -57,9 +57,9 @@ counter (`imissed`) is readable through telemetry while the program runs.
 
 | Origin | What was deferred to here | State |
 |---|---|---|
-| [Tooling](../../docs/00-visao-geral/ferramental.md) | adopting `google-benchmark` | **open** — declared in submodule 01's limitations |
-| [02-mempool-ring §3](../01-fundamentos/02-mempool-ring/README.md) | rigorous measurement, with frequency control and warm-up | **answered differently** — submodule 01 measured that frequency control matters little here, and that cross-process warm-up matters a lot |
-| [Fundamentals §7](../../docs/01-fundamentos/README.md) | formal treatment of jitter | **open** |
+| [Tooling](../../docs/00-visao-geral/ferramental.en.md) | adopting `google-benchmark` | **open** — declared in submodule 01's limitations |
+| [02-mempool-ring §3](../01-fundamentos/02-mempool-ring/README.en.md) | rigorous measurement, with frequency control and warm-up | **answered differently** — submodule 01 measured that frequency control matters little here, and that cross-process warm-up matters a lot |
+| [Fundamentals §7](../../docs/01-fundamentos/README.en.md) | formal treatment of jitter | **open** |
 
 The second row deserves a note: the commitment was to *pin* frequency and warm-up,
 and what was delivered was the **measurement of what each one costs**. It is less
@@ -92,4 +92,4 @@ when it is written, we decide whether it becomes a third submodule or a section 
 |---|---|
 | **Previous** | [02 — Pipeline](../02-pipeline/) |
 | **Next** | [04 — Final project](../04-projeto-final/) |
-| **Index** | [Track](../README.md) · [Study plan](../../docs/plano-estudo-dpdk.md) |
+| **Index** | [Track](../README.en.md) · [Study plan](../../docs/plano-estudo-dpdk.en.md) |

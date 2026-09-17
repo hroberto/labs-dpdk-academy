@@ -41,12 +41,12 @@ architectures.
 Inserted between 4 and 5 after a 2026-09-10 review found that the ROADMAP jumped
 from level 5 to level 8: **there was no stage committing to
 `rte_eth_dev_configure()`**, although four documents defer questions to it and the
-[plan](docs/plano-estudo-dpdk.md) promises the *offloads* as a level 6 deliverable.
+[plan](docs/plano-estudo-dpdk.en.md) promises the *offloads* as a level 6 deliverable.
 It was possible to execute the whole roadmap without ever configuring a port.
 
 It comes before Stage 5 by dependency, not by preference: *backpressure* is only
 measured with a real packet source, as the
-[pipeline module](trilha/02-pipeline/README.md) itself argues, and the performance
+[pipeline module](trilha/02-pipeline/README.en.md) itself argues, and the performance
 comparison deferred by four documents needs RX/TX to exist.
 
 - port and queue configuration, descriptors, `rx_burst` / `tx_burst`
@@ -82,7 +82,7 @@ substitute.
 expected within weeks. It closes the gaps in multi-queue, RSS, *offloads*, `rte_flow`
 and line rate, and also unblocks Stage 6 by bringing SR-IOV. Its arrival is a
 **revision** of this stage and of the capability table in
-[01-rx-tx-burst](trilha/02-pipeline/01-rx-tx-burst/README.md), not a new module.
+[01-rx-tx-burst](trilha/02-pipeline/01-rx-tx-burst/README.en.md), not a new module.
 
 And it changes the procedure: the `mlx5` PMD is **bifurcated** — kernel and DPDK
 manage the same device — so it uses neither `vfio-pci` nor
@@ -146,19 +146,19 @@ question can be answered today, with code that is already written:
 
 | Module | Failure question | The experiment that answers it |
 |---|---|---|
-| [Fundamentals §11](docs/01-fundamentos/README.md#11-quando-dá-errado) | what happens when the per-packet budget is exceeded? | [`orcamento-estourado.c`](docs/01-fundamentos/medicoes/orcamento-estourado.c) — sweeps ρ from 0,50 to 1,58 and shows that the tail degrades before the median |
-| [Runtime §10](docs/02-runtime-dpdk/README.md#10-quando-dá-errado) | what happens when the primary dies with secondaries alive? | [`l3_primario_morre.sh`](docs/02-runtime-dpdk/medicoes/tests/l3_primario_morre.sh) — SIGKILL on the primary; 7 assertions about what the secondary does **not** notice |
-| [Mempool §6](docs/03-mempool-ring-mbuf/README.md#6-quando-dá-errado) | what happens when the pool runs out mid-batch? | [`pool-esgotado.c`](docs/03-mempool-ring-mbuf/medicoes/pool-esgotado.c) — the all-or-nothing step, and rule 4 confronted and corrected |
-| [Topic 01 §6](trilha/01-fundamentos/01-eal-hello/README.md#6-quando-dá-errado) | what happens when the EAL does not come up? | [`tests/l2_run.sh`](trilha/01-fundamentos/01-eal-hello/tests/l2_run.sh) — both paths, and only one reaches your code |
-| [Topic 02 §6](trilha/01-fundamentos/02-mempool-ring/README.md#6-quando-dá-errado) | what does the **partial** return oblige you to do? | [`pipeline_ring_vazado`](trilha/01-fundamentos/02-mempool-ring/pipeline_ring.c) — the same source without the return, which the suite requires to fail |
+| [Fundamentals §11](docs/01-fundamentos/README.en.md#11-when-it-goes-wrong) | what happens when the per-packet budget is exceeded? | [`orcamento-estourado.c`](docs/01-fundamentos/medicoes/orcamento-estourado.c) — sweeps ρ from 0,50 to 1,58 and shows that the tail degrades before the median |
+| [Runtime §10](docs/02-runtime-dpdk/README.en.md#10-when-it-goes-wrong) | what happens when the primary dies with secondaries alive? | [`l3_primario_morre.sh`](docs/02-runtime-dpdk/medicoes/tests/l3_primario_morre.sh) — SIGKILL on the primary; 7 assertions about what the secondary does **not** notice |
+| [Mempool §6](docs/03-mempool-ring-mbuf/README.en.md#6-when-it-goes-wrong) | what happens when the pool runs out mid-batch? | [`pool-esgotado.c`](docs/03-mempool-ring-mbuf/medicoes/pool-esgotado.c) — the all-or-nothing step, and rule 4 confronted and corrected |
+| [Topic 01 §6](trilha/01-fundamentos/01-eal-hello/README.en.md#6-when-it-goes-wrong) | what happens when the EAL does not come up? | [`tests/l2_run.sh`](trilha/01-fundamentos/01-eal-hello/tests/l2_run.sh) — both paths, and only one reaches your code |
+| [Topic 02 §6](trilha/01-fundamentos/02-mempool-ring/README.en.md#6-when-it-goes-wrong) | what does the **partial** return oblige you to do? | [`pipeline_ring_vazado`](trilha/01-fundamentos/02-mempool-ring/pipeline_ring.c) — the same source without the return, which the suite requires to fail |
 
 **In the modules that do not yet exist**, the question is born with the text, not
 afterwards — it is cheaper to write that way than to come back and add it:
 
 | Pending module | Failure question |
 |---|---|
-| [RX/TX](trilha/02-pipeline/01-rx-tx-burst/README.md) | what happens when there is no mbuf to receive into? |
-| [Pipeline](trilha/02-pipeline/README.md) | how does backpressure reach the NIC, and what does it bring down first? |
+| [RX/TX](trilha/02-pipeline/01-rx-tx-burst/README.en.md) | what happens when there is no mbuf to receive into? |
+| [Pipeline](trilha/02-pipeline/README.en.md) | how does backpressure reach the NIC, and what does it bring down first? |
 
 Each one leads naturally to *overload*, *starvation*, exhaustion, detection,
 isolation, degradation and recovery — with no imported formalism.
@@ -202,8 +202,8 @@ What was **refused** in the same review, and why:
 | Refused | Why |
 |---|---|
 | the formalism of FMEA and fault-tree analysis (FTA) | they are functional-safety instruments (IEC 61508), sized for systems where failure kills. In a study guide they cost more ceremony than they teach, and shift the effort from the question ("what breaks?") to filling in the spreadsheet |
-| a mandatory 16-section template per experiment | it forces short and long modules into the same mould. The path already declared in [overview §3](docs/00-visao-geral/README.md#3-o-método) — problem, mechanism, trade-offs, implementation, measurement, comparison, decision — does the job without counting sections |
-| FACT / MEASUREMENT / INFERENCE tagging throughout the text | the distinction is necessary and **is already made**, in the language, by the convention in [overview §4](docs/00-visao-geral/README.md#4-como-ler-os-números). Tagging every sentence trades reading for bureaucracy and still gives false precision: the label becomes a ritual and stops being thought about |
+| a mandatory 16-section template per experiment | it forces short and long modules into the same mould. The path already declared in [overview §3](docs/00-visao-geral/README.en.md#3-the-method) — problem, mechanism, trade-offs, implementation, measurement, comparison, decision — does the job without counting sections |
+| FACT / MEASUREMENT / INFERENCE tagging throughout the text | the distinction is necessary and **is already made**, in the language, by the convention in [overview §4](docs/00-visao-geral/README.en.md#4-how-to-read-the-numbers). Tagging every sentence trades reading for bureaucracy and still gives false precision: the label becomes a ritual and stops being thought about |
 
 ### Stage 8 — Adaptation for international reach
 > **Deliberately the last stage.** Decided on 2026-09-09: adaptation into English

@@ -67,7 +67,7 @@ and the TLB, hugepages, NUMA, cache coherence, false sharing, CPU affinity, IOMM
 and DMA, per-packet budget, and naturally all of DPDK.
 
 > **A missing piece of knowledge does not prevent starting.** The
-> [fundamentals](../01-fundamentos/README.md) build the memory, execution and
+> [fundamentals](../01-fundamentos/README.en.md) build the memory, execution and
 > networking base before DPDK appears. But the material **does not re-explain** C
 > or Linux at an introductory level: anyone who needs that will want a parallel
 > source, and will not find it here.
@@ -105,7 +105,7 @@ Two editorial rules hold the path up, and both were born from a mistake made:
 **A numeric claim needs a program that produces it.** Numbers that circulate as
 folklore are verified, and when they do not hold up, the material corrects itself —
 that was the case with the cost of `malloc()`, which we
-[measured at 2.18 ns](../03-mempool-ring-mbuf/README.md#1-por-que-não-usar-malloc--a-resposta-medida)
+[measured at 2.18 ns](../03-mempool-ring-mbuf/README.en.md#1-why-not-use-malloc--the-measured-answer)
 against the "tens of nanoseconds" the track itself kept repeating.
 
 **A normative claim needs to name who defines it.** When the text says a limit
@@ -142,7 +142,7 @@ That is why latency is published by percentiles — median, p75, p99 — and nev
 the mean alone; and that is why the tables carry dispersion alongside the typical
 value. A system with a 10 µs mean and a 5 ms p99.9 has good performance and bad
 predictability, and the mean hides exactly that. The vocabulary is in
-[§7 of the fundamentals](../01-fundamentos/README.md#7-métricas-o-vocabulário-para-não-se-enganar).
+[§7 of the fundamentals](../01-fundamentos/README.en.md#7-metrics-the-vocabulary-for-not-fooling-yourself).
 
 ---
 
@@ -157,8 +157,8 @@ So as not to describe the machine in prose (which diverges between files and age
 silently), the record is **generated**:
 
 ```bash
-./scripts/ambiente.sh              # legível
-./scripts/ambiente.sh --markdown   # tabela para colar num documento
+./scripts/ambiente.sh              # human-readable
+./scripts/ambiente.sh --markdown   # table to paste into a document
 ```
 
 It reports what actually changes a result: CPU model and topology, **L3 cache
@@ -170,7 +170,7 @@ Three of those fields have already changed a conclusion in this project:
 - **`meltdown: Not affected`** explained why the syscall is cheaper here than in
   the literature — with no KPTI, there is no page-table switch.
 - **the absence of `tsc_known_freq`** explained the
-  [100 ms of calibration](../02-runtime-dpdk/README.md#22-por-que-essa-espera-existe-e-quando-ela-não-acontece)
+  [100 ms of calibration](../02-runtime-dpdk/README.en.md#22-why-that-wait-exists-and-when-it-does-not-happen)
   inside `rte_eal_init()`.
 - **the L3 domains** (`0-5,12-17` and `6-11,18-23`) are what separates "same CCD"
   from "different CCDs" in the core-to-core communication measurements.
@@ -185,7 +185,7 @@ Three of those fields have already changed a conclusion in this project:
 
 ## 6. In this section
 
-- **[Project tooling](ferramental.md)** — build, compilation and L1/L2 tests: which
+- **[Project tooling](ferramental.en.md)** — build, compilation and L1/L2 tests: which
   tools the project uses, why each was chosen, what was discarded (Conan, vcpkg,
   CMake) and the concrete mistakes those decisions avoid.
 
@@ -193,5 +193,5 @@ Three of those fields have already changed a conclusion in this project:
 
 | | |
 |---|---|
-| **Next** | [01 — Fundamentals](../01-fundamentos/README.md) |
-| **Index** | [Documentation](../README.md) · [Study plan](../plano-estudo-dpdk.md) · [Project README](../../README.md) |
+| **Next** | [01 — Fundamentals](../01-fundamentos/README.en.md) |
+| **Index** | [Documentation](../README.en.md) · [Study plan](../plano-estudo-dpdk.en.md) · [Project README](../../README.en.md) |

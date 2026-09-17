@@ -2,8 +2,8 @@
 
 *Leia em [português](README.md).*
 
-> **Level 3** of the [study plan](../../../docs/plano-estudo-dpdk.md) ·
-> Prerequisite: DPDK installed ([tooling](../../../docs/00-visao-geral/ferramental.md))
+> **Level 3** of the [study plan](../../../docs/plano-estudo-dpdk.en.md) ·
+> Prerequisite: DPDK installed ([tooling](../../../docs/00-visao-geral/ferramental.en.md))
 
 ## 1. Foundation: what the EAL solves
 
@@ -39,6 +39,11 @@ The call does far more than "initialise":
 > EAL thread". That is why `-l 0` results in one lcore, and not in "one available
 > core": you are asking for *pinned threads*, not permission to use cores.
 
+> **Note on the blocks in this English edition.** The measurement programs print in
+> Portuguese; this document translates their **labels and captions** so the tables
+> and outputs can be read here. Numbers, seals and column positions are exactly what
+> the program emitted. When a command in this page greps that output, the pattern
+> stays in Portuguese — it has to match what the program really prints.
 Two properties of the contract matter from the start:
 
 **It returns how many arguments it consumed, not zero on success.** A common mistake
@@ -48,10 +53,10 @@ is treating the return value as a status code. The value is there to advance `ar
 int consumidos = rte_eal_init(argc, argv);
 if (consumidos < 0) {
     fprintf(stderr, "EAL: %s\n", rte_strerror(rte_errno));
-    return EXIT_FAILURE;          /* ENCERRE AQUI. Ver o aviso abaixo. */
+    return EXIT_FAILURE;          /* STOP HERE. See the warning below. */
 }
 argc -= consumidos;
-argv += consumidos;   /* agora argv aponta para os argumentos da APLICAÇÃO */
+argv += consumidos;   /* argv now points at the APPLICATION's arguments */
 ```
 
 > **The `return` is not diligence: it is mandatory.** An earlier version of this
@@ -170,7 +175,7 @@ EAL: get_seg_fd(): open '/dev/hugepages/rtemap_0' failed: Permission denied
 EAL: Couldn't get fd on hugepage file
 EAL: error allocating rte services array
 EAL: rte_service_init() failed
-Erro ao inicializar a EAL: Cannot allocate memory
+Error initialising the EAL: Cannot allocate memory
 ```
 
 Two distinct messages, two distinct causes: one says there **is no** hugepage; the
@@ -180,7 +185,7 @@ memory when what is missing is permission.
 And there is a third case, which surprises: `--in-memory` **alone**, without
 `--no-huge`, works — and uses a real hugepage, obtained via `memfd` without needing
 access to `/dev/hugepages`. That is what
-[§4.5 of module 02](../../../docs/02-runtime-dpdk/README.md#45-o-que-desliga-o-modelo-multiprocesso-sem-avisar)
+[§4.5 of module 02](../../../docs/02-runtime-dpdk/README.en.md#45-what-switches-the-multiprocess-model-off-without-warning)
 demonstrates. For file-backed hugepages, without running as `root`, the project
 ships [`scripts/preparar-hugepages.sh`](../../../scripts/preparar-hugepages.sh).
 
@@ -191,13 +196,13 @@ ships [`scripts/preparar-hugepages.sh`](../../../scripts/preparar-hugepages.sh).
 > does not mention the responsible option. The reason is the same in both cases:
 > with no file backing the memory, there is nothing for a second process to map. The
 > demonstration of both failures is in
-> [§4.5 of module 02](../../../docs/02-runtime-dpdk/README.md#45-o-que-desliga-o-modelo-multiprocesso-sem-avisar).
+> [§4.5 of module 02](../../../docs/02-runtime-dpdk/README.en.md#45-what-switches-the-multiprocess-model-off-without-warning).
 
 > **Where the runtime files live.** Almost every text says `/var/run/dpdk`, and for
 > `root` that is right. For an ordinary user, the EAL uses the session's runtime
 > directory: `$XDG_RUNTIME_DIR/dpdk/<prefixo>/`. Anyone looking in the wrong place
 > concludes the EAL wrote nothing. See
-> [§3.2 of module 02](../../../docs/02-runtime-dpdk/README.md#32-o-que-a-eal-deixa-no-host).
+> [§3.2 of module 02](../../../docs/02-runtime-dpdk/README.en.md#32-what-the-eal-leaves-on-the-host).
 
 ## 4. Implementation
 
@@ -219,11 +224,11 @@ EAL: Detected CPU lcores: 24
 EAL: Detected NUMA nodes: 1
 EAL: Detected shared linkage of DPDK
 EAL: Selected IOVA mode 'VA'
-DPDK Academy: EAL inicializada com sucesso.
-Versao do DPDK: DPDK 25.11.0
-Lcores disponiveis: 1 (lcore principal: 0)
+DPDK Academy: EAL initialised successfully.
+DPDK version: DPDK 25.11.0
+Lcores available: 1 (main lcore: 0)
 No NUMA do lcore principal: 0
-Argumentos restantes para a aplicacao: 0
+Arguments left for the application: 0
 ```
 
 The lines beginning with `EAL:` come from the layer itself, **they are not errors**.
@@ -280,7 +285,7 @@ $ ./build/trilha/01-fundamentos/01-eal-hello/hello_dpdk -l 999
 EAL: No valid lcores in core list
 EAL: invalid coremask or core-list parameter, please check specified cores are part of 0-23
 EAL: Error parsing command line arguments.
-Erro ao inicializar a EAL: Invalid argument
+Error initialising the EAL: Invalid argument
 $ echo $?
 1
 ```
@@ -336,7 +341,7 @@ not run.
 
 Two paths, and the order between them is yours:
 
-**Go deeper into the runtime** — [Module 02: DPDK runtime](../../../docs/02-runtime-dpdk/README.md).
+**Go deeper into the runtime** — [Module 02: DPDK runtime](../../../docs/02-runtime-dpdk/README.en.md).
 This topic shows the EAL coming up; module 02 treats it as a system: how much
 initialisation costs and why, the memory model behind the reservation, primary and
 secondary processes sharing memory without copying, the lcore state machine and the

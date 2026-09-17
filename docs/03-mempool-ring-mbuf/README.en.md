@@ -2,11 +2,16 @@
 
 *Leia em [português](README.md).*
 
-> **Level 4** of the [study plan](../plano-estudo-dpdk.md) ·
-> Prerequisites: [02 — DPDK runtime](../02-runtime-dpdk/README.md) and the practical
+> **Level 4** of the [study plan](../plano-estudo-dpdk.en.md) ·
+> Prerequisites: [02 — DPDK runtime](../02-runtime-dpdk/README.en.md) and the practical
 > topic [02 — Mempool, ring and batch](../../trilha/01-fundamentos/02-mempool-ring/)
 
-The [runtime module](../02-runtime-dpdk/README.md) showed the EAL reserving memory
+> **Note on the blocks in this English edition.** The measurement programs print in
+> Portuguese; this document translates their **labels and captions** so the tables
+> and outputs can be read here. Numbers, seals and column positions are exactly what
+> the program emitted. When a command in this page greps that output, the pattern
+> stays in Portuguese — it has to match what the program really prints.
+The [runtime module](../02-runtime-dpdk/README.en.md) showed the EAL reserving memory
 and naming regions. This one deals with what you put inside it: the three structures
 every DPDK program is built on, which answer three different questions.
 
@@ -63,26 +68,26 @@ The program [`medicoes/custo-alocacao.c`](medicoes/custo-alocacao.c) compares th
 on the same machine, with the same methodology as the project's other programs.
 
 ```
-  --- um objeto por vez, em NANOSSEGUNDOS POR OBJETO ---
+  --- one object at a time, in NANOSECONDS PER OBJECT ---
 
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                          median   p25-p75 (IQR)   min-max range      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
   malloc/free                             2.18  2.16-2.18       2.14-2.23           0.9%   1.0%  
-  mempool get/put, com cache             0.981  0.977-0.983     0.973-0.991         0.6%   0.5%  
-  mempool get/put, SEM cache             10.45  10.44-10.50     10.43-10.63         0.5%   0.5%  
+  mempool get/put, with cache            0.981  0.977-0.983     0.973-0.991         0.6%   0.5%  
+  mempool get/put, NO cache              10.45  10.44-10.50     10.43-10.63         0.5%   0.5%  
 ```
 
 ```
-  frequencia do nucleo 0 durante a medicao: 5.56 -> 5.56 GHz
-  razoes, que NAO dependem da frequencia:
-    mempool com cache e 2.23x mais rapido que malloc
-    o cache por lcore vale 10.7x (com cache contra sem cache)
-    sem o cache, o mempool fica 4.8x mais LENTO que o malloc
+  frequency of core 0 during the measurement: 5.56 -> 5.56 GHz
+  ratios, which do NOT depend on frequency:
+    mempool with cache is 2.23x faster than malloc
+    the per-lcore cache is worth 10.7x (with cache against without)
+    without the cache, the mempool is 4.8x SLOWER than malloc
 ```
 
 > **Why the program publishes ratios, and not only nanoseconds.** Without pinning the
 > processor's frequency — and this project does not pin it, as its
-> [limitations](../00-visao-geral/README.md#5-o-ambiente-de-medição) declare — the
+> [limitations](../00-visao-geral/README.en.md#5-the-measurement-environment) declare — the
 > absolute values change between runs: the same binary gave 2.19 ns and 2.77 ns for
 > `malloc`, depending on whether turbo engaged. The **ratios** were identical (2.23×
 > in both). That is why this module claims "twice as fast" and not "0.98
@@ -134,9 +139,9 @@ code in [`medicoes/sizing.c`](medicoes/sizing.c), tested without an EAL, and the
 program came to **derive** the cache:
 
 ```
-  cache por lcore ........ 455 objetos (derivado, nao escolhido a olho)
-    escolhido ............ sem ressalvas
-    o obvio (256) seria .. n nao e multiplo do cache (objetos presos) -> 255 objetos presos
+  per-lcore cache ........ 455 objects (derived, not eyeballed)
+    chosen ............... no caveats
+    the obvious (256) .... n is not a multiple of the cache -> 255 objects stranded
 ```
 
 > Note that 455 is not a number anyone would think of. It is the largest divisor of
@@ -148,9 +153,9 @@ program came to **derive** the cache:
 This is the section's main result, and it appears in no published comparison:
 
 ```
-  --- em LOTE, ns por objeto: os dois lados variam em sentidos opostos ---
+  --- in BATCHES, ns per object: the two sides move in opposite ways ---
 
-  lote          malloc/free   mempool bulk      razao
+  batch         malloc/free   mempool bulk      ratio
   -----         -----------   ------------      -----
   1                 2.39 ns       1.837 ns       1.3x
   8                 2.55 ns       0.629 ns       4.1x
@@ -163,7 +168,7 @@ Asking for more objects at once **cheapens** each object in the mempool
 ratio between the two goes from 1.3× to 37.5×.
 
 That is decisive because the data plane **is** batch processing.
-[§3 of the practical topic](../../trilha/01-fundamentos/02-mempool-ring/README.md)
+[§3 of the practical topic](../../trilha/01-fundamentos/02-mempool-ring/README.en.md)
 measured that the batch is what amortises the cost of crossing cores; here you see
 that it is also what separates the two approaches. Comparing mempool and `malloc`
 object by object — which is how the comparison is usually made — measures precisely
@@ -199,15 +204,15 @@ The program [`medicoes/anatomia-mbuf.c`](medicoes/anatomia-mbuf.c) does not desc
 the layout: it prints the installed version's.
 
 ```
-  sizeof(struct rte_mbuf) ..... 128 bytes (2 linhas de cache de 64 B)
-  RTE_PKTMBUF_HEADROOM ........ 128 bytes reservados ANTES dos dados
-  RTE_MBUF_DEFAULT_DATAROOM ... 2048 bytes para o pacote
+  sizeof(struct rte_mbuf) ..... 128 bytes (2 cache lines of 64 B)
+  RTE_PKTMBUF_HEADROOM ........ 128 bytes reserved BEFORE the data
+  RTE_MBUF_DEFAULT_DATAROOM ... 2048 bytes for the packet
   RTE_MBUF_DEFAULT_BUF_SIZE ... 2176 bytes (dataroom + headroom)
-  elemento (mbuf + buffer) .... 2304 bytes
-  + cabecalho do mempool ...... 64 bytes
-  = objeto no pool ............ 2368 bytes
+  element (mbuf + buffer) ..... 2304 bytes
+  + mempool header ........... 64 bytes
+  = object in the pool ....... 2368 bytes
 
-  Um pool de 8192 mbufs ocupa cerca de 18.5 MiB so em objetos.
+  A pool of 8192 mbufs takes about 18.5 MiB in objects alone.
 ```
 
 **The descriptor costs 128 bytes per packet; the whole object in the pool, 2368.**
@@ -219,7 +224,7 @@ decides sizing and rarely appears before memory runs out.
 ### 2.1 Two cache lines, and the reason there are two
 
 ```
-    campo          offset  linha de cache
+    field          offset  cache line
     -----          ------  --------------
     buf_addr            0  0
     data_off           16  0
@@ -238,7 +243,7 @@ All the fields but one fit in the first line. What was left over for the second 
 header refers to it as *"next pointer in the second cache line"*.
 
 The consequence connects directly to
-[§4.2 of the fundamentals](../01-fundamentos/README.md#42-cache-e-localidade): a
+[§4.2 of the fundamentals](../01-fundamentos/README.en.md#42-cache-and-locality): a
 single-segment packet touches **one** cache line per mbuf. At 14.88 million packets
 per second, one extra line per packet is cache bandwidth that is not left for the
 packet itself.
@@ -249,14 +254,14 @@ The four numbers in motion, in a 60-byte packet encapsulated and then
 de-encapsulated:
 
 ```
-  momento                     buf_len  headroom  data_len   pkt_len  tailroom nb_segs
+  moment                      buf_len  headroom  data_len   pkt_len  tailroom nb_segs
   --------------------------  -------  --------  --------   -------  --------  ------
-  recem-alocado                  2176       128         0         0      2048       1
+  freshly allocated              2176       128         0         0      2048       1
   append(60) = payload           2176       128        60        60      1988       1
   prepend(14) = ethernet         2176       114        74        74      1988       1
-  prepend(20) = tunel            2176        94        94        94      1988       1
-  adj(20) = tira o tunel         2176       114        74        74      1988       1
-  trim(4) = tira do fim          2176       114        70        70      1992       1
+  prepend(20) = tunnel           2176        94        94        94      1988       1
+  adj(20) = strip the tunnel     2176       114        74        74      1988       1
+  trim(4) = cut from the end     2176       114        70        70      1992       1
 ```
 
 Reading the table:
@@ -274,10 +279,10 @@ Reading the table:
 ### 2.3 Segmentation: where the two numbers part ways
 
 ```
-  momento                     buf_len  headroom  data_len   pkt_len  tailroom nb_segs
+  moment                      buf_len  headroom  data_len   pkt_len  tailroom nb_segs
   --------------------------  -------  --------  --------   -------  --------  ------
-  cabeca da cadeia               2176       114        70       170      1992       2
-  segundo segmento               2176         -       100         -         -       -
+  head of the chain              2176       114        70       170      1992       2
+  second segment                 2176         -       100         -         -       -
 ```
 
 With a second mbuf chained via [`rte_pktmbuf_chain()`][apichain], `pkt_len` (170)
@@ -292,11 +297,11 @@ packet fits in a single segment.
 ### 2.4 Ownership: who frees
 
 ```
-  refcnt do cabeca ............ 1
-  objetos livres no pool ...... 1021 de 1023
+  refcnt of the head .......... 1
+  free objects in the pool .... 1021 of 1023
 
-  apos rte_pktmbuf_free(cabeca):
-  objetos livres no pool ...... 1023 de 1023
+  after rte_pktmbuf_free(head):
+  free objects in the pool .... 1023 of 1023
 ```
 
 One call to [`rte_pktmbuf_free()`][apimbuffree] returned **both** mbufs: it walks the
@@ -324,7 +329,7 @@ The program [`medicoes/custo-anel.c`](medicoes/custo-anel.c) measures both modes
 a single lcore, with no contention at all**:
 
 ```
-  lote       SP/SC (ns/obj)   MP/MC (ns/obj) custo MP/MC
+  batch      SP/SC (ns/obj)   MP/MC (ns/obj)  MP/MC cost
   -----      --------------   -------------- -----------
   1                1.539 ns         8.229 ns       435%
   8                0.518 ns         1.259 ns       143%
@@ -354,13 +359,13 @@ The two function families differ in their **contract**, not in performance, and 
 wrong choice does not show up as slowness:
 
 ```
-  anel pedido com 16 posicoes; capacidade real: 15
-  (uma posicao fica reservada para distinguir cheio de vazio)
+  ring asked for 16 slots; real capacity: 15
+  (one slot is reserved to tell full apart from empty)
 
-  enfileirados 12 em anel vazio ......... burst aceitou 12, livre=3
-  pedindo mais 12 com apenas 3 livres:
-    _bulk  aceitou 0  <- tudo ou nada: NADA entrou
-    _burst aceitou 3  <- parcial: 3 entraram, 9 ficaram de fora
+  enqueued 12 into an empty ring ........ burst accepted 12, free=3
+  asking for 12 more with only 3 free:
+    _bulk  accepted 0 <- all or nothing: NOTHING went in
+    _burst accepted 3 <- partial: 3 went in, 9 stayed out
 ```
 
 [`rte_ring_enqueue_bulk()`][apienqbulk] returns, in the API's words, *"the number of
@@ -376,7 +381,7 @@ Neither is right in the abstract:
 
 The danger of `_burst` is the return value: the 9 objects that did not get in **are
 still yours**. Ignoring that number is the classic leak the
-[practical topic](../../trilha/01-fundamentos/02-mempool-ring/README.md) already
+[practical topic](../../trilha/01-fundamentos/02-mempool-ring/README.en.md) already
 documents — and which, with a pool of 4095 objects, brings the pipeline to a silent
 stop.
 
@@ -421,7 +426,7 @@ demonstrated:
 
 ### Where this appeared in the market data example
 
-The [runtime module](../02-runtime-dpdk/README.md#4-processos-primário-e-secundário)
+The [runtime module](../02-runtime-dpdk/README.en.md#4-primary-and-secondary-processes)
 built a ring by hand, in shared memory, to pass ticks between two processes — with
 indices, a mask and `_Alignas(64)` written out in the code. The
 [`rte_ring`][guiaring] is that same structure, ready-made, with the SP/SC and MP/MC
@@ -447,7 +452,7 @@ no longer free: it is the `rte_mbuf`, with the layout the NIC and the drivers ex
 All three enter the L2 suite, and the sizing rules have an L1 test:
 
 ```bash
-./scripts/test-all.sh l1     # regras de dimensionamento, sem EAL
+./scripts/test-all.sh l1     # sizing rules, without the EAL
 ./scripts/test-all.sh l2     # runtime real
 ```
 
@@ -471,7 +476,7 @@ changes from 512, the test flags it instead of the document ageing silently.
    would fail if the headroom were 16?
 6. In `custo-anel`, which batch makes the difference between SP/SC and MP/MC fall
    below 10% on your machine? Compare with the optimal batch measured in the
-   [practical topic](../../trilha/01-fundamentos/02-mempool-ring/README.md).
+   [practical topic](../../trilha/01-fundamentos/02-mempool-ring/README.en.md).
 7. Modify `custo-anel` to use `_burst` instead of `_bulk` and ignore the return
    value. How many iterations until the program misbehaves?
 
@@ -509,7 +514,7 @@ The consequence is a programming error that is hard to see in code review:
 
 ```c
 if (rte_mempool_get_bulk(pool, lote, n) != 0)
-    continue;          /* parece "tenta de novo"; é uma parada total */
+    continue;          /* looks like "retry"; it is a full stop */
 ```
 
 With the pool below `n`, that condition is true **on every turn**. The loop spins
@@ -566,7 +571,7 @@ here as pending, not as a result.
 
 Nor is the slow consumer with a full ring covered: the partial return of
 `rte_ring_enqueue_burst()` and the leak it causes when ignored are measured in the
-[practical topic](../../trilha/01-fundamentos/02-mempool-ring/README.md#6-quando-dá-errado),
+[practical topic](../../trilha/01-fundamentos/02-mempool-ring/README.en.md#6-when-it-goes-wrong),
 which is where there is a real pipeline to fill it.
 
 ## 7. Limitations of this document
@@ -574,7 +579,7 @@ which is where there is a real pipeline to fill it.
 - **The measurements are from a single lcore, with no contention.** That is
   deliberate — the goal was to isolate the structures' cost, not that of cache
   coherence between cores, which the
-  [fundamentals](../01-fundamentos/README.md#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só)
+  [fundamentals](../01-fundamentos/README.en.md#43-numa-when-memory-stops-being-one-thing)
   already measured. With producer and consumer on distinct cores, the ring's numbers
   are different and larger.
 - **The measurements published here are cost per operation, not latency.** That is why
@@ -583,7 +588,7 @@ which is where there is a real pipeline to fill it.
   cost and its stability. The **tail** question — what happens to the operation that
   finds the cache empty, or the pool exhausted — is of another nature and was not
   measured in this module. See the distinction between performance and predictability
-  in [§4 of the overview](../00-visao-geral/README.md#4-como-ler-os-números).
+  in [§4 of the overview](../00-visao-geral/README.en.md#4-how-to-read-the-numbers).
 - **The pool is warm in every measurement.** No number includes a page fault or a
   first pass through memory, which in production is more expensive.
 - **The mechanism of `malloc`'s step was not investigated**, only observed. Explaining
@@ -606,9 +611,9 @@ which is where there is a real pipeline to fill it.
 
 **From this project**
 
-- [01 — Fundamentals](../01-fundamentos/README.md) — cache, false sharing and the
+- [01 — Fundamentals](../01-fundamentos/README.en.md) — cache, false sharing and the
   per-packet budget
-- [02 — DPDK runtime](../02-runtime-dpdk/README.md) — the memory these objects come
+- [02 — DPDK runtime](../02-runtime-dpdk/README.en.md) — the memory these objects come
   from
 - [Practical topic 02](../../trilha/01-fundamentos/02-mempool-ring/) — the complete
   cycle in code, with L1 and L2 tests
@@ -621,10 +626,10 @@ which is where there is a real pipeline to fill it.
 
 | | |
 |---|---|
-| **Previous** | [02 — DPDK runtime](../02-runtime-dpdk/README.md) |
+| **Previous** | [02 — DPDK runtime](../02-runtime-dpdk/README.en.md) |
 | **Practical** | [Topic 02 — Mempool, ring and batch](../../trilha/01-fundamentos/02-mempool-ring/) |
 | **Next** | [Pipeline and backpressure](../../trilha/02-pipeline/) |
-| **Plan** | [Study plan](../plano-estudo-dpdk.md) |
+| **Plan** | [Study plan](../plano-estudo-dpdk.en.md) |
 
 [guiamempool]: https://doc.dpdk.org/guides/prog_guide/mempool_lib.html
 [guiaring]: https://doc.dpdk.org/guides/prog_guide/ring_lib.html

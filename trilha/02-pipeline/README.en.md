@@ -2,7 +2,7 @@
 
 *Leia em [português](README.md).*
 
-> **Levels 5 and 6** of the [study plan](../../docs/plano-estudo-dpdk.md) ·
+> **Levels 5 and 6** of the [study plan](../../docs/plano-estudo-dpdk.en.md) ·
 > Prerequisite: [01 — Practical fundamentals](../01-fundamentos/), especially
 > [02 — Mempool, ring and batch](../01-fundamentos/02-mempool-ring/)
 
@@ -87,9 +87,9 @@ These links exist in written documents and point here:
 
 | Origin | What was promised | State |
 |---|---|---|
-| [02-mempool-ring §3](../01-fundamentos/02-mempool-ring/README.md) | real *backpressure* handling, beyond the retry loop | **partial** — of the three policies, only dropping was measured |
-| [02-mempool-ring §6](../01-fundamentos/02-mempool-ring/README.md) | what to do when the producer never sleeps | **met** — `pipeline_ring.c -t` ends on a progress deadline and declares what it dropped |
-| [C++23 alternative §3](../01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md) | the honest performance comparison, which only exists with a NIC | **open** — depends on submodule 01 |
+| [02-mempool-ring §3](../01-fundamentos/02-mempool-ring/README.en.md) | real *backpressure* handling, beyond the retry loop | **partial** — of the three policies, only dropping was measured |
+| [02-mempool-ring §6](../01-fundamentos/02-mempool-ring/README.en.md) | what to do when the producer never sleeps | **met** — `pipeline_ring.c -t` ends on a progress deadline and declares what it dropped |
+| [C++23 alternative §3](../01-fundamentos/02-mempool-ring/alternativas/cpp23/README.en.md) | the honest performance comparison, which only exists with a NIC | **open** — depends on submodule 01 |
 
 ## What is still missing
 
@@ -108,4 +108,4 @@ These links exist in written documents and point here:
 |---|---|
 | **Previous** | [01 — Practical fundamentals](../01-fundamentos/) |
 | **Next** | [03 — Performance and observability](../03-performance/) |
-| **Index** | [Track](../README.md) · [Study plan](../../docs/plano-estudo-dpdk.md) |
+| **Index** | [Track](../README.en.md) · [Study plan](../../docs/plano-estudo-dpdk.en.md) |

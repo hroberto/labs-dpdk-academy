@@ -2,7 +2,7 @@
 
 *Leia em [português](README.md).*
 
-> **Level 10** of the [study plan](../../docs/plano-estudo-dpdk.md) ·
+> **Level 10** of the [study plan](../../docs/plano-estudo-dpdk.en.md) ·
 > Prerequisite: every previous module
 
 Consolidate the material into a runnable, documented and measured system, and use
@@ -26,8 +26,8 @@ a citation.
 
 | Finding | Number | Where |
 |---|---|---|
-| A syscall costs dozens of function calls | 33.8 ns against 0.73 ns warm (**46×**) or 0.92 cold (36×) | [fundamentals §2](../../docs/01-fundamentos/README.md) |
-| Bringing up the EAL is not free | **123 ms** | [runtime §2](../../docs/02-runtime-dpdk/README.md#2-o-custo-de-existir-quanto-a-eal-leva-para-nascer) |
+| A syscall costs dozens of function calls | 33.8 ns against 0.73 ns warm (**46×**) or 0.92 cold (36×) | [fundamentals §2](../../docs/01-fundamentos/README.en.md) |
+| Bringing up the EAL is not free | **123 ms** | [runtime §2](../../docs/02-runtime-dpdk/README.en.md#2-the-cost-of-existing-how-long-the-eal-takes-to-be-born) |
 | Crossing a cache domain dominates everything | **4.0 to 4.8×** | [mempool-ring](../01-fundamentos/02-mempool-ring/) |
 | Parallelising can make things worse | 1 lcore beats 2 across almost the whole table | [mempool-ring](../01-fundamentos/02-mempool-ring/) |
 | Backpressure is the pool/queue ratio, not the queue | boundary at capacity = 4 095 | [backpressure §6](../02-pipeline/02-batching-backpressure/) |
@@ -193,4 +193,4 @@ missing, and it requires a reboot.
 | | |
 |---|---|
 | **Previous** | [03 — Performance and observability](../03-performance/) |
-| **Index** | [Track](../README.md) · [Study plan](../../docs/plano-estudo-dpdk.md) · [Roadmap](../../ROADMAP.md) |
+| **Index** | [Track](../README.en.md) · [Study plan](../../docs/plano-estudo-dpdk.en.md) · [Roadmap](../../ROADMAP.en.md) |

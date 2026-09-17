@@ -12,6 +12,11 @@ A common confusion needs to be cleared up before any comparison:
 > **"DPDK versus C++" is a false opposition.** DPDK programs *are* written in C and
 > C++. DPDK's API is C, callable from C++23 with no intermediary.
 
+> **Note on the blocks in this English edition.** The measurement programs print in
+> Portuguese; this document translates their **labels and captions** so the tables
+> and outputs can be read here. Numbers, seals and column positions are exactly what
+> the program emitted. When a command in this page greps that output, the pattern
+> stays in Portuguese — it has to match what the program really prints.
 What is really being compared is not language against library, but **two
 architectures of memory and flow management**:
 
@@ -29,14 +34,14 @@ in DPDK, the programmer; here, the type system and RAII.
 ## 2. Mechanism: C++23 features in use
 
 ```cpp
-// std::expected — erro sem exceção no caminho crítico, visível na assinatura
+// std::expected — failure without exceptions on the critical path, visible in the signature
 [[nodiscard]] std::expected<void, Error> enqueue(Packet p);
 
-// std::views::chunk — batching declarativo
+// std::views::chunk — declarative batching
 for (auto bloco : std::span{pacotes_} | std::views::chunk(lote))
     processar_lote(std::span<Pacote>{bloco.data(), bloco.size()}, r);
 
-// constexpr — o contrato é verificável em tempo de compilação
+// constexpr — the contract is checkable at compile time
 static_assert(checksum(7, 100) == (7u ^ 100u));
 ```
 
@@ -286,8 +291,8 @@ DPDK in the abstract.
 > closes the diagnosis:
 >
 > ```
-> main apos rte_eal_init   CPUs permitidas: 0
-> thread pthread_create    CPUs permitidas: 0
+> main after rte_eal_init  allowed CPUs: 0
+> thread pthread_create    allowed CPUs: 0
 > ```
 >
 > `malloc` was not degrading 350% from allocator contention: it was degrading from
@@ -349,7 +354,7 @@ up.
 EAL: at initialisation it scans and `dlopen`s every available driver, even the ones
 this program will never use (NIC, crypto and bus drivers). It is real work, and it
 is one of the things the number in
-[§2 of module 02](../../../../../docs/02-runtime-dpdk/README.md#2-o-custo-de-existir-quanto-a-eal-leva-para-nascer)
+[§2 of module 02](../../../../../docs/02-runtime-dpdk/README.en.md#2-the-cost-of-existing-how-long-the-eal-takes-to-be-born)
 accounts for. `--no-pci` and `-d` reduce that scan when you know in advance what you
 need.
 
@@ -369,10 +374,10 @@ that makes the other look expensive exists to cross that bridge.
 ```
 
 ```
-Pacotes processados: 10
-Total de bytes: 695
-Lote (burst): 32 | lotes interrompidos por fila cheia: 0
-Tempo medio: 23.1 ns/pacote
+Packets processed: 10
+Total bytes: 695
+Batch (burst): 32 | batches cut short by a full queue: 0
+Average time: 23.1 ns/packet
 ```
 
 **The first two values are identical to the DPDK version's.** That is no accident:
@@ -381,7 +386,7 @@ test — the same case names, the same expected values, including the same
 parameterised test over batch sizes.
 
 ```bash
-./scripts/test-all.sh l1     # 16 casos deste lado, 13 do lado DPDK
+./scripts/test-all.sh l1     # 16 cases on this side, 13 on the DPDK side
 ```
 
 When both suites pass with the same assertions, it is demonstrated that the
@@ -398,7 +403,7 @@ behaviour. Without that, the comparison would be rhetorical.
 
 ## 7. References
 
-- [Topic 02 — the DPDK version](../../) · [Study plan](../../../../../docs/plano-estudo-dpdk.md)
+- [Topic 02 — the DPDK version](../../) · [Study plan](../../../../../docs/plano-estudo-dpdk.en.md)
 - `std::expected` (P0323R12), `std::views::chunk` (P2442R1) — <https://en.cppreference.com/w/cpp/23>
 
 [guiamempool]: https://doc.dpdk.org/guides/prog_guide/mempool_lib.html
