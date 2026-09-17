@@ -50,7 +50,10 @@ folclore.
 6. **escolher entre um primitivo de sincronização e outro** sabendo o preço de
    cada um sem disputa e sob disputa;
 7. **ler uma métrica de latência** sem se enganar: mediana contra média,
-   percentil, dispersão, e por que a média mente.
+   percentil, dispersão, e por que a média mente;
+8. **separar latência de vazão** ao ler qualquer medição de memória, e escolher
+   entre as alavancas de ajuste sabendo qual delas melhora uma sem melhorar a
+   outra — e o que cada uma cobra.
 
 ---
 
@@ -230,6 +233,59 @@ apenas quando o orçamento cai para 67 ns.
 
 ## 4. Memória: onde o desempenho realmente se decide
 
+Este é o capítulo em que o documento deixa de descrever a máquina e passa a
+**armar decisões**. Cada seção termina com o que ela permite ajustar e o que
+esse ajuste cobra; a [§4.4](#44-mapa-de-decisão-o-que-ajustar-e-o-que-isso-cobra)
+reúne tudo num mapa. Antes dos mecanismos, porém, três grandezas — porque
+confundi-las é o erro mais caro do plano de dados, e este documento já o cometeu
+(ver a retratação da [§4.2](#42-cache-e-localidade)).
+
+> **Latência** — quanto tempo **um** acesso demora, do pedido à chegada do dado.
+> É propriedade física da máquina: você não a reduz escrevendo melhor.
+>
+> **Vazão** (*throughput*) — quantos acessos por segundo a máquina completa.
+> **Não** é o inverso da latência, e essa é a ideia central deste capítulo.
+>
+> **Banda** (*bandwidth*) — quantos bytes por segundo trafegam. É o teto físico
+> onde a vazão para de crescer.
+
+A relação entre elas cabe numa linha, e é conhecida como **Lei de Little**:
+
+```
+vazão = concorrência ÷ latência
+```
+
+A latência está no denominador e é fixa. Logo, a única forma de aumentar a vazão
+é aumentar a **concorrência** — quantos acessos estão em voo ao mesmo tempo. E a
+concorrência é escolha de quem escreve o programa.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escada-escuro.svg">
+  <img alt="Gráfico de barras horizontais com a latência de um acesso dependente por nível da hierarquia: 0,89 ns na L1d, 2,68 ns na L2, 9,75 ns na L3 e 103 ns na RAM. Uma linha tracejada marca o orçamento de 67,2 ns por pacote; só a barra da RAM já o ultrapassa, em 36 ns." src="imagens/4-escada-claro.svg">
+</picture>
+
+A barra da RAM é o problema inteiro deste módulo em uma imagem: **um único
+acesso à memória principal custa mais que o pacote inteiro**. Não sobra
+orçamento para receber o quadro, decidir o que fazer com ele e transmiti-lo —
+o acesso sozinho já estourou.
+
+E não há como tornar esse acesso mais rápido. A latência da DRAM é ditada pelo
+dispositivo, pelo barramento e pela distância física; nenhuma escolha de
+linguagem, compilador ou estrutura de dados a diminui. O que resta é **não
+pagá-la**, e há quatro alavancas para isso, distribuídas pelas três seções
+seguintes:
+
+| Se você quer… | A alavanca é… | E está na… |
+|---|---|---|
+| que o acesso nem chegue à RAM | localidade: caber no cache | [§4.2](#42-cache-e-localidade) |
+| que o acesso não pague tradução por cima | hugepages | [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço) |
+| que muitos acessos paguem o preço **juntos** | concorrência: lote e *prefetch* | [§4.2](#42-cache-e-localidade) |
+| que o acesso não atravesse o nó errado | afinidade de memória | [§4.3](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só) |
+
+As três primeiras atacam o mesmo número por caminhos diferentes, e **só a
+terceira melhora a vazão sem melhorar a latência**. É por isso que ela é a que
+mais confunde, e a que mais decide.
+
 ### 4.1 Memória virtual: o que significa "traduzir um endereço"
 
 Nenhum endereço que seu programa manipula é o endereço real de um byte na
@@ -327,9 +383,43 @@ elas cobrem juntas.
 alcance = entradas × tamanho da página
 ```
 
-Com páginas de 4 KB, mil entradas cobrem 4 MB. Um programa que percorre um
-conjunto de trabalho de 512 MB de forma dispersa vai faltar na TLB quase
-sempre — e pagar a caminhada em quase todo acesso.
+Com páginas de 4 KB, mil entradas cobrem 4 MB — e "mil" aqui é número redondo,
+escolhido para a conta sair de cabeça; a ordem de grandeza é essa. O que decide
+o resultado não é o tamanho absoluto da TLB, e sim a **razão entre o alcance e o
+conjunto de trabalho**. Num percurso disperso — sem padrão que o processador
+consiga prever —, a chance de a tradução já estar na TLB é aproximadamente essa
+razão:
+
+```
+P(acerto) ≈ alcance / conjunto de trabalho
+```
+
+Aplicando a fórmula com páginas de 4 KB e ~1 000 entradas:
+
+| Conjunto de trabalho | Entradas necessárias | Fração coberta | Na prática |
+|---|---|---|---|
+| 4 MB | 1 024 | ~100% | quase todo acesso acerta |
+| 64 MB | 16 384 | 6,1% | a maioria falta |
+| 512 MB | 131 072 | 0,8% | praticamente tudo falta |
+
+A última linha é o caso medido neste documento. Cobrir 512 MB com páginas de
+4 KB exigiria **131 072 entradas de TLB** — uma a duas ordens de grandeza acima
+do que os processadores atuais oferecem. Menos de 1% dos acessos acerta; os
+outros 99% pagam a caminhada inteira descrita acima. E o argumento não depende
+do número redondo: mesmo uma TLB de 4 000 entradas, o topo do que se vê hoje,
+cobriria 16 MB — ainda 3% da região.
+
+**E não adianta pedir uma TLB maior.** Ela é consultada em *todo* acesso à
+memória, em paralelo com a L1, e precisa responder em ~1 ciclo — o que a obriga
+a ser pequena e altamente associativa. Crescer custa latência e energia no
+caminho mais quente do processador, e o retorno é linear: dobrar as entradas
+leva a cobertura de 0,8% para 1,6%. Não resolve.
+
+**Ou seja:** a TLB não falha por ser pequena — ela falha porque, com páginas de
+4 KB, **cada entrada cobre pouco demais**. O alcance é o produto de dois
+fatores, e o software controla apenas um deles. Aumentar o número de entradas é
+problema do fabricante; aumentar o tamanho da página é decisão sua — e é o único
+dos dois fatores que multiplica.
 
 #### Por que hugepages, então
 
@@ -376,6 +466,238 @@ Repare no selo: esta é uma das medições **menos** estáveis do documento
 512 MB, disputando memória com todo o resto da máquina. A conclusão qualitativa
 (hugepages eliminam o page walk) é sólida; o valor exato, não.
 
+#### O que o programa calcula
+
+A medição publica um número só — nanossegundos por acesso —, e ele sai de uma
+aritmética deliberadamente simples. Vale abrir a conta, porque cada constante
+dela foi escolhida para isolar o *page walk* de todo o resto.
+
+**A região e a cadeia.** 512 MB divididos em linhas de cache de 64 B dão
+**8 388 608 linhas**. O programa sorteia uma permutação (Fisher-Yates) e grava,
+em cada linha, o índice da **próxima** — montando um **ciclo único** que passa
+por todas elas exatamente uma vez. Ciclo único, e não vários curtos: é isso que
+garante que o percurso cubra a região inteira, em vez de girar num pedaço que
+caiba no cache.
+
+```c
+idx = p[idx];     /* o endereço do próximo acesso só existe DEPOIS deste */
+```
+
+Essa linha é o experimento inteiro. Como cada acesso depende do anterior, o
+processador não consegue emitir vários em paralelo, e o *prefetcher* não tem
+padrão para reconhecer. É exatamente a diferença entre o que a
+[§4.2](#42-cache-e-localidade) mede (tempo **amortizado**, com vários acessos em
+voo) e o que esta seção mede (**latência** de um acesso dependente).
+
+**A conta.** O laço executa `n × 4 = 33 554 432` acessos — quatro voltas
+completas no ciclo — e o relógio é lido **uma vez antes e uma vez depois**:
+
+```
+ns por acesso = (t_fim − t_início) / 33 554 432
+```
+
+Cronometrar acesso a acesso seria impossível: `clock_gettime` custa dezenas de
+nanossegundos, ou seja, **mais do que aquilo que se quer medir**. Amortizar
+sobre 33 milhões de acessos torna o custo dos dois carimbos irrelevante diante
+de ~3,5 s de laço. O preço dessa escolha é perder a distribuição *dentro* da
+amostra — que é justamente o que as sete amostras por medição recuperam.
+
+**O que fica fora do cronômetro, de propósito.** Medido na máquina de
+referência, uma amostra de 512 MB:
+
+| Etapa | Custo | Por que fica fora |
+|---|---|---|
+| `mmap` de 512 MB | ~0 ms | só cria o mapeamento; nenhuma memória existe ainda |
+| `memset` da região | 88 ms (4 KB) / 46 ms (2 MB) | **força as faltas de página aqui**, não no laço |
+| sorteio e montagem da cadeia | ~215 ms | escrever 8,4 M ponteiros não é o objeto do teste |
+| `free` do vetor de ordem (64 MB) | — | devolvido antes do primeiro carimbo |
+| **laço cronometrado** | **~3 500 ms** | ← é só isto que entra na conta |
+
+O `memset` é o item importante dessa lista, e o número de faltas de página que
+ele provoca é a própria aritmética da seção aparecendo no contador do sistema:
+
+```
+  páginas de 4 KB:  131 072 faltas de página   (512 MB ÷ 4 KB)
+  hugepages de 2 MB:    256 faltas de página   (512 MB ÷ 2 MB)
+```
+
+Sem esse pré-toque, a primeira volta do ciclo pagaria uma falta de página a cada
+página nova — microssegundos cada — e a medição publicaria o custo de **criar**
+o mapeamento, não o de **traduzi-lo**. Repare, de passagem, que o `memset` em si
+já custa quase o dobro com páginas de 4 KB: 131 072 entradas no kernel contra
+256.
+
+#### Por que a região tem exatamente 512 MB
+
+O tamanho não é arbitrário. Ele é o único valor que satisfaz quatro restrições
+ao mesmo tempo, e entender isso é entender o experimento:
+
+| A região precisa ser… | Senão… | Nesta máquina |
+|---|---|---|
+| muito maior que o L3 | o percurso mede cache, não memória | L3 = 32 MB por bloco |
+| muito maior que o alcance da TLB com 4 KB | o lado "ruim" não falta, e não há o que medir | exige 131 072 entradas |
+| pequena o bastante para caber no alcance com 2 MB | o lado "bom" também falta, e a diferença some | exige 256 entradas |
+| pequena o bastante para a reserva ser viável | o teste vira privilégio de máquina grande | 256 hugepages = 512 MB |
+
+As duas linhas do meio são o coração do desenho. Nenhuma TLB de segundo nível de
+x86 atual guarda mais que alguns milhares de entradas — ou seja, **131 072
+entradas não cabem de jeito nenhum**, e quase todo acesso do lado de 4 KB paga a
+caminhada. Já **256 entradas cabem com folga em qualquer uma delas**, e o lado
+de 2 MB acerta quase sempre. O experimento força os dois extremos e publica a
+distância entre eles.
+
+É também a resposta do [exercício 6](#exercícios): encolher a região para 4 MB
+faz a vantagem sumir, porque aí os dois lados cabem — 1 024 entradas de 4 KB
+ainda cabem na TLB, e 4 MB inteiros cabem no L3.
+
+#### A área reservada: 256 hugepages, e por que a receita pede 512
+
+**`MAP_HUGETLB` não negocia.** Diferente das *transparent hugepages*, que o
+kernel promove em segundo plano quando consegue, essa flag serve-se de um
+**pool reservado antecipadamente** e **não cai para 4 KB** quando ele não basta:
+o `mmap` falha com `ENOMEM`, e acabou.
+
+É essa ausência de silêncio que permite ao programa usar uma medição real como
+teste de capacidade — se `amostra_2m()` devolve erro, é porque a reserva não
+existe:
+
+```c
+if (amostra_2m() < 0) { /* ... */ return 77; }   /* 77 = PULADO no Meson */
+```
+
+O código de saída 77 está lá por um motivo documentado no
+[`meson.build`](medicoes/meson.build): sair com 0 fazia a suíte reportar verde
+**sem que nada tivesse sido medido**, e como `HugePages_Total=0` é o padrão da
+maioria das máquinas e do runner de CI, o falso verde era a regra, não a
+exceção.
+
+**A conta da reserva:**
+
+```
+região medida          512 MB
+tamanho da hugepage      2 MB
+                      ────────
+mínimo necessário       256 hugepages
+```
+
+A receita do documento pede **512** (`sudo sysctl -w vm.nr_hugepages=512`), o
+dobro do mínimo. A folga não é desperdício; ela cobre três situações reais:
+
+- **o pool é global.** Outro processo — um DPDK em execução, um teste anterior
+  que não encerrou — pode estar segurando parte dele.
+- **em máquina com mais de um nó NUMA o pool é dividido entre os nós.** Um
+  `mmap` de 512 MB precisa de 256 páginas **no nó onde a memória será tocada**;
+  com 512 páginas repartidas entre dois nós, sobra exatamente o mínimo e nenhuma
+  margem.
+- **a reserva pode ser parcialmente atendida** — o próximo ponto.
+
+**`sysctl` não falha alto, e este é o erro operacional mais comum.** Se a
+memória estiver fragmentada, o kernel reserva *o que conseguir* e o comando sai
+com sucesso do mesmo jeito. O único jeito de saber é ler de volta:
+
+```bash
+sudo sysctl -w vm.nr_hugepages=512
+grep -E "HugePages_Total|HugePages_Free|HugePages_Rsvd|Hugepagesize" /proc/meminfo
+#   Total = o que o kernel CONSEGUIU reservar (pode ser menor que 512)
+#   Free  = ainda não entregues a ninguém
+#   Rsvd  = prometidas a um mmap que ainda não as tocou
+```
+
+Se `HugePages_Total` voltar abaixo de 256, a medição vai pular. Em máquina ligada
+há muito tempo, reservar cedo resolve — ou no boot, que é a única forma confiável
+em memória fragmentada:
+
+```bash
+# persistente, aplicado no boot
+echo "vm.nr_hugepages = 512" | sudo tee /etc/sysctl.d/10-hugepages.conf
+# ou na linha de comando do kernel: hugepagesz=2M hugepages=512
+# por nó NUMA, quando houver mais de um:
+echo 256 | sudo tee /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages
+```
+
+**A reserva sai da memória do sistema.** Páginas reservadas deixam de estar
+disponíveis para qualquer outra coisa: não entram em `MemAvailable`, não são
+recuperadas sob pressão e não vão para swap. 512 páginas de 2 MB são **1 GB
+retirado da máquina** enquanto a reserva existir.
+
+> **Esta reserva não é a mesma do
+> [`preparar-hugepages.sh`](../../scripts/preparar-hugepages.sh).** Aquele
+> script monta um **hugetlbfs gravável**, necessário para o modelo
+> primário/secundário do módulo 02, onde dois processos precisam mapear o mesmo
+> *arquivo*. `custo-traducao.c` usa memória **anônima** (`MAP_ANONYMOUS |
+> MAP_HUGETLB`) e não precisa de ponto de montagem nenhum: precisa apenas que o
+> **pool exista**. Reservar sem montar basta aqui; montar sem reservar, não.
+
+#### Por que a diferença é ~12 ns, e não três acessos à RAM
+
+O diagrama do *page walk* mostra quatro acessos à memória, e a RAM desta máquina
+responde em ~95 ns. Se cada falta de TLB custasse mesmo quatro idas à RAM, a
+diferença entre as duas linhas da tabela seria de **centenas** de nanossegundos —
+e ela é de 12 a 18. O diagrama descreve o **pior caso**; a tabela mede o **caso
+real**. A distância entre os dois é o que diz quando o pior caso volta a valer.
+
+**As tabelas de página são dados, e cabem em cache.** Elas ocupam memória como
+qualquer outra estrutura, e o kernel informa quanto:
+
+```bash
+grep VmPTE /proc/self/status     # tabelas de página deste processo
+```
+
+Mapeando os mesmos 512 MB das duas formas, na máquina de referência:
+
+| Mapeamento | Tabelas de página | De onde sai |
+|---|---|---|
+| 512 MB em páginas de 4 KB | **1 028 kB** | 131 072 PTEs × 8 B = 1 MB, em 256 tabelas (+1 de nível 2) |
+| 512 MB em hugepages de 2 MB | **4 kB** | 256 entradas de nível 2 numa única tabela |
+
+Daí sai uma regra que escala: **com páginas de 4 KB, a tabela custa 1/512 da
+região mapeada** (8 bytes de PTE a cada 4 096 bytes de dado). Com hugepages de
+2 MB, 1/262 144.
+
+**Só um nível varia.** Para uma região de 512 MB, os níveis 4, 3 e 2 somam
+pouquíssimas tabelas — no mapeamento medido acima, uma única de nível 2, os 4 kB
+a mais — e ficam residentes nas *page-walk caches* do processador. O que muda de
+acesso para acesso é apenas a leitura do **nível 1**, dentro daquele 1 MB de
+PTEs. O custo real, portanto, é **um acesso extra, não quatro**.
+
+**E esse acesso é servido pelo L3.** Um megabyte de PTEs não cabe no L2 (1 MB
+por núcleo nesta máquina — no limite exato), mas cabe com folga no L3 (32 MB por
+bloco). Medindo a latência de um acesso dependente em função do tamanho da
+região — a mesma cadeia do programa, sempre em hugepages para tirar a TLB da
+conta:
+
+```
+  região      ns/acesso (cadeia dependente, hugepages de 2 MB)
+    8 MB        11.04     <- L3
+   16 MB        11.18     <- L3
+   32 MB        21.54     <- fronteira do L3
+   64 MB        79.80     <- RAM
+  512 MB        94.95     <- RAM
+```
+
+Um acerto de L3 custa ~11 ns nesta máquina. Numa execução de `custo-traducao`
+com a máquina ociosa, a diferença medida entre 4 KB e 2 MB foi **11,65 ns**:
+
+```
+  paginas de 4 KB                        106.1  105.8-106.9     105.6-108.0         1.0%   0.8%
+  hugepages de 2 MB                      94.48  94.20-94.89     93.89-95.47         0.7%   0.6%
+
+  diferenca (o custo do page walk): 11.65 ns  (11.0%)
+```
+
+Os números fecham: **cada falta de TLB paga uma leitura de PTE servida pelo
+L3**. E repare que aqui os selos sumiram (`disp` de 1,0% e 0,7%, contra 10,2% e
+9,4% da tabela publicada) — confirmando o diagnóstico da instabilidade: ela vem
+da disputa com o resto da máquina, não do método.
+
+> **Quando o pior caso volta.** Quando as tabelas deixarem de caber no cache. Um
+> plano de dados que mapeie **16 GB** em páginas de 4 KB precisa de 32 MB só de
+> PTEs — mais que o L3 inteiro desta máquina. Aí a leitura do nível 1 passa a ir
+> à RAM, e o custo do *page walk* sai de ~11 ns para quase 90. **O problema das
+> páginas de 4 KB não é serem lentas: é piorarem conforme o conjunto de trabalho
+> cresce** — e é por isso que ele aparece em produção, com buffers de verdade, e
+> não no laboratório.
+
 Daí a exigência do DPDK: os buffers de pacote vivem em hugepages não por
 capricho, mas porque um plano de dados percorre grandes regiões de memória de
 forma pouco previsível — o pior caso possível para a TLB.
@@ -394,41 +716,204 @@ transferência entre eles acontece em blocos de **64 bytes** — a *linha de cac
 Medindo o efeito ([`efeito-cache.c`](medicoes/efeito-cache.c)):
 
 ```
-  cabe em    tamanho    sequencial   aleatorio   penalidade   CV do aleatorio
-                        (tempo AMORTIZADO por acesso, nao latencia)
-  L1d          16 KB      0.193 ns    0.244 ns        1.3x        2.8%
-  L2          256 KB      0.193 ns    0.297 ns        1.5x        2.4%
-  L3         8192 KB      0.194 ns     1.06 ns        5.5x       24.5%  !
-  RAM      262144 KB      0.202 ns     7.68 ns       38.1x        8.0%  ~
+  cabe em    tamanho   sequencial    aleatorio    dependente   acessos   disp do
+                       (amortizado)  (amortizado) (LATENCIA)   em voo    dependente
+  L1d          16 KB     0.190 ns     0.227 ns      0.894 ns     ~4        0.1%
+  L2          256 KB     0.186 ns     0.248 ns       2.68 ns    ~11        0.2%
+  L3         8192 KB     0.188 ns     0.746 ns       9.75 ns    ~13        0.4%
+  RAM      262144 KB     0.198 ns      7.46 ns      103.1 ns    ~14        2.9%
 ```
 
-Este é o resultado mais instrutivo do documento, e tem duas metades:
+> **Esta tabela publicava duas colunas, e a segunda estava rotulada errado.** O
+> texto dizia que o acesso aleatório à RAM custava "a latência real: 7,7 ns", e
+> **7,7 ns não é latência nenhuma** — é custo amortizado. A latência daquele
+> mesmo acesso é **103 ns**, treze vezes maior.
+>
+> A causa está em [`efeito-cache.c`](medicoes/efeito-cache.c): o índice vem de
+> `ordem[i]`, um vetor lido **em sequência**. Os endereços são todos conhecidos
+> de antemão, então o processador dispara uma dúzia de acessos ao mesmo tempo, e
+> o que se media era a vazão desse conjunto. A caixa abaixo da tabela avisava
+> "amortizado, não latência" — e três parágrafos depois o texto afirmava o
+> contrário. As duas frases conviveram porque **o instrumento não media a
+> grandeza que a prosa nomeava**: com duas colunas não havia como notar.
+>
+> A correção não foi de texto. `efeito-cache.c` ganhou a **terceira coluna**, que
+> percorre uma cadeia de ponteiros e expõe a latência de verdade, e
+> [`custo-paralelismo.c`](medicoes/custo-paralelismo.c) foi escrito para medir a
+> transição entre as duas. A tabela acima é execução nova, com as três colunas.
+>
+> E a primeira versão dessa terceira coluna **também saiu errada**: a permutação
+> era gerada sobre os elementos do vetor e reduzida com `%` para caber nas
+> linhas, o que degenerava a cadeia em ciclos de dois ou três nós e publicava
+> 0,9 ns como latência da RAM — com a suíte verde, porque o teste do programa
+> confere o código de saída e um programa que mede a coisa errada também sai com
+> zero. A construção mora agora em [`cadeia.h`](medicoes/cadeia.h), usada pelos
+> três programas que montam cadeias, com a propriedade combinatória verificada
+> em [`tests/test_l1_cadeia.cpp`](medicoes/tests/test_l1_cadeia.cpp).
+>
+> Caem junto a penalidade de `38,1x`, que comparava duas colunas amortizadas, e a
+> explicação do CV de `24,5%` da linha do L3, que atribuía a instabilidade à
+> "fronteira entre caber e não caber no L3". O L3 desta máquina tem **32 MB por
+> bloco** e o conjunto de trabalho era de 8 MB: não havia fronteira alguma. Com a
+> máquina ociosa, aquela linha reproduz com `disp` de 5,5%.
+>
+> Fica o método: **quando a prosa e a caixa de aviso discordam, o instrumento é
+> quem decide** — e se ele não mede a distinção, ela não sobrevive à revisão.
+> <!-- retratado: 0.193 0,193 0.244 0,244 0.297 0.194 0.202 0,202 7.68 38.1 24.5 24,5 -->
 
-> **As duas colunas são tempo amortizado por acesso, não latência.** A distinção
-> decide a leitura: 0,193 ns é cerca de **um ciclo** nesta máquina, e nenhum
-> acesso à memória custa um ciclo. O que se mede é o custo médio quando o
-> processador tem liberdade para buscar várias linhas em paralelo e adiantar as
-> seguintes. Latência de um acesso isolado e dependente é outra grandeza, maior,
-> e exige perseguir ponteiros para ser medida — o que este programa não faz.
+A tabela tem agora três leituras, e a terceira é nova.
 
 **A coluna sequencial é plana.** Percorrer 256 MB custa o mesmo por acesso que
 percorrer 16 KB. O *prefetcher* do processador reconhece o padrão e busca a
 linha seguinte antes que ela seja pedida. A latência da RAM continua existindo —
 ela é apenas escondida.
 
-**A coluna aleatória degrada 38 vezes.** Sem padrão previsível, o prefetcher não
-ajuda, e cada acesso paga a latência real: 7,7 ns. Isso é **11% do orçamento
-inteiro de um pacote**, gasto em um único acesso a memória.
+**A coluna dependente é a latência real**, e é ela que cresce 115× entre a L1d e
+a RAM. É a única das três que mede *um* acesso: cada passo da cadeia só descobre
+o próximo endereço depois que o dado chega, e nada se sobrepõe.
 
-Repare no CV da linha do L3: **24,5%, marcado como instável**. Ali o conjunto de
-trabalho fica na fronteira entre caber e não caber no L3, e o resultado depende
-do que mais estiver ocupando o cache — o próprio número avisa que não deve ser
-citado como constante.
+**A coluna aleatória fica no meio, e o meio é o assunto.** Sem padrão
+previsível, o prefetcher não ajuda — mas os endereços vêm de um vetor lido em
+ordem, então o processador ainda consegue manter uma dúzia de acessos em voo. Os
+7,46 ns são 103 ns divididos por ~14.
+
+#### A concorrência é a alavanca, e ela tem preço
+
+Se dividir por 14 já vale 103 ns, dividir por mais vale mais? Até certo ponto —
+e o ponto é mensurável. [`custo-paralelismo.c`](medicoes/custo-paralelismo.c)
+percorre **K cadeias independentes** sobre a mesma região, com K crescente:
+
+> **Concorrência de memória** (*memory-level parallelism*) — quantos acessos à
+> memória o processador mantém em voo ao mesmo tempo. É o único termo da Lei de
+> Little que o software controla.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/4-conflito-escuro.svg">
+  <img alt="Dois gráficos empilhados com o mesmo eixo horizontal K em escala logarítmica, de 1 a 64 acessos em voo. No de cima, a vazão sobe de 10,6 para 291 milhões de acessos por segundo e satura; uma linha tracejada marca o line rate de 10 GbE, que a vazão só ultrapassa a partir de K igual a 2. No de baixo, em escala logarítmica nos dois eixos, o custo amortizado por acesso cai de 94 para 3,44 nanossegundos enquanto o tempo até o lote ficar pronto permanece plano em torno de 100 nanossegundos até K igual a 16 e sobe para 220 em K igual a 64. As duas curvas estão na mesma unidade; a segunda é a primeira multiplicada por K." src="imagens/4-conflito-claro.svg">
+</picture>
+
+Os dois painéis são a mesma tabela, e juntos são a decisão:
+
+```
+   K   ns/acesso   M acessos/s   lote de K completa em   ganho de vazao
+  ---  ---------   -----------   ---------------------   --------------
+    1      94.36        10.6                 94 ns            1.0x
+    2      46.48        21.5                 93 ns            2.0x
+    4      24.77        40.4                 99 ns            3.8x
+    8      13.26        75.4                106 ns            7.1x
+   12       9.19       108.9                110 ns           10.3x
+   16       7.25       138.0                116 ns           13.0x
+   32       4.59       218.1                147 ns           20.6x
+   64       3.44       290.8                220 ns           27.4x
+```
+
+**A latência não muda em nenhuma linha.** Ela é ~94 ns em todas — o que muda é
+quantos acessos acontecem ao mesmo tempo. A coluna `ns/acesso` cai 27 vezes sem
+que um único acesso tenha ficado mais rápido.
+
+**Com K = 1 esta máquina não alcança 10 GbE.** São 10,6 milhões de acessos por
+segundo contra os 14,9 milhões de pacotes por segundo da [§1](#1-o-orçamento-quanto-tempo-existe-por-pacote).
+Um único acesso dependente por pacote — perseguir um ponteiro, consultar uma
+tabela de fluxo encadeada — **já perde a taxa antes de qualquer processamento**.
+É por isso que o lote do DPDK não é otimização: é o que torna a taxa
+aritmeticamente possível.
+
+**E o preço está no segundo painel**, que põe as duas grandezas no mesmo eixo de
+nanossegundos. Em K = 1 elas **coincidem**: sem lote, o acesso e o conjunto são a
+mesma coisa. A partir daí a azul despenca e a laranja não — e é essa separação
+que mostra que 3,44 ns nunca foram o tempo de resposta da memória. São 94 ns
+divididos por 27 acessos sobrepostos.
+
+**Os dois eixos desse painel são logarítmicos, e isso não é preferência de
+desenho.** Como `lote = K × ns por acesso`, se a concorrência fosse de graça o
+custo cairia exatamente com 1/K e a **laranja seria uma horizontal**. Ela é, até
+K = 16 — 94 para 116 ns, +23%, enquanto a vazão cresce 13×. Onde ela deixa de ser
+horizontal é, ponto a ponto, onde a concorrência passa a custar: de 16 para 64 a
+vazão cresce 2× e a espera, 1,9×. **O joelho é a decisão de projeto** — e a
+coincidência com o `MAX_PKT_BURST` de 32 do DPDK não é coincidência.
+
+> **A laranja é derivada da azul**, multiplicada por K — é assim que o programa a
+> calcula. Ela não traz medição nova; traz a mesma medição na unidade em que a
+> decisão é tomada. Publicá-la ao lado da origem é o que impede que ela pareça um
+> segundo resultado independente.
+
+> **Leia os selos antes de citar os números.** As linhas de K = 32 e K = 64 saem
+> marcadas `~` (`disp` de 5,9% e 8,7%): quanto menor o valor medido, maior a
+> dispersão relativa, e aos 3 ns a medição já disputa com o ruído da máquina. A
+> forma da curva é sólida em toda a faixa; o valor exato dos dois últimos
+> pontos, menos.
+
+#### O que isso significa em bytes
+
+A mesma região, o mesmo núcleo, a mesma memória — só muda o padrão de acesso:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/4-banda-escuro.svg">
+  <img alt="Gráfico de barras horizontais com a banda efetiva de um núcleo sobre a mesma RAM: 20,2 GB/s em acesso sequencial, 8,6 GB/s em acesso aleatório com endereços independentes e 0,6 GB/s quando cada endereço depende do anterior — 33 vezes de diferença." src="imagens/4-banda-claro.svg">
+</picture>
+
+Trinta e três vezes, sem trocar uma peça. **A banda que o fabricante vende não é
+a que o seu programa usa; a que ele usa é a que o padrão de acesso permite.** É
+a razão pela qual "comprar memória mais rápida" quase nunca resolve um plano de
+dados que persegue ponteiros: o gargalo não é a banda, é a falta de
+concorrência para ocupá-la.
+
+Repare também no desperdício embutido. Cada acesso aleatório move uma linha de
+**64 bytes** e usa 4 — os outros 60 atravessaram o barramento para nada. É o
+mesmo argumento da localidade, dito em bytes em vez de nanossegundos.
+
+#### E quando vários núcleos querem a mesma memória
+
+Tudo até aqui mediu **um** núcleo contra um controlador de memória ocioso. Não é
+o que um plano de dados encontra: ali vários lcores empurram a mesma memória ao
+mesmo tempo. A segunda fase do
+[`custo-paralelismo.c`](medicoes/custo-paralelismo.c) mede isso — N núcleos
+físicos, cada um com 16 cadeias próprias sobre a mesma região, sem compartilhar
+uma única linha entre threads:
+
+```
+   nucleos   ns/acesso   M acessos/s      agregado   escala ideal
+  --------   ---------   -----------   -----------   ------------
+         1        8.63       115.9         115.9          100%
+         2       10.93        91.5         183.0           79%
+         4       15.32        65.3         261.0           56%
+         8       24.99        40.0         320.1           35%
+        12       38.50        26.0         311.7           22%
+```
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escala-escuro.svg">
+  <img alt="Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 116 milhões de acessos por segundo com um núcleo para 312 milhões com doze, e satura por volta de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 1 391 milhões com doze." src="imagens/4-escala-claro.svg">
+</picture>
+
+**Com doze núcleos ativos, cada um faz 22% do que fazia sozinho.** A vazão
+agregada cresce 2,7×, não 12× — e entre oito e doze ela **para de crescer**: 320
+contra 312, dentro do ruído. O sistema já estava no teto com oito.
+
+E o teto tem um nome que já apareceu neste capítulo. Trezentos e vinte milhões
+de acessos por segundo, a 64 bytes por linha, são **20,5 GB/s** — o mesmo número
+que um único núcleo alcança em acesso sequencial no gráfico anterior. Não é
+coincidência: é a banda da memória, e os dois caminhos chegam nela. Um núcleo
+sequencial a satura sozinho; oito núcleos dispersos precisam se juntar para
+isso.
+
+> **Leia os selos.** As linhas de 2, 4 e 8 núcleos saem marcadas `!` (`disp` de
+> 17,1%, 10,8% e 14,2%). Com vários núcleos disputando o mesmo caminho de
+> memória, a variação entre amostras é do próprio fenômeno, não do instrumento —
+> o escalonador, a frequência e o que mais estiver na máquina entram na conta. A
+> **forma** da curva (satura antes de oito) reproduz; os valores intermediários,
+> com reserva.
+
+> **Consequência de projeto, e esta é a mais cara de descobrir tarde:**
+> dimensionar um plano de dados pela medição de **um** lcore superestima o
+> sistema inteiro por um fator de quatro nesta máquina. O número que sustenta um
+> projeto é a linha de baixo daquela tabela, não a de cima — e ele só aparece
+> quando se mede com todos os núcleos que o produto vai usar.
 
 > **Consequência de projeto:** "usar estruturas contíguas" não é preferência
 > estética. Um vetor percorrido em ordem e uma lista encadeada com os mesmos
-> dados diferem por uma ordem de grandeza, e a diferença sai do seu orçamento
-> de 67 ns.
+> dados diferem por **duas** ordens de grandeza — e a diferença sai do seu
+> orçamento de 67 ns.
 
 ### 4.2.1 Falso compartilhamento: o erro mais comum de quem escreve plano de dados
 
@@ -788,6 +1273,66 @@ diferença entre 22 ns e 117 ns por travessia.
 > medido é outra coisa: a assimetria entre núcleos, real e grande nesta CPU. Não
 > confunda as duas. Para medir NUMA de verdade é preciso hardware com dois ou
 > mais soquetes, físico ou instância de nuvem grande o bastante.
+
+### 4.4 Mapa de decisão: o que ajustar, e o que isso cobra
+
+As seções anteriores mediram mecanismos. Esta as põe lado a lado como
+**opções**, com a coluna que costuma faltar em material de desempenho: o custo.
+
+| Técnica | O que ataca | Ganho medido aqui | O que cobra | Quando **não** usar |
+|---|---|---|---|---|
+| **hugepages** | o *page walk* | 11 a 18 ns por acesso ([§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço)) | memória reservada que some do sistema; configuração de boot; sem swap | conjunto de trabalho pequeno o bastante para caber na TLB |
+| **layout contíguo** | a falta de localidade | até 33× de banda ([§4.2](#42-cache-e-localidade)) | refatoração; estruturas menos naturais de escrever | acesso genuinamente disperso, em que não há ordem a explorar |
+| **lote e *prefetch*** | a falta de concorrência | 94 → 7,3 ns amortizados, 13× de vazão ([§4.2](#42-cache-e-localidade)) | **latência**: esperar o lote encher (+23% até K = 16, +133% em K = 64) | quando a cauda de latência é o contrato, e não a vazão |
+| **`__rte_cache_aligned`** | o falso compartilhamento | 53 → 8 ns ([§4.2.1](#421-falso-compartilhamento-o-erro-mais-comum-de-quem-escreve-plano-de-dados)) | até 63 bytes desperdiçados por objeto | estrutura só de leitura, ou tocada por um lcore só |
+| **afinidade de memória** | a travessia entre nós | ver [§4.3](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só) | complexidade operacional: fixar lcore, alocar no nó certo, e provar que ficou | máquina de um nó só |
+
+Três leituras que a tabela inteira sustenta, e que valem mais que qualquer linha
+isolada.
+
+**1. Só uma das cinco compra vazão sem melhorar a latência.** Hugepages,
+localidade e afinidade tornam o acesso **mais barato**. O lote não: ele deixa o
+acesso exatamente igual e faz mais deles acontecerem juntos. Por isso é a única
+linha cujo custo aparece na coluna certa — e a única que pode piorar o sistema
+enquanto melhora o número que você está olhando.
+
+**2. O orçamento decide quanto lote você pode pagar.** Os 67,2 ns por pacote da
+[§1](#1-o-orçamento-quanto-tempo-existe-por-pacote) não são o tempo de um
+pacote atravessar o sistema; são o intervalo entre dois pacotes. Um lote de 32
+não gasta 32 orçamentos — ele os **amortiza**. O que ele consome é latência de
+ponta a ponta, e o limite disso não é a taxa da interface: é o contrato do seu
+serviço.
+
+**3. Nada disso escala para sempre.** Cada alavanca tem um teto físico, e os
+três tetos deste capítulo já apareceram:
+
+| Alavanca | Teto | Onde ele foi medido |
+|---|---|---|
+| localidade | o tamanho do cache | [§4.2](#42-cache-e-localidade): acima de 8 MB a coluna aleatória dispara |
+| hugepages | o alcance da TLB | [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço): 256 entradas cobrem 512 MB, não 512 GB |
+| concorrência (um núcleo) | a banda da memória | [§4.2](#42-cache-e-localidade): de K = 32 a K = 64 a vazão cresce só 1,33× |
+| concorrência (o sistema) | a mesma banda, **dividida** | [§4.2](#42-cache-e-localidade): com 12 núcleos, cada um faz 22% do que fazia sozinho |
+
+> **Este capítulo não fecha o assunto, e é bom que não feche.** O conflito entre
+> vazão e latência reaparece em duas escalas maiores, com a mesma matemática: no
+> [tópico 03](../03-mempool-ring-mbuf/README.md#13-o-lote-muda-de-sinal-entre-os-dois),
+> onde o lote dilui o custo fixo de um anel em vez do de um acesso à memória; e
+> na [§11](#111-a-travessia-medida) deste documento, onde a fila de entrada
+> mostra o que acontece quando a vazão pedida encosta no que o sistema entrega.
+> A Lei de Little vale nas três.
+
+#### Antes de ajustar qualquer coisa
+
+Uma ordem de trabalho, porque a ordem importa mais que as técnicas:
+
+1. **Meça a latência, não o custo amortizado.** Se o seu número por acesso é
+   muito menor que a latência da sua memória, você está medindo concorrência —
+   e concorrência muda quando a carga muda.
+2. **Descubra onde o conjunto de trabalho cai.** Cabe no L2? No L3? Em nenhum?
+   A resposta escolhe a alavanca, e as outras quatro linhas viram ruído.
+3. **Só então ajuste**, uma coisa por vez, publicando a dispersão junto com o
+   valor. As tabelas deste capítulo mostram por quê: metade das conclusões
+   erradas vem de comparar duas execuções que mediram regimes diferentes.
 
 ---
 
@@ -1615,7 +2160,7 @@ perder tudo isso?* Para um servidor web, quase nunca. Para um roteador virtual a
 
 Nenhum número deste documento precisa ser aceito por confiança.
 
-Os seis programas usam a **mesma metodologia**, definida em
+Os oito programas usam a **mesma metodologia**, definida em
 [`medicoes/statistics.h`](medicoes/statistics.h): aquecimento, várias amostras
 por medição, e publicação de mediana, intervalo interquartil, amplitude completa
 e dois indicadores de qualidade. A dispersão robusta (IQR sobre mediana) dispara
@@ -1647,6 +2192,7 @@ juntos é mais honesto que esconder a continuidade atrás de um limiar.**
 ./build/docs/01-fundamentos/medicoes/custo-syscall
 ./build/docs/01-fundamentos/medicoes/efeito-cache
 ./build/docs/01-fundamentos/medicoes/custo-traducao   # requer hugepages
+./build/docs/01-fundamentos/medicoes/custo-paralelismo  # requer hugepages
 ./build/docs/01-fundamentos/medicoes/custo-comunicacao
 ./build/docs/01-fundamentos/medicoes/custo-espera
 ./build/docs/01-fundamentos/medicoes/custo-espera-cpp   # espelho em C++23
@@ -1676,6 +2222,14 @@ grep -E "HugePages_Total|Hugepagesize" /proc/meminfo
    compare antes e depois.
 6. Reduza a região de 512 MB para 4 MB em `custo-traducao.c` e recompile. A
    vantagem das hugepages some? Por quê? (Dica: alcance da TLB.)
+6a. Rode `custo-paralelismo` e compare a linha `K = 12` com a coluna
+   `aleatorio` de `efeito-cache` na linha da RAM. Por que os dois números são
+   parecidos, se um programa embaralha índices e o outro percorre cadeias?
+6b. No mesmo programa, divida `ns/acesso` de `K = 1` por `ns/acesso` de `K = 64`.
+   Esse número é o quanto a sua máquina paraleliza a memória. Agora multiplique
+   `ns/acesso` por `K` em cada linha: a partir de qual K a espera pelo lote
+   passa a crescer mais rápido que a vazão? Esse é o lote que a sua máquina
+   pede.
 7. Rode `custo-comunicacao`. Quantos domínios de L3 sua CPU tem? Se tiver mais
    de um, qual a penalidade de atravessá-los?
 8. No [tópico 02](../../trilha/01-fundamentos/02-mempool-ring/), rode o pipeline
@@ -1952,6 +2506,16 @@ reproduz é a **aritmética** da sobrecarga, que é a mesma; o que ela não repr
 - **Nenhum pacote real foi processado.** Tudo aqui mede propriedades da máquina;
   o comportamento com tráfego entra nos tópicos de RX/TX.
 - **NUMA não foi exercitado**, por a máquina de referência ter um único nó.
+- **A saturação multi-núcleo foi medida em um controlador de memória só.** A
+  segunda fase do `custo-paralelismo` mostra a banda sendo dividida entre até 12
+  núcleos, mas todos no mesmo nó NUMA e no mesmo controlador. Em máquina de dois
+  soquetes o desenho muda: cada nó tem o seu, e a resposta passa a depender de
+  onde a memória foi tocada primeiro. Medir isso exige hardware que a máquina de
+  referência não tem.
+- **A fase 2 mede acesso disperso, não tráfego.** Doze núcleos perseguindo
+  ponteiros é o pior caso para a banda, escolhido de propósito. Um plano de dados
+  real mistura padrões, e o teto que ele encontra fica entre os 20 GB/s desta
+  tabela e a banda nominal do módulo de memória.
 - **A comparação da seção 8 é qualitativa.** A comparação medida entre pilha do
   kernel e bypass exige NIC e gerador de tráfego, e está prevista para o nível 6.
 

@@ -2,9 +2,14 @@
 
 *Leia em [português](README.md).*
 
-> **Level 8** of the [study plan](../../../docs/plano-estudo-dpdk.md) ·
+> **Level 8** of the [study plan](../../../docs/plano-estudo-dpdk.en.md) ·
 > Prerequisite: [01 — Benchmarking](../01-benchmarking/)
 
+> **Note on the blocks in this English edition.** The measurement programs print in
+> Portuguese; this document translates their **labels and captions** so the tables
+> and outputs can be read here. Numbers, seals and column positions are exactly what
+> the program emitted. When a command in this page greps that output, the pattern
+> stays in Portuguese — it has to match what the program really prints.
 Seeing what a DPDK program is doing **while it runs**, without stopping it and
 without instrumenting the hot path.
 
@@ -12,7 +17,7 @@ without instrumenting the hot path.
 
 Listing `perf`, *sanitizers* and `clang-tidy` is easy and insufficient: they are
 generic C and C++ tools, and the project already covers them in the
-[tooling document](../../../docs/00-visao-geral/ferramental.md). What this
+[tooling document](../../../docs/00-visao-geral/ferramental.en.md). What this
 submodule covers, and no other does, is **runtime** observability.
 
 The reason is concrete. When the NIC drops a packet for lack of a free descriptor,
@@ -57,12 +62,12 @@ The two get confused, and the difference decides which to use:
 | Access | counters the library exports | the whole shared memory |
 | Client | anything that speaks a UNIX socket | a DPDK process with `--proc-type=secondary` |
 | Coupling | none | same DPDK version, same `--file-prefix` |
-| Startup cost | connecting | an entire EAL — 123 ms, measured in [runtime §2](../../../docs/02-runtime-dpdk/README.md#2-o-custo-de-existir-quanto-a-eal-leva-para-nascer) |
+| Startup cost | connecting | an entire EAL — 123 ms, measured in [runtime §2](../../../docs/02-runtime-dpdk/README.en.md#2-the-cost-of-existing-how-long-the-eal-takes-to-be-born) |
 | Risk | reading | can write into the primary's memory |
 
 For "how many packets were lost", telemetry. For "I want to read the application's
 structure", a secondary — which is the path
-[runtime §4](../../../docs/02-runtime-dpdk/README.md#4-processos-primário-e-secundário)
+[runtime §4](../../../docs/02-runtime-dpdk/README.en.md#4-primary-and-secondary-processes)
 already implements and tests.
 
 ## 3. Trade-offs: your own counter is expensive in the wrong place
@@ -74,7 +79,7 @@ measure.
 A `uint64_t` incremented per packet, placed in the same cache line as the hot
 path's data, turns every increment into an invalidation for the other cores. It is
 the
-[false sharing](../../../docs/01-fundamentos/README.md#421-falso-compartilhamento-o-erro-mais-comum-de-quem-escreve-plano-de-dados)
+[false sharing](../../../docs/01-fundamentos/README.en.md#421-false-sharing-the-most-common-mistake-of-data-plane-programmers)
 already measured in the fundamentals, now caused by the instrumentation itself.
 
 The defence is the same as there: a per-lcore counter, cache-line aligned,
@@ -86,11 +91,11 @@ aggregated only at reporting time. `pipeline_ring.c` already does this — the
 Nothing to compile: the client ships with DPDK.
 
 ```bash
-# um terminal: o programa, rodando
+# one terminal: the program, running
 dpdk-testpmd --no-huge -m 1024 --no-pci --vdev=net_null0 -l 0-1 \
   --file-prefix=obs -- --total-num-mbufs=4096 --forward-mode=rxonly -i
 
-# outro terminal: as perguntas
+# another terminal: the questions
 dpdk-telemetry.py -f obs
 ```
 
@@ -107,7 +112,7 @@ printf '/ethdev/stats,0\n/mempool/info,mb_pool_0\n' | dpdk-telemetry.py -f obs
 ## 5. Validation
 
 ```bash
-./scripts/ambiente-medicao.sh --uma-linha    # carimbe o ambiente
+./scripts/ambiente-medicao.sh --uma-linha    # stamp the environment
 printf '/eal/params\n' | dpdk-telemetry.py -f obs
 ```
 
@@ -139,7 +144,7 @@ three zeros at the end:
 - **`imissed`** — the NIC received and had no free descriptor to deliver into. No
   instruction of your process executed because of it.
 - **`rx_nombuf`** — there was no mbuf in the pool. The classic symptom of an
-  undersized pool, and the [mempool topic](../../../docs/03-mempool-ring-mbuf/README.md)
+  undersized pool, and the [mempool topic](../../../docs/03-mempool-ring-mbuf/README.en.md)
   has the sizing rules.
 - **`ierrors`** — CRC, invalid size, whatever the card rejected.
 
@@ -169,8 +174,8 @@ A pool that empties in production shows up here before it becomes `rx_nombuf`.
 **An unknown path returns `null`, not an error.**
 
 ```json
-{"/memzone/list": null}          ← caminho que não existe
-{"/mempool/list": []}            ← caminho válido, nada a listar
+{"/memzone/list": null}          ← path that does not exist
+{"/mempool/list": []}            ← valid path, nothing to list
 ```
 
 The correct one is `/eal/memzone_list`. The protocol *distinguishes* the two cases
@@ -228,6 +233,6 @@ live process. It is declared as not covered instead of assumed.
 | | |
 |---|---|
 | **Previous** | [01 — Benchmarking](../01-benchmarking/) |
-| **Module** | [03 — Performance and observability](../README.md) |
-| **Related** | [Runtime §4 — primary and secondary processes](../../../docs/02-runtime-dpdk/README.md#4-processos-primário-e-secundário) |
-| **Related** | [Fundamentals §4.2.1 — false sharing](../../../docs/01-fundamentos/README.md#421-falso-compartilhamento-o-erro-mais-comum-de-quem-escreve-plano-de-dados) |
+| **Module** | [03 — Performance and observability](../README.en.md) |
+| **Related** | [Runtime §4 — primary and secondary processes](../../../docs/02-runtime-dpdk/README.en.md#4-primary-and-secondary-processes) |
+| **Related** | [Fundamentals §4.2.1 — false sharing](../../../docs/01-fundamentos/README.en.md#421-false-sharing-the-most-common-mistake-of-data-plane-programmers) |

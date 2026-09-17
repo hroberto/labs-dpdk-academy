@@ -2,7 +2,7 @@
 
 *Leia em [português](README.md).*
 
-> **Level 8** of the [study plan](../../../docs/plano-estudo-dpdk.md) ·
+> **Level 8** of the [study plan](../../../docs/plano-estudo-dpdk.en.md) ·
 > Prerequisite: [02 — Batching and backpressure](../../02-pipeline/02-batching-backpressure/)
 
 Measuring is easy. Measuring in a way that someone else can repeat, arriving at the
@@ -17,8 +17,13 @@ sentence:
 > CPU frequency** and without isolating cores — that is why the programs print the
 > frequency alongside the time. It serves for order of magnitude and for the ratio
 > between the approaches, which is what this section claims."*
-> — [C++23 alternative](../../01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md)
+> — [C++23 alternative](../../01-fundamentos/02-mempool-ring/alternativas/cpp23/README.en.md)
 
+> **Note on the blocks in this English edition.** The measurement programs print in
+> Portuguese; this document translates their **labels and captions** so the tables
+> and outputs can be read here. Numbers, seals and column positions are exactly what
+> the program emitted. When a command in this page greps that output, the pattern
+> stays in Portuguese — it has to match what the program really prints.
 The caveat is honest and it is **vague**. It says something was not controlled, and
 does not say what was in force at the time. A number published without the
 environment it came from is not reproducible, because whoever repeats it does not
@@ -65,8 +70,8 @@ That is an empirical question, and section 6 answers it with measurement.
 the environment and **changes nothing**:
 
 ```bash
-./scripts/ambiente-medicao.sh              # relatório legível
-./scripts/ambiente-medicao.sh --uma-linha  # carimbo, ao lado da medição
+./scripts/ambiente-medicao.sh              # human-readable report
+./scripts/ambiente-medicao.sh --uma-linha  # a stamp, next to the measurement
 ```
 
 The `--uma-linha` mode exists to be recorded alongside the number:
@@ -98,8 +103,8 @@ and a value with a space breaks any reader that splits on whitespace — silentl
 ## 5. Validation
 
 ```bash
-./scripts/ambiente-medicao.sh                      # o seu ambiente
-./scripts/ambiente-medicao.sh --uma-linha; echo $?  # 0 = apurou tudo
+./scripts/ambiente-medicao.sh                      # your environment
+./scripts/ambiente-medicao.sh --uma-linha; echo $?  # 0 = everything determined
 ```
 
 To reproduce section 6's experiment on your machine:
@@ -199,7 +204,7 @@ measured.
 gain would require a reboot. The claim "isolating helps" remains theory in this
 document — and that is why it does not appear as a number.
 
-**`google-benchmark` has not come in yet.** [Stage 5 of the ROADMAP](../../../ROADMAP.md)
+**`google-benchmark` has not come in yet.** [Stage 5 of the ROADMAP](../../../ROADMAP.en.md)
 foresees the formal suite; what exists today is `statistics.h`, with median, IQR,
 amplitude and coefficient of variation per point.
 

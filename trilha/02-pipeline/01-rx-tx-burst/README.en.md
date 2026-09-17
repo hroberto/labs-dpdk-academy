@@ -2,7 +2,7 @@
 
 *Leia em [português](README.md).*
 
-> **Level 6** of the [study plan](../../../docs/plano-estudo-dpdk.md) ·
+> **Level 6** of the [study plan](../../../docs/plano-estudo-dpdk.en.md) ·
 > Prerequisite: [02 — Mempool, ring and batch](../../01-fundamentos/02-mempool-ring/)
 
 > **No code, but with measurement.** This topic has no program yet: the directory
@@ -17,6 +17,11 @@
 > with 171 lines of measured content. A document that is wrong about itself is the
 > same defect this material fights in the numbers.
 
+> **Note on the blocks in this English edition.** The measurement programs print in
+> Portuguese; this document translates their **labels and captions** so the tables
+> and outputs can be read here. Numbers, seals and column positions are exactly what
+> the program emitted. When a command in this page greps that output, the pattern
+> stays in Portuguese — it has to match what the program really prints.
 ## Objective
 
 Bring **real** packets into the project. Up to here every packet was synthetic;
@@ -29,10 +34,10 @@ settled without real traffic:
 
 | Origin | Deferred question |
 |---|---|
-| [C++23 alternative](../../01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md) | the honest performance comparison: today DPDK "loses" because the test removes everything it charges for |
-| [02-mempool-ring §6](../../01-fundamentos/02-mempool-ring/README.md) | [`rte_mbuf`][guiambuf], which has not yet appeared |
-| [02-mempool-ring §2](../../01-fundamentos/02-mempool-ring/README.md) | the **opposite** semantics of [`rte_eth_tx_burst()`][apitxburst]: it takes ownership of what it accepted |
-| [Fundamentals §6](../../../docs/01-fundamentos/README.md#6-a-nic-por-dentro-dma-descritores-e-filas) | descriptors, RX/TX rings and the IOMMU, described but never exercised |
+| [C++23 alternative](../../01-fundamentos/02-mempool-ring/alternativas/cpp23/README.en.md) | the honest performance comparison: today DPDK "loses" because the test removes everything it charges for |
+| [02-mempool-ring §6](../../01-fundamentos/02-mempool-ring/README.en.md) | [`rte_mbuf`][guiambuf], which has not yet appeared |
+| [02-mempool-ring §2](../../01-fundamentos/02-mempool-ring/README.en.md) | the **opposite** semantics of [`rte_eth_tx_burst()`][apitxburst]: it takes ownership of what it accepted |
+| [Fundamentals §6](../../../docs/01-fundamentos/README.en.md#6-inside-the-nic-dma-descriptors-and-queues) | descriptors, RX/TX rings and the IOMMU, described but never exercised |
 
 ## Scope
 
@@ -75,7 +80,7 @@ settled without real traffic:
 **What remains true, and is the real constraint.** The RTL8125 sits on a **PCIe
 Gen2 x1** link, a ceiling of about 0.5 GB/s — below 10 GbE by bus limit, before any
 software consideration
-([Fundamentals §6.2](../../../docs/01-fundamentos/README.md#62-o-barramento-também-tem-orçamento)).
+([Fundamentals §6.2](../../../docs/01-fundamentos/README.en.md#62-the-bus-has-a-budget-too)).
 
 That limits the **performance claims**, not the teaching: port and queue
 configuration, descriptors, `rx_burst`/`tx_burst`, partial return, mbuf ownership
@@ -153,7 +158,7 @@ What it closes, and the Realtek does not allow:
 | checksum *offloads*, TSO, LRO | `Device capabilities` stops being `0x0` |
 | `rte_flow` | `mlx5` is the reference implementation of hardware *flow rules* |
 | line rate | 25 GbE per port, against the ~0.5 GB/s ceiling of the PCIe Gen2 x1 here |
-| SR-IOV and *Virtual Functions* | it also unblocks [Stage 6](../../../ROADMAP.md) |
+| SR-IOV and *Virtual Functions* | it also unblocks [Stage 6](../../../ROADMAP.en.md) |
 
 ### The procedure changes, and this is the point that misleads most
 
@@ -169,7 +174,7 @@ What it requires instead is the RDMA userspace stack:
 ```bash
 # Debian/Ubuntu
 sudo apt install rdma-core libibverbs1 ibverbs-providers
-ibv_devinfo                    # deve listar a placa
+ibv_devinfo                    # should list the card
 ```
 
 On this machine `libibverbs.so.1` and `libmlx5.so.1` already exist, and
@@ -224,8 +229,8 @@ section used to say. And each one needs to declare what it proves:
 **Binding sequence, reversible.**
 
 ```bash
-./scripts/preparar-nic.sh --status        # o que existe, sem alterar nada
-sudo ./scripts/preparar-nic.sh 08:00.0    # binda, com as travas
+./scripts/preparar-nic.sh --status        # what exists, changing nothing
+sudo ./scripts/preparar-nic.sh 08:00.0    # binds, with the safety locks
 sudo ./scripts/preparar-nic.sh --desfazer 08:00.0
 ```
 
@@ -245,8 +250,8 @@ is not "out of use", and capturing an interface the kernel considers active is
 exactly what the guard exists to prevent:
 
 ```
-0000:07:00.0: recusa -- interface wlp7s0 carrega rota default
-0000:08:00.0: recusa -- interface enp8s0 esta UP; captura recusada
+0000:07:00.0: refused -- interface wlp7s0 carries the default route
+0000:08:00.0: refused -- interface enp8s0 is UP; capture refused
 ```
 
 To proceed, `sudo ip link set enp8s0 down` — an explicit command, from whoever
@@ -259,9 +264,9 @@ What `--status` shows here, without changing anything:
 
 ```
   rota default: default via 192.168.1.1 dev wlp7s0 proto dhcp src 192.168.1.224 metric 600
-  grupos IOMMU no sistema: 28
+  IOMMU groups on the system: 28
 
-  modelo de driver por dispositivo:
+  driver model per device:
     0000:07:00.0   captura
     0000:08:00.0   captura
 
@@ -289,8 +294,8 @@ for something", matches the **complete** identity — *vendor*, *device* and bot
 *subsystem* fields:
 
 ```
-0000:08:00.0 0x10ec 0x8125 0x1849 0x8125 -> Suporte PCI declarado: net_r8169
-0000:07:00.0 0x14c3 0x0717 0x14c3 0x0717 -> PMD nao confirmado
+0000:08:00.0 0x10ec 0x8125 0x1849 0x8125 -> declared PCI support: net_r8169
+0000:07:00.0 0x14c3 0x0717 0x14c3 0x0717 -> PMD not confirmed
 ```
 
 The Wi-Fi has no PMD, and is refused for that — before leaving the kernel, not after.
@@ -300,7 +305,7 @@ kernel and invisible to any application.
 ## Out of scope
 
 - *Offload* and [`rte_flow`][guiaflow] — assigned to
-  [Stage 4.5](../../../ROADMAP.md) and no longer orphaned; if they enter this
+  [Stage 4.5](../../../ROADMAP.en.md) and no longer orphaned; if they enter this
   submodule, they enter as a declared section, never smuggled in.
 - Virtualisation and SR-IOV, which are level 9.
 
@@ -318,7 +323,7 @@ kernel and invisible to any application.
 |---|---|
 | **Previous** | [02 — Mempool, ring and batch](../../01-fundamentos/02-mempool-ring/) |
 | **Next** | [02 — Batching and backpressure](../02-batching-backpressure/) |
-| **Module** | [02 — Pipeline](../README.md) |
+| **Module** | [02 — Pipeline](../README.en.md) |
 
 [guiambuf]: https://doc.dpdk.org/guides/prog_guide/mbuf_lib.html
 [guiaflow]: https://doc.dpdk.org/guides/prog_guide/ethdev/flow_offload.html

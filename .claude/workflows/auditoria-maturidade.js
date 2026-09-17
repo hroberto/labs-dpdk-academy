@@ -10,7 +10,13 @@ export const meta = {
   ],
 }
 
-const RAIZ = '/home/henrique/workspaces/dpdk_academy'
+// A raiz vem do diretorio de trabalho do processo, nao de um caminho fixo.
+//
+// Estava escrita a mao com o nome ANTIGO do repositorio e sobreviveu ao rename:
+// os agentes recebiam um diretorio que nao existe mais. O `pre-commit.sh` vinha
+// avisando ("caminho absoluto encontrado"), mas o aviso nao bloqueia, entao ficou.
+// Derivar do processo faz o proximo rename passar despercebido, que e o objetivo.
+const RAIZ = process.cwd()
 
 const REGUA = `
 REGUA DE MATURIDADE (0-100) - use estas ancoras, nao a sua intuicao:

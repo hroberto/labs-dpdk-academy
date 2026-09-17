@@ -2,7 +2,7 @@
 
 *Leia em [português](README.md).*
 
-> **Levels 1 and 2** of the [study plan](../plano-estudo-dpdk.md) ·
+> **Levels 1 and 2** of the [study plan](../plano-estudo-dpdk.en.md) ·
 > No prerequisites · Next: [The DPDK runtime](../02-runtime-dpdk/)
 
 This document does not talk about DPDK. It establishes **why DPDK needs to exist** —
@@ -48,7 +48,10 @@ Understanding *how much* they cost is what separates engineering from folklore.
 6. **choose between one synchronisation primitive and another** knowing the price of
    each without contention and under contention;
 7. **read a latency metric** without fooling yourself: median against mean,
-   percentile, dispersion, and why the mean lies.
+   percentile, dispersion, and why the mean lies;
+8. **tell latency from throughput** when reading any memory measurement, and
+   choose between the tuning levers knowing which one improves the first without
+   improving the second — and what each of them costs.
 
 ---
 
@@ -63,8 +66,8 @@ start-of-frame delimiter and 12 of interframe gap**, and that the minimum frame 
 At 10 Gbit/s:
 
 ```
-10 000 000 000 bits/s ÷ (84 bytes × 8 bits) = 14 880 952 pacotes/s
-1 s ÷ 14 880 952 = 67,2 nanossegundos por pacote
+10 000 000 000 bits/s ÷ (84 bytes × 8 bits) = 14 880 952 packets/s
+1 s ÷ 14 880 952 = 67.2 nanoseconds per packet
 ```
 
 | Speed | Frame | Maximum rate | Time per packet |
@@ -99,19 +102,19 @@ registers, and pollutes the cache and the branch predictor. Measured on this ref
 machine ([`custo-syscall.c`](medicoes/custo-syscall.c)):
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                          median   p25-p75 (IQR)   min-max range      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  chamada de funcao (user-space)         0.924  0.922-0.926     0.920-0.937         0.4%   0.4%
-  clock_gettime (vDSO, sem trap)         15.54  15.53-15.58     15.52-20.16         0.3%  10.0%
-  syscall real (SYS_getpid)              33.55  33.42-33.76     33.28-34.04         1.0%   0.6%
+  function call (user-space)             0.924  0.922-0.926     0.920-0.937         0.4%   0.4%
+  clock_gettime (vDSO, no trap)          15.54  15.53-15.58     15.52-20.16         0.3%  10.0%
+  real syscall (SYS_getpid)              33.55  33.42-33.76     33.28-34.04         1.0%   0.6%
 
-  syscall custa 36x uma chamada de funcao
+  a syscall costs 36x a function call
 
-Orcamento de 10 GbE com quadros de 64 B: 67.2 ns por pacote
-  syscalls que cabem nesse orcamento: 2.00
+Budget for 10 GbE with 64 B frames: 67.2 ns per packet
+  syscalls that fit in that budget: 2.00
 
-  O caminho tradicional do kernel gasta pelo menos uma syscall por
-  lote de pacotes, mais interrupcao, alocacao de sk_buff e copia.
+  The traditional kernel path spends at least one syscall per
+  a batch of packets, plus interrupt, sk_buff allocation and copy.
 ```
 
 > **This table once published 0,115 ns and "294×", and both were wrong.** The
@@ -226,6 +229,59 @@ budget falls to 67 ns.
 
 ## 4. Memory: where performance is really decided
 
+This is the chapter where the document stops describing the machine and starts
+**arming decisions**. Each section ends with what it lets you tune and what that
+tuning costs; [§4.4](#44-decision-map-what-to-tune-and-what-it-costs) gathers it
+all into one map. Before the mechanisms, though, three quantities — because
+confusing them is the costliest mistake in a data plane, and this document has
+already made it (see the retraction in [§4.2](#42-cache-and-locality)).
+
+> **Latency** — how long **one** access takes, from request to the data arriving.
+> It is a physical property of the machine: you do not reduce it by writing
+> better code.
+>
+> **Throughput** — how many accesses per second the machine completes. It is
+> **not** the inverse of latency, and that is the central idea of this chapter.
+>
+> **Bandwidth** — how many bytes per second move. It is the physical ceiling
+> where throughput stops growing.
+
+The relation between them fits on one line, and is known as **Little's Law**:
+
+```
+throughput = concurrency ÷ latency
+```
+
+Latency sits in the denominator and is fixed. So the only way to raise
+throughput is to raise **concurrency** — how many accesses are in flight at the
+same time. And concurrency is a choice made by whoever writes the program.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escada-escuro.en.svg">
+  <img alt="Horizontal bar chart of the latency of one dependent access per level of the hierarchy: 0.89 ns in L1d, 2.68 ns in L2, 9.75 ns in L3 and 103 ns in RAM. A dashed line marks the 67.2 ns per-packet budget; the RAM bar alone already exceeds it, by 36 ns." src="imagens/4-escada-claro.en.svg">
+</picture>
+
+The RAM bar is this whole module's problem in one image: **a single access to
+main memory costs more than the entire packet**. There is no budget left to
+receive the frame, decide what to do with it and transmit it — the access alone
+has already blown it.
+
+And there is no way to make that access faster. DRAM latency is dictated by the
+device, the bus and physical distance; no choice of language, compiler or data
+structure reduces it. What is left is **not paying it**, and there are four
+levers for that, spread across the three sections that follow:
+
+| If you want… | The lever is… | And it is in… |
+|---|---|---|
+| the access never to reach RAM at all | locality: fitting in cache | [§4.2](#42-cache-and-locality) |
+| the access not to pay translation on top | hugepages | [§4.1](#41-virtual-memory-what-translating-an-address-means) |
+| many accesses to pay the price **together** | concurrency: batching and prefetch | [§4.2](#42-cache-and-locality) |
+| the access not to cross into the wrong node | memory affinity | [§4.3](#43-numa-when-memory-stops-being-one-thing) |
+
+The first three attack the same number by different paths, and **only the third
+improves throughput without improving latency**. That is why it is the one that
+confuses most, and the one that decides most.
+
 ### 4.1 Virtual memory: what "translating an address" means
 
 No address your program manipulates is the real address of a byte in physical memory.
@@ -249,14 +305,14 @@ Translation operates on whole pages, never on individual bytes. That is why the 
 address splits into two parts:
 
 ```
- endereço virtual de 48 bits, página de 4 KB
+ 48-bit virtual address, 4 KB page
 
   47      39 38      30 29      21 20      12 11          0
  ┌──────────┬──────────┬──────────┬──────────┬─────────────┐
- │  nível 4 │  nível 3 │  nível 2 │  nível 1 │   offset    │
+ │  level 4 │  level 3 │  level 2 │  level 1 │   offset    │
  │  9 bits  │  9 bits  │  9 bits  │  9 bits  │   12 bits   │
  └──────────┴──────────┴──────────┴──────────┴─────────────┘
-  └──────────── qual página (36 bits) ───────┘ └ onde dentro ┘
+  └───────────── which page (36 bits) ───────┘ └ where in it ┘
 ```
 
 The final 12 bits are the offset within the page (2¹² = 4096 bytes, exactly a page's
@@ -318,12 +374,46 @@ number of entries, but the **reach** (*TLB reach*): how much memory they cover
 together.
 
 ```
-alcance = entradas × tamanho da página
+reach = entries × page size
 ```
 
-With 4 KB pages, a thousand entries cover 4 MB. A program that walks a 512 MB working
-set in a scattered way will miss in the TLB almost always — and pay the walk on almost
-every access.
+With 4 KB pages, a thousand entries cover 4 MB — and "a thousand" here is a round
+number, chosen so the arithmetic works in your head; that is the right order of
+magnitude. What decides the outcome is not the absolute size of the TLB, but the
+**ratio between reach and working set**. In a scattered walk — with no pattern the
+processor can predict — the chance that a translation is already in the TLB is
+roughly that ratio:
+
+```
+P(hit) ≈ reach / working set
+```
+
+Applying the formula with 4 KB pages and ~1 000 entries:
+
+| Working set | Entries needed | Fraction covered | In practice |
+|---|---|---|---|
+| 4 MB | 1 024 | ~100% | almost every access hits |
+| 64 MB | 16 384 | 6.1% | most miss |
+| 512 MB | 131 072 | 0.8% | practically everything misses |
+
+That last row is the case measured in this document. Covering 512 MB with 4 KB
+pages would require **131 072 TLB entries** — one to two orders of magnitude beyond
+what current processors offer. Fewer than 1% of accesses hit; the other 99% pay the
+full walk described above. And the argument does not depend on the round number:
+even a 4 000-entry TLB, the top of what is seen today, would cover 16 MB — still 3%
+of the region.
+
+**And asking for a bigger TLB does not help.** It is consulted on *every* memory
+access, in parallel with L1, and has to answer in ~1 cycle — which forces it to stay
+small and highly associative. Growing it costs latency and power on the hottest path
+in the processor, and the return is linear: doubling the entries takes coverage from
+0.8% to 1.6%. That solves nothing.
+
+**In other words:** the TLB does not fail for being small — it fails because, with
+4 KB pages, **each entry covers far too little**. Reach is the product of two
+factors, and software controls only one of them. Increasing the number of entries is
+the vendor's problem; increasing the page size is your decision — and it is the only
+one of the two factors that multiplies.
 
 #### Why hugepages, then
 
@@ -337,26 +427,26 @@ consuming the 9 bits that would have been level 1. The level 2 entry points dire
 the physical frame: **three accesses instead of four**.
 
 ```
- endereço virtual de 48 bits, hugepage de 2 MB
+ 48-bit virtual address, 2 MB hugepage
 
   47      39 38      30 29      21 20                     0
  ┌──────────┬──────────┬──────────┬───────────────────────┐
- │  nível 4 │  nível 3 │  nível 2 │        offset         │
+ │  level 4 │  level 3 │  level 2 │        offset         │
  │  9 bits  │  9 bits  │  9 bits  │       21 bits         │
  └──────────┴──────────┴──────────┴───────────────────────┘
-                            └── aponta direto para o quadro de 2 MB
+                            └── points straight at the 2 MB frame
 ```
 
 The effect is measurable ([`custo-traducao.c`](medicoes/custo-traducao.c)), with a
 scattered walk over 512 MB:
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                          median   p25-p75 (IQR)   min-max range      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  paginas de 4 KB                        119.5  113.5-125.7     112.3-152.2        10.2%  11.4% !
-  hugepages de 2 MB                      101.3  101.0-110.5     98.3-122.0          9.4%   7.9% ~
+  4 KB pages                             119.5  113.5-125.7     112.3-152.2        10.2%  11.4% !
+  2 MB hugepages                         101.3  101.0-110.5     98.3-122.0          9.4%   7.9% ~
 
-  diferenca (o custo do page walk): 18.2 ns  (15.2%)
+  difference (page walk cost):      18.2 ns  (15.2%)
 ```
 
 The ~100 ns common to both measurements are RAM latency, which no hugepage eliminates.
@@ -369,6 +459,241 @@ Note the seal: this is one of the **least** stable measurements in the document
 competing for memory with everything else on the machine. The qualitative conclusion
 (hugepages eliminate the page walk) is solid; the exact value is not.
 
+#### What the program actually computes
+
+The measurement publishes a single number — nanoseconds per access — and it comes
+out of deliberately simple arithmetic. It is worth opening up the calculation,
+because every constant in it was chosen to isolate the *page walk* from everything
+else.
+
+**The region and the chain.** 512 MB divided into 64 B cache lines gives
+**8 388 608 lines**. The program draws a permutation (Fisher-Yates) and writes, in
+each line, the index of the **next** one — building a **single cycle** that visits
+every line exactly once. A single cycle, not several short ones: that is what
+guarantees the walk covers the whole region instead of spinning inside a piece
+small enough to fit in cache.
+
+```c
+idx = p[idx];     /* the address of the next access only exists AFTER this one */
+```
+
+That line is the entire experiment. Because each access depends on the previous
+one, the processor cannot issue several in parallel, and the prefetcher has no
+pattern to recognise. It is precisely the difference between what
+[§4.2](#42-cache-and-locality) measures (**amortized** time, with several accesses
+in flight) and what this section measures (the **latency** of one dependent
+access).
+
+**The calculation.** The loop runs `n × 4 = 33 554 432` accesses — four complete
+laps around the cycle — and the clock is read **once before and once after**:
+
+```
+ns per access = (t_end − t_start) / 33 554 432
+```
+
+Timing access by access would be impossible: `clock_gettime` costs tens of
+nanoseconds, that is, **more than the thing being measured**. Amortizing over 33
+million accesses makes the cost of the two timestamps irrelevant against ~3.5 s of
+loop. The price of that choice is losing the distribution *within* a sample —
+which is exactly what the seven samples per measurement recover.
+
+**What is left outside the stopwatch, on purpose.** Measured on the reference
+machine, for one 512 MB sample:
+
+| Step | Cost | Why it stays out |
+|---|---|---|
+| `mmap` of 512 MB | ~0 ms | it only creates the mapping; no memory exists yet |
+| `memset` of the region | 88 ms (4 KB) / 46 ms (2 MB) | **forces the page faults here**, not in the loop |
+| shuffle and chain construction | ~215 ms | writing 8.4 M pointers is not the object of the test |
+| `free` of the order array (64 MB) | — | returned before the first timestamp |
+| **timed loop** | **~3 500 ms** | ← this alone enters the calculation |
+
+The `memset` is the important item on that list, and the number of page faults it
+triggers is the section's own arithmetic showing up in the system counters:
+
+```
+  4 KB pages:       131 072 page faults   (512 MB ÷ 4 KB)
+  2 MB hugepages:       256 page faults   (512 MB ÷ 2 MB)
+```
+
+Without that pre-touch, the first lap around the cycle would pay one page fault
+for every new page — microseconds each — and the measurement would publish the
+cost of **creating** the mapping, not of **translating** it. Note in passing that
+the `memset` itself already costs nearly twice as much with 4 KB pages: 131 072
+entries into the kernel against 256.
+
+#### Why the region is exactly 512 MB
+
+The size is not arbitrary. It is the one value that satisfies four constraints at
+the same time, and understanding that is understanding the experiment:
+
+| The region must be… | Otherwise… | On this machine |
+|---|---|---|
+| much larger than L3 | the walk measures cache, not memory | L3 = 32 MB per block |
+| much larger than TLB reach with 4 KB | the "bad" side does not miss, and there is nothing to measure | needs 131 072 entries |
+| small enough to fit TLB reach with 2 MB | the "good" side misses too, and the difference vanishes | needs 256 entries |
+| small enough for the reservation to be practical | the test becomes a privilege of big machines | 256 hugepages = 512 MB |
+
+The two middle rows are the heart of the design. No second-level TLB on current
+x86 holds more than a few thousand entries — that is, **131 072 entries do not fit
+by any stretch**, and nearly every access on the 4 KB side pays the walk. Whereas
+**256 entries fit comfortably in any of them**, and the 2 MB side hits nearly
+always. The experiment forces both extremes and publishes the distance between
+them.
+
+This is also the answer to [exercise 6](#exercises): shrinking the region to 4 MB
+makes the advantage disappear, because then both sides fit — 1 024 entries of
+4 KB still fit in the TLB, and the whole 4 MB fits in L3.
+
+#### The reserved area: 256 hugepages, and why the recipe asks for 512
+
+**`MAP_HUGETLB` does not negotiate.** Unlike *transparent hugepages*, which the
+kernel promotes in the background when it can, that flag serves itself from a
+**pool reserved in advance** and **does not fall back to 4 KB** when the pool is
+not enough: the `mmap` fails with `ENOMEM`, and that is that.
+
+It is that absence of silence that lets the program use a real measurement as a
+capability test — if `amostra_2m()` returns an error, it is because the
+reservation does not exist:
+
+```c
+if (amostra_2m() < 0) { /* ... */ return 77; }   /* 77 = SKIPPED in Meson */
+```
+
+Exit code 77 is there for a reason documented in
+[`meson.build`](medicoes/meson.build): exiting with 0 made the suite report green
+**without anything having been measured**, and since `HugePages_Total=0` is the
+default on most machines and on the CI runner, the false green was the rule, not
+the exception.
+
+**The reservation arithmetic:**
+
+```
+measured region        512 MB
+hugepage size            2 MB
+                      ────────
+minimum required        256 hugepages
+```
+
+The document's recipe asks for **512** (`sudo sysctl -w vm.nr_hugepages=512`),
+twice the minimum. The slack is not waste; it covers three real situations:
+
+- **the pool is global.** Another process — a running DPDK, an earlier test that
+  did not shut down — may be holding part of it.
+- **on a machine with more than one NUMA node the pool is split across nodes.** An
+  `mmap` of 512 MB needs 256 pages **on the node where the memory will be
+  touched**; with 512 pages split across two nodes, exactly the minimum is left
+  and no margin at all.
+- **the reservation can be partially satisfied** — the next point.
+
+**`sysctl` does not fail loudly, and this is the most common operational
+mistake.** If memory is fragmented, the kernel reserves *whatever it can* and the
+command succeeds anyway. The only way to know is to read it back:
+
+```bash
+sudo sysctl -w vm.nr_hugepages=512
+grep -E "HugePages_Total|HugePages_Free|HugePages_Rsvd|Hugepagesize" /proc/meminfo
+#   Total = what the kernel MANAGED to reserve (may be less than 512)
+#   Free  = not yet handed to anyone
+#   Rsvd  = promised to an mmap that has not touched them yet
+```
+
+If `HugePages_Total` comes back below 256, the measurement will skip. On a machine
+that has been up for a long time, reserving early solves it — or at boot, which is
+the only reliable way under fragmented memory:
+
+```bash
+# persistent, applied at boot
+echo "vm.nr_hugepages = 512" | sudo tee /etc/sysctl.d/10-hugepages.conf
+# or on the kernel command line: hugepagesz=2M hugepages=512
+# per NUMA node, when there is more than one:
+echo 256 | sudo tee /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages
+```
+
+**The reservation comes out of system memory.** Reserved pages stop being
+available for anything else: they do not count towards `MemAvailable`, they are not
+reclaimed under pressure, and they never go to swap. 512 pages of 2 MB are **1 GB
+taken away from the machine** for as long as the reservation exists.
+
+> **This reservation is not the same one as
+> [`preparar-hugepages.sh`](../../scripts/preparar-hugepages.sh).** That script
+> mounts a **writable hugetlbfs**, which the primary/secondary model of module 02
+> needs, where two processes must map the same *file*. `custo-traducao.c` uses
+> **anonymous** memory (`MAP_ANONYMOUS | MAP_HUGETLB`) and needs no mount point at
+> all: it only needs the **pool to exist**. Reserving without mounting is enough
+> here; mounting without reserving is not.
+
+#### Why the difference is ~12 ns, and not three trips to RAM
+
+The *page walk* diagram shows four memory accesses, and RAM on this machine
+answers in ~95 ns. If every TLB miss really cost four trips to RAM, the difference
+between the two rows of the table would be **hundreds** of nanoseconds — and it is
+12 to 18. The diagram describes the **worst case**; the table measures the **real
+case**. The distance between the two is what tells you when the worst case comes
+back.
+
+**Page tables are data, and they fit in cache.** They occupy memory like any other
+structure, and the kernel reports how much:
+
+```bash
+grep VmPTE /proc/self/status     # this process's page tables
+```
+
+Mapping the same 512 MB both ways, on the reference machine:
+
+| Mapping | Page tables | Where it comes from |
+|---|---|---|
+| 512 MB in 4 KB pages | **1 028 kB** | 131 072 PTEs × 8 B = 1 MB, across 256 tables (+1 level-2) |
+| 512 MB in 2 MB hugepages | **4 kB** | 256 level-2 entries in a single table |
+
+From that comes a rule that scales: **with 4 KB pages, the table costs 1/512 of the
+mapped region** (8 bytes of PTE for every 4 096 bytes of data). With 2 MB
+hugepages, 1/262 144.
+
+**Only one level varies.** For a 512 MB region, levels 4, 3 and 2 add up to very
+few tables — in the mapping measured above, a single level-2 one, the extra 4 kB —
+and they stay resident in the processor's *page-walk caches*. What changes from
+access to access is only the **level-1** read, inside that 1 MB of PTEs. The real
+cost, therefore, is **one extra access, not four**.
+
+**And that access is served by L3.** One megabyte of PTEs does not fit in L2 (1 MB
+per core on this machine — right at the boundary), but fits comfortably in L3
+(32 MB per block). Measuring the latency of a dependent access as a function of
+region size — the same chain the program uses, always on hugepages so the TLB is
+out of the picture:
+
+```
+  region      ns/access (dependent chain, 2 MB hugepages)
+    8 MB        11.04     <- L3
+   16 MB        11.18     <- L3
+   32 MB        21.54     <- L3 boundary
+   64 MB        79.80     <- RAM
+  512 MB        94.95     <- RAM
+```
+
+An L3 hit costs ~11 ns on this machine. On a run of `custo-traducao` with the
+machine idle, the measured difference between 4 KB and 2 MB was **11.65 ns**:
+
+```
+  4 KB pages                             106.1  105.8-106.9     105.6-108.0         1.0%   0.8%
+  2 MB hugepages                         94.48  94.20-94.89     93.89-95.47         0.7%   0.6%
+
+  difference (page walk cost):      11.65 ns  (11.0%)
+```
+
+The numbers close: **every TLB miss pays for one PTE read served by L3**. And note
+that the seals are gone here (`disp` of 1.0% and 0.7%, against 10.2% and 9.4% in
+the published table) — confirming the diagnosis of the instability: it comes from
+competing with the rest of the machine, not from the method.
+
+> **When the worst case comes back.** When the tables stop fitting in cache. A data
+> plane mapping **16 GB** in 4 KB pages needs 32 MB of PTEs alone — more than this
+> machine's entire L3. At that point the level-1 read starts going to RAM, and the
+> cost of the *page walk* goes from ~11 ns to nearly 90. **The problem with 4 KB
+> pages is not that they are slow: it is that they get worse as the working set
+> grows** — and that is why it shows up in production, with real buffers, and not
+> in the lab.
+
 Hence DPDK's requirement: packet buffers live in hugepages not out of whim, but because
 a data plane walks large regions of memory in a poorly predictable way — the worst
 possible case for the TLB.
@@ -376,7 +701,7 @@ possible case for the TLB.
 ```bash
 getconf PAGE_SIZE                        # 4096
 grep -E "Hugepagesize|HugePages_" /proc/meminfo
-cat /proc/self/maps                      # mapeamentos virtuais deste processo
+cat /proc/self/maps                      # this process's virtual mappings
 ```
 
 ### 4.2 Cache and locality
@@ -387,39 +712,209 @@ between them happen in blocks of **64 bytes** — the *cache line*.
 Measuring the effect ([`efeito-cache.c`](medicoes/efeito-cache.c)):
 
 ```
-  cabe em    tamanho    sequencial   aleatorio   penalidade   CV do aleatorio
-                        (tempo AMORTIZADO por acesso, nao latencia)
-  L1d          16 KB      0.193 ns    0.244 ns        1.3x        2.8%
-  L2          256 KB      0.193 ns    0.297 ns        1.5x        2.4%
-  L3         8192 KB      0.194 ns     1.06 ns        5.5x       24.5%  !
-  RAM      262144 KB      0.202 ns     7.68 ns       38.1x        8.0%  ~
+  fits in        size  sequential       random     dependent  accesses     disp
+                      (amortized)  (amortized)     (LATENCY) in flight  of dep.
+  L1d          16 KB     0.190 ns     0.227 ns      0.894 ns     ~4        0.1%
+  L2          256 KB     0.186 ns     0.248 ns       2.68 ns    ~11        0.2%
+  L3         8192 KB     0.188 ns     0.746 ns       9.75 ns    ~13        0.4%
+  RAM      262144 KB     0.198 ns      7.46 ns      103.1 ns    ~14        2.9%
 ```
 
-This is the document's most instructive result, and it has two halves:
+> **This table used to publish two columns, and the second one was mislabelled.**
+> The text said that a random access to RAM cost "the real latency: 7.7 ns", and
+> **7.7 ns is not latency at all** — it is amortized cost. The latency of that
+> very same access is **103 ns**, thirteen times larger.
+>
+> The cause is in [`efeito-cache.c`](medicoes/efeito-cache.c): the index comes
+> from `ordem[i]`, an array read **in sequence**. Every address is known ahead of
+> time, so the processor fires a dozen accesses at once, and what was being
+> measured was the throughput of that set. The box under the table warned
+> "amortized, not latency" — and three paragraphs later the text claimed the
+> opposite. The two sentences coexisted because **the instrument did not measure
+> the quantity the prose named**: with two columns there was no way to notice.
+>
+> The fix was not editorial. `efeito-cache.c` gained the **third column**, which
+> walks a pointer chain and exposes the real latency, and
+> [`custo-paralelismo.c`](medicoes/custo-paralelismo.c) was written to measure the
+> transition between the two. The table above is a fresh run, with all three.
+>
+> And the first version of that third column **came out wrong too**: the
+> permutation was generated over the array's elements and reduced with `%` to fit
+> the lines, which degenerated the chain into cycles of two or three nodes and
+> published 0.9 ns as RAM latency — with the suite green, because the program's
+> test checks the exit code and a program measuring the wrong thing also exits
+> zero. The construction now lives in [`cadeia.h`](medicoes/cadeia.h), used by the
+> three programs that build chains, with the combinatorial property verified in
+> [`tests/test_l1_cadeia.cpp`](medicoes/tests/test_l1_cadeia.cpp).
+>
+> Falling with it: the `38.1x` penalty, which compared two amortized columns, and
+> the explanation of the L3 row's `24.5%` CV, which blamed the instability on the
+> "border between fitting and not fitting in L3". This machine's L3 holds **32 MB
+> per block** and the working set was 8 MB: there was no border. With the machine
+> idle, that row reproduces with a `disp` of 5.5%.
+>
+> The method is what stays: **when the prose and the warning box disagree, the
+> instrument decides** — and if it does not measure the distinction, the
+> distinction will not survive review.
+> <!-- retratado: 0.193 0,193 0.244 0,244 0.297 0.194 0.202 0,202 7.68 38.1 24.5 24,5 -->
 
-> **Both columns are amortised time per access, not latency.** The distinction decides
-> the reading: 0.193 ns is about **one cycle** on this machine, and no memory access
-> costs one cycle. What is measured is the average cost when the processor is free to
-> fetch several lines in parallel and prefetch the following ones. The latency of an
-> isolated, dependent access is another quantity, larger, and requires chasing pointers
-> to be measured — which this program does not do.
+The table now has three readings, and the third one is new.
 
-**The sequential column is flat.** Walking 256 MB costs the same per access as walking
-16 KB. The processor's *prefetcher* recognises the pattern and fetches the next line
-before it is requested. RAM latency still exists — it is merely hidden.
+**The sequential column is flat.** Walking 256 MB costs the same per access as
+walking 16 KB. The processor's *prefetcher* recognises the pattern and fetches
+the next line before it is asked for. RAM latency still exists — it is merely
+hidden.
 
-**The random column degrades 38 times.** With no predictable pattern, the prefetcher
-does not help, and each access pays the real latency: 7.7 ns. That is **11% of a
-packet's entire budget**, spent on one memory access.
+**The dependent column is the real latency**, and it is the one that grows 115×
+between L1d and RAM. It is the only one of the three that measures *one* access:
+each step of the chain discovers the next address only after the data arrives,
+and nothing overlaps.
 
-Note the CV of the L3 row: **24.5%, marked as unstable**. There the working set sits on
-the boundary between fitting and not fitting in L3, and the result depends on what else
-is occupying the cache — the number itself warns that it should not be cited as a
-constant.
+**The random column sits in between, and the in-between is the subject.** With
+no predictable pattern the prefetcher does not help — but the addresses come
+from an array read in order, so the processor still keeps about a dozen accesses
+in flight. The 7.46 ns are 103 ns divided by ~14.
 
-> **Design consequence:** "use contiguous structures" is not an aesthetic preference. An
-> array walked in order and a linked list with the same data differ by an order of
-> magnitude, and the difference comes out of your 67 ns budget.
+#### Concurrency is the lever, and it has a price
+
+If dividing by 14 is already worth 103 ns, is dividing by more worth more? Up to
+a point — and the point is measurable.
+[`custo-paralelismo.c`](medicoes/custo-paralelismo.c) walks **K independent
+chains** over the same region, with K growing:
+
+> **Memory-level parallelism** — how many memory accesses the processor keeps in
+> flight at the same time. It is the only term in Little's Law that software
+> controls.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/4-conflito-escuro.en.svg">
+  <img alt="Two stacked charts sharing the same horizontal axis K on a logarithmic scale, from 1 to 64 accesses in flight. On top, throughput rises from 10.6 to 291 million accesses per second and saturates; a dashed line marks the 10 GbE line rate, which throughput only passes from K equals 2 onward. Below, on logarithmic scales on both axes, the amortized cost per access falls from 94 to 3.44 nanoseconds while the time until the batch is ready stays flat around 100 nanoseconds up to K equals 16 and rises to 220 at K equals 64. Both curves are in the same unit; the second is the first multiplied by K." src="imagens/4-conflito-claro.en.svg">
+</picture>
+
+The two panels are the same table, and together they are the decision:
+
+```
+    K  ns/access       M acc/s        batch of K ready             gain
+  ---  ---------   -----------   ---------------------   --------------
+    1      94.36        10.6                 94 ns            1.0x
+    2      46.48        21.5                 93 ns            2.0x
+    4      24.77        40.4                 99 ns            3.8x
+    8      13.26        75.4                106 ns            7.1x
+   12       9.19       108.9                110 ns           10.3x
+   16       7.25       138.0                116 ns           13.0x
+   32       4.59       218.1                147 ns           20.6x
+   64       3.44       290.8                220 ns           27.4x
+```
+
+**Latency does not change on any row.** It is ~94 ns on all of them — what
+changes is how many accesses happen at once. The `ns/access` column falls 27×
+without a single access having become faster.
+
+**At K = 1 this machine does not reach 10 GbE.** That is 10.6 million accesses per
+second against the 14.9 million packets per second of
+[§1](#1-the-budget-how-much-time-exists-per-packet). A single dependent access
+per packet — chasing a pointer, consulting a chained flow table — **already
+loses the rate before any processing**. This is why DPDK's batching is not an
+optimization: it is what makes the rate arithmetically possible.
+
+**And the price is in the second panel**, which puts both quantities on the same
+nanosecond axis. At K = 1 they **coincide**: with no batch, the access and the set
+are the same thing. From there the blue collapses and the orange does not — and it
+is that separation which shows 3.44 ns was never memory's response time. It is
+94 ns divided by 27 overlapping accesses.
+
+**Both axes of that panel are logarithmic, and that is not a drawing
+preference.** Since `batch = K × ns per access`, if concurrency were free the cost
+would fall exactly with 1/K and the **orange would be a horizontal line**. It is,
+up to K = 16 — 94 to 116 ns, +23%, while throughput grows 13×. Where it stops
+being horizontal is, point by point, where concurrency starts to cost: from 16 to
+64 throughput grows 2× and the wait, 1.9×. **The knee is the design decision** —
+and the coincidence with DPDK's `MAX_PKT_BURST` of 32 is no coincidence.
+
+> **The orange is derived from the blue**, multiplied by K — that is how the
+> program computes it. It brings no new measurement; it brings the same one in the
+> unit the decision is made in. Publishing it next to its source is what keeps it
+> from looking like a second, independent result.
+
+> **Read the seals before quoting the numbers.** The K = 32 and K = 64 rows come
+> out marked `~` (`disp` of 5.9% and 8.7%): the smaller the measured value, the
+> larger the relative dispersion, and at 3 ns the measurement already competes
+> with the machine's noise. The shape of the curve is solid across the range; the
+> exact value of the last two points, less so.
+
+#### What this means in bytes
+
+The same region, the same core, the same memory — only the access pattern
+changes:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/4-banda-escuro.en.svg">
+  <img alt="Horizontal bar chart of the effective bandwidth of one core over the same RAM: 20.2 GB/s for sequential access, 8.6 GB/s for random access with independent addresses and 0.6 GB/s when each address depends on the previous one — a 33-fold difference." src="imagens/4-banda-claro.en.svg">
+</picture>
+
+Thirty-three times, without swapping a single part. **The bandwidth the vendor
+sells is not the one your program uses; the one it uses is the one its access
+pattern allows.** It is the reason why "buying faster memory" almost never fixes
+a data plane that chases pointers: the bottleneck is not bandwidth, it is the
+lack of concurrency to occupy it.
+
+Note the waste built into it, too. Every random access moves a **64-byte** line
+and uses 4 — the other 60 crossed the bus for nothing. It is the same locality
+argument, stated in bytes instead of nanoseconds.
+
+#### And when several cores want the same memory
+
+Everything so far measured **one** core against an idle memory controller. That
+is not what a data plane finds: there, several lcores push the same memory at the
+same time. The second phase of
+[`custo-paralelismo.c`](medicoes/custo-paralelismo.c) measures it — N physical
+cores, each with its own 16 chains over the same region, without sharing a single
+line between threads:
+
+```
+     cores   ns/access       M acc/s     aggregate      vs. ideal
+  --------   ---------   -----------   -----------   ------------
+         1        8.63       115.9         115.9          100%
+         2       10.93        91.5         183.0           79%
+         4       15.32        65.3         261.0           56%
+         8       24.99        40.0         320.1           35%
+        12       38.50        26.0         311.7           22%
+```
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escala-escuro.en.svg">
+  <img alt="Line chart of aggregate throughput against the number of active physical cores. It rises from 116 million accesses per second with one core to 312 million with twelve, and saturates around eight. A grey reference line shows where it would be if it scaled per core: 1,391 million with twelve." src="imagens/4-escala-claro.en.svg">
+</picture>
+
+**With twelve cores active, each one does 22% of what it did alone.** Aggregate
+throughput grows 2.7×, not 12× — and between eight and twelve it **stops
+growing**: 320 against 312, within the noise. The system was already at the
+ceiling with eight.
+
+And that ceiling has a name that has already appeared in this chapter. Three
+hundred and twenty million accesses per second, at 64 bytes per line, are
+**20.5 GB/s** — the same number a single core reaches with sequential access in
+the previous chart. It is no coincidence: it is memory bandwidth, and both paths
+arrive at it. One sequential core saturates it alone; eight scattered cores have
+to join forces to do the same.
+
+> **Read the seals.** The 2, 4 and 8-core rows come out marked `!` (`disp` of
+> 17.1%, 10.8% and 14.2%). With several cores competing for the same memory path,
+> the variation between samples belongs to the phenomenon, not to the instrument —
+> the scheduler, the frequency and whatever else is on the machine all enter the
+> account. The **shape** of the curve (it saturates before eight) reproduces; the
+> intermediate values, with reservations.
+
+> **Design consequence, and this is the most expensive one to find out late:**
+> sizing a data plane from the measurement of **one** lcore overestimates the
+> whole system by a factor of four on this machine. The number that holds up a
+> design is the bottom row of that table, not the top one — and it only appears
+> when you measure with every core the product will actually use.
+
+> **Design consequence:** "use contiguous structures" is not an aesthetic
+> preference. An array walked in order and a linked list holding the same data
+> differ by **two** orders of magnitude — and the difference comes out of your
+> 67 ns budget.
 
 ### 4.2.1 False sharing: the most common mistake of data-plane programmers
 
@@ -447,9 +942,9 @@ measurements, false sharing appeared three times. In one of the cases, an auxili
 thread's stop flag ended up 32 bytes before the mutex being measured:
 
 ```
-  0x5200  parar_ruido     <- thread auxiliar apenas LÊ esta variável, em laço
-  0x5220  mtx             <- thread de medição ESCREVE aqui a cada lock/unlock
-          └─ mesma linha de 64 bytes ─┘
+  0x5200  parar_ruido     <- helper thread only READS this variable, in a loop
+  0x5220  mtx             <- measuring thread WRITES here on every lock/unlock
+          └─ same 64-byte line ─┘
 ```
 
 The measured cost of the mutex jumped from **8 ns to 53 ns** — more than six times. No
@@ -475,9 +970,9 @@ platform's line size.
 
 ```c
 struct statisticss_por_lcore {
-    uint64_t pacotes;
+    uint64_t packets;
     uint64_t bytes;
-} __rte_cache_aligned;                 /* uma linha por lcore, sem sobreposição */
+} __rte_cache_aligned;                 /* one line per lcore, no overlap */
 
 static struct statisticss_por_lcore stats[RTE_MAX_LCORE];
 ```
@@ -490,7 +985,7 @@ placement, so the inspection is objective:
 
 ```bash
 objdump -t ./seu_binario | grep -E 'variavel_a|variavel_b'
-# se a distância entre os endereços for menor que 64, estão na mesma linha
+# if the distance between the addresses is under 64, they share a line
 ```
 
 **Beware of what looks harmless.** A boolean flag read in a loop, a debug counter, a
@@ -603,23 +1098,23 @@ It is the [first touch][mempolicy] policy, the default on Linux. It produces a c
 error in parallel programs:
 
 ```c
-/* ERRADO: a thread principal toca tudo, e todas as páginas vão para o nó dela */
-buffer = malloc(tamanho);
-memset(buffer, 0, tamanho);          /* <- primeiro toque acontece aqui */
-#pragma omp parallel                  /* threads em outros nós leem remoto */
+/* WRONG: the main thread touches everything, so every page lands on its node */
+buffer = malloc(size);
+memset(buffer, 0, size);              /* <- first touch happens here */
+#pragma omp parallel                  /* threads on other nodes read remotely */
 
-/* CERTO: cada thread inicializa a fatia que vai processar,
-   e cada página nasce no nó de quem a usa */
-buffer = malloc(tamanho);
+/* RIGHT: each thread initialises the slice it will process,
+   and each page is born on the node that uses it */
+buffer = malloc(size);
 #pragma omp parallel
-    memset(minha_fatia, 0, meu_tamanho);
+    memset(my_slice, 0, my_size);
 ```
 
 You can inspect where a process's pages really are:
 
 ```bash
-cat /proc/self/numa_maps     # N0=242 significa 242 páginas no nó 0
-numastat -p <pid>            # resumo por nó
+cat /proc/self/numa_maps     # N0=242 means 242 pages on node 0
+numastat -p <pid>            # summary per node
 ```
 
 On this machine, a line of `numa_maps` is:
@@ -671,14 +1166,14 @@ The mistake to avoid is passing that value directly as the allocation node. Chai
 allocate in the wrong place:
 
 ```c
-/* ERRADO: -1 vira socket_id e a alocação pode não ir para nó nenhum */
+/* WRONG: -1 becomes socket_id and the allocation may land on no node */
 mp = rte_pktmbuf_pool_create(nome, n, cache, priv, tam,
-                             rte_eth_dev_socket_id(porta));
+                             rte_eth_dev_socket_id(port));
 
-/* CERTO: valor negativo significa "qualquer nó serve" */
-int no = rte_eth_dev_socket_id(porta);
+/* RIGHT: a negative value means "any node will do" */
+int no = rte_eth_dev_socket_id(port);
 if (no < 0)
-    no = (int)rte_socket_id();          /* nó do lcore corrente */
+    no = (int)rte_socket_id();          /* node of the current lcore */
 mp = rte_pktmbuf_pool_create(nome, n, cache, priv, tam, no);
 ```
 
@@ -690,11 +1185,11 @@ declares no affinity.
 #### Inspecting your machine
 
 ```bash
-numactl --hardware                              # nós, memória e distâncias
-LC_ALL=C lscpu | grep -i numa                   # quais CPUs em cada nó
-cat /sys/bus/pci/devices/<BDF>/numa_node        # nó da NIC (-1 = não declarado)
-numastat                                        # acertos e erros de alocação por nó
-cat /proc/self/numa_maps                        # onde estão as páginas do processo
+numactl --hardware                              # nodes, memory and distances
+LC_ALL=C lscpu | grep -i numa                   # which CPUs on each node
+cat /sys/bus/pci/devices/<BDF>/numa_node        # the NIC's node (-1 = undeclared)
+numastat                                        # allocation hits and misses per node
+cat /proc/self/numa_maps                        # where the process's pages are
 ```
 
 #### And on a single-socket machine, can you see any topology effect?
@@ -724,18 +1219,18 @@ cat /sys/devices/system/cpu/cpu0/cache/index3/shared_cpu_list
 On the reference machine (Ryzen 9 9900X, 12 cores) there are two blocks:
 
 ```
-    dominio 0: CPUs 0-5,12-17
-    dominio 1: CPUs 6-11,18-23
+    domain 0: CPUs 0-5,12-17
+    domain 1: CPUs 6-11,18-23
 ```
 
 And the difference is enormous ([`custo-comunicacao.c`](medicoes/custo-comunicacao.c)),
 measuring the time for a cache line to travel from one core to another:
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                          median   p25-p75 (IQR)   min-max range      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  dentro do dominio 0 (cpu 0 <-> 2)      17.50  17.45-17.96     17.34-19.61         2.9%   4.1%
-  ENTRE dominios (cpu 0 <-> 6)           82.99  82.71-87.96     82.53-122.96        6.3%  14.4% ~
+  within domain 0 (cpu 0 <-> 2)          17.50  17.45-17.96     17.34-19.61         2.9%   4.1%
+  ACROSS domains (cpu 0 <-> 6)           82.99  82.71-87.96     82.53-122.96        6.3%  14.4% ~
 ```
 
 **Crossing the interconnect costs about 4.7 times more — and that is 123% of the budget
@@ -769,6 +1264,68 @@ difference between 22 ns and 117 ns per crossing.
 > thing: the asymmetry between cores, real and large on this CPU. Do not confuse the two.
 > To measure NUMA for real you need hardware with two or more sockets, physical or a cloud
 > instance large enough.
+
+### 4.4 Decision map: what to tune, and what it costs
+
+The previous sections measured mechanisms. This one puts them side by side as
+**options**, with the column that performance material usually leaves out: the
+cost.
+
+| Technique | What it attacks | Gain measured here | What it costs | When **not** to use it |
+|---|---|---|---|---|
+| **hugepages** | the *page walk* | 11 to 18 ns per access ([§4.1](#41-virtual-memory-what-translating-an-address-means)) | reserved memory that vanishes from the system; boot configuration; no swap | a working set small enough to fit in the TLB |
+| **contiguous layout** | lost locality | up to 33× of bandwidth ([§4.2](#42-cache-and-locality)) | refactoring; structures that are less natural to write | genuinely scattered access, with no order to exploit |
+| **batching and prefetch** | lack of concurrency | 94 → 7.3 ns amortized, 13× throughput ([§4.2](#42-cache-and-locality)) | **latency**: waiting for the batch to fill (+23% up to K = 16, +133% at K = 64) | when the latency tail is the contract, not throughput |
+| **`__rte_cache_aligned`** | false sharing | 53 → 8 ns ([§4.2.1](#421-false-sharing-the-most-common-mistake-of-data-plane-programmers)) | up to 63 bytes wasted per object | a read-only structure, or one touched by a single lcore |
+| **memory affinity** | crossing between nodes | see [§4.3](#43-numa-when-memory-stops-being-one-thing) | operational complexity: pin the lcore, allocate on the right node, and prove it landed there | a single-node machine |
+
+Three readings the whole table supports, and which are worth more than any row
+on its own.
+
+**1. Only one of the five buys throughput without improving latency.**
+Hugepages, locality and affinity make the access **cheaper**. Batching does not:
+it leaves the access exactly as it was and makes more of them happen together.
+That is why it is the only row whose cost lands in the right column — and the
+only one that can make the system worse while improving the number you happen to
+be looking at.
+
+**2. The budget decides how much batching you can afford.** The 67.2 ns per
+packet from [§1](#1-the-budget-how-much-time-exists-per-packet) are not the time
+for one packet to cross the system; they are the interval between two packets. A
+batch of 32 does not spend 32 budgets — it **amortizes** them. What it consumes
+is end-to-end latency, and the limit on that is not the interface rate: it is
+your service's contract.
+
+**3. None of this scales forever.** Every lever has a physical ceiling, and this
+chapter has already measured all three:
+
+| Lever | Ceiling | Where it was measured |
+|---|---|---|
+| locality | the size of the cache | [§4.2](#42-cache-and-locality): above 8 MB the random column takes off |
+| hugepages | TLB reach | [§4.1](#41-virtual-memory-what-translating-an-address-means): 256 entries cover 512 MB, not 512 GB |
+| concurrency (one core) | memory bandwidth | [§4.2](#42-cache-and-locality): from K = 32 to K = 64 throughput grows only 1.33× |
+| concurrency (the system) | the same bandwidth, **divided** | [§4.2](#42-cache-and-locality): with 12 cores, each one does 22% of what it did alone |
+
+> **This chapter does not close the subject, and it is good that it does not.**
+> The conflict between throughput and latency comes back at two larger scales,
+> with the same mathematics: in [topic 03](../03-mempool-ring-mbuf/README.en.md#13-batching-changes-sign-between-the-two),
+> where batching dilutes the fixed cost of a ring rather than that of a memory
+> access; and in [§11](#111-the-crossing-measured) of this document, where the
+> input queue shows what happens when the throughput asked for approaches what
+> the system delivers. Little's Law holds in all three.
+
+#### Before tuning anything
+
+A work order, because the order matters more than the techniques:
+
+1. **Measure latency, not amortized cost.** If your per-access number is much
+   smaller than your memory's latency, you are measuring concurrency — and
+   concurrency changes when the load changes.
+2. **Find out where the working set lands.** Does it fit in L2? In L3? In
+   neither? The answer picks the lever, and the other four rows become noise.
+3. **Only then tune**, one thing at a time, publishing the dispersion alongside
+   the value. The tables in this chapter show why: half of all wrong conclusions
+   come from comparing two runs that measured different regimes.
 
 ---
 
@@ -804,11 +1361,11 @@ competition with high-instruction-level-parallelism ALU work
 ([`custo-comunicacao.c`](medicoes/custo-comunicacao.c)):
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                          median   p25-p75 (IQR)   min-max range      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  laco sozinho no nucleo                 0.449  0.448-0.450     0.448-0.453         0.2%   0.4%
-  vizinho no irmao SMT (cpu 12)           1.23  1.23-1.23       1.20-1.23           0.1%   0.7%
-  vizinho em nucleo fisico (cpu 6)       0.447  0.447-0.448     0.447-0.452         0.1%   0.3%
+  loop alone on the core                 0.449  0.448-0.450     0.448-0.453         0.2%   0.4%
+  neighbour on SMT sibling (cpu 12)       1.23  1.23-1.23       1.20-1.23           0.1%   0.7%
+  neighbour on physical core (cpu 6)     0.447  0.447-0.448     0.447-0.452         0.1%   0.3%
 ```
 
 **Sharing the core costs 174%** — the loop becomes 2.7 times slower. Using a distinct
@@ -836,10 +1393,10 @@ program's execution model.
 >
 > ```c
 > for (;;) {
->     n = rte_eth_rx_burst(porta, fila, pacotes, MAX);  /* devolve 0 se nada chegou */
+>     n = rte_eth_rx_burst(port, queue, pkts, MAX);     /* returns 0 if nothing arrived */
 >     if (n == 0)
->         continue;                                      /* pergunta de novo */
->     processa(pacotes, n);
+>         continue;                                     /* ask again */
+>     process(pkts, n);
 > }
 > ```
 >
@@ -891,13 +1448,13 @@ to be assumed.
 **1. Uncontended — nobody else wants the same primitive:**
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                          median   p25-p75 (IQR)   min-max range      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  atomica relaxed (store+load)           0.206  0.206-0.207     0.206-0.213         0.5%   0.7%
-  atomica seq_cst (store+load)            3.68  3.68-3.69       3.68-3.93           0.2%   1.8%
+  relaxed atomic (store+load)            0.206  0.206-0.207     0.206-0.213         0.5%   0.7%
+  seq_cst atomic (store+load)             3.68  3.68-3.69       3.68-3.93           0.2%   1.8%
   mutex lock+unlock                       8.48  8.47-8.48       8.47-8.49           0.1%   0.1%
   spinlock lock+unlock                    4.43  4.43-4.43       4.42-4.44           0.1%   0.1%
-  semaforo post+wait                      8.12  8.12-8.12       8.11-8.37           0.1%   0.8%
+  semaphore post+wait                     8.12  8.12-8.12       8.11-8.37           0.1%   0.8%
 ```
 
 The last two columns measure the number's trustworthiness: `disp` says whether the typical
@@ -920,8 +1477,8 @@ any real concurrent program.
 > even after the thread is joined.
 >
 > ```
->   antes de qualquer thread      :  2.40 ns
->   apos criar E JUNTAR uma thread:  8.99 ns
+>   before any thread             :  2.40 ns
+>   after creating AND JOINING one:  8.99 ns
 >   __libc_single_threaded = 0
 > ```
 >
@@ -955,12 +1512,12 @@ comes out of the per-packet budget.
 **2. In hand-off — the same primitives coordinating two threads on different cores:**
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                          median   p25-p75 (IQR)   min-max range      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  atomica + espera ativa (nao dorme)     21.02  20.85-21.20     20.41-22.10         1.6%   2.0%
-  mutex + espera ativa (nao dorme)       102.3  101.7-107.2     98.0-117.7          5.4%   5.0% ~
-  mutex + condvar (DORME)               1301.0  1274.6-1351.1   1230.4-1397.1       5.9%   4.1% ~
-  semaforo POSIX (DORME)                1286.6  1258.4-1302.0   1202.3-1499.3       3.4%   5.4% ~
+  atomic + busy-wait (never sleeps)      21.02  20.85-21.20     20.41-22.10         1.6%   2.0%
+  mutex + busy-wait (never sleeps)       102.3  101.7-107.2     98.0-117.7          5.4%   5.0% ~
+  mutex + condvar (SLEEPS)              1301.0  1274.6-1351.1   1230.4-1397.1       5.9%   4.1% ~
+  POSIX semaphore (SLEEPS)              1286.6  1258.4-1302.0   1202.3-1499.3       3.4%   5.4% ~
 ```
 
 **The decisive comparison is the two middle lines: it is the same mutex.** The only
@@ -975,8 +1532,8 @@ than a thousand nanoseconds.
 **In the data plane's budget:**
 
 ```
-    espera ativa cabe 3.2 vezes no orcamento de um pacote
-    dormir gasta 19.4 orcamentos inteiros
+    busy-wait fits 3.2 times into one packet's budget
+    sleeping spends 19.4 whole budgets
 ```
 
 Waking a thread consumes the equivalent of **19 packets of 10 GbE**. In the time to be
@@ -1116,14 +1673,14 @@ A modern NIC does not "hand packets to the operating system". It writes directly
 memory, by **DMA**, coordinated by rings of descriptors:
 
 ```
-  anel de RX (memória da máquina, preenchido pelo driver)
+  RX ring (host memory, filled by the driver)
   ┌──────────┬──────────┬──────────┬──────────┐
-  │ desc 0   │ desc 1   │ desc 2   │ desc 3   │  cada descritor aponta
-  │ → buf A  │ → buf B  │ → buf C  │ → buf D  │  para um buffer vazio
+  │ desc 0   │ desc 1   │ desc 2   │ desc 3   │  each descriptor points
+  │ → buf A  │ → buf B  │ → buf C  │ → buf D  │  at an empty buffer
   └──────────┴──────────┴──────────┴──────────┘
        ▲                      ▲
-       │                      └── a NIC escreve aqui por DMA e avança
-       └── o software consome aqui e repõe buffers vazios
+       │                      └── the NIC writes here by DMA and advances
+       └── software consumes here and refills empty buffers
 ```
 
 Three consequences worth memorising:
@@ -1185,13 +1742,13 @@ group, and VFIO requires the whole group to be assigned together. **Before plann
 with a physical NIC, find out which group yours is in — and who else occupies it:**
 
 ```bash
-# 1. o grupo da sua NIC (troque pelo endereço PCI dela)
+# 1. your NIC's group (replace with its PCI address)
 basename $(readlink /sys/bus/pci/devices/0000:08:00.0/iommu_group)
 
-# 2. quem mais está nesse grupo
+# 2. who else is in that group
 ls /sys/kernel/iommu_groups/<grupo>/devices/
 
-# 3. quantos grupos da máquina têm mais de um dispositivo
+# 3. how many groups on the machine hold more than one device
 for g in /sys/kernel/iommu_groups/*/; do
     [ $(ls "$g/devices" | wc -l) -gt 1 ] && basename "$g"
 done | wc -l
@@ -1408,9 +1965,9 @@ The difference is easy to see with ten latency measurements, in µs:
 ```
    9   9   10   10   10   11   11   12   13   45
                         ↑                     ↑
-                        │                     └ um pacote atrasado
-                        │                       (interferência)
-                        └ mediana = 10,5, entre o 5º e o 6º valor
+                        │                     └ one late packet
+                        │                       (interference)
+                        └ median = 10.5, between the 5th and 6th value
 ```
 
 | | With the extreme value (45) | Swapping 45 for 14 |
@@ -1443,9 +2000,9 @@ In the same ten-measurement example:
 ```
    9   9   10   10   10   11   11   12   13   45
             │           │          │
-            p25=10      p50=10,5   p75=11,75
+            p25=10      p50=10.5   p75=11.75
             └───────────┬──────────┘
-              50% das amostras caem aqui — é o IQR
+              50% of the samples fall here — that is the IQR
 ```
 
 Read aloud: **a p99 of 800 µs** means *"99% of the packets arrived within 800 µs; 1% took
@@ -1463,7 +2020,7 @@ millions of requests, is a lot of people.
 > amplitude, and not p99 — the range 25 samples actually support.
 >
 > Measuring the tail for real is another exercise, with an order of magnitude more samples.
-> It belongs to Stage 5 of the [roadmap](../../ROADMAP.md), not to these microbenchmarks.
+> It belongs to Stage 5 of the [roadmap](../../ROADMAP.en.md), not to these microbenchmarks.
 
 > **Beware of the symmetric trap.** The median is robust, and for that very reason it
 > *hides* the tail. Reporting only the median is as incomplete as reporting only the mean:
@@ -1478,7 +2035,7 @@ right tail**: most packets are fast, and a few take very long. The mean falls ne
 and ignores the tail — which is exactly where the user feels pain.
 
 ```
-  pacotes
+  packets
     │
     │   ███
     │   ███
@@ -1490,14 +2047,14 @@ and ignores the tail — which is exactly where the user feels pain.
     │██████████
     │███████████▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
     └────┬──┬──────────────────────────────┬─────────────────┬──────▶
-         │  │                              │                 │  latência
-         │  └ média 14 µs                  └ p99 800 µs      └ p99,9 5 ms
-         └ mediana 10 µs
+         │  │                              │                 │  latency
+         │  └ mean 14 µs                   └ p99 800 µs      └ p99.9 5 ms
+         └ median 10 µs
               ▲                                    ▲
               │                                    │
-    "responde em 14 µs"                 1 em cada 1000 espera 5 ms —
-     descreve o corpo,                  357 vezes o que a média sugere
-     não o sistema
+    "responds in 14 µs"                 1 in every 1000 waits 5 ms —
+     describes the body,                357 times what the mean suggests
+     not the system
 ```
 
 The honest report of the same system is: **median 10 µs, p99 800 µs, p99.9 5 ms**. The
@@ -1565,7 +2122,14 @@ never. For a virtual router at 100 GbE, almost always.
 
 No number in this document needs to be taken on trust.
 
-The six programs use the **same methodology**, defined in
+> **A note on the tables in this English edition.** The measurement programs print
+> in Portuguese, and this document translates the **column and row labels** so the
+> tables can be read here. Nothing else is touched: every figure, every seal and
+> every column position is exactly what the program emitted. Run the programs
+> yourself and you will see the same numbers under Portuguese labels — which is the
+> point of publishing the programs alongside the tables.
+
+The eight programs use the **same methodology**, defined in
 [`medicoes/statistics.h`](medicoes/statistics.h): warm-up, several samples per measurement,
 and publication of the median, the interquartile range, the full amplitude and two quality
 indicators. The robust dispersion (IQR over the median) triggers the `~` and `!` seals,
@@ -1595,10 +2159,11 @@ continuity behind a threshold.**
 ./scripts/build-all.sh
 ./build/docs/01-fundamentos/medicoes/custo-syscall
 ./build/docs/01-fundamentos/medicoes/efeito-cache
-./build/docs/01-fundamentos/medicoes/custo-traducao   # requer hugepages
+./build/docs/01-fundamentos/medicoes/custo-traducao   # needs hugepages
+./build/docs/01-fundamentos/medicoes/custo-paralelismo  # needs hugepages
 ./build/docs/01-fundamentos/medicoes/custo-comunicacao
 ./build/docs/01-fundamentos/medicoes/custo-espera
-./build/docs/01-fundamentos/medicoes/custo-espera-cpp   # espelho em C++23
+./build/docs/01-fundamentos/medicoes/custo-espera-cpp   # C++23 mirror
 ./build/docs/01-fundamentos/medicoes/custo-mckenney
 ```
 
@@ -1623,6 +2188,14 @@ grep -E "HugePages_Total|Hugepagesize" /proc/meminfo
 5. Run `custo-traducao` five times. Is the difference between 4 KB and 2 MB stable? If you
    have no hugepages, reserve some with `sudo sysctl -w vm.nr_hugepages=512` and compare
    before and after.
+6a. Run `custo-paralelismo` and compare the `K = 12` row with the `aleatorio`
+   column of `efeito-cache` on the RAM row. Why are the two numbers so close, if
+   one program shuffles indices and the other walks chains?
+6b. In the same program, divide the `ns/access` of `K = 1` by that of `K = 64`.
+   That number is how much your machine parallelises memory. Now multiply
+   `ns/access` by `K` on every row: from which K on does the wait for the batch
+   grow faster than throughput? That is the batch size your machine is asking
+   for.
 6. Reduce the 512 MB region to 4 MB in `custo-traducao.c` and rebuild. Does the hugepages
    advantage vanish? Why? (Hint: TLB reach.)
 7. Run `custo-comunicacao`. How many L3 domains does your CPU have? If more than one, what is
@@ -1866,7 +2439,7 @@ queue at a **lower** ρ than this table's. The numbers above are therefore the o
 the floor of the problem, not its portrait.
 
 The processor's frequency is also not pinned (`powersave` *governor*, see
-[§5 of the overview](../00-visao-geral/README.md#5-o-ambiente-de-medição)), which explains part
+[§5 of the overview](../00-visao-geral/README.en.md#5-the-measurement-environment)), which explains part
 of the p99 dispersion on the low-ρ rows.
 
 And there is no network: the queue here is an array, not a ring of descriptors. What it
@@ -1882,6 +2455,16 @@ where the loss happens in a real system — the subject of the
 - **No real packet was processed.** Everything here measures properties of the machine;
   behaviour with traffic enters in the RX/TX topics.
 - **NUMA was not exercised**, because the reference machine has a single node.
+- **The multi-core saturation was measured on a single memory controller.** The
+  second phase of `custo-paralelismo` shows bandwidth being divided across up to
+  12 cores, but all of them on the same NUMA node and the same controller. On a
+  two-socket machine the picture changes: each node has its own, and the answer
+  starts to depend on where the memory was first touched. Measuring that requires
+  hardware the reference machine does not have.
+- **Phase 2 measures scattered access, not traffic.** Twelve cores chasing
+  pointers is the worst case for bandwidth, chosen on purpose. A real data plane
+  mixes patterns, and the ceiling it meets sits between this table's 20 GB/s and
+  the memory module's nominal bandwidth.
 - **Section 8's comparison is qualitative.** The measured comparison between the kernel stack
   and bypass requires a NIC and a traffic generator, and is planned for level 6.
 
@@ -1910,7 +2493,7 @@ where the loss happens in a real system — the subject of the
 
 ## 14. Navigation
 
-- Previous: [Overview](../00-visao-geral/) · [Tooling](../00-visao-geral/ferramental.md)
+- Previous: [Overview](../00-visao-geral/) · [Tooling](../00-visao-geral/ferramental.en.md)
 - Next: [The DPDK runtime](../02-runtime-dpdk/) — where the EAL materialises these concepts
 - Corresponding practice: [Topic 01 — EAL](../../trilha/01-fundamentos/01-eal-hello/)
 

@@ -169,14 +169,14 @@ Topics:
 - NUMA awareness
 - memory locality
 - cache lines and **false sharing** (the most common defect of the per-lcore model)
-  — see [01-fundamentos §4.2.1](01-fundamentos/README.md)
+  — see [01-fundamentos §4.2.1](01-fundamentos/README.en.md)
 - contention
 - CPU affinity and contention between SMT threads of the same core
 - prefetch and the use of contiguous data
 - the effect of data stratification on the CPU
 
 Topics of the **bus**, which is left out of the account when you look only at CPU
-and memory — already covered in [01-fundamentos §6.2](01-fundamentos/README.md):
+and memory — already covered in [01-fundamentos §6.2](01-fundamentos/README.en.md):
 - PCIe throughput by generation and width, and the ceiling it imposes before any
   software
 - TLP (*Transaction Layer Packet*) overhead for small frames
@@ -208,7 +208,7 @@ kernel's isolation:
   is no barrier between the parser and the rest
 - the tools' blind spot: AddressSanitizer intercepts the system allocator, but
   `rte_mempool` objects live in hugepages managed by the EAL and fall outside its
-  reach (see [tooling §5](00-visao-geral/ferramental.md))
+  reach (see [tooling §5](00-visao-geral/ferramental.en.md))
 - validating a malformed packet on the hot path: check the length before indexing,
   never trust a size field coming from the network, and do it within the cycle
   budget
@@ -331,8 +331,8 @@ Two caveats the table alone hides:
 losing most of the gain. Verifiable in the driver's module:
 
 ```bash
-m=$(modinfo -n r8169)                      # caminho do módulo
-tmp=$(mktemp); zstdcat "$m" > "$tmp"       # DESCOMPRIMIR antes é obrigatório
+m=$(modinfo -n r8169)                      # path to the module
+tmp=$(mktemp); zstdcat "$m" > "$tmp"       # DECOMPRESSING first is mandatory
 nm "$tmp" | grep -c 'xdp_'                 # 0 aqui; 37 no i40e
 rm -f "$tmp"
 ```
@@ -342,7 +342,7 @@ file and `grep -c` returns `0` — the same answer a driver genuinely without su
 would give. The direct form over the `.ko.zst` answers `0` for **every** driver on
 the system, including those that do have support. The complete table, with the three
 columns that separate "no XDP" from "XDP, no zero-copy", is in the
-[final project](../trilha/04-projeto-final/README.md#4-af_xdp-a-decisão-tomada).
+[final project](../trilha/04-projeto-final/README.en.md#4-af_xdp-the-decision-taken).
 
 **`tcpdump` does not see what was redirected.** The interface remains manageable, and
 traffic that is *not* redirected goes through the stack normally — but the packet the

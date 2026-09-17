@@ -2,7 +2,7 @@
 
 *Leia em [português](README.md).*
 
-> **Level 4** of the [study plan](../../../docs/plano-estudo-dpdk.md) ·
+> **Level 4** of the [study plan](../../../docs/plano-estudo-dpdk.en.md) ·
 > Requires [topic 01](../01-eal-hello/) · Has a [DPDK-free alternative](alternativas/cpp23/)
 
 ## 1. Foundation: why not use `malloc()`
@@ -16,8 +16,13 @@ program needs objects per packet.
 > allocating and freeing one object at a time costs **2.18 ns**, because glibc has a
 > per-thread cache and the pair falls into it. The mempool's real justification is
 > another, and it appears when you work in **batches** — the data plane's regime. The
-> numbers are in [§1 of the theory module](../../../docs/03-mempool-ring-mbuf/README.md#1-por-que-não-usar-malloc--a-resposta-medida).
+> numbers are in [§1 of the theory module](../../../docs/03-mempool-ring-mbuf/README.en.md#1-why-not-use-malloc--the-measured-answer).
 
+> **Note on the blocks in this English edition.** The measurement programs print in
+> Portuguese; this document translates their **labels and captions** so the tables
+> and outputs can be read here. Numbers, seals and column positions are exactly what
+> the program emitted. When a command in this page greps that output, the pattern
+> stays in Portuguese — it has to match what the program really prints.
 DPDK's solution inverts the problem: **allocate everything once, at the start, and
 then only borrow and return**. It is the *object pool* pattern, with two pieces:
 
@@ -66,7 +71,7 @@ which may be fewer than requested:
 ```c
 unsigned enq = rte_ring_enqueue_burst(fila, (void *const *)lote, n, NULL);
 if (enq < n) {
-    /* os que NÃO couberam continuam sendo seus: devolva-os */
+    /* the ones that did NOT fit are still yours: give them back */
     rte_mempool_put_bulk(pool, (void *const *)&lote[enq], n - enq);
 }
 ```
@@ -125,7 +130,7 @@ really crosses cores, and it is bigger than the batch-size one.
 > with `rte_eal_wait_lcore()` (see [`pipeline_ring.c`](pipeline_ring.c)). What those
 > two functions do with the lcore's state, and why the second remains mandatory even
 > after the worker has finished, is in
-> [§5.2 of module 02](../../../docs/02-runtime-dpdk/README.md#52-a-máquina-de-estados-tem-dois-estados-não-três).
+> [§5.2 of module 02](../../../docs/02-runtime-dpdk/README.en.md#52-the-state-machine-has-two-states-not-three).
 
 With two or more lcores (`-l 0,2`), the consumer gets its own core and every batch
 travels from one cache to the other. How much that trip costs depends on **which**
@@ -181,7 +186,7 @@ choice; what gives you control over it is the EAL. With `-l 0,2` you ask for lco
 and accept the default mapping; with `--lcores '0@6,1@7'` you declare which CPU each
 lcore runs on. The difference between the two forms — and an API trap along the way,
 the function `rte_lcore_to_cpu_id()`, which despite its name does not return the CPU
-number — is in [§5.1 of module 02](../../../docs/02-runtime-dpdk/README.md#51-lcore-não-é-cpu).
+number — is in [§5.1 of module 02](../../../docs/02-runtime-dpdk/README.en.md#51-an-lcore-is-not-a-cpu).
 
 **Pool size.** The pool here has 4095 objects to process up to millions of packets.
 That is deliberate: it only finishes if the return is correct on every cycle. An
@@ -205,7 +210,7 @@ not depend on it to be tested. That is what makes the L1 test possible.
 > the name is the EAL's memory identification mechanism, the same as memzones. It is
 > by name that a second process would find this pool without receiving any pointer —
 > the model in
-> [§3.1 of module 02](../../../docs/02-runtime-dpdk/README.md#31-memzone-memória-com-nome).
+> [§3.1 of module 02](../../../docs/02-runtime-dpdk/README.en.md#31-memzone-memory-with-a-name).
 > Here there is only one process, so the name looks decorative; it stops looking that
 > way the day the strategy becomes a separate process.
 
@@ -218,14 +223,14 @@ not depend on it to be tested. That is what makes the L1 test possible.
 Expected output (omitting the `EAL:` lines):
 
 ```
-Pacotes processados: 10
-Total de bytes: 695
-Lote (burst): 32 | objetos que nao couberam na fila: 0
-Modo: 1 lcore (0), produtor e consumidor alternados
-Objetos livres no pool ao final: 4095 de 4095
-Tempo medio: 52.1 ns/pacote  <- NAO E MEDICAO
-  10 pacotes sao poucos demais: o custo de ler o relogio e da mesma
-  ordem do trabalho medido. Use -n 10000 ou mais para um numero defensavel.
+Packets processed: 10
+Total bytes: 695
+Batch (burst): 32 | objects that did not fit in the queue: 0
+Mode: 1 lcore (0), producer and consumer alternating
+Free objects in the pool at the end: 4095 of 4095
+Average time: 52.1 ns/packet  <- NOT A MEASUREMENT
+  10 packets are far too few: the cost of reading the clock is of the same
+  order as the work being measured. Use -n 10000 or more for a defensible number.
 ```
 
 The decisive line is the **fifth**: `4095 de 4095` means every object came back. Any
@@ -269,7 +274,7 @@ the text. The number with meaning is in section 3, and it requires a large `-n`.
 This topic has both levels, and the division shows what each one reaches.
 
 ```bash
-./scripts/test-all.sh l1     # 13 casos, sem EAL, milissegundos
+./scripts/test-all.sh l1     # 13 cases, without the EAL, milliseconds
 ./scripts/test-all.sh l2     # runtime real
 ```
 
@@ -316,12 +321,12 @@ The topic compiles the **same source** twice. `pipeline_ring_vazado` is
 ```
 
 ```
-INVARIANTE VIOLADO: 1403 de 4095 objetos no pool ao final. 2692 objeto(s)
-vazaram: algum caminho de retorno nao devolveu ao pool.
-Pacotes processados: 2000000
-Total de bytes: 161000000
-Lote (burst): 256 | objetos que nao couberam na fila: 2692
-Objetos livres no pool ao final: 1403 de 4095
+INVARIANT VIOLATED: 1403 of 4095 objects in the pool at the end. 2692 object(s)
+leaked: some return path did not give them back.
+Packets processed: 2000000
+Total bytes: 161000000
+Batch (burst): 256 | objects that did not fit in the queue: 2692
+Free objects in the pool at the end: 1403 of 4095
 ```
 
 ### 6.3 What the measurement shows
@@ -350,8 +355,8 @@ invariant checked in the output** — and that is why it exists.
 correct binary:
 
 ```
-Lote (burst): 256 | objetos que nao couberam na fila: 905604
-Objetos livres no pool ao final: 4095 de 4095
+Batch (burst): 256 | objects that did not fit in the queue: 905604
+Free objects in the pool at the end: 4095 of 4095
 ```
 
 The **correct** program had 905 604 objects with no place in the queue; the
@@ -399,7 +404,7 @@ queue.
   from attaching to this pool, because anonymous memory is not mappable from outside.
   Mempool and ring **are** shareable between processes when the memory comes from
   hugepages; that is the model in
-  [§4 of module 02](../../../docs/02-runtime-dpdk/README.md#4-processos-primário-e-secundário).
+  [§4 of module 02](../../../docs/02-runtime-dpdk/README.en.md#4-primary-and-secondary-processes).
 
 ## 8. Comparison and the next step
 

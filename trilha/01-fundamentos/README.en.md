@@ -1,8 +1,8 @@
 # Module 01 — Practical DPDK fundamentals
 
-> **Levels 3 and 4** of the [study plan](../../docs/plano-estudo-dpdk.md) ·
-> Matching theory: [01 — Fundamentals](../../docs/01-fundamentos/README.md)
-> and [02 — DPDK runtime](../../docs/02-runtime-dpdk/README.md)
+> **Levels 3 and 4** of the [study plan](../../docs/plano-estudo-dpdk.en.md) ·
+> Matching theory: [01 — Fundamentals](../../docs/01-fundamentos/README.en.md)
+> and [02 — DPDK runtime](../../docs/02-runtime-dpdk/README.en.md)
 
 *Leia em [português](README.md).*
 
@@ -31,7 +31,7 @@ And there is a dependency in the opposite direction, less obvious: topic 02
 measures that crossing from one core to another costs 4.0 to 4.8 times more when
 the cores are in different cache domains. **Choosing which CPU each lcore runs
 on** is the business of the
-[runtime module](../../docs/02-runtime-dpdk/README.md#51-lcore-não-é-cpu), in
+[runtime module](../../docs/02-runtime-dpdk/README.en.md#51-an-lcore-is-not-a-cpu), in
 theory. Measuring without knowing how to control leaves half the lesson out.
 
 ## Why each topic has the tests it has
@@ -48,7 +48,7 @@ The split is not arbitrary, and explaining it is part of the content:
 
 That separation has a concrete cost worth knowing: bringing the EAL up takes
 **123 ms** on this machine
-([§2 of the runtime module](../../docs/02-runtime-dpdk/README.md#2-o-custo-de-existir-quanto-a-eal-leva-para-nascer)).
+([§2 of the runtime module](../../docs/02-runtime-dpdk/README.en.md#2-the-cost-of-existing-how-long-the-eal-takes-to-be-born)).
 A suite that required the runtime for every assertion would pay that price in
 every test case.
 

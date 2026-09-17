@@ -3,7 +3,7 @@
 *Leia em [português](README.md).*
 
 This track organises the study of DPDK into progressive modules, aligned with the
-master plan in [docs/plano-estudo-dpdk.md](../docs/plano-estudo-dpdk.md).
+master plan in [docs/plano-estudo-dpdk.md](../docs/plano-estudo-dpdk.en.md).
 
 ## Theory and practice, and how each calls the other
 
@@ -21,13 +21,13 @@ its topic becomes reading. The table below ties the two together.
 
 | Level | Theory in `docs/` | Practice here | State |
 |---|---|---|---|
-| 1 — system fundamentals | [01 — Fundamentals](../docs/01-fundamentos/README.md) | — | **written** |
-| 2 — networking and the data plane | [01 — Fundamentals](../docs/01-fundamentos/README.md) | — | **written** |
-| 3 — [EAL][cEAL] and runtime | [02 — DPDK runtime](../docs/02-runtime-dpdk/README.md) | [01-eal-hello/](01-fundamentos/01-eal-hello/) | **written** |
-| 4 — mempool, ring and mbuf | [03 — Mempool, ring and mbuf](../docs/03-mempool-ring-mbuf/README.md) | [02-mempool-ring/](01-fundamentos/02-mempool-ring/) | **written** |
+| 1 — system fundamentals | [01 — Fundamentals](../docs/01-fundamentos/README.en.md) | — | **written** |
+| 2 — networking and the data plane | [01 — Fundamentals](../docs/01-fundamentos/README.en.md) | — | **written** |
+| 3 — [EAL][cEAL] and runtime | [02 — DPDK runtime](../docs/02-runtime-dpdk/README.en.md) | [01-eal-hello/](01-fundamentos/01-eal-hello/) | **written** |
+| 4 — mempool, ring and mbuf | [03 — Mempool, ring and mbuf](../docs/03-mempool-ring-mbuf/README.en.md) | [02-mempool-ring/](01-fundamentos/02-mempool-ring/) | **written** |
 | 5 — pipeline and design | — | [02-pipeline/](02-pipeline/) | **written** (backpressure measured) |
 | 6 — RX/TX, burst and hardware | — | [02-pipeline/01-rx-tx-burst/](02-pipeline/01-rx-tx-burst/) | scope and environment measured; the hardware is what is missing |
-| 7 — NUMA, cache and real performance | [01 — Fundamentals §4 and §5](../docs/01-fundamentos/README.md#4-memória-onde-o-desempenho-realmente-se-decide) | to be defined | theory written; practice pending |
+| 7 — NUMA, cache and real performance | [01 — Fundamentals §4 and §5](../docs/01-fundamentos/README.en.md#4-memory-where-performance-is-really-decided) | to be defined | theory written; practice pending |
 | 8 — observability and quality | — | [03-performance/](03-performance/) | **written** |
 | 9 — virtualisation, SR-IOV, [vhost-user][cVhost] | — | — | not started |
 | 10 — final project and the alternatives ([AF_XDP][cAfxdp]) | — | [04-projeto-final/](04-projeto-final/) | **consolidation written**; the application does not exist |
@@ -45,9 +45,9 @@ its topic becomes reading. The table below ties the two together.
 
 Where it helps to anchor a concept, the examples lean on a single scenario: a
 ***market data* server** receiving an exchange feed. It shows up in the
-[fundamentals](../docs/01-fundamentos/README.md#62-o-barramento-também-tem-orçamento)
+[fundamentals](../docs/01-fundamentos/README.en.md#62-the-bus-has-a-budget-too)
 as the extreme ultra-low-latency case, and in the
-[runtime module](../docs/02-runtime-dpdk/README.md) as the system that justifies
+[runtime module](../docs/02-runtime-dpdk/README.en.md) as the system that justifies
 separating processes.
 
 It is **grounding, not a straitjacket**. The object of study is DPDK, and when a

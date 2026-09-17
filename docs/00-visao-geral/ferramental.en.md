@@ -215,17 +215,17 @@ That command-line contract is content of the topic. That is why L2 is a script t
 treats the binary as a black box.
 
 **What L2 verifies that L1 cannot:** in topic 02, the central assertion is
-`Objetos livres no pool ao final: 4095 de 4095`. Leaking a [mempool][mempool] object
+`Free objects in the pool at the end: 4095 of 4095`. Leaking a [mempool][mempool] object
 is the classic failure of this subject — the pool empties, reception starts returning
 zero and the pipeline stops in silence. Only the runtime reveals that.
 
 ### 4.3 Running
 
 ```bash
-./scripts/build-all.sh          # configura e compila
-./scripts/test-all.sh           # tudo
-./scripts/test-all.sh l1        # só lógica pura (rápido, sem DPDK)
-./scripts/test-all.sh l2        # só integração
+./scripts/build-all.sh          # configures and compiles
+./scripts/test-all.sh           # everything
+./scripts/test-all.sh l1        # pure logic only (fast, no DPDK)
+./scripts/test-all.sh l2        # integration only
 ```
 
 Or directly through Meson:
@@ -294,7 +294,7 @@ references: the book by **Paul McKenney**, the kernel's RCU maintainer
 Trigonakis** at [SOSP 2013][sosp], and the original futex paper by **Franke, Russell
 and Kirkwood** ([OLS 2002][futex]). The complete comparison, including the
 discrepancies it explained, is in
-[§10 of the Fundamentals](../01-fundamentos/README.md#10-confronto-com-a-literatura).
+[§10 of the Fundamentals](../01-fundamentos/README.en.md#10-comparison-with-the-literature).
 
 > For CI, `DPDK_ACADEMY_AMOSTRAS=3` shortens the collection: there the goal is to
 > verify that the programs run, not to produce statistics nobody will read.
@@ -396,7 +396,7 @@ Official documentation for each tool and concept cited above.
 - [Topic 02 — mempool and ring](../../trilha/01-fundamentos/02-mempool-ring/)
 
 <!-- ------------------------------------------------------------------- -->
-<!-- Definições dos links de referência usados ao longo deste documento.  -->
+<!-- Definitions of the reference links used throughout this document.   -->
 <!-- ------------------------------------------------------------------- -->
 
 [gsg]: https://doc.dpdk.org/guides/linux_gsg/

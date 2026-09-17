@@ -20,19 +20,19 @@ practically and deeply, with:
 
 | Section | Plan level | State |
 |---|---|---|
-| [00 — Overview](00-visao-geral/) | — | **written**: [positioning, prerequisites, method and measurement environment](00-visao-geral/README.md), plus the [tooling](00-visao-geral/ferramental.md) |
-| [01 — Fundamentals](01-fundamentos/) | 1 and 2 | **written**, with [reproducible measurements](01-fundamentos/medicoes/) and [confrontation with the literature](01-fundamentos/README.md#10-confronto-com-a-literatura) |
-| [02 — DPDK runtime](02-runtime-dpdk/) | 3 | **written**, with [runtime measurements](02-runtime-dpdk/medicoes/) and a [primary/secondary](02-runtime-dpdk/README.md#4-processos-primário-e-secundário) *market data* example |
-| [03 — Mempool, ring and mbuf](03-mempool-ring-mbuf/) | 4 | **written**, with [measurements](03-mempool-ring-mbuf/medicoes/) of allocation, ring and the [mbuf's anatomy](03-mempool-ring-mbuf/README.md#2-o-mbuf-quatro-números-que-parecem-redundantes) |
-| [Study plan](plano-estudo-dpdk.md) | all | master map of the **10** levels |
+| [00 — Overview](00-visao-geral/) | — | **written**: [positioning, prerequisites, method and measurement environment](00-visao-geral/README.en.md), plus the [tooling](00-visao-geral/ferramental.en.md) |
+| [01 — Fundamentals](01-fundamentos/) | 1 and 2 | **written**, with [reproducible measurements](01-fundamentos/medicoes/) and [confrontation with the literature](01-fundamentos/README.en.md#10-comparison-with-the-literature) |
+| [02 — DPDK runtime](02-runtime-dpdk/) | 3 | **written**, with [runtime measurements](02-runtime-dpdk/medicoes/) and a [primary/secondary](02-runtime-dpdk/README.en.md#4-primary-and-secondary-processes) *market data* example |
+| [03 — Mempool, ring and mbuf](03-mempool-ring-mbuf/) | 4 | **written**, with [measurements](03-mempool-ring-mbuf/medicoes/) of allocation, ring and the [mbuf's anatomy](03-mempool-ring-mbuf/README.en.md#2-the-mbuf-four-numbers-that-look-redundant) |
+| [Study plan](plano-estudo-dpdk.en.md) | all | master map of the **10** levels |
 
 Theory lives here in `docs/`; runnable practice lives in
-[`trilha/`](../trilha/README.md), where each topic gathers document, code and
+[`trilha/`](../trilha/README.en.md), where each topic gathers document, code and
 tests in the same directory.
 
 ## Teaching levels
 
-The canonical list is the one in the [study plan](plano-estudo-dpdk.md); this is
+The canonical list is the one in the [study plan](plano-estudo-dpdk.en.md); this is
 a summary for quick orientation, and it must agree with it.
 
 1. System fundamentals — Linux, memory, cache, NUMA, execution
@@ -50,7 +50,7 @@ a summary for quick orientation, and it must agree with it.
 
 The structure of the modules in [../trilha](../trilha) was designed to mirror
 exactly the levels described in the master plan in
-[plano-estudo-dpdk.md](plano-estudo-dpdk.md). The intent is to keep the teaching
+[plano-estudo-dpdk.md](plano-estudo-dpdk.en.md). The intent is to keep the teaching
 progression coherent and to avoid contradictions between documentation and
 modules.
 
