@@ -62,7 +62,7 @@ BANDA = [("sequencial (o prefetcher enfileira sozinho)", 64.0 / (0.198 * 16)),
          ("aleatório, endereços encadeados",             64.0 / 103.1)]
 
 # custo-paralelismo.c, fase 2: N nucleos fisicos, 16 cadeias cada, mesma regiao
-NUCLEOS = [(1, 8.63), (2, 10.93), (4, 15.32), (8, 24.99), (12, 38.50)]
+NUCLEOS = [(1, 7.27), (2, 8.35), (4, 16.91), (8, 25.82), (12, 36.56)]
 
 # --------------------------------------------------------------------------
 # TEXTOS — um gráfico por idioma
@@ -115,10 +115,10 @@ TEXTOS = {
                  "custo-paralelismo.c, fase 2"),
         sca_y="M acessos/s (soma de todos os núcleos)", sca_ideal="se escalasse por núcleo",
         sca_teto="{0:.0f} M/s — o teto", sca_ms="{0:.0f} M/s", sca_x="núcleos físicos ativos",
-        sca_fecho="Com 12 ativos, cada núcleo faz 22% do que fazia sozinho.",
-        sca_desc=("Gráfico de linha. A vazão agregada sobe de 116 M acessos/s com um núcleo "
-                  "para 312 M com doze, e satura por volta de oito. A linha de referência "
-                  "mostra onde ela estaria se escalasse por núcleo: 1 391 M com doze."),
+        sca_fecho="Com 12 ativos, cada núcleo faz 20% do que fazia sozinho.",
+        sca_desc=("Gráfico de linha. A vazão agregada sobe de 138 M acessos/s com um núcleo "
+                  "para 328 M com doze, e satura por volta de oito. A linha de referência "
+                  "mostra onde ela estaria se escalasse por núcleo: 1 651 M com doze."),
     ),
     "en": dict(
         sufixo=".en", dec=".",
@@ -159,10 +159,10 @@ TEXTOS = {
                  "custo-paralelismo.c, phase 2"),
         sca_y="M accesses/s (sum of all cores)", sca_ideal="if it scaled per core",
         sca_teto="{0:.0f} M/s — the ceiling", sca_ms="{0:.0f} M/s", sca_x="active physical cores",
-        sca_fecho="With 12 active, each core does 22% of what it did alone.",
-        sca_desc=("Line chart. Aggregate throughput rises from 116 M accesses/s with one "
-                  "core to 312 M with twelve, and saturates around eight. The reference "
-                  "line shows where it would be if it scaled per core: 1,391 M with twelve."),
+        sca_fecho="With 12 active, each core does 20% of what it did alone.",
+        sca_desc=("Line chart. Aggregate throughput rises from 138 M accesses/s with one "
+                  "core to 328 M with twelve, and saturates around eight. The reference "
+                  "line shows where it would be if it scaled per core: 1,651 M with twelve."),
     ),
 }
 
@@ -359,7 +359,7 @@ def escala(t, L):
     alt = TOPO + ALT_P + 76
     ns = [(n, 1000.0 * n / v) for n, v in NUCLEOS]      # vazão agregada
     base = 1000.0 / NUCLEOS[0][1]
-    topo_v = 1400.0
+    topo_v = 1700.0
     c = cabecalho(t, L["sca_titulo"], L["sca_sub"])
 
     def x(n):
