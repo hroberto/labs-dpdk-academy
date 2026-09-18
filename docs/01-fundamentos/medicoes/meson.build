@@ -92,6 +92,14 @@ endif
 # justificam a existência do DPDK — o custo de atravessar a fronteira do
 # kernel e o custo de perder localidade de memória.
 
+# L1: le o CPUID e imprime a TLB real. Nao mede tempo -- le uma propriedade
+# declarada do hardware. Existe porque /proc/cpuinfo reporta o valor BRUTO no
+# Zen 5 (sem o multiplicador x32) ate o kernel 7.4, e o modulo 01 publica o
+# alcance da TLB como numero. Em CPU nao-AMD sai com 77 (PULADO).
+tlb_real = executable('tlb-real', 'tlb-real.c', install : false)
+test('fundamentos - L1 (TLB real via CPUID)', tlb_real,
+     suite : ['l1', 'fundamentos'], timeout : 30)
+
 custo_syscall = executable('custo-syscall', 'custo-syscall.c', dependencies : [libm], install : false)
 efeito_cache = executable('efeito-cache', 'efeito-cache.c', dependencies : [libm], install : false)
 custo_traducao = executable('custo-traducao', 'custo-traducao.c', dependencies : [libm], install : false)
