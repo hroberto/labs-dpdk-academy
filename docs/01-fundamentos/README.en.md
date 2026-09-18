@@ -941,36 +941,57 @@ line between threads:
 ```
      cores   ns/access       M acc/s     aggregate      vs. ideal
   --------   ---------   -----------   -----------   ------------
-         1        8.63       115.9         115.9          100%
-         2       10.93        91.5         183.0           79%
-         4       15.32        65.3         261.0           56%
-         8       24.99        40.0         320.1           35%
-        12       38.50        26.0         311.7           22%
+         1        7.27       137.6         137.6          100%
+         2        8.35       119.8         239.5           87%
+         4       16.91        59.1         236.5           43%
+         8       25.82        38.7         309.8           28%
+        12       36.56        27.4         328.2           20%
 ```
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escala-escuro.en.svg">
-  <img alt="Line chart of aggregate throughput against the number of active physical cores. It rises from 116 million accesses per second with one core to 312 million with twelve, and saturates around eight. A grey reference line shows where it would be if it scaled per core: 1,391 million with twelve." src="imagens/4-escala-claro.en.svg">
+  <img alt="Line chart of aggregate throughput against the number of active physical cores. It rises from 138 million accesses per second with one core to 328 million with twelve, and the curve flattens from eight on. A grey reference line shows where it would be if it scaled per core: 1,651 million with twelve." src="imagens/4-escala-claro.en.svg">
 </picture>
 
-**With twelve cores active, each one does 22% of what it did alone.** Aggregate
-throughput grows 2.7×, not 12× — and between eight and twelve it **stops
-growing**: 320 against 312, within the noise. The system was already at the
-ceiling with eight.
+**With twelve cores active, each one does 20% of what it did alone.** Aggregate
+throughput grows 2.4×, not 12× — and the curve flattens: from eight to twelve
+cores, **50% more cores buy 6% of throughput**.
 
 And that ceiling has a name that has already appeared in this chapter. Three
-hundred and twenty million accesses per second, at 64 bytes per line, are
-**20.5 GB/s** — the same number a single core reaches with sequential access in
-the previous chart. It is no coincidence: it is memory bandwidth, and both paths
-arrive at it. One sequential core saturates it alone; eight scattered cores have
-to join forces to do the same.
+hundred and twenty-eight million accesses per second, at 64 bytes per line, are
+**21.0 GB/s** — the same number a single core reaches with sequential access in
+the previous chart, 20.2 GB/s. It is no coincidence: it is memory bandwidth, and
+both paths arrive at it. One sequential core saturates it alone; eight scattered
+cores have to join forces to do the same.
 
-> **Read the seals.** The 2, 4 and 8-core rows come out marked `!` (`disp` of
-> 17.1%, 10.8% and 14.2%). With several cores competing for the same memory path,
-> the variation between samples belongs to the phenomenon, not to the instrument —
-> the scheduler, the frequency and whatever else is on the machine all enter the
-> account. The **shape** of the curve (it saturates before eight) reproduces; the
-> intermediate values, with reservations.
+> **This table used to publish `!` on three rows, and the explanation was wrong.**
+> The previous version marked 2, 4 and 8 cores with high dispersion and blamed the
+> phenomenon: *"with several cores competing for the same memory path, the
+> variation between samples belongs to the phenomenon, not to the instrument"*.
+>
+> It was not the phenomenon. It was the **estimator**, with seven samples.
+>
+> Collecting 70 samples at the same point and recomputing `disp` over ten groups
+> of seven — with the interpolated estimator from
+> [`statistics.h`](medicoes/statistics.h), the project's own — the 2-core point
+> produced a blank seal five times, `~` three times and `!` twice, when the true
+> dispersion is 4.4%. And at 4 cores, whose true dispersion is 10.4% and therefore
+> **deserves** `!`, not one of the ten groups managed to mark it.
+>
+> The seal errs in both directions at n = 7. The p25 comes out interpolated
+> between the 2nd and 3rd samples and the p75 between the 5th and 6th; the
+> distance between those two points varies a lot from collection to collection.
+> Phase 1 suffers less because a single core has low dispersion. Phase 2 landed
+> exactly in the 3% to 15% band where the seal decides.
+>
+> Phase 2 now collects **21 samples**, and the table above is a fresh run: every
+> row comes out `~`. The method is what stays, and it goes beyond this case —
+> **when the seal appears near the threshold, suspect the sample count before
+> explaining the phenomenon.**
+> <!-- The 91.5 from this table does NOT go in the marker: the same digits
+>      appear as 91,55 ns in section 10, in a legitimate and unrelated
+>      context. Declaring it would make the checker accuse correct text. -->
+> <!-- retratado: 8.63 10.93 15.32 24.99 38.50 115.9 65.3 26.0 183.0 261.0 320.1 311.7 17.1 14.2 -->
 
 > **Design consequence, and this is the most expensive one to find out late:**
 > sizing a data plane from the measurement of **one** lcore overestimates the
@@ -1371,7 +1392,7 @@ chapter has already measured all three:
 | locality | the size of the cache | [§4.2](#42-cache-and-locality): above 8 MB the random column takes off |
 | hugepages | TLB reach | [§4.1](#41-virtual-memory-what-translating-an-address-means): 256 entries cover 512 MB, not 512 GB |
 | concurrency (one core) | memory bandwidth | [§4.2](#42-cache-and-locality): from K = 32 to K = 64 throughput grows only 1.33× |
-| concurrency (the system) | the same bandwidth, **divided** | [§4.2](#42-cache-and-locality): with 12 cores, each one does 22% of what it did alone |
+| concurrency (the system) | the same bandwidth, **divided** | [§4.2](#42-cache-and-locality): with 12 cores, each one does 20% of what it did alone |
 
 > **This chapter does not close the subject, and it is good that it does not.**
 > The conflict between throughput and latency comes back at two larger scales,

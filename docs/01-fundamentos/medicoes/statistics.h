@@ -48,6 +48,36 @@
  *                              destoantes: interferência esporádica, não
  *                              instabilidade do valor.
  *
+ * QUANTAS AMOSTRAS O SELO EXIGE PARA SIGNIFICAR ALGO
+ *
+ * Isto foi medido, em 18/09/2026, e o resultado desqualifica leituras do selo
+ * feitas com poucas amostras.
+ *
+ * Coletando 70 amostras de um mesmo ponto da fase 2 do `custo-paralelismo` e
+ * recalculando `disp` em dez grupos DISJUNTOS de sete — com a função
+ * `percentil()` abaixo, a de verdade, interpolada —, o ponto de 2 núcleos
+ * produziu selo EM BRANCO cinco vezes, `~` três e `!` duas. A dispersão
+ * verdadeira daquele ponto, com as 70 amostras, é 4,4%: `~`. E o ponto de 4
+ * núcleos, cuja dispersão verdadeira é 10,4% e portanto MERECE `!`, não marcou
+ * `!` em nenhum dos dez grupos.
+ *
+ * O selo erra nas duas direções com n = 7, e a razão é aritmética: o p25 sai
+ * interpolado entre a 2ª e a 3ª amostra e o p75 entre a 5ª e a 6ª. Mover uma
+ * única amostra desloca os dois. O IQR é robusto contra CAUDA, não contra
+ * TAMANHO DE AMOSTRA.
+ *
+ * Consequência prática, e ela é assimétrica:
+ *
+ *   disp < 3% ou disp > 15%  -> o selo é confiável mesmo com n pequeno; a
+ *                               medição está longe do limiar.
+ *   3% <= disp <= 15%        -> o selo é uma loteria abaixo de ~20 amostras.
+ *                               Aumente n antes de explicar o fenômeno.
+ *
+ * Por isso `custo-paralelismo` usa 21 amostras na fase 2 e 7 na fase 1: a fase 1
+ * tem dispersão baixa e fica fora da faixa perigosa; a fase 2 cai dentro dela.
+ * A escolha do número de amostras não é orçamento de tempo — é o que decide se
+ * o selo diz alguma coisa.
+ *
  * Deliberadamente não há marcador binário para outlier. Um limiar do tipo
  * "máximo > 1,25x a mediana" produz um penhasco arbitrário: duas linhas com
  * excursão praticamente igual (1,246x e 1,264x) receberiam selos opostos por

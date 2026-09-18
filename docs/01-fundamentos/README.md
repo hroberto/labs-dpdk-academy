@@ -942,35 +942,57 @@ uma única linha entre threads:
 ```
    nucleos   ns/acesso   M acessos/s      agregado   escala ideal
   --------   ---------   -----------   -----------   ------------
-         1        8.63       115.9         115.9          100%
-         2       10.93        91.5         183.0           79%
-         4       15.32        65.3         261.0           56%
-         8       24.99        40.0         320.1           35%
-        12       38.50        26.0         311.7           22%
+         1        7.27       137.6         137.6          100%
+         2        8.35       119.8         239.5           87%
+         4       16.91        59.1         236.5           43%
+         8       25.82        38.7         309.8           28%
+        12       36.56        27.4         328.2           20%
 ```
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escala-escuro.svg">
-  <img alt="Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 116 milhões de acessos por segundo com um núcleo para 312 milhões com doze, e satura por volta de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 1 391 milhões com doze." src="imagens/4-escala-claro.svg">
+  <img alt="Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 138 milhões de acessos por segundo com um núcleo para 328 milhões com doze, e a curva achata a partir de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 1 651 milhões com doze." src="imagens/4-escala-claro.svg">
 </picture>
 
-**Com doze núcleos ativos, cada um faz 22% do que fazia sozinho.** A vazão
-agregada cresce 2,7×, não 12× — e entre oito e doze ela **para de crescer**: 320
-contra 312, dentro do ruído. O sistema já estava no teto com oito.
+**Com doze núcleos ativos, cada um faz 20% do que fazia sozinho.** A vazão
+agregada cresce 2,4×, não 12× — e a curva achata: de oito para doze núcleos,
+**50% mais núcleos compram 6% de vazão**.
 
-E o teto tem um nome que já apareceu neste capítulo. Trezentos e vinte milhões
-de acessos por segundo, a 64 bytes por linha, são **20,5 GB/s** — o mesmo número
-que um único núcleo alcança em acesso sequencial no gráfico anterior. Não é
-coincidência: é a banda da memória, e os dois caminhos chegam nela. Um núcleo
-sequencial a satura sozinho; oito núcleos dispersos precisam se juntar para
-isso.
+E o teto tem um nome que já apareceu neste capítulo. Trezentos e vinte e oito
+milhões de acessos por segundo, a 64 bytes por linha, são **21,0 GB/s** — o
+mesmo número que um único núcleo alcança em acesso sequencial no gráfico
+anterior, 20,2 GB/s. Não é coincidência: é a banda da memória, e os dois
+caminhos chegam nela. Um núcleo sequencial a satura sozinho; oito núcleos
+dispersos precisam se juntar para isso.
 
-> **Leia os selos.** As linhas de 2, 4 e 8 núcleos saem marcadas `!` (`disp` de
-> 17,1%, 10,8% e 14,2%). Com vários núcleos disputando o mesmo caminho de
-> memória, a variação entre amostras é do próprio fenômeno, não do instrumento —
-> o escalonador, a frequência e o que mais estiver na máquina entram na conta. A
-> **forma** da curva (satura antes de oito) reproduz; os valores intermediários,
-> com reserva.
+> **Esta tabela publicava `!` em três linhas, e a explicação estava errada.** A
+> versão anterior marcava 2, 4 e 8 núcleos com dispersão alta e atribuía isso ao
+> fenômeno: *"com vários núcleos disputando o mesmo caminho de memória, a
+> variação entre amostras é do próprio fenômeno, não do instrumento"*.
+>
+> Não era o fenômeno. Era o **estimador**, com sete amostras.
+>
+> Coletando 70 amostras no mesmo ponto e recalculando `disp` em dez grupos de
+> sete — com o estimador interpolado de [`statistics.h`](medicoes/statistics.h),
+> o do projeto —, o ponto de 2 núcleos produziu selo em branco cinco vezes, `~`
+> três e `!` duas, quando a dispersão verdadeira é 4,4%. E em 4 núcleos, cuja
+> dispersão verdadeira é 10,4% e portanto **merece** `!`, nenhum dos dez grupos
+> chegou a marcar.
+>
+> O selo erra nas duas direções com n = 7. O p25 sai interpolado entre a 2ª e a
+> 3ª amostra e o p75 entre a 5ª e a 6ª; a distância entre esses dois pontos varia
+> muito de coleta para coleta. A fase 1 sofre menos porque um núcleo sozinho tem
+> dispersão baixa. A fase 2 caiu exatamente na faixa de 3% a 15% onde o selo
+> decide.
+>
+> A fase 2 passou a coletar **21 amostras**, e a tabela acima é execução nova:
+> todas as linhas saem `~`. Fica o método, que vale além deste caso — **quando o
+> selo aparece perto do limiar, desconfie do número de amostras antes de explicar
+> o fenômeno.**
+> <!-- O 91,5 desta tabela NAO entra na marca: os mesmos digitos aparecem em
+>      91,55 ns na secao 10, num contexto legitimo e sem relacao. Declara-lo
+>      faria o verificador acusar o texto correto. -->
+> <!-- retratado: 8.63 10.93 15.32 24.99 38.50 115.9 65.3 26.0 183.0 261.0 320.1 311.7 17,1 14,2 -->
 
 > **Consequência de projeto, e esta é a mais cara de descobrir tarde:**
 > dimensionar um plano de dados pela medição de **um** lcore superestima o
@@ -1379,7 +1401,7 @@ três tetos deste capítulo já apareceram:
 | localidade | o tamanho do cache | [§4.2](#42-cache-e-localidade): acima de 8 MB a coluna aleatória dispara |
 | hugepages | o alcance da TLB | [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço): 256 entradas cobrem 512 MB, não 512 GB |
 | concorrência (um núcleo) | a banda da memória | [§4.2](#42-cache-e-localidade): de K = 32 a K = 64 a vazão cresce só 1,33× |
-| concorrência (o sistema) | a mesma banda, **dividida** | [§4.2](#42-cache-e-localidade): com 12 núcleos, cada um faz 22% do que fazia sozinho |
+| concorrência (o sistema) | a mesma banda, **dividida** | [§4.2](#42-cache-e-localidade): com 12 núcleos, cada um faz 20% do que fazia sozinho |
 
 > **Este capítulo não fecha o assunto, e é bom que não feche.** O conflito entre
 > vazão e latência reaparece em duas escalas maiores, com a mesma matemática: no

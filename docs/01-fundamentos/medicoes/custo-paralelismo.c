@@ -72,6 +72,22 @@
  * concorrencia suficiente para o nucleo sair da latencia pura, e ainda barata
  * em espera pelo lote. */
 #define K_POR_NUCLEO 16
+/* A fase 2 usa MAIS amostras que a fase 1, e isto foi medido.
+ *
+ * Com 7 amostras o selo de confianca vira loteria. Coletando 70 amostras e
+ * recalculando `disp` em dez grupos de 7 — com o estimador de statistics.h,
+ * interpolado —, o mesmo ponto de 2 nucleos produziu selo em branco cinco
+ * vezes, `~` tres e `!` duas, quando a dispersao verdadeira e 4,4%. E em 4
+ * nucleos, cuja dispersao verdadeira e 10,4% (`!`), NENHUM dos dez grupos
+ * chegou a marcar `!`.
+ *
+ * O problema nao e a medicao: e o estimador. Com n = 7 o p25 sai interpolado
+ * entre a 2a e a 3a amostra e o p75 entre a 5a e a 6a, e a distancia entre
+ * esses dois pontos varia muito de coleta para coleta. A fase 1 sofre menos
+ * porque um nucleo sozinho tem dispersao baixa; a fase 2, com varios nucleos
+ * disputando memoria, cai exatamente na faixa de 3% a 15% onde o selo decide. */
+#define AMOSTRAS_NUCLEOS_FIXO 21
+#define AMOSTRAS_NUCLEOS samples(AMOSTRAS_NUCLEOS_FIXO)
 #define ACESSOS_POR_NUCLEO (2u * 1024u * 1024u)
 #define NUCLEOS_MAX 32
 #define PPS_10GBE_64B 14.880952  /* milhões de pacotes/s — ver secao 1 do modulo */
@@ -349,7 +365,10 @@ int main(void)
     printf("  Cada nucleo percorre %d cadeias proprias sobre a MESMA regiao.\n",
            K_POR_NUCLEO);
     printf("  Nenhuma linha e compartilhada entre threads: o que sobra e o\n");
-    printf("  caminho de memoria. %d nucleos fisicos disponiveis.\n\n", n_cpus_fisicas);
+    printf("  caminho de memoria. %d nucleos fisicos disponiveis.\n", n_cpus_fisicas);
+    printf("  (%d amostras por ponto -- mais que a fase 1; ver o comentario\n"
+           "   de AMOSTRAS_NUCLEOS_FIXO sobre por que 7 nao bastam aqui)\n\n",
+           AMOSTRAS_NUCLEOS);
 
     static const int ns_nucleos[] = {1, 2, 4, 8, 12, 16};
     int usados[sizeof(ns_nucleos) / sizeof(ns_nucleos[0])];
@@ -362,7 +381,7 @@ int main(void)
             break;
         char rot[64];
         caso_n = ns_nucleos[i];
-        const struct statistics e = collect_or_fail(amostra_n_nucleos, AMOSTRAS);
+        const struct statistics e = collect_or_fail(amostra_n_nucleos, AMOSTRAS_NUCLEOS);
         snprintf(rot, sizeof(rot), "%d nucleo%s", caso_n, caso_n == 1 ? "" : "s");
         print_row(rot, e);
         usados[n_casos] = caso_n;
