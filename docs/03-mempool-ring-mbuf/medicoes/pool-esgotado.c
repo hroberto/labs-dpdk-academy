@@ -71,7 +71,7 @@ static struct rte_mempool *make_pool(const char *name, uint32_t n, uint32_t cach
     struct rte_mempool *mp = rte_mempool_create(name, n, sizeof(struct object), cache, 0, NULL,
                                                 NULL, NULL, NULL, SOCKET_ID_ANY, 0);
     if (mp == NULL)
-        fprintf(stderr, "rte_mempool_create(%s, n=%u, cache=%u) falhou: %s\n", name, n, cache,
+        fprintf(stderr, "rte_mempool_create(%s, n=%u, cache=%u) failed: %s\n", name, n, cache,
                 rte_strerror(rte_errno));
     return mp;
 }
@@ -87,15 +87,15 @@ static int cliff(void)
     /* Deixa exatamente 10 objetos livres. */
     const uint32_t reter = n - 10;
     if (rte_mempool_get_bulk(mp, reserve_slots, reter) != 0) {
-        fprintf(stderr, "nao consegui reter %u objetos\n", reter);
+        fprintf(stderr, "could not hold back %u objects\n", reter);
         rte_mempool_free(mp);
         return -1;
     }
 
-    printf("\n== Experimento 1: o degrau de rte_mempool_get_bulk ==\n\n");
-    printf("  pool com %u objetos, cache 0, com %u livres no momento do pedido\n\n", n,
+    printf("\n== Experiment 1: the step of rte_mempool_get_bulk ==\n\n");
+    printf("  pool of %u objects, cache 0, with %u free at request time\n\n", n,
            rte_mempool_avail_count(mp));
-    printf("  %-8s  %-10s  %-12s  %s\n", "pedido", "resultado", "entregues", "livres depois");
+    printf("  %-8s  %-10s  %-12s  %s\n", "request", "result", "delivered", "free after");
 
     static void *attempt[32];
     for (uint32_t requested = 8; requested <= 12; requested++) {
@@ -107,9 +107,9 @@ static int cliff(void)
             rte_mempool_put_bulk(mp, attempt, requested);
     }
 
-    printf("\n  Leitura: o pedido de %u falha com 10 objetos livres e devolve ZERO,\n", 11u);
-    printf("  nao 10. Nao existe lote parcial em get_bulk -- para aceitar o que\n");
-    printf("  houver e preciso pedir menos, ou usar rte_mempool_get() um a um.\n");
+    printf("\n  Reading: the request for %u fails with 10 free objects and returns ZERO,\n", 11u);
+    printf("  not 10. There is no partial batch in get_bulk -- to accept whatever is\n");
+    printf("  available one must ask for less, or use rte_mempool_get() one at a time.\n");
 
     rte_mempool_put_bulk(mp, reserve_slots, reter);
     rte_mempool_free(mp);
@@ -146,13 +146,13 @@ static int rule4(void)
         {1023, 32},  /* 1023 % 32 == 31   -> previsão: 31 presos */
     };
 
-    printf("\n== Experimento 2: a regra 4 de dimensionamento, medida ==\n\n");
-    printf("  A documentacao adverte que, com n %% cache != 0, \"some elements will\n");
+    printf("\n== Experiment 2: sizing rule 4, measured ==\n\n");
+    printf("  The documentation warns that, with n %% cache != 0, \"some elements will\n");
     printf("  always stay in the pool and will never be used\". dim_leftover_objects()\n");
-    printf("  calcula quantos seriam. Aqui esse numero e confrontado com um pool\n");
-    printf("  real, drenado um objeto por vez ate get_bulk falhar.\n\n");
-    printf("  %-6s %-6s %-8s %-10s %-10s %-8s %s\n", "n", "cache", "batch", "previsto", "obtidos",
-           "sobra", "confere?");
+    printf("  computes how many those would be. Here that number is confronted with a\n");
+    printf("  real pool, drained one object at a time until get_bulk fails.\n\n");
+    printf("  %-6s %-6s %-8s %-10s %-10s %-8s %s\n", "n", "cache", "batch", "predicted", "obtained",
+           "leftover", "matches?");
 
     int divergences = 0;
     for (size_t i = 0; i < RTE_DIM(casos); i++) {
@@ -172,29 +172,29 @@ static int rule4(void)
             divergences++;
 
         printf("  %-6u %-6u %-8u %-10u %-10u %-8u %s\n", casos[i].n, casos[i].cache, lote, predicted,
-               obtained, unreachable, matches ? "sim" : "NAO");
+               obtained, unreachable, matches ? "yes" : "NO");
 
         rte_mempool_free(mp);
     }
 
     if (divergences == 0) {
-        printf("\n  Nesta release, nenhum caso divergiu: o consumidor unico nao\n");
-        printf("  alcancou mais objetos do que a previsao permitia.\n");
+        printf("\n  In this release no case diverged: the single consumer did not\n");
+        printf("  reach more objects than the prediction allowed.\n");
     } else {
-        printf("\n  %d caso(s) DIVERGEM -- e a divergencia e o resultado, nao um erro.\n",
+        printf("\n  %d case(s) DIVERGE -- and the divergence is the result, not an error.\n",
                divergences);
-        printf("\n  Um consumidor unico drenando o pool obtem TODOS os objetos, mesmo\n");
-        printf("  quando n %% cache != 0. A leitura absoluta da regra 4 (\"never be\n");
-        printf("  used\") nao se sustenta, e o mecanismo esta no proprio cabecalho do\n");
-        printf("  DPDK: em rte_mempool_do_generic_get(), quando o reabastecimento do\n");
-        printf("  cache falha por nao haver objetos suficientes para um lote inteiro,\n");
-        printf("  o codigo faz `goto driver_dequeue` e busca os que faltam DIRETO do\n");
-        printf("  anel de tras, ignorando o cache. O resto do pool continua alcancavel.\n");
-        printf("\n  O que a regra 4 de fato governa e EFICIENCIA em regime, com varios\n");
-        printf("  lcores: cada cache retem objetos que os outros nucleos nao veem, e a\n");
-        printf("  divisibilidade decide se a reposicao acontece em lotes cheios. Nao e\n");
-        printf("  uma condicao de alcancabilidade -- e e assim que dimensionamento.h\n");
-        printf("  passou a enunciar a regra, depois desta medicao.\n");
+        printf("\n  A single consumer draining the pool obtains ALL objects, even when\n");
+        printf("  n %% cache != 0. The absolute reading of rule 4 (\"never be\n");
+        printf("  used\") does not hold, and the mechanism is in DPDK's own header:\n");
+        printf("  in rte_mempool_do_generic_get(), when refilling the cache fails\n");
+        printf("  because there are not enough objects for a whole batch, the code\n");
+        printf("  does `goto driver_dequeue` and fetches the missing ones STRAIGHT from\n");
+        printf("  the backing ring, bypassing the cache. The rest of the pool stays reachable.\n");
+        printf("\n  What rule 4 actually governs is steady-state EFFICIENCY, with several\n");
+        printf("  lcores: each cache holds objects the other cores cannot see, and\n");
+        printf("  divisibility decides whether refills happen in full batches. It is not\n");
+        printf("  a reachability condition -- and that is how dimensionamento.h now\n");
+        printf("  states the rule, after this measurement.\n");
     }
     /* Divergir da previsão é o achado, não uma falha: o valor de retorno some
      * aqui de propósito, para que o teste L2 não fique vermelho por um
@@ -207,11 +207,11 @@ int main(int argc, char **argv)
     print_provenance("pool-esgotado");
     const int consumidos = rte_eal_init(argc, argv);
     if (consumidos < 0) {
-        fprintf(stderr, "Erro ao inicializar a EAL: %s\n", rte_strerror(rte_errno));
+        fprintf(stderr, "Error initialising the EAL: %s\n", rte_strerror(rte_errno));
         return EXIT_FAILURE;
     }
 
-    printf("== Quando o mempool esgota ==\n");
+    printf("== When the mempool runs dry ==\n");
     printf("  DPDK %s | RTE_MEMPOOL_CACHE_MAX_SIZE = %u\n", rte_version(),
            (unsigned)RTE_MEMPOOL_CACHE_MAX_SIZE);
 

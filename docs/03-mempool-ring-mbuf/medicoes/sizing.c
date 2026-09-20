@@ -89,10 +89,10 @@ const char *dim_describe(unsigned warnings, char *buf, size_t tam)
         unsigned bit;
         const char *texto;
     } tabela[] = {
-        {DIM_N_NOT_POW2_MINUS_ONE, "n nao e 2^q-1 (desperdicio de memoria)"},
-        {DIM_CACHE_ABOVE_MAX, "cache acima do maximo (criacao falha)"},
-        {DIM_CACHE_OVER_N_DIV_1_5, "cache maior que n/1.5 (criacao falha)"},
-        {DIM_N_NOT_MULTIPLE_OF_CACHE, "n nao e multiplo do cache (objetos presos)"},
+        {DIM_N_NOT_POW2_MINUS_ONE, "n is not 2^q-1 (memory waste)"},
+        {DIM_CACHE_ABOVE_MAX, "cache above the maximum (creation fails)"},
+        {DIM_CACHE_OVER_N_DIV_1_5, "cache larger than n/1.5 (creation fails)"},
+        {DIM_N_NOT_MULTIPLE_OF_CACHE, "n is not a multiple of the cache (objects pinned)"},
     };
 
     if (tam == 0)
@@ -100,7 +100,7 @@ const char *dim_describe(unsigned warnings, char *buf, size_t tam)
     buf[0] = '\0';
 
     if (warnings == DIM_OK) {
-        snprintf(buf, tam, "sem ressalvas");
+        snprintf(buf, tam, "no caveats");
         return buf;
     }
 

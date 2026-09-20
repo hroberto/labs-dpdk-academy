@@ -113,23 +113,23 @@ int main(int argc, char **argv)
     print_provenance("estado-lcore");
     const int n = rte_eal_init(argc, argv);
     if (n < 0) {
-        fprintf(stderr, "estado-lcore: EAL nao inicializou: %s\n", rte_strerror(rte_errno));
+        fprintf(stderr, "estado-lcore: EAL did not initialise: %s\n", rte_strerror(rte_errno));
         return 2;
     }
 
-    printf("\n== O que a EAL decidiu ==\n\n");
-    printf("  versao ............... %s\n", rte_version());
-    printf("  tipo de processo ..... %s\n",
+    printf("\n== What the EAL decided ==\n\n");
+    printf("  version .............. %s\n", rte_version());
+    printf("  process type ......... %s\n",
            rte_eal_process_type() == RTE_PROC_PRIMARY ? "PRIMARIO" : "SECUNDARIO");
-    printf("  modo IOVA ............ %s\n", rte_eal_iova_mode() == RTE_IOVA_VA ? "VA (virtual)"
+    printf("  IOVA mode ............ %s\n", rte_eal_iova_mode() == RTE_IOVA_VA ? "VA (virtual)"
                                                                               : "PA (fisico)");
-    printf("  argumentos consumidos  %d  (rte_eal_init devolve a CONTAGEM, nao 0/-1)\n", n);
-    printf("  lcores em uso ........ %u  (a maquina tem %u CPUs logicas)\n", rte_lcore_count(),
+    printf("  arguments consumed     %d  (rte_eal_init returns the COUNT, not 0/-1)\n", n);
+    printf("  lcores in use ........ %u  (the machine has %u logical CPUs)\n", rte_lcore_count(),
            (unsigned)sysconf(_SC_NPROCESSORS_ONLN));
-    printf("  lcore principal ...... %u\n", rte_get_main_lcore());
-    printf("  relogio (TSC) ........ %.3f GHz\n\n", (double)rte_get_tsc_hz() / 1e9);
+    printf("  main lcore ........... %u\n", rte_get_main_lcore());
+    printf("  clock (TSC) .......... %.3f GHz\n\n", (double)rte_get_tsc_hz() / 1e9);
 
-    printf("  %-8s %-14s %-12s %-14s %-8s\n", "lcore", "CPU(s) reais", "papel", "indice no no",
+    printf("  %-8s %-14s %-12s %-14s %-8s\n", "lcore", "real CPU(s)", "role", "index in node",
            "no NUMA");
     printf("  %-8s %-14s %-12s %-14s %-8s\n", "-----", "------------", "-----", "------------",
            "-------");
@@ -142,19 +142,19 @@ int main(int argc, char **argv)
                rte_lcore_to_cpu_id((int)id), rte_lcore_to_socket_id(id));
     }
 
-    printf("\n  Duas colunas que costumam ser confundidas:\n\n");
-    printf("  * \"CPU(s) reais\" vem de rte_lcore_cpuset(): e onde a thread do lcore\n");
-    printf("    esta de fato fixada. Com -l 0-3 coincide com o numero do lcore; com\n");
-    printf("    --lcores '0@6' o lcore 0 passa a rodar na CPU 6.\n\n");
-    printf("  * \"indice no no\" vem de rte_lcore_to_cpu_id(), cujo nome ENGANA: a\n");
-    printf("    documentacao diz \"the id of the lcore on a socket starting from\n");
-    printf("    zero\", ou seja, um indice relativo ao no NUMA -- nao o numero da\n");
-    printf("    CPU. Usa-la para fixar thread ou escolher IRQ poe o trabalho no\n");
-    printf("    nucleo errado, e o sintoma aparece so no desempenho.\n");
+    printf("\n  Two columns that are often confused:\n\n");
+    printf("  * \"real CPU(s)\" comes from rte_lcore_cpuset(): it is where the lcore's\n");
+    printf("    thread is actually pinned. With -l 0-3 it matches the lcore number; with\n");
+    printf("    --lcores '0@6' lcore 0 starts running on CPU 6.\n\n");
+    printf("  * \"index in node\" comes from rte_lcore_to_cpu_id(), whose name MISLEADS: the\n");
+    printf("    documentation says \"the id of the lcore on a socket starting from\n");
+    printf("    zero\", that is, an index relative to the NUMA node -- not the CPU\n");
+    printf("    number. Using it to pin a thread or pick an IRQ puts the work on the\n");
+    printf("    wrong core, and the symptom shows up only in performance.\n");
 
     if (rte_lcore_count() < 2) {
-        printf("\n  Apenas um lcore: nao ha trabalhador para observar.\n");
-        printf("  Rode com -l 0-3 para ver a maquina de estados.\n\n");
+        printf("\n  Only one lcore: there is no worker to observe.\n");
+        printf("  Run with -l 0-3 to see the state machine.\n\n");
         rte_eal_cleanup();
         /* CÓDIGO 77 = PULADO, e não sucesso.
          *
@@ -165,10 +165,10 @@ int main(int argc, char **argv)
         return 77;
     }
 
-    printf("\n== Maquina de estados do lcore trabalhador ==\n\n");
-    printf("  Esta versao do DPDK expoe DOIS estados: WAIT e RUNNING.\n");
-    printf("  Ate o DPDK 20.11 havia um terceiro, FINISHED, ainda descrito na\n");
-    printf("  maior parte do material disponivel na web.\n\n");
+    printf("\n== State machine of the worker lcore ==\n\n");
+    printf("  This DPDK version exposes TWO states: WAIT and RUNNING.\n");
+    printf("  Until DPDK 20.11 there was a third, FINISHED, still described in\n");
+    printf("  most of the material available on the web.\n\n");
 
     unsigned marca = 7;
 
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
     RTE_LCORE_FOREACH_WORKER(id) {
         const int r = rte_eal_remote_launch(trabalhador, &marca, id);
         if (r != 0)
-            fprintf(stderr, "  lcore %u recusou a tarefa: %d\n", id, r);
+            fprintf(stderr, "  lcore %u refused the task: %d\n", id, r);
     }
 
     imprimir_estados("apos remote_launch:");
@@ -187,17 +187,17 @@ int main(int argc, char **argv)
     imprimir_estados("durante o trabalho:");
 
     /* Espera o retorno e RECOLHE o valor de cada trabalhador. */
-    printf("\n  valores devolvidos pelos trabalhadores:\n");
+    printf("\n  values returned by the workers:\n");
     RTE_LCORE_FOREACH_WORKER(id)
         printf("    lcore %u -> %d\n", id, rte_eal_wait_lcore(id));
 
     printf("\n");
     imprimir_estados("apos wait_lcore:");
 
-    printf("\n  Repare que o estado volta a WAIT sozinho: nao ha FINISHED para\n");
-    printf("  observar. rte_eal_wait_lcore() e o que entrega o valor de retorno,\n");
-    printf("  e por isso continua sendo obrigatoria mesmo quando o trabalhador\n");
-    printf("  ja terminou.\n\n");
+    printf("\n  Note that the state returns to WAIT on its own: there is no FINISHED to\n");
+    printf("  observe. rte_eal_wait_lcore() is what delivers the return value,\n");
+    printf("  and that is why it remains mandatory even when the worker\n");
+    printf("  has already finished.\n\n");
 
     rte_eal_cleanup();
     return 0;

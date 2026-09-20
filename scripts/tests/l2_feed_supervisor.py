@@ -23,20 +23,20 @@ with (root / 'pids').open('a') as f: f.write(str(os.getpid()) + ' ')
 prefix = next(a.split('=', 1)[1] for a in sys.argv if a.startswith('--file-prefix='))
 (root / (prefix + '_fixture')).touch()
 (root / (prefix.rstrip('_') + '9__alheio')).touch()
-print('aguardando o assinante conectar', flush=True)
+print('waiting for the subscriber to connect', flush=True)
 time.sleep(0.6)
 ''')
     secondary.write_text('''#!/usr/bin/env python3
 import os, pathlib, time
 root = pathlib.Path(__file__).parent
 with (root / 'pids').open('a') as f: f.write(str(os.getpid()) + ' ')
-print('endereco virtual', flush=True)
+print('virtual address', flush=True)
 mode = (root / 'mode').read_text() if (root / 'mode').exists() else 'valid'
 if mode != 'no_active':
-    print('LIVRO ATIVO: geracao=' + os.environ['DPDK_ACADEMY_GENERATION'] + ' tick=20 lados=8', flush=True)
-print('Primeiro lote consumido: 20', flush=True)
+    print('ACTIVE BOOK: generation=' + os.environ['DPDK_ACADEMY_GENERATION'] + ' tick=20 sides=8', flush=True)
+print('First batch consumed: 20', flush=True)
 time.sleep(0.2)
-if mode == 'valid': print('Validade do livro: VALIDO; reconstrucoes: 1', flush=True)
+if mode == 'valid': print('Book validity: VALID; reconstructions: 1', flush=True)
 ''')
     primary.chmod(0o755)
     secondary.chmod(0o755)

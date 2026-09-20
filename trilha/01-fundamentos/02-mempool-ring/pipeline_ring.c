@@ -86,19 +86,19 @@ static int parse_config(int argc, char **argv, struct config *cfg)
         case 't': cfg->progresso_ms = strtoull(optarg, NULL, 10); break;
         case 'q': cfg->profundidade = (unsigned)strtoul(optarg, NULL, 10); break;
         default:
-            fprintf(stderr, "Uso: %s <EAL> -- [-n pacotes] [-b lote (1..%u)]"
-                            " [-t ms sem progresso] [-q profundidade da fila]\n",
+            fprintf(stderr, "Usage: %s <EAL> -- [-n packets] [-b batch (1..%u)]"
+                            " [-t ms without progress] [-q queue depth]\n",
                     argv[0], BURST_MAX);
             return -1;
         }
     }
     if (cfg->burst == 0 || cfg->burst > BURST_MAX || cfg->num_packets == 0) {
-        fprintf(stderr, "Parametros invalidos: -n deve ser > 0 e -b entre 1 e %u\n", BURST_MAX);
+        fprintf(stderr, "Invalid parameters: -n must be > 0 and -b between 1 and %u\n", BURST_MAX);
         return -1;
     }
     if (!potencia_de_dois(cfg->profundidade)) {
-        fprintf(stderr, "Parametros invalidos: -q deve ser potencia de dois"
-                        " (exigencia do rte_ring); recebido %u\n", cfg->profundidade);
+        fprintf(stderr, "Invalid parameters: -q must be a power of two"
+                        " (rte_ring requirement); got %u\n", cfg->profundidade);
         return -1;
     }
     /* A fila precisa caber um lote inteiro, senao o produtor nunca consegue
@@ -106,8 +106,8 @@ static int parse_config(int argc, char **argv, struct config *cfg)
      * aqui e melhor que descobrir depois de 5 s de nada. A capacidade util e
      * profundidade-1, dai o `<=`. */
     if (cfg->profundidade <= cfg->burst) {
-        fprintf(stderr, "Parametros invalidos: -q %u nao comporta um lote de %u"
-                        " (capacidade util e profundidade-1)\n",
+        fprintf(stderr, "Invalid parameters: -q %u cannot hold a batch of %u"
+                        " (usable capacity is depth-1)\n",
                 cfg->profundidade, cfg->burst);
         return -1;
     }
@@ -251,7 +251,7 @@ int main(int argc, char **argv)
 {
     int consumed = rte_eal_init(argc, argv);
     if (consumed < 0) {
-        fprintf(stderr, "Erro ao inicializar a EAL: %s\n", rte_strerror(rte_errno));
+        fprintf(stderr, "Error initialising the EAL: %s\n", rte_strerror(rte_errno));
         return EXIT_FAILURE;
     }
     argc -= consumed;
@@ -277,7 +277,7 @@ int main(int argc, char **argv)
         /* cache por lcore */ 64, /* private data */ 0,
         NULL, NULL, NULL, NULL, rte_socket_id(), 0);
     if (pool == NULL) {
-        fprintf(stderr, "rte_mempool_create falhou: %s\n", rte_strerror(rte_errno));
+        fprintf(stderr, "rte_mempool_create failed: %s\n", rte_strerror(rte_errno));
         rte_eal_cleanup();
         return EXIT_FAILURE;
     }
@@ -286,7 +286,7 @@ int main(int argc, char **argv)
     struct rte_ring *ring = rte_ring_create("fila", cfg.profundidade, rte_socket_id(),
                                             RING_F_SP_ENQ | RING_F_SC_DEQ);
     if (ring == NULL) {
-        fprintf(stderr, "rte_ring_create falhou: %s\n", rte_strerror(rte_errno));
+        fprintf(stderr, "rte_ring_create failed: %s\n", rte_strerror(rte_errno));
         rte_mempool_free(pool);
         rte_eal_cleanup();
         return EXIT_FAILURE;
@@ -321,7 +321,7 @@ int main(int argc, char **argv)
      * medir é regime permanente, não o custo de tocar a memória pela primeira
      * vez. Ver o comentário de aquecer(). */
     if (warmup(ring, pool, cfg.burst, pool_objs) != 0) {
-        fprintf(stderr, "Aquecimento deixou o pool incompleto: %u de %u\n",
+        fprintf(stderr, "Warm-up left the pool incomplete: %u of %u\n",
                 rte_mempool_avail_count(pool), pool_objs);
         rte_ring_free(ring);
         rte_mempool_free(pool);
@@ -345,7 +345,7 @@ int main(int argc, char **argv)
          * de runtime em docs/02-runtime-dpdk/. */
         const int launched = rte_eal_remote_launch(consumer_loop, &ctx, lcore_consumer);
         if (launched != 0) {
-            fprintf(stderr, "rte_eal_remote_launch no lcore %u falhou: %s\n", lcore_consumer,
+            fprintf(stderr, "rte_eal_remote_launch on lcore %u failed: %s\n", lcore_consumer,
                     rte_strerror(-launched));
             rte_ring_free(ring);
             rte_mempool_free(pool);
@@ -456,21 +456,21 @@ int main(int argc, char **argv)
     const uint64_t cycles = rte_rdtsc() - t0;
     const double ns_per_packet = (double)cycles * 1e9 / (double)rte_get_tsc_hz() / (double)r.packets;
 
-    printf("Pacotes processados: %" PRIu64 "\n", r.packets);
-    printf("Total de bytes: %" PRIu64 "\n", r.bytes);
+    printf("Packets processed: %" PRIu64 "\n", r.packets);
+    printf("Total bytes: %" PRIu64 "\n", r.bytes);
     /* Conta OBJETOS, nao eventos: `n - enq` e quanto sobrou do lote. Rotular
      * isto de "tentativas" ja induziu a leitura errada de que a fila encheu
      * N vezes, quando N e o total de objetos que nao couberam. E o mesmo
      * numero que vaza na variante `pipeline_ring_vazado`, e e por isso que
      * os dois batem exatamente. */
-    printf("Lote (burst): %u | objetos que nao couberam na fila: %" PRIu64 "\n",
+    printf("Batch (burst): %u | objects that did not fit in the queue: %" PRIu64 "\n",
            cfg.burst, did_not_fit);
-    printf("Maior lote movido de fato: enfileirado %u, desenfileirado %u\n",
+    printf("Largest batch actually moved: enqueued %u, dequeued %u\n",
            maior_enq, two_cores ? ctx.maior_deq : maior_deq_local);
     if (two_cores)
-        printf("Modo: 2 lcores (produtor %u, consumidor %u)\n", rte_lcore_id(), lcore_consumer);
+        printf("Mode: 2 lcores (producer %u, consumer %u)\n", rte_lcore_id(), lcore_consumer);
     else
-        printf("Modo: 1 lcore (%u), produtor e consumidor alternados\n", rte_lcore_id());
+        printf("Mode: 1 lcore (%u), producer and consumer interleaved\n", rte_lcore_id());
     /* DRENAGEM: o que ficou no anel volta ao pool antes de qualquer relato.
      *
      * Sem isto, desistir por prazo deixaria objetos presos no anel e o
@@ -484,22 +484,22 @@ int main(int argc, char **argv)
             rte_mempool_put_bulk(pool, (void *const *)sobra, deq);
             descartados += deq;
         }
-        printf("SEM PROGRESSO: nenhum pacote avancou por %" PRIu64 " ms; encerrando.\n",
+        printf("NO PROGRESS: no packet advanced for %" PRIu64 " ms; shutting down.\n",
                cfg.progresso_ms);
-        printf("Objetos descartados no encerramento: %" PRIu64 "\n", descartados);
+        printf("Objects dropped at shutdown: %" PRIu64 "\n", descartados);
     }
-    printf("Objetos livres no pool ao final: %u de %u\n", rte_mempool_avail_count(pool), pool_objs);
+    printf("Free objects in the pool at the end: %u of %u\n", rte_mempool_avail_count(pool), pool_objs);
     if (r.packets >= MIN_TO_MEASURE) {
-        printf("Tempo medio: %.1f ns/pacote\n", ns_per_packet);
+        printf("Mean time: %.1f ns/packet\n", ns_per_packet);
         const double f = freq_ghz(rte_lcore_id());
         if (f > 0.0)
-            printf("Frequencia do lcore %u: %.2f GHz (o tempo acima varia com ela)\n",
+            printf("Frequency of lcore %u: %.2f GHz (the time above varies with it)\n",
                    rte_lcore_id(), f);
     } else {
-        printf("Tempo medio: %.1f ns/pacote  <- NAO E MEDICAO\n", ns_per_packet);
-        printf("  %" PRIu64 " pacotes sao poucos demais: o custo de ler o relogio e da mesma\n",
+        printf("Mean time: %.1f ns/packet  <- NOT A MEASUREMENT\n", ns_per_packet);
+        printf("  %" PRIu64 " packets are far too few: the cost of reading the clock is of the same\n",
                r.packets);
-        printf("  ordem do trabalho medido. Use -n %u ou mais para um numero defensavel.\n",
+        printf("  order as the work measured. Use -n %u or more for a defensible number.\n",
                MIN_TO_MEASURE);
     }
 
@@ -518,8 +518,8 @@ int main(int argc, char **argv)
     const int intact = (free_objs == pool_objs);
     if (!intact)
         fprintf(stderr,
-                "INVARIANTE VIOLADO: %u de %u objetos no pool ao final. "
-                "%u objeto(s) vazaram: algum caminho de retorno nao devolveu ao pool.\n",
+                "INVARIANT VIOLATED: %u of %u objects in the pool at the end. "
+                "%u object(s) leaked: some return path did not give back to the pool.\n",
                 free_objs, pool_objs, pool_objs - free_objs);
 
     rte_ring_free(ring);

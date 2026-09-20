@@ -118,7 +118,7 @@ TEST(Dimensionamento, DescricaoNaoEstouraOBuffer)
     EXPECT_LT(strnlen(pequeno, sizeof(pequeno)), sizeof(pequeno));
 
     char grande[256];
-    EXPECT_STREQ(dim_describe(DIM_OK, grande, sizeof(grande)), "sem ressalvas");
+    EXPECT_STREQ(dim_describe(DIM_OK, grande, sizeof(grande)), "no caveats");
 }
 
 }  // namespace

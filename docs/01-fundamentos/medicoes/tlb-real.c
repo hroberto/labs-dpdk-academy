@@ -75,11 +75,11 @@ int main(void)
      * TLB seria a mesma classe de defeito que este programa corrige. */
     unsigned a = 0, b = 0, c = 0, d = 0;
 
-    printf("TLB real desta maquina, lida do CPUID\n\n");
+    printf("Real TLB of this machine, read from CPUID\n\n");
     if (!e_amd()) {
-        printf("  Processador nao-AMD: a decodificacao deste programa e especifica\n");
-        printf("  da AMD (folhas 0x80000005/6/19 e o bit L2TlbSizeX32). Imprimir\n");
-        printf("  numero errado seria repetir o defeito que este programa corrige.\n");
+        printf("  Non-AMD processor: this program's decoding is AMD-specific\n");
+        printf("  (leaves 0x80000005/6/19 and the L2TlbSizeX32 bit). Printing a\n");
+        printf("  wrong number would repeat the very defect this program corrects.\n");
         /* 77 = PULADO no Meson: o requisito nao existe nesta maquina. */
         return 77;
     }
@@ -87,7 +87,7 @@ int main(void)
     const unsigned x = multiplicador_l2();
 
     if (__get_cpuid_max(0x80000000, NULL) < 0x80000019) {
-        printf("  Folhas estendidas de TLB ausentes neste processador.\n");
+        printf("  Extended TLB leaves absent on this processor.\n");
         return 77;
     }
 
@@ -107,23 +107,23 @@ int main(void)
     const struct nivel l1_1g = {a & 0xfff, (a >> 16) & 0xfff};
     const struct nivel l2_1g = {b & 0xfff, (b >> 16) & 0xfff};
 
-    printf("  pagina             L1 DTLB   L2 DTLB   alcance do L2\n");
-    printf("  ----------------   -------   -------   -------------\n");
+    printf("  page               L1 DTLB   L2 DTLB   L2 reach\n");
+    printf("  ----------------   -------   -------   --------\n");
     imprimir("4 KB", l1_4k, l2_4k, 4096ull);
     imprimir("2 MB (hugepage)", l1_2m, l2_2m, 2ull << 20);
     imprimir("1 GB (hugepage)", l1_1g, l2_1g, 1ull << 30);
 
-    printf("\n  multiplicador do L2 (L2TlbSizeX32): %ux\n", x);
+    printf("\n  L2 multiplier (L2TlbSizeX32): %ux\n", x);
     if (x > 1) {
-        printf("  valores BRUTOS do CPUID: %u (4 KB) e %u (2 MB)\n", bruto_4k, bruto_2m);
-        printf("\n  O kernel publica os brutos ate a versao 7.4. Confira:\n");
+        printf("  RAW CPUID values: %u (4 KB) and %u (2 MB)\n", bruto_4k, bruto_2m);
+        printf("\n  The kernel publishes the raw values up to version 7.4. Check:\n");
         printf("    grep -m1 'TLB size' /proc/cpuinfo\n");
-        printf("  Se o numero de la nao bater com a coluna L2 acima, e por isso.\n");
+        printf("  If the number there does not match the L2 column above, this is why.\n");
     }
 
-    printf("\n  Repare na linha de 1 GB: o segundo nivel guarda MUITO menos\n");
-    printf("  entradas. A formula 'alcance = entradas x pagina' assume que o\n");
-    printf("  numero de entradas nao muda com o tamanho da pagina -- premissa\n");
-    printf("  que vale de 4 KB para 2 MB e QUEBRA em 1 GB.\n");
+    printf("\n  Note the 1 GB row: the second level holds FAR fewer entries.\n");
+    printf("  The formula 'reach = entries x page' assumes the number of\n");
+    printf("  entries does not change with page size -- a premise that holds\n");
+    printf("  from 4 KB to 2 MB and BREAKS at 1 GB.\n");
     return 0;
 }

@@ -59,8 +59,8 @@
  * quente e o tratamento dela. */
 __attribute__((cold, noinline)) static void academy_clock_falhou(void)
 {
-    fprintf(stderr, "clock_gettime(CLOCK_MONOTONIC) falhou: "
-                    "nao ha medicao possivel sem relogio\n");
+    fprintf(stderr, "clock_gettime(CLOCK_MONOTONIC) failed: "
+                    "no measurement is possible without a clock\n");
     abort();
 }
 

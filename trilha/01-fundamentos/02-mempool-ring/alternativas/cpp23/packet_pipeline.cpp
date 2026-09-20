@@ -80,11 +80,11 @@ std::expected<Config, std::string_view> parse_config(int argc, char** argv) {
             else if (arg == "-b") cfg.burst = valor;
             else cfg.consumer_cpu = static_cast<int>(valor);
         } else {
-            return std::unexpected("Uso: packet_pipeline [-n pacotes] [-b lote (1..256)] [-c cpu_consumidor]");
+            return std::unexpected("Usage: packet_pipeline [-n packets] [-b batch (1..256)] [-c consumer_cpu]");
         }
     }
     if (cfg.num_packets == 0 || cfg.burst == 0 || cfg.burst > burst_max)
-        return std::unexpected("Parametros invalidos: -n deve ser > 0 e -b entre 1 e 256");
+        return std::unexpected("Invalid parameters: -n must be > 0 and -b between 1 and 256");
     return cfg;
 }
 
@@ -111,7 +111,7 @@ academy::Summary run_two_cores(const Config& cfg, int cpu_prod, int cpu_cons) {
 
     std::thread consumidor([&] {
         if (!pin_to(cpu_cons))
-            std::println(stderr, "aviso: nao fixei o consumidor na CPU {}", cpu_cons);
+            std::println(stderr, "warning: could not pin the consumer to CPU {}", cpu_cons);
         academy::Packet p{};
         std::vector<academy::Packet> burst;
         burst.reserve(cfg.burst);
@@ -152,7 +152,7 @@ academy::Summary run_two_cores(const Config& cfg, int cpu_prod, int cpu_cons) {
     });
 
     if (!pin_to(cpu_prod))
-        std::println(stderr, "aviso: nao fixei o produtor na CPU {}", cpu_prod);
+        std::println(stderr, "warning: could not pin the producer to CPU {}", cpu_prod);
     for (std::uint64_t i = 0; i < cfg.num_packets; ++i) {
         auto p = academy::make(i, 64u + static_cast<std::uint32_t>(i % 32u));
         while (!ring.enqueue(p)) ;  // anel cheio: gira, como o lado DPDK faz
@@ -187,17 +187,17 @@ int main(int argc, char** argv) {
         const auto r = run_two_cores(*cfg, 0, cfg->consumer_cpu);
         const auto ns_total =
             std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - ti).count();
-        std::println("Pacotes processados: {}", r.packets);
-        std::println("Total de bytes: {}", r.bytes);
-        std::println("Modo: 2 threads (produtor CPU 0, consumidor CPU {})", cfg->consumer_cpu);
-        std::println("Lote (burst): {}", cfg->burst);
+        std::println("Packets processed: {}", r.packets);
+        std::println("Total bytes: {}", r.bytes);
+        std::println("Mode: 2 threads (producer CPU 0, consumer CPU {})", cfg->consumer_cpu);
+        std::println("Batch (burst): {}", cfg->burst);
         const auto media = ns_total / static_cast<double>(r.packets);
         if (r.packets >= min_to_measure) {
-            std::println("Tempo medio: {:.1f} ns/pacote", media);
+            std::println("Mean time: {:.1f} ns/packet", media);
             if (const auto f = freq_ghz(); f > 0.0)
-                std::println("Frequencia do lcore 0: {:.2f} GHz (o tempo acima varia com ela)", f);
+                std::println("Frequency of lcore 0: {:.2f} GHz (the time above varies with it)", f);
         } else {
-            std::println("Tempo medio: {:.1f} ns/pacote  <- NAO E MEDICAO", media);
+            std::println("Mean time: {:.1f} ns/packet  <- NOT A MEASUREMENT", media);
         }
         return r.packets == cfg->num_packets ? EXIT_SUCCESS : EXIT_FAILURE;
     }
@@ -222,24 +222,24 @@ int main(int argc, char** argv) {
 
     const auto ns = std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - t0).count();
 
-    std::println("Pacotes processados: {}", total.packets);
-    std::println("Total de bytes: {}", total.bytes);
+    std::println("Packets processed: {}", total.packets);
+    std::println("Total bytes: {}", total.bytes);
     // Conta LOTES INTERROMPIDOS, nao objetos: o laco acima faz `break` na
     // primeira recusa, entao o resto do lote nem e tentado. E grandeza
     // diferente da que a versao DPDK publica na mesma posicao -- por isso o
     // rotulo e diferente, em vez de dois numeros incomparaveis com o mesmo nome.
-    std::println("Lote (burst): {} | lotes interrompidos por fila cheia: {}",
+    std::println("Batch (burst): {} | batches interrupted by a full queue: {}",
                  cfg->burst, refused);
     const auto media = ns / static_cast<double>(total.packets);
     if (total.packets >= min_to_measure) {
-        std::println("Tempo medio: {:.1f} ns/pacote", media);
+        std::println("Mean time: {:.1f} ns/packet", media);
         if (const auto f = freq_ghz(); f > 0.0)
-            std::println("Frequencia do lcore 0: {:.2f} GHz (o tempo acima varia com ela)", f);
+            std::println("Frequency of lcore 0: {:.2f} GHz (the time above varies with it)", f);
     } else {
-        std::println("Tempo medio: {:.1f} ns/pacote  <- NAO E MEDICAO", media);
-        std::println("  {} pacotes sao poucos demais: o custo de ler o relogio e da mesma",
+        std::println("Mean time: {:.1f} ns/packet  <- NOT A MEASUREMENT", media);
+        std::println("  {} packets are far too few: the cost of reading the clock is of the same",
                      total.packets);
-        std::println("  ordem do trabalho medido. Use -n {} ou mais para um numero defensavel.",
+        std::println("  order as the work measured. Use -n {} or more for a defensible number.",
                      min_to_measure);
     }
     return EXIT_SUCCESS;

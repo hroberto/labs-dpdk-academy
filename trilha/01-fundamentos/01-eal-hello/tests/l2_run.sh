@@ -52,10 +52,10 @@ saida=$("$BIN" $EAL_ARGS -- a b c 2>&1); rc=$?
 
 ultima_saida="$saida"
 check "codigo de saida 0" "$([ $rc -eq 0 ]; echo $?)"
-grep -q "EAL inicializada com sucesso" <<<"$saida"; check "EAL inicializa e reporta sucesso" $?
-grep -q "Versao do DPDK: DPDK" <<<"$saida"; check "rte_version() reportada" $?
-grep -q "Lcores disponiveis: 1 " <<<"$saida"; check "'-l 0' resulta em exatamente 1 lcore" $?
-grep -q "Argumentos restantes para a aplicacao: 3" <<<"$saida"; check "argumentos apos '--' chegam a aplicacao" $?
+grep -q "EAL initialised successfully" <<<"$saida"; check "EAL inicializa e reporta sucesso" $?
+grep -q "DPDK version: DPDK" <<<"$saida"; check "rte_version() reportada" $?
+grep -q "Lcores available: 1 " <<<"$saida"; check "'-l 0' resulta em exatamente 1 lcore" $?
+grep -q "Arguments left for the application: 3" <<<"$saida"; check "argumentos apos '--' chegam a aplicacao" $?
 
 # --- Os DOIS caminhos de falha, que não são o mesmo ---
 #
@@ -90,10 +90,10 @@ check "opcao desconhecida nao sai com sucesso" "$([ $rc -ne 0 ]; echo $?)"
 # comportamentos opostos, e ambos corretos para a sua release. Afirmar so um
 # deles falha em vermelho na outra.
 if ldconfig -p 2>/dev/null | grep -q 'librte_argparse'; then
-    ! grep -q "Erro ao inicializar a EAL" <<<"$saida"
+    ! grep -q "Error initialising the EAL" <<<"$saida"
     check "o ramo de erro da APLICACAO nao executa (a EAL encerra antes)" $?
 else
-    grep -q "Erro ao inicializar a EAL" <<<"$saida"
+    grep -q "Error initialising the EAL" <<<"$saida"
     check "o ramo de erro da APLICACAO executa (rte_eal_init devolveu -1)" $?
 fi
 
@@ -102,7 +102,7 @@ fi
 saida=$("$BIN" -l 999 2>&1); rc=$?
 ultima_saida="$saida"
 check "lcore inexistente faz a aplicacao sair com codigo != 0" "$([ $rc -ne 0 ]; echo $?)"
-grep -q "Erro ao inicializar a EAL" <<<"$saida"
+grep -q "Error initialising the EAL" <<<"$saida"
 check "o ramo de erro da APLICACAO executa nesse caso" $?
 
 if [ $falhas -eq 0 ]; then

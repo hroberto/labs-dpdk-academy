@@ -216,7 +216,7 @@ check "secundario sobreviveu a morte do primario (nao houve segfault)" "$vivo"
 
 if [ "$vivo" -eq 0 ]; then
     check "secundario NAO detectou a morte apos ${ESPERA_S}s: segue esperando" 0
-    ! grep -qiE "primario morreu|produtor ausente|conexao perdida|peer.*(dead|gone)" "$SAIDA_S"
+    ! grep -qiE "primario morreu|produtor ausente|conexao perdida|primary died|producer (absent|missing)|connection lost|peer.*(dead|gone)" "$SAIDA_S"
     check "secundario nao emitiu nenhum aviso de produtor ausente" $?
     ! grep -q "ticks aceitos" "$SAIDA_S"
     check "secundario nao concluiu: ficou no laco 'while (lidos < total)'" $?

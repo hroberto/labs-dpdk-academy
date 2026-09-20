@@ -115,16 +115,16 @@ int main(int argc, char **argv)
     print_provenance("feed-primario");
     const int consumidos_pela_eal = rte_eal_init(argc, argv);
     if (consumidos_pela_eal < 0) {
-        fprintf(stderr, "feed-primario: EAL nao inicializou: %s\n", rte_strerror(rte_errno));
-        fprintf(stderr, "  Este programa exige memoria compartilhada real entre processos.\n");
-        fprintf(stderr, "  Nao funciona com --in-memory nem com --no-huge: veja o README.\n");
+        fprintf(stderr, "feed-primario: EAL did not initialise: %s\n", rte_strerror(rte_errno));
+        fprintf(stderr, "  This program requires real shared memory between processes.\n");
+        fprintf(stderr, "  It does not work with --in-memory nor with --no-huge: see the README.\n");
         return 2;
     }
     argc -= consumidos_pela_eal;
     argv += consumidos_pela_eal;
 
     if (rte_eal_process_type() != RTE_PROC_PRIMARY) {
-        fprintf(stderr, "feed-primario: precisa ser o processo primario.\n");
+        fprintf(stderr, "feed-primario: must be the primary process.\n");
         rte_eal_cleanup();
         return 2;
     }
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
     const struct rte_memzone *mz =
         rte_memzone_reserve(FEED_MEMZONE, sizeof(struct shared_feed), (int)rte_socket_id(), 0);
     if (mz == NULL) {
-        fprintf(stderr, "feed-primario: rte_memzone_reserve falhou: %s\n", rte_strerror(rte_errno));
+        fprintf(stderr, "feed-primario: rte_memzone_reserve failed: %s\n", rte_strerror(rte_errno));
         rte_eal_cleanup();
         return 1;
     }
@@ -152,35 +152,35 @@ int main(int argc, char **argv)
      * consumidor sempre o leia com valor definitivo. */
     f->lacunas_injetadas = (LACUNA_A_CADA > 0 && total > 0) ? (total - 1) / LACUNA_A_CADA : 0;
 
-    printf("\n== Feed handler (processo primario) ==\n\n");
+    printf("\n== Feed handler (primary process) ==\n\n");
     printf("  memzone .............. \"%s\"\n", mz->name);
-    printf("  endereco virtual ..... %p        <- compare com o do secundario\n", mz->addr);
-    printf("  endereco IOVA ........ 0x%" PRIx64 "\n", (uint64_t)mz->iova);
-    printf("  tamanho .............. %zu bytes (%zu KiB)\n", (size_t)mz->len, (size_t)mz->len / 1024);
-    printf("  no NUMA .............. %d\n", mz->socket_id);
-    printf("  pagina ............... %zu KiB\n", (size_t)mz->hugepage_sz / 1024);
-    printf("  lcore do produtor .... %u (indice no no %d, no NUMA %u)\n", rte_lcore_id(),
+    printf("  virtual address ...... %p        <- compare with the secondary's\n", mz->addr);
+    printf("  IOVA address ......... 0x%" PRIx64 "\n", (uint64_t)mz->iova);
+    printf("  size ................. %zu bytes (%zu KiB)\n", (size_t)mz->len, (size_t)mz->len / 1024);
+    printf("  NUMA node ............ %d\n", mz->socket_id);
+    printf("  page ................. %zu KiB\n", (size_t)mz->hugepage_sz / 1024);
+    printf("  producer lcore ....... %u (index on node %d, NUMA node %u)\n", rte_lcore_id(),
            rte_lcore_to_cpu_id((int)rte_lcore_id()), rte_socket_id());
-    printf("  relogio (TSC) ........ %.3f GHz\n", (double)f->tsc_hz / 1e9);
-    printf("  sizeof(struct tick) .. %zu bytes (%zu por linha de cache)\n", sizeof(struct tick),
+    printf("  clock (TSC) .......... %.3f GHz\n", (double)f->tsc_hz / 1e9);
+    printf("  sizeof(struct tick) .. %zu bytes (%zu per cache line)\n", sizeof(struct tick),
            (size_t)FEED_LINHA / sizeof(struct tick));
-    printf("  modo ................. %s\n", rajada ? "rajada (sem pausa)" : "cadencia (pausa entre ticks)");
-    printf("  ticks a publicar ..... %" PRIu64 "\n\n", total);
+    printf("  mode ................. %s\n", rajada ? "burst (no pause)" : "cadence (pause between ticks)");
+    printf("  ticks to publish ..... %" PRIu64 "\n\n", total);
 
-    printf("  aguardando o assinante conectar (ate %d s)...\n", ESPERA_ASSINANTE_S);
+    printf("  waiting for the subscriber to connect (up to %d s)...\n", ESPERA_ASSINANTE_S);
     fflush(stdout);
 
     const uint64_t limite = rte_rdtsc() + (uint64_t)ESPERA_ASSINANTE_S * f->tsc_hz;
     while (atomic_load_explicit(&f->assinante_pronto, memory_order_acquire) == 0) {
         if (rte_rdtsc() > limite) {
-            fprintf(stderr, "  nenhum assinante conectou. Encerrando.\n");
+            fprintf(stderr, "  no subscriber connected. Shutting down.\n");
             rte_memzone_free(mz);
             rte_eal_cleanup();
             return 3;
         }
         rte_pause();
     }
-    printf("  assinante conectado.\n\n");
+    printf("  subscriber connected.\n\n");
 
     /* Pausa entre ticks no modo cadência: ~2 µs. O objetivo é que o consumidor
      * esteja SEMPRE ocioso quando o tick chega, para que a latência medida do
@@ -236,19 +236,19 @@ int main(int argc, char **argv)
             spin_cycles(pausa);
     }
 
-    printf("  publicados %" PRIu64 " ticks em %.1f ms\n", total,
+    printf("  published %" PRIu64 " ticks in %.1f ms\n", total,
            (double)(rte_rdtsc() - t_inicio) * 1e3 / (double)f->tsc_hz);
-    printf("  lacunas de sequencia injetadas: %" PRIu64 " (perda SIMULADA)\n", gaps);
+    printf("  sequence gaps injected: %" PRIu64 " (SIMULATED loss)\n", gaps);
     if (gaps != f->lacunas_injetadas)
-        fprintf(stderr, "  AVISO: previstas %" PRIu64 ", injetadas %" PRIu64 "\n",
+        fprintf(stderr, "  WARNING: expected %" PRIu64 ", injected %" PRIu64 "\n",
                 f->lacunas_injetadas, gaps);
-    printf("  aguardando o assinante drenar...\n");
+    printf("  waiting for the subscriber to drain...\n");
     fflush(stdout);
 
     while (atomic_load_explicit(&f->consumidos, memory_order_acquire) < total)
         rte_pause();
 
-    printf("  assinante consumiu tudo. Aguardando ele encerrar...\n");
+    printf("  subscriber consumed everything. Waiting for it to exit...\n");
     fflush(stdout);
 
     /* O primário é dono da memória compartilhada e do socket de controle, então
@@ -264,7 +264,7 @@ int main(int argc, char **argv)
     const uint64_t limite_saida = rte_rdtsc() + (uint64_t)ESPERA_ASSINANTE_S * f->tsc_hz;
     while (atomic_load_explicit(&f->assinante_terminou, memory_order_acquire) == 0) {
         if (rte_rdtsc() > limite_saida) {
-            fprintf(stderr, "  assinante nao sinalizou saida; encerrando assim mesmo.\n");
+            fprintf(stderr, "  subscriber did not signal exit; shutting down anyway.\n");
             break;
         }
         rte_pause();
@@ -273,7 +273,7 @@ int main(int argc, char **argv)
     int vivos = secundarios_vivos();
     while (vivos > 0) {
         if (rte_rdtsc() > limite_saida) {
-            fprintf(stderr, "  ainda ha %d secundario(s) conectado(s); encerrando assim mesmo.\n",
+            fprintf(stderr, "  %d secondary(ies) still attached; shutting down anyway.\n",
                     vivos);
             break;
         }
@@ -281,7 +281,7 @@ int main(int argc, char **argv)
         vivos = secundarios_vivos();
     }
 
-    printf("  todos os secundarios sairam. Encerrando o primario.\n\n");
+    printf("  all secondaries have exited. Shutting down the primary.\n\n");
 
     /* Repare no que NÃO está aqui: rte_memzone_free(mz).
      *

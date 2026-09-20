@@ -143,26 +143,26 @@ int main(int argc, char **argv)
 
     const int n = samples(AMOSTRAS_INIT);
 
-    printf("\n== Custo de inicializar e encerrar a EAL ==\n\n");
-    printf("  configuracao medida:");
+    printf("\n== Cost of initialising and shutting down the EAL ==\n\n");
+    printf("  configuration measured:");
     for (int i = 1; i < argc; i++)
         printf(" %s", argv[i]);
     if (argc == 1)
-        printf(" (nenhuma opcao: a EAL usa os padroes)");
-    printf("\n  amostras: %d (uma por processo; rte_eal_init nao e reentrante)\n\n", n);
+        printf(" (no options: the EAL uses its defaults)");
+    printf("\n  samples: %d (one per process; rte_eal_init is not reentrant)\n\n", n);
 
     /* Amostra de sondagem: se a EAL não sobe nesta máquina com estes
      * argumentos, dizer isso é mais útil do que imprimir uma tabela de -1. */
     g_etapa = ETAPA_INIT;
     if (m_amostra() < 0) {
-        printf("  A EAL nao inicializou com estes argumentos nesta maquina.\n");
-        printf("  Rode o mesmo comando sem este programa para ver o motivo, por exemplo:\n");
+        printf("  The EAL did not initialise with these arguments on this machine.\n");
+        printf("  Run the same command without this program to see why, for example:\n");
         printf("    ./build/trilha/01-fundamentos/01-eal-hello/hello_dpdk");
         for (int i = 1; i < argc; i++)
             printf(" %s", argv[i]);
-        printf("\n\n  Causas comuns: sem hugepages reservadas (use --no-huge), ou sem\n");
-        printf("  permissao de escrita em /dev/hugepages (use --in-memory, sozinho).\n");
-        printf("  As duas juntas falham antes do DPDK 24: --no-huge liga --legacy-mem.\n\n");
+        printf("\n\n  Common causes: no hugepages reserved (use --no-huge), or no\n");
+        printf("  write permission on /dev/hugepages (use --in-memory, on its own).\n");
+        printf("  Both together fail before DPDK 24: --no-huge turns on --legacy-mem.\n\n");
         /* NAO e `return 0`. Sair com sucesso aqui fazia o Meson reportar OK
          * para uma execucao que nao mediu nada -- a mesma classe de falso verde
          * que o codigo 77 resolveu nos testes L3. Aqui e FALHA e nao PULO
@@ -176,13 +176,13 @@ int main(int argc, char **argv)
     const struct statistics init = medir(ETAPA_INIT, n);
     const struct statistics limpeza = medir(ETAPA_CLEANUP, n);
 
-    printf("  valores em MILISSEGUNDOS\n\n");
+    printf("  values in MILLISECONDS\n\n");
     print_header();
     /* Coleta invalida nao vira tabela. Nao usa collect_or_fail porque a EAL
      * esta de pe: exit() pularia rte_eal_cleanup(). */
     if (!collection_is_valid(init, n) || !collection_is_valid(limpeza, n)) {
-        fprintf(stderr, "custo-init: coleta invalida ou abaixo da resolucao;"
-                        " nenhuma medicao a publicar\n");
+        fprintf(stderr, "custo-init: invalid collection or below resolution;"
+                        " no measurement to publish\n");
         rte_eal_cleanup();
         return EXIT_FAILURE;
     }
@@ -190,12 +190,12 @@ int main(int argc, char **argv)
     print_row("rte_eal_init()", init);
     print_row("rte_eal_cleanup()", limpeza);
 
-    printf("\n  Leitura:\n");
-    printf("    Em 10 GbE com quadros de 64 B chega 1 pacote a cada 67,2 ns.\n");
-    printf("    A janela de %.0f ms da inicializacao equivale a %.0f milhoes de pacotes\n",
+    printf("\n  Reading:\n");
+    printf("    At 10 GbE with 64 B frames one packet arrives every 67.2 ns.\n");
+    printf("    The %.0f ms initialisation window is worth %.0f million packets\n",
            init.median, init.median * 1e6 / 67.2 / 1e6);
-    printf("    nao atendidos. Por isso o processo de plano de dados sobe uma vez\n");
-    printf("    e fica de pe: reinicia-lo em producao nao e uma operacao barata.\n\n");
+    printf("    not served. That is why a data-plane process comes up once\n");
+    printf("    and stays up: restarting it in production is not a cheap operation.\n\n");
 
     return 0;
 }

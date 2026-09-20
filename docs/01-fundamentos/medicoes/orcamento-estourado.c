@@ -102,7 +102,7 @@ static double saturated_service(unsigned passos)
     const double total = academy_now_ns_d() - t0;
     /* Impede que o compilador descarte `descarte[]`. */
     if (descarte[idx] < 0.0)
-        printf("impossivel\n");
+        printf("impossible\n");
     return total / repet;
 }
 
@@ -174,16 +174,16 @@ int main(void)
     print_provenance("orcamento-estourado");
     static double lat[MAX_LATENCIES];
 
-    printf("== Quando o orcamento por pacote estoura ==\n\n");
-    printf("  Orcamento: %.1f ns/pacote (10 GbE, quadro de 64 B)\n", BUDGET_NS);
-    printf("  Fila: %u posicoes | %d ms por nivel de carga\n\n", QUEUE_CAPACITY, DURATION_MS);
+    printf("== When the per-packet budget is blown ==\n\n");
+    printf("  Budget: %.1f ns/packet (10 GbE, 64 B frame)\n", BUDGET_NS);
+    printf("  Queue: %u slots | %d ms per load level\n\n", QUEUE_CAPACITY, DURATION_MS);
 
     /* Níveis escolhidos para cair dos dois lados de ρ = 1. Os passos são
      * convertidos em ρ pela calibração, não supostos. */
     static const unsigned levels[] = {8, 16, 24, 32, 40, 64, 96};
 
-    printf("  %-8s %-10s %-7s %-11s %-11s %-9s %-10s %s\n", "passos", "service", "rho",
-           "oferecidos", "servidos", "dropped", "lat.med", "lat.p99");
+    printf("  %-8s %-10s %-7s %-11s %-11s %-9s %-10s %s\n", "steps", "service", "rho",
+           "offered", "served", "dropped", "lat.med", "lat.p99");
     printf("  %-8s %-10s %-7s %-11s %-11s %-9s %-10s %s\n", "------", "-------", "---",
            "----------", "--------", "--------", "-------", "-------");
 
@@ -201,43 +201,43 @@ int main(void)
                levels[i], s, r.rho, r.offered, r.served, perda, r.lat_median, r.lat_p99);
     }
 
-    printf("\n  Como ler esta tabela\n\n");
-    printf("  rho = servico / orcamento. Abaixo de 1 o consumidor acompanha e a\n");
-    printf("  fila fica praticamente vazia: a latencia observada e o proprio\n");
-    printf("  tempo de servico. Acima de 1 a fila enche ate a capacidade e FICA\n");
-    printf("  cheia -- todo pacote passa a esperar a fila inteira, e a latencia\n");
-    printf("  deixa de medir o servico para medir a profundidade da fila.\n\n");
-    printf("  TRES LEITURAS, E A TERCEIRA E A OPERACIONAL\n\n");
-    printf("  1. A perda e um degrau, nao uma rampa. Ela fica em 0,0%% ate rho\n");
-    printf("     perto de 1 e so entao aparece. Nao ha regime estavel de\n");
-    printf("     \"levemente sobrecarregado\": ou o consumidor acompanha, ou o\n");
-    printf("     excesso e cumulativo e a fila nunca se recupera sozinha.\n\n");
-    printf("  2. A mediana da latencia pula ordens de grandeza na travessia,\n");
-    printf("     porque do outro lado ela e outra grandeza: antes e servico,\n");
-    printf("     depois e espera. Um grafico de latencia media atravessando esse\n");
-    printf("     ponto nao mostra a mesma variavel nos dois lados.\n\n");
-    printf("  3. A CAUDA DEGRADA PRIMEIRO. Repare nas linhas em que a perda ainda\n");
-    printf("     e 0,0%% e a mediana ainda esta na casa das dezenas de ns, mas o\n");
-    printf("     p99 ja subiu duas ordens de grandeza. E o unico aviso que chega\n");
-    printf("     ANTES do dano: quem monitora media e utilizacao media nao ve\n");
-    printf("     nada, porque as duas continuam saudaveis. Por isso este material\n");
-    printf("     publica percentis, e nao media.\n\n");
-    printf("  CONSEQUENCIA DE PROJETO: dimensionar para a carga media e\n");
-    printf("  insuficiente. O que decide a sobrevivencia e a margem sobre o PICO,\n");
-    printf("  e o indicador que avisa a tempo e o percentil alto -- nao a media.\n\n");
-    printf("  LIMITACOES DESTA MEDICAO\n\n");
-    printf("  A chegada aqui e PERIODICA (um pacote a cada %.1f ns exatos). Trafego\n", BUDGET_NS);
-    printf("  real chega em rajada, e rajada antecipa a perda: com a mesma taxa\n");
-    printf("  media, uma chegada irregular enche a fila em rho menor que o desta\n");
-    printf("  tabela. Os numeros daqui sao, portanto, o caso OTIMISTA.\n");
-    printf("  A maquina tambem nao tem frequencia fixada, e o proprio laco paga\n");
-    printf("  duas leituras de relogio por pacote -- ja contabilizadas em\n");
-    printf("  `servico`, que e medido em saturacao justamente por isso.\n");
+    printf("\n  How to read this table\n\n");
+    printf("  rho = service / budget. Below 1 the consumer keeps up and the queue\n");
+    printf("  stays practically empty: the observed latency is the service time\n");
+    printf("  itself. Above 1 the queue fills to capacity and STAYS full -- every\n");
+    printf("  packet now waits for the whole queue, and latency stops measuring\n");
+    printf("  service and starts measuring queue depth.\n\n");
+    printf("  THREE READINGS, AND THE THIRD IS THE OPERATIONAL ONE\n\n");
+    printf("  1. Loss is a step, not a ramp. It stays at 0.0%% until rho is close\n");
+    printf("     to 1 and only then appears. There is no stable regime of\n");
+    printf("     \"slightly overloaded\": either the consumer keeps up, or the\n");
+    printf("     excess is cumulative and the queue never recovers on its own.\n\n");
+    printf("  2. The median latency jumps orders of magnitude at the crossing,\n");
+    printf("     because on the other side it is a different quantity: before it\n");
+    printf("     is service, after it is wait. A mean-latency plot crossing that\n");
+    printf("     point does not show the same variable on both sides.\n\n");
+    printf("  3. THE TAIL DEGRADES FIRST. Note the rows where loss is still\n");
+    printf("     0.0%% and the median is still in the tens of ns, but the p99 has\n");
+    printf("     already climbed two orders of magnitude. It is the only warning\n");
+    printf("     that arrives BEFORE the damage: whoever monitors mean latency and\n");
+    printf("     mean utilisation sees nothing, because both stay healthy. That is\n");
+    printf("     why this material publishes percentiles, not means.\n\n");
+    printf("  DESIGN CONSEQUENCE: sizing for the average load is not enough.\n");
+    printf("  What decides survival is the margin over the PEAK, and the indicator\n");
+    printf("  that warns in time is the high percentile -- not the mean.\n\n");
+    printf("  LIMITATIONS OF THIS MEASUREMENT\n\n");
+    printf("  Arrival here is PERIODIC (one packet every %.1f ns exactly). Real\n", BUDGET_NS);
+    printf("  traffic arrives in bursts, and bursts bring loss forward: at the same\n");
+    printf("  mean rate, an irregular arrival fills the queue at a lower rho than\n");
+    printf("  this table shows. These numbers are therefore the OPTIMISTIC case.\n");
+    printf("  The machine also has no pinned frequency, and the loop itself pays\n");
+    printf("  two clock reads per packet -- already accounted for in `service`,\n");
+    printf("  which is measured under saturation precisely for that reason.\n");
 
     if (!had_loss) {
-        printf("\n  NOTA: nenhum nivel perdeu pacote nesta maquina. Ou ela e rapida\n");
-        printf("  demais para os passos escolhidos, ou o relogio nao tem resolucao\n");
-        printf("  suficiente. Aumente os valores em `niveis[]` e repita.\n");
+        printf("\n  NOTE: no level dropped a packet on this machine. Either it is too\n");
+        printf("  fast for the chosen steps, or the clock lacks resolution. Increase\n");
+        printf("  the values in `levels[]` and repeat.\n");
     }
     return EXIT_SUCCESS;
 }

@@ -15,7 +15,7 @@ static bool pin(int cpu) {
 }
 int main(int argc, char **argv) {
     if (argc != 6) {
-        std::fprintf(stderr, "uso: controle-anel bulk(0/1) lote cpu-prod cpu-cons amostras\n");
+        std::fprintf(stderr, "usage: controle-anel bulk(0/1) batch cpu-prod cpu-cons samples\n");
         return 2;
     }
     const int bulk = std::atoi(argv[1]), burst = std::atoi(argv[2]);

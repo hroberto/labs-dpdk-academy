@@ -526,7 +526,7 @@ static struct resultado correr(unsigned profundidade, double servico_ns,
 
     double *chegada = malloc(sizeof(double) * profundidade);
     if (chegada == NULL) {
-        fprintf(stderr, "sem memoria para o anel de %u descritores\n", profundidade);
+        fprintf(stderr, "out of memory for the ring of %u descriptors\n", profundidade);
         exit(EXIT_FAILURE);
     }
     unsigned cabeca = 0, cauda = 0, ocupacao = 0;
@@ -659,10 +659,8 @@ static struct resultado correr(unsigned profundidade, double servico_ns,
 
 static void cabecalho(void)
 {
-    printf("  anel(n)     ofertados  descartados     perda  ocup.max"
-           "  mediana(us)   p99(us)\n");
-    printf("  -------  ------------  -----------  --------  --------"
-           "  -----------  --------\n");
+    printf("  ring(n)      offered     dropped      loss   occ.max  median(us)    p99(us)\n");
+    printf("  -------      -------     -------      ----   -------  ----------    -------\n");
 }
 
 static void imprimir(struct resultado r)
@@ -698,21 +696,21 @@ int main(void)
     const double razao_ciclo = (taxa_media - taxa_silencio) / (taxa_pico - taxa_silencio);
     const double drenagem_pps = 1e9 / servico_ns;
 
-    printf("\n  RAJADA DE MARKET DATA CONTRA A PROFUNDIDADE DO ANEL DE RX\n");
-    printf("  (simulacao de eventos discretos; %g s de tempo virtual)\n\n",
+    printf("\n  MARKET-DATA BURST AGAINST THE DEPTH OF THE RX RING\n");
+    printf("  (discrete-event simulation; %g s of virtual time)\n\n",
            SEGUNDOS_SIMULADOS);
-    printf("  enlace (cenario-limite)   : %.0f Gb/s   -> pico   %9.0f pacotes/s\n",
+    printf("  link (limit scenario)     : %.0f Gb/s   -> peak   %9.0f packets/s\n",
            ENLACE_GBPS, taxa_pico);
-    printf("  banda recomendada (fonte) : %.0f Mb/s   -> media  %9.0f pacotes/s\n",
+    printf("  recommended bandwidth(src): %.0f Mb/s   -> mean   %9.0f packets/s\n",
            BANDA_RECOMENDADA_MB, taxa_media);
-    printf("  razao pico/media          : %.0fx\n", taxa_pico / taxa_media);
-    printf("  datagrama (premissa)      : %d B de carga UDP, %d B no fio\n",
+    printf("  peak/mean ratio           : %.0fx\n", taxa_pico / taxa_media);
+    printf("  datagram (premise)        : %d B of UDP payload, %d B on the wire\n",
            BYTES_CARGA, BYTES_FIO);
-    printf("  rajada media              : %.0f us     razao de ciclo %.4f%%\n",
+    printf("  mean burst                : %.0f us     duty ratio %.4f%%\n",
            RAJADA_MEDIA_US, razao_ciclo * 100.0);
-    printf("\n  custo por pacote MEDIDO nesta maquina: %.0f ns  (%d amostras,"
+    printf("\n  per-packet cost MEASURED on this machine: %.0f ns  (%d samples,"
            " disp %.1f%% %s)\n", servico_ns, srv.samples, srv.disp, badge(srv));
-    printf("  drenagem sustentada                 : %.0f pacotes/s\n", drenagem_pps);
+    printf("  sustained drain                         : %.0f packets/s\n", drenagem_pps);
 
     /* TODA tabela abaixo deriva deste unico numero medido: ele define a
      * drenagem, logo rho, logo perda e latencia. Se a calibragem saiu instavel,
@@ -720,11 +718,11 @@ int main(void)
      * nao descoberto por quem le. */
     if (srv.disp > DISP_SUSPEITA)
         fprintf(stderr,
-                "  AVISO: a calibragem saiu com disp %.1f%% (selo !). Toda tabela\n"
-                "         deste programa deriva dela, entao os valores abaixo valem\n"
-                "         pela FORMA, nao pelo numero. Repita com a maquina ociosa.\n",
+                "  WARNING: calibration came out with disp %.1f%% (seal !). Every table\n"
+                "           in this program derives from it, so the values below hold\n"
+                "           by SHAPE, not by number. Repeat with the machine idle.\n",
                 srv.disp);
-    printf("  rho medio  %.3f     rho durante a rajada  %.2f\n",
+    printf("  mean rho   %.3f     rho during the burst  %.2f\n",
            taxa_media / drenagem_pps, taxa_pico / drenagem_pps);
 
     /* A conta que o capitulo 6 publica, feita aqui para nao depender de quem
@@ -734,13 +732,13 @@ int main(void)
      * superior -- nenhuma profundidade fixa cobre a cauda. (A mediana e
      * ln2 = 0,693 da media, nao a media.) */
     const double excedente = (taxa_pico - drenagem_pps) * (RAJADA_MEDIA_US / 1e6);
-    printf("  descritores que UMA rajada media exige: (%.0f - %.0f) x %.0f us"
+    printf("  descriptors ONE mean burst demands: (%.0f - %.0f) x %.0f us"
            " = %.0f\n", taxa_pico, drenagem_pps, RAJADA_MEDIA_US, excedente);
 
     const size_t max_lat = 8000000;
     double *lat = malloc(sizeof(double) * max_lat);
     if (lat == NULL) {
-        fprintf(stderr, "sem memoria para as latencias\n");
+        fprintf(stderr, "out of memory for the latencies\n");
         return EXIT_FAILURE;
     }
 
@@ -756,37 +754,37 @@ int main(void)
                                         taxa_silencio, razao_ciclo, 0,
                                         taxa_realizada, lat, max_lat);
 
-    printf("\n  1. CHEGADA CADENCIADA -- um pacote a cada intervalo fixo,"
-           " como na secao 11\n\n");
+    printf("\n  1. CADENCED ARRIVAL -- one packet every fixed interval,"
+           " as in section 11\n\n");
     cabecalho();
     imprimir(cad);
-    printf("\n     ca2 = %.4f. Sem variabilidade, o anel nunca passa de um"
-           " descritor ocupado.\n", cad.ca2);
+    printf("\n     ca2 = %.4f. Without variability, the ring never exceeds one"
+           " occupied descriptor.\n", cad.ca2);
 
-    printf("\n  2. CHEGADA EM RAJADA -- a MESMA quantidade de pacotes,"
-           " concentrada no tempo\n\n");
+    printf("\n  2. BURSTY ARRIVAL -- the SAME number of packets,"
+           " concentrated in time\n\n");
     cabecalho();
     for (size_t i = 0; i < N_PROFUNDIDADES; i++)
         imprimir(raj[i]);
-    printf("\n     ca2 = %.2f, contra 0 da cadenciada: e a EVIDENCIA da"
-           " diferenca de variabilidade.\n     O que governa a perda acima e"
-           " o acumulo durante a rajada, (lambda - mu) x T.\n", raj[0].ca2);
+    printf("\n     ca2 = %.2f, against 0 for the cadenced one: this is the EVIDENCE of"
+           " the difference in variability.\n     What governs the loss above is"
+           " the build-up during the burst, (lambda - mu) x T.\n", raj[0].ca2);
 
     /* ---- 3. o caminho convencional: socket UDP, medido nesta maquina ---- */
-    printf("\n  3. O CAMINHO CONVENCIONAL DE SOCKET, MEDIDO NESTA MAQUINA\n\n");
+    printf("\n  3. THE CONVENTIONAL SOCKET PATH, MEASURED ON THIS MACHINE\n\n");
 
     const int PEDIDOS[] = {212992, 1 << 20, 8 << 20, 32 << 20};
     const size_t n_pedidos = sizeof(PEDIDOS) / sizeof(PEDIDOS[0]);
     struct socket_medido s0 = {0};
 
-    printf("  SO_RCVBUF   concedido  datagramas  suposto  fator    recv()"
+    printf("  SO_RCVBUF     granted   datagrams  assumed   ratio    recv()"
            "  disp     recvmmsg(%d)  disp\n", LOTE_RECVMMSG);
     printf("  ---------  ----------  ----------  -------  -----  --------"
            "  ----  --------------  ----\n");
     for (size_t i = 0; i < n_pedidos; i++) {
         const struct socket_medido s = medir_socket(PEDIDOS[i]);
         if (!s.valido) {
-            printf("  socket indisponivel neste ambiente; cenario 3 pulado\n");
+            printf("  socket unavailable in this environment; scenario 3 skipped\n");
             break;
         }
         printf("  %9d  %10d  %10d  %7d  %4.1fx  %5.0f ns  %3.1f%%  %10.0f ns  %3.1f%%\n",
@@ -798,8 +796,8 @@ int main(void)
     }
 
     if (s0.valido) {
-        printf("\n  A MESMA rajada, drenada pelo socket em vez do anel"
-               " (fila = %d datagramas):\n\n", s0.capacidade);
+        printf("\n  The SAME burst, drained by the socket instead of the ring"
+               " (queue = %d datagrams):\n\n", s0.capacidade);
         cabecalho();
         const struct resultado um_a_um =
             correr((unsigned)s0.capacidade, servico_ns + s0.recv_ns, taxa_pico,
@@ -809,13 +807,13 @@ int main(void)
             correr((unsigned)s0.capacidade, servico_ns + s0.recvmmsg_ns, taxa_pico,
                    taxa_silencio, razao_ciclo, 1, 0.0, lat, max_lat);
         imprimir(em_lote);
-        printf("\n     linha 1: recv() um a um     -> %.0f ns por pacote"
-               " (%.0f de trabalho + %.0f de socket)\n",
+        printf("\n     row 1: recv() one by one    -> %.0f ns per packet"
+               " (%.0f of work + %.0f of socket)\n",
                servico_ns + s0.recv_ns, servico_ns, s0.recv_ns);
-        printf("     linha 2: recvmmsg em lote   -> %.0f ns por pacote"
-               " (%.0f de trabalho + %.0f de socket)\n",
+        printf("     row 2: recvmmsg in batch    -> %.0f ns per packet"
+               " (%.0f of work + %.0f of socket)\n",
                servico_ns + s0.recvmmsg_ns, servico_ns, s0.recvmmsg_ns);
-        printf("     drenagem: %.0f e %.0f pacotes/s, contra %.0f do anel puro\n",
+        printf("     drain: %.0f and %.0f packets/s, against %.0f for the pure ring\n",
                1e9 / (servico_ns + s0.recv_ns), 1e9 / (servico_ns + s0.recvmmsg_ns),
                drenagem_pps);
     }
@@ -855,18 +853,18 @@ int main(void)
      */
     const unsigned ANEL_FIXO = 1024;
     const struct { int canais, filas; const char *nota; } ARRANJOS[] = {
-        {1,  1,  "TotalView-ITCH 4.1, uma fila"},
-        {1,  4,  "o MESMO feed com 4 filas de RSS"},
-        {1, 16,  "e com 16 filas"},
-        {3,  3,  "o MESMO trafego particionado em 3 canais (ideal)"},
-        {8,  8,  "o MESMO trafego particionado em 8 canais (ideal)"},
+        {1,  1,  "TotalView-ITCH 4.1, one queue"},
+        {1,  4,  "the SAME feed with 4 RSS queues"},
+        {1, 16,  "and with 16 queues"},
+        {3,  3,  "the SAME traffic partitioned into 3 channels (ideal)"},
+        {8,  8,  "the SAME traffic partitioned into 8 channels (ideal)"},
     };
     const size_t n_arranjos = sizeof(ARRANJOS) / sizeof(ARRANJOS[0]);
 
-    printf("\n  4. O DIVISOR E O NUMERO DE CANAIS, NAO O DE FILAS"
-           " (anel fixo em %u)\n\n", ANEL_FIXO);
-    printf("  canais  filas  div.ideal  rho rajada     perda  p99(us)   nota\n");
-    printf("  ------  -----  ---------  ----------  --------  -------"
+    printf("\n  4. THE DIVISOR IS THE NUMBER OF CHANNELS, NOT OF QUEUES"
+           " (ring fixed at %u)\n\n", ANEL_FIXO);
+    printf("    chan  queue  ideal.div   burst rho      loss  p99(us)   note\n");
+    printf("    ----  -----  ---------   ---------      ----  -------"
            "  ----------------------------------------\n");
     for (size_t i = 0; i < n_arranjos; i++) {
         const int divisor = ARRANJOS[i].canais < ARRANJOS[i].filas
@@ -881,10 +879,10 @@ int main(void)
                pico_fila / drenagem_pps, r.perda_pct, r.lat_p99 / 1000.0,
                ARRANJOS[i].nota);
     }
-    printf("\n     As tres primeiras linhas sao IDENTICAS: 16 filas nao ajudam\n"
-           "     um feed de um canal so. `div.ideal` e o TETO do que o\n"
-           "     particionamento pode render; o divisor efetivo depende do hash\n"
-           "     do RSS e precisa ser medido na placa.\n");
+    printf("\n     The first three rows are IDENTICAL: 16 queues do not help a\n"
+           "     single-channel feed. `ideal.div` is the CEILING of what\n"
+           "     partitioning can yield; the effective divisor depends on the RSS\n"
+           "     hash and has to be measured on the card.\n");
 
     /* ---- 5. o cenario B: a orientacao publicada, em mensagens ---- */
     /*
@@ -893,14 +891,13 @@ int main(void)
      * te-las lado a lado justamente porque discordam por ordens de grandeza --
      * e a distancia entre elas e a licao.
      */
-    printf("\n  5. CENARIO B -- a orientacao publicada: rajada de ate %d"
-           " MENSAGENS\n     em escala de milissegundos (FAQ do TotalView-ITCH"
-           " FPGA)\n\n", RAJADA_MENSAGENS);
-    printf("     A FAQ fala em MENSAGENS; o anel conta DESCRITORES. TRES coisas\n"
-           "     aqui sao PREMISSA, nao fonte: a janela de 1 ms (a FAQ diz so\n"
-           "     \"escala de milissegundos\"), os %d B por mensagem ITCH (o\n"
-           "     tamanho varia com o tipo) e o empacotamento, que e o eixo da\n"
-           "     tabela justamente por ser o que mais muda o resultado.\n\n",
+    printf("\n  5. SCENARIO B -- the published guidance: burst of up to %d"
+           " MESSAGES\n     on a millisecond scale (TotalView-ITCH FPGA FAQ)\n\n", RAJADA_MENSAGENS);
+    printf("     The FAQ speaks of MESSAGES; the ring counts DESCRIPTORS. THREE\n"
+           "     things here are PREMISE, not source: the 1 ms window (the FAQ\n"
+           "     says only \"millisecond scale\"), the %d B per ITCH message (size\n"
+           "     varies with type) and the packing, which is the axis of the\n"
+           "     table precisely because it changes the result the most.\n\n",
            BYTES_MENSAGEM_ITCH);
 
     const int EMPACOTAMENTO[] = {1, 2, 4, 8, 16, 32, 64};
@@ -908,10 +905,8 @@ int main(void)
     const double drenados_por_ms = drenagem_pps / 1000.0;
 
     double excedente_max_b = 0.0;
-    printf("  msgs/datagrama  carga(B)  no fio(B)  datagramas  Gb/s implicados"
-           "  drenados/ms  excedente\n");
-    printf("  --------------  --------  ---------  ----------  ---------------"
-           "  -----------  ---------\n");
+    printf("   msgs/datagram   load(B)    wire(B)   datagrams     implied Gb/s   drained/ms     excess\n");
+    printf("   -------------   -------    -------   ---------     ------------   ----------     ------\n");
     for (size_t i = 0; i < n_emp; i++) {
         const int m = EMPACOTAMENTO[i];
         const int carga = m * BYTES_MENSAGEM_ITCH;
@@ -927,11 +922,11 @@ int main(void)
         printf("  %14d  %8d  %9d  %10d  %15.2f  %11.0f  %9.0f%s\n",
                m, carga, fio, datagramas, gbps, drenados_por_ms,
                excedente_b > 0 ? excedente_b : 0.0,
-               cabe ? "" : "   <- passa de 1500 B sob qualquer leitura");
+               cabe ? "" : "   <- exceeds 1500 B under any reading");
     }
-    printf("\n     Tres taxas diferentes na mesma linha: MENSAGENS (a fonte),\n"
-           "     DATAGRAMAS (o que o anel conta) e BITS (o que o enlace carrega).\n"
-           "     Confundi-las e o erro classico de dimensionamento de RX.\n");
+    printf("\n     Three different rates on the same row: MESSAGES (the source),\n"
+           "     DATAGRAMS (what the ring counts) and BITS (what the link carries).\n"
+           "     Confusing them is the classic RX sizing mistake.\n");
     /* A COMPARACAO PRECISA SER DA MESMA GRANDEZA, e a primeira versao disto
      * comparava coisas diferentes: dizia que "o cenario B pede no maximo 2000
      * descritores". Nao pede. 2000 e o numero de MENSAGENS oferecidas, e no
@@ -939,17 +934,17 @@ int main(void)
      * oferecidos -- nao a profundidade que a rajada exige, porque o consumidor
      * drena o tempo todo. O que o anel precisa absorver e o EXCEDENTE, que a
      * propria coluna ao lado ja imprimia. */
-    printf("\n     Os dois cenarios, na MESMA grandeza -- excedente de fila:\n"
-           "       A (limite do enlace, rajada media de 1 ms) : %.0f descritores\n"
-           "       B (2000 msgs em 1 ms, 1 msg/datagrama)     : %.0f descritores\n"
-           "       B com 2 mensagens por datagrama            : 0\n",
+    printf("\n     The two scenarios, in the SAME quantity -- queue excess:\n"
+           "       A (link limit, mean burst of 1 ms)      : %.0f descriptors\n"
+           "       B (2000 msgs in 1 ms, 1 msg/datagram)   : %.0f descriptors\n"
+           "       B with 2 messages per datagram          : 0\n",
            excedente, excedente_max_b);
-    printf("\n     Nao ha contradicao entre as fontes: os dois respondem a\n"
-           "     perguntas diferentes. A pergunta \"e se o enlace for ocupado\n"
-           "     ate o limite?\"; B, \"o que resulta da orientacao publicada?\".\n"
-           "     A e deliberadamente conservador; B e ancorado na quantidade de\n"
-           "     mensagens que a bolsa publica, mas AINDA exige premissas para\n"
-           "     converter mensagens em datagramas e duracao em taxa.\n");
+    printf("\n     There is no contradiction between the sources: they answer\n"
+           "     different questions. A asks \"what if the link is filled to the\n"
+           "     limit?\"; B, \"what follows from the published guidance?\".\n"
+           "     A is deliberately conservative; B is anchored in the number of\n"
+           "     messages the exchange publishes, but STILL requires premises to\n"
+           "     convert messages into datagrams and duration into rate.\n");
 
     free(lat);
     return EXIT_SUCCESS;

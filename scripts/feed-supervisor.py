@@ -83,17 +83,17 @@ def main():
                         primary = subprocess.Popen([args.primary, '-l', cpus[0], *common, '--', str(args.ticks), 'cadencia'],
                                                    stdout=plog, stderr=subprocess.STDOUT, env=env)
                         mark('primary_started', pid=primary.pid)
-                        if wait_text(folder / 'primary.txt', 'aguardando o assinante conectar', primary, remaining()):
+                        if wait_text(folder / 'primary.txt', 'waiting for the subscriber to connect', primary, remaining()):
                             secondary = subprocess.Popen([args.secondary, '-l', cpus[1], *common, '--proc-type=secondary'],
                                                          stdout=slog, stderr=subprocess.STDOUT, env=env)
                             mark('secondary_started', pid=secondary.pid)
-                            attached = wait_text(folder / 'secondary.txt', 'endereco virtual', secondary, remaining())
+                            attached = wait_text(folder / 'secondary.txt', 'virtual address', secondary, remaining())
                             active = attached and wait_text(folder / 'secondary.txt',
-                                f'LIVRO ATIVO: geracao={generation} ', secondary, remaining())
+                                f'ACTIVE BOOK: generation={generation} ', secondary, remaining())
                             if active:
                                 mark('book_active', generation=generation)
                             consumed = active and wait_text(folder / 'secondary.txt',
-                                'Primeiro lote consumido:', secondary, remaining())
+                                'First batch consumed:', secondary, remaining())
                             if consumed:
                                 mark('consumption_observed')
                             if consumed and args.inject_first_crash and attempt == 0 and primary.poll() is None:
@@ -104,7 +104,7 @@ def main():
                                 if p is not None and p != 0 or s is not None and s != 0:
                                     break
                                 if p == 0 and s == 0:
-                                    success = 'Validade do livro: VALIDO;' in (folder / 'secondary.txt').read_text(errors='replace')
+                                    success = 'Book validity: VALID;' in (folder / 'secondary.txt').read_text(errors='replace')
                                     if success:
                                         mark('session_completed')
                                     break
