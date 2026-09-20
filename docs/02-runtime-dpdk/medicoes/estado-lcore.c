@@ -44,10 +44,30 @@ static void imprimir_cpuset(char *destino, size_t n, rte_cpuset_t conjunto)
 {
     size_t usado = 0;
     destino[0] = '\0';
-    for (int cpu = 0; cpu < CPU_SETSIZE && usado + 8 < n; cpu++) {
+    for (int cpu = 0; cpu < CPU_SETSIZE && usado < n; cpu++) {
         if (!CPU_ISSET(cpu, &conjunto))
             continue;
-        usado += (size_t)snprintf(destino + usado, n - usado, "%s%d", usado ? "," : "", cpu);
+        /* `snprintf` devolve O QUE CABERIA, nao o que escreveu.
+         *
+         * A versao anterior somava esse retorno direto em `usado`, e a unica
+         * coisa que impedia `usado` de passar de `n` era a guarda `usado + 8 <
+         * n` do laco. Ela funcionava por coincidencia aritmetica: com
+         * CPU_SETSIZE de 1024 cada volta escreve no maximo 6 bytes (virgula,
+         * quatro digitos e o NUL) e a guarda deixava 9 livres.
+         *
+         * Nao havia estouro -- havia dependencia NAO DECLARADA entre o numero
+         * magico 8 e a quantidade de digitos de CPU_SETSIZE. Numa plataforma
+         * com cpuset maior, ou se alguem reduzisse a guarda, `usado` passaria
+         * de `n` e o `n - usado` seguinte, sendo size_t, estouraria para baixo
+         * virando um valor enorme.
+         *
+         * Achado pelo CodeQL (cpp/overflowing-snprintf) na primeira execucao,
+         * e e o tipo de defeito que revisao humana nao pega: o codigo esta
+         * correto, e so a premissa que nao esta escrita. */
+        const int escrito = snprintf(destino + usado, n - usado, "%s%d", usado ? "," : "", cpu);
+        if (escrito < 0 || (size_t)escrito >= n - usado)
+            break; /* truncou: para, em vez de contabilizar o que nao coube */
+        usado += (size_t)escrito;
     }
     if (usado == 0)
         snprintf(destino, n, "-");
