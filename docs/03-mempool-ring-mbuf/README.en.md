@@ -67,17 +67,17 @@ on the same machine, with the same methodology as the project's other programs.
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  malloc/free                             2.51  2.35-2.69       2.24-2.77          13.5%   7.3% !
-  mempool get/put, with cache            0.984  0.979-0.991     0.975-1.300         1.3%  11.8%  
-  mempool get/put, NO cache              10.47  10.47-10.50     10.46-10.62         0.3%   0.3%  
+  malloc/free                             2.78  2.77-2.78       2.77-2.79           0.2%   0.1%  
+  mempool get/put, with cache             1.25  1.25-1.62       1.23-1.62          29.7%  12.6% !
+  mempool get/put, NO cache              13.27  10.53-13.42     10.36-13.44        21.8%  11.1% !
 ```
 
 ```
-  frequency of core 0 during the measurement: 4.34 -> 5.55 GHz
+  frequency of core 0 during the measurement: 4.33 -> 5.57 GHz
   ratios, which do NOT depend on frequency:
-    mempool with cache is 2.55x faster than malloc
+    mempool with cache is 2.23x faster than malloc
     the per-lcore cache is worth 10.6x (with cache against without)
-    without the cache, the mempool is 4.2x SLOWER than malloc
+    without the cache, the mempool is 4.8x SLOWER than malloc
 ```
 
 > **Why the program publishes ratios, and not only nanoseconds.** Without pinning the
@@ -152,10 +152,10 @@ This is the section's main result, and it appears in no published comparison:
 
   batch         malloc/free   mempool bulk      ratio
   -----         -----------   ------------      -----
-  1                 2.76 ns       1.842 ns       1.5x
-  8                 2.29 ns       0.636 ns       3.6x
-  32               12.56 ns       0.466 ns      26.9x
-  128              19.65 ns       0.435 ns      45.2x
+  1                 2.74 ns       1.853 ns       1.5x
+  8                 2.28 ns       0.632 ns       3.6x
+  32               12.42 ns       0.465 ns      26.7x
+  128              19.61 ns       0.436 ns      45.0x
 ```
 
 Asking for more objects at once **cheapens** each object in the mempool
@@ -326,19 +326,36 @@ a single lcore, with no contention at all**:
 ```
   batch      SP/SC (ns/obj)   MP/MC (ns/obj) MP/MC cost
   -----      --------------   -------------- -----------
-  1                1.630 ns         8.256 ns       407%
-  8                0.539 ns         1.285 ns       138%
-  32               0.393 ns         0.485 ns        23%
-  128              0.373 ns         0.304 ns       -18%
+  1                1.626 ns         8.233 ns       406%
+  8                0.530 ns         1.283 ns       142%
+  32               0.397 ns         0.484 ns        22%
+  128              0.375 ns         0.303 ns       -19%
 ```
 
 **The cost does not depend on contention existing.** With a single producer, MP/MC
-mode still costs 435% more at batch 1 — because the atomic instruction is executed
+mode still costs 406% more at batch 1 — because the atomic instruction is executed
 anyway. What you pay for is not the contention; it is the *possibility* of it.
 
-And batching solves it: at 128 objects per call, the difference falls to 5%. It is
-the same pattern that has now appeared twice in this project — the batch diluting a
-fixed cost, whether that of crossing cores or that of an atomic instruction.
+And batching solves it — more than solves it. At 128 objects per call the difference
+does not merely vanish: on this machine MP/MC measures **faster** than SP/SC, −19%.
+The archived campaign reproduces the inversion in **all five** repetitions, between
+−17% and −19%, with the machine idle. It is not the noise of a single collection,
+and the files are in [`medicoes/historico/`](medicoes/historico/) for anyone who
+wants to check. Up to batch 32 the pattern is the expected one — the batch diluting
+a fixed cost, as has now appeared twice in this project, whether that of crossing
+cores or that of an atomic instruction. At batch 128 that cost has already been
+diluted below the difference between the two `rte_ring` code paths, and what is left
+is no longer the price of generality.
+
+> **This table once published "5%" at batch 128, and the prose concluded that "MP/MC
+> with a large batch costs almost the same as SP/SC".** This release's campaign, on
+> hardware at 6000 MT/s, measures −19% in five of five repetitions: the sign
+> inverted. The old conclusion does not hold as written.
+>
+> **This project does not explain the inversion.** Explaining it would require
+> instrumenting the two paths of `rte_ring_enqueue_bulk` and `rte_ring_dequeue_bulk`
+> separately, which is outside this module's scope. What is measured is the
+> inversion; the cause is declared as a limitation, not as a result.
 
 The engineering decision that follows:
 
@@ -346,7 +363,8 @@ The engineering decision that follows:
   `RING_F_SC_DEQ` are not premature optimisation: they are information you have and
   the ring does not.
 - **If you do not know, batching is the antidote.** MP/MC with a large batch costs
-  almost the same as SP/SC.
+  the same as or less than SP/SC on this machine — the SP/SC advantage only exists
+  at small batch sizes.
 
 ### 3.1 `_bulk` and `_burst` are not synonyms
 

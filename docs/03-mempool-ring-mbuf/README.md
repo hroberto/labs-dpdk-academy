@@ -68,17 +68,17 @@ dois na mesma máquina, com a mesma metodologia dos demais programas do projeto.
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  malloc/free                             2.51  2.35-2.69       2.24-2.77          13.5%   7.3% !
-  mempool get/put, with cache            0.984  0.979-0.991     0.975-1.300         1.3%  11.8%  
-  mempool get/put, NO cache              10.47  10.47-10.50     10.46-10.62         0.3%   0.3%  
+  malloc/free                             2.78  2.77-2.78       2.77-2.79           0.2%   0.1%  
+  mempool get/put, with cache             1.25  1.25-1.62       1.23-1.62          29.7%  12.6% !
+  mempool get/put, NO cache              13.27  10.53-13.42     10.36-13.44        21.8%  11.1% !
 ```
 
 ```
-  frequency of core 0 during the measurement: 4.34 -> 5.55 GHz
+  frequency of core 0 during the measurement: 4.33 -> 5.57 GHz
   ratios, which do NOT depend on frequency:
-    mempool with cache is 2.55x faster than malloc
+    mempool with cache is 2.23x faster than malloc
     the per-lcore cache is worth 10.6x (with cache against without)
-    without the cache, the mempool is 4.2x SLOWER than malloc
+    without the cache, the mempool is 4.8x SLOWER than malloc
 ```
 
 > **Por que o programa publica razões, e não só nanossegundos.** Sem fixar a
@@ -155,10 +155,10 @@ publicada:
 
   batch         malloc/free   mempool bulk      ratio
   -----         -----------   ------------      -----
-  1                 2.76 ns       1.842 ns       1.5x
-  8                 2.29 ns       0.636 ns       3.6x
-  32               12.56 ns       0.466 ns      26.9x
-  128              19.65 ns       0.435 ns      45.2x
+  1                 2.74 ns       1.853 ns       1.5x
+  8                 2.28 ns       0.632 ns       3.6x
+  32               12.42 ns       0.465 ns      26.7x
+  128              19.61 ns       0.436 ns      45.0x
 ```
 
 Pedir mais objetos de uma vez **barateia** cada objeto no mempool (1,84 → 0,45 ns)
@@ -328,29 +328,30 @@ O programa [`medicoes/custo-anel.c`](medicoes/custo-anel.c) mede os dois modos
 ```
   batch      SP/SC (ns/obj)   MP/MC (ns/obj) MP/MC cost
   -----      --------------   -------------- -----------
-  1                1.630 ns         8.256 ns       407%
-  8                0.539 ns         1.285 ns       138%
-  32               0.393 ns         0.485 ns        23%
-  128              0.373 ns         0.304 ns       -18%
+  1                1.626 ns         8.233 ns       406%
+  8                0.530 ns         1.283 ns       142%
+  32               0.397 ns         0.484 ns        22%
+  128              0.375 ns         0.303 ns       -19%
 ```
 
 **O custo não depende de haver disputa.** Com um produtor só, o modo MP/MC ainda
-custa 407% a mais no lote 1 — porque a instrução atômica é executada de qualquer
+custa 406% a mais no lote 1 — porque a instrução atômica é executada de qualquer
 forma. O que se paga não é a contenção; é a *possibilidade* dela.
 
 E o lote resolve — mais do que resolve. A 128 objetos por chamada a diferença não
-apenas desaparece: nesta máquina o MP/MC mede **mais rápido** que o SP/SC, −18%.
-Cinco execuções seguidas reproduzem a inversão em quatro delas, entre −18% e
-−20%, então não é ruído de uma coleta só. Até o lote 32 o padrão é o esperado — o
+apenas desaparece: nesta máquina o MP/MC mede **mais rápido** que o SP/SC, −19%.
+A campanha arquivada reproduz a inversão nas **cinco** repetições, entre −17% e
+−19%, com a máquina ociosa. Não é ruído de uma coleta só, e os arquivos estão em
+[`medicoes/historico/`](medicoes/historico/) para quem quiser conferir. Até o lote 32 o padrão é o esperado — o
 lote diluindo um custo fixo, como já apareceu duas vezes neste projeto, seja o de
 atravessar núcleos, seja o de uma instrução atômica. No lote 128 esse custo já foi
 diluído abaixo da diferença entre os dois caminhos de código do `rte_ring`, e o
 que sobra não é mais o preço da generalidade.
 
 > **Esta tabela já publicou "5%" no lote 128, e a prosa concluía que "MP/MC com
-> lote grande custa quase o mesmo que SP/SC".** A regeneração desta release, em
-> hardware a 6000 MT/s, mede −18% de forma reprodutível: o sinal inverteu. A
-> conclusão antiga não se sustenta como estava escrita.
+> lote grande custa quase o mesmo que SP/SC".** A campanha desta release, em
+> hardware a 6000 MT/s, mede −19% em cinco de cinco repetições: o sinal
+> inverteu. A conclusão antiga não se sustenta como estava escrita.
 >
 > **Este projeto não explica a inversão.** Explicá-la exigiria instrumentar
 > separadamente os dois caminhos de `rte_ring_enqueue_bulk` e

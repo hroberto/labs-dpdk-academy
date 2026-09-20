@@ -104,14 +104,14 @@ machine ([`custo-syscall.c`](medicoes/custo-syscall.c)):
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  function call (user-space)             0.724  0.720-0.748     0.718-1.788         3.8%  27.3% ~
-  clock_gettime (vDSO, no trap)          15.61  15.59-15.67     15.55-15.91         0.5%   0.6%  
-  real syscall (SYS_getpid)              34.10  34.08-34.19     33.97-34.47         0.3%   0.3%  
+  function call (user-space)             0.746  0.746-0.749     0.745-1.038         0.4%   7.7%  
+  clock_gettime (vDSO, no trap)          15.53  15.52-15.81     15.52-16.31         1.9%   1.8%  
+  real syscall (SYS_getpid)              33.77  33.75-33.85     33.21-35.19         0.3%   1.0%  
 
-  a syscall costs 47x a function call
+  a syscall costs 45x a function call
 
 10 GbE budget with 64 B frames: 67.2 ns per packet
-  syscalls that fit in that budget: 1.97
+  syscalls that fit in that budget: 1.99
 
   The traditional kernel path spends at least one syscall per
   packet batch, plus interrupt, sk_buff allocation and a copy.
@@ -837,21 +837,21 @@ The two panels are the same table, and together they are the decision:
 ```
    K   ns/access   M accesses/s   batch of K ready in   throughput gain
   ---  ---------   -----------   ---------------------   --------------
-    1      85.28        11.7                85 ns            1.0x
-    2      42.33        23.6                85 ns            2.0x
-    4      23.35        42.8                93 ns            3.7x
-    8      12.46        80.2               100 ns            6.8x
-   12       8.50       117.6               102 ns           10.0x
-   16       6.91       144.8               111 ns           12.3x
-   32       4.07       245.8               130 ns           21.0x
-   64       3.17       315.9               203 ns           26.9x
+    1      76.57        13.1                77 ns            1.0x
+    2      38.18        26.2                76 ns            2.0x
+    4      20.64        48.5                83 ns            3.7x
+    8      10.83        92.4                87 ns            7.1x
+   12       7.52       133.0                90 ns           10.2x
+   16       5.84       171.3                93 ns           13.1x
+   32       3.49       286.4               112 ns           21.9x
+   64       2.77       360.4               178 ns           27.6x
 ```
 
-**Latency does not change on any row.** It is ~94 ns on all of them — what
+**Latency does not change on any row.** It stays at ~77 ns up to K = 16 — what
 changes is how many accesses happen at once. The `ns/access` column falls 27×
 without a single access having become faster.
 
-**At K = 1 this machine does not reach 10 GbE.** That is 10.6 million accesses per
+**At K = 1 this machine does not reach 10 GbE.** That is 13.1 million accesses per
 second against the 14.9 million packets per second of
 [§1](#1-the-budget-how-much-time-exists-per-packet). A single dependent access
 per packet — chasing a pointer, consulting a chained flow table — **already
@@ -2326,10 +2326,10 @@ distribution is in the [code](medicoes/rajada-nasdaq.c).
   arrival       ring(n)      loss  peak occ.   p99(us)
   -----------   -------  --------  --------  --------
   cadenced          512    0.000%         1       0.7
-  burst             512   26.563%       512     375.9
-  burst            1024   21.658%      1024     751.0
-  burst            4096    6.329%      4096    3001.9
-  burst           32768    0.000%     21247    6960.9
+  burst             512   26.544%       512     375.5
+  burst            1024   21.639%      1024     750.2
+  burst            4096    6.319%      4096    2998.6
+  burst           32768    0.000%     21234    6948.8
 ```
 
 **The prediction holds.** With 512 descriptors the loss is 26.6%; the 4,096 ring

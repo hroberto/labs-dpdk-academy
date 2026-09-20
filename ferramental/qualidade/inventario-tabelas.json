@@ -22,7 +22,7 @@
       "linha": 107,
       "secao": "2. A fronteira user-space / kernel-space",
       "tipo": "bloco_numerico",
-      "sha256": "1c58191239ed43df09ad5bb1b513a447f0807d2f8330c59c2a904c07856be4e4"
+      "sha256": "0a494a409dc80dc7a23fa4fb2f6f443389221b6db1e307a56bbf5dde85ab8405"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -106,7 +106,7 @@
       "linha": 841,
       "secao": "A concorrência é a alavanca, e ela tem preço",
       "tipo": "bloco_numerico",
-      "sha256": "e9991bf4dcb696077aa57e26385a01b00ba2987448b8e559977cd97ae2ef17db"
+      "sha256": "5d85b9b84a6270e5e98b121dd459a45152161234607c9ed9a1e7cc3a8981c1e1"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -267,7 +267,7 @@
       "linha": 2366,
       "secao": "O experimento",
       "tipo": "bloco_numerico",
-      "sha256": "9737b64c72c968e6f97041ff9d1b2b85e1fefe718b1a90baeafc198118d1664c"
+      "sha256": "e8e931c2d68c088a04aa6bcb2eb559c5b0fb8a29d737bf907dfdb2b8b9653dcc"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -379,74 +379,74 @@
       "linha": 156,
       "secao": "2. O custo de existir: quanto a EAL leva para nascer",
       "tipo": "bloco_numerico",
-      "sha256": "75cb267fa389b2b1ba94a1c86884e7f8dc2b96db32369c70de0d33ee988913ac"
+      "sha256": "afc325cae7a457957faffecc5a52d97f5392bf3a48b95cc71569e080acb7cc80"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 187,
+      "linha": 190,
       "secao": "2.1 De onde vêm os 123 ms",
       "tipo": "tabela_markdown",
       "sha256": "0d559a3da014e8bce70432530b177c99cf337014dac96276aae8135a28062842"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 218,
+      "linha": 221,
       "secao": "2.1 De onde vêm os 123 ms",
       "tipo": "bloco_numerico",
       "sha256": "b301bdaedccf686954a228ff740359860069e7841351836bf46e7dc04ef1e251"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 383,
+      "linha": 386,
       "secao": "3.3 Os três graus de \"não deixar rastro\"",
       "tipo": "tabela_markdown",
       "sha256": "1a1a37d9987486322c0e98da9d52051cef4d09cf4aff426f43d881a16a8d01f8"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 457,
+      "linha": 460,
       "secao": "4.2 Como o secundário encontra a memória",
       "tipo": "tabela_markdown",
       "sha256": "71f89e6a5b0591bd6bce591ffe5eead26aade38c38843f55d9e92d9d0458b351"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 602,
+      "linha": 605,
       "secao": "4.5 O que desliga o modelo multiprocesso sem avisar",
       "tipo": "tabela_markdown",
       "sha256": "1979e73621dd57ccf8d1b2b0a6fe0c0317993511871d8a440e744487856e6c6e"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 649,
+      "linha": 652,
       "secao": "4.6 Quanto custa atravessar a fronteira",
       "tipo": "bloco_numerico",
       "sha256": "3bfd228c9921fe66b6c963473aa7b88d441a6ead3523bdaa023438b0cb84ce23"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 820,
+      "linha": 823,
       "secao": "6. IOVA: o endereço que o dispositivo enxerga",
       "tipo": "tabela_markdown",
       "sha256": "a1a0e8b8e3d4b131b52a00172ccac4671717dbda6121bf6c79b51ace106d18ad"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 911,
+      "linha": 914,
       "secao": "7. Encerramento: o que fica para trás",
       "tipo": "tabela_markdown",
       "sha256": "bb6fb0dc428941067c1458318de553d76e818d9860fb47125b92a6796013014e"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 947,
+      "linha": 950,
       "secao": "8. Síntese: o runtime do feed handler",
       "tipo": "tabela_markdown",
       "sha256": "91e330f640c163713fdcbf59d785dfc40dd319a48731182ec49900509a6cc055"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 1165,
+      "linha": 1168,
       "secao": "13. Navegação",
       "tipo": "tabela_markdown",
       "sha256": "2c47e08d3cf4b3373b2b8065df1c9d443b49dc846cb694de9d816960eeb375d1"
@@ -463,14 +463,14 @@
       "linha": 66,
       "secao": "1. Por que não usar `malloc()` — a resposta medida",
       "tipo": "bloco_numerico",
-      "sha256": "e687147695875dcbfd99ac2730254e3fb16c8ad7d5c49fc397245adb2481806f"
+      "sha256": "80e1a9731a685287020e8a79f780c385a1e2c2c75f3469b4f2aeea5c87bb4021"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
       "linha": 76,
       "secao": "1. Por que não usar `malloc()` — a resposta medida",
       "tipo": "bloco_numerico",
-      "sha256": "8abcf570c1154148439123521f5c81b93b814e6b8755b480688823b36ec64278"
+      "sha256": "7aae8fdeb8c96df2bf535dcee917973afdcb06c86110098a1e7d8e79804f1cb7"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
@@ -484,7 +484,7 @@
       "linha": 153,
       "secao": "1.3 O lote muda de sinal entre os dois",
       "tipo": "bloco_numerico",
-      "sha256": "c371346abf0d09bea564e25b734c97f3c02d65de0436e16d2528496d6bd6e566"
+      "sha256": "24619dc2774b372a00d530811f24605db6d5ed59ce45e5deb82099693fbaedb2"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
@@ -505,32 +505,32 @@
       "linha": 328,
       "secao": "3. O anel: o preço da generalidade",
       "tipo": "bloco_numerico",
-      "sha256": "caeb276b8377767c7b1a3d2b596eb30e82b368cae9954c2e9f8efc0237c4eeee"
+      "sha256": "635a5bc04c2782211cb2777c3588827f990748652bf9da1c4ad6a8bf8bf617e7"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 390,
+      "linha": 391,
       "secao": "3.1 `_bulk` e `_burst` não são sinônimos",
       "tipo": "tabela_markdown",
       "sha256": "733444ebfad15508e3e54b6f82c6fc05db78fdcfccce7adbc656a4354a45c54e"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 516,
+      "linha": 517,
       "secao": "6.1 O degrau: `get_bulk` não entrega lote parcial",
       "tipo": "tabela_markdown",
       "sha256": "138622c9479008925c9f6f7db7278cca2bf1c617e01922d867e6d61e5cd14b0b"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 552,
+      "linha": 553,
       "secao": "6.2 A regra 4, confrontada — e corrigida",
       "tipo": "tabela_markdown",
       "sha256": "c5738905a71ae0f061eb7fc88e3b4337edd9ed1f423346ea4f115122183550f3"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 639,
+      "linha": 640,
       "secao": "9. Navegação",
       "tipo": "tabela_markdown",
       "sha256": "573d3d447bf73781ac79c5cf02601f1a7b90b0951d1c2deb35ed7cb38634f23b"

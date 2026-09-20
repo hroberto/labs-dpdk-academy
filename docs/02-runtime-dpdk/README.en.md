@@ -159,8 +159,8 @@ measurement, with the memory mode of the EAL as the only difference:
 ```
   configuration       rte_eal_init()   rte_eal_cleanup()   ratio
   -----------------   --------------   -----------------   -------
-  -l 0 --in-memory      122.4 ms         0.082 ms  ! 47%    1493x
-  -l 0 --no-huge        121.9 ms         0.605 ms  ! 30%     201x
+  -l 0 --in-memory      118.8 ms         0.094 ms  ~  6%    1264x
+  -l 0 --no-huge        121.9 ms         0.577 ms  ~  5%     211x
 ```
 
 Initialisation does not move — 122.4 against 122.5 ms. Shutdown changes by a factor
