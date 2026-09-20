@@ -105,19 +105,19 @@ registradores, e polui cache e preditor de saltos. Medindo nesta máquina de
 referência ([`custo-syscall.c`](medicoes/custo-syscall.c)):
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  chamada de funcao (user-space)         0.717  0.715-0.747     0.713-1.009         4.6%  11.3% ~
-  clock_gettime (vDSO, sem trap)         15.53  15.53-15.55     15.52-15.81         0.1%   0.6%
-  syscall real (SYS_getpid)              33.25  33.23-33.27     33.21-33.70         0.1%   0.3%
+  function call (user-space)             0.724  0.720-0.748     0.718-1.788         3.8%  27.3% ~
+  clock_gettime (vDSO, no trap)          15.61  15.59-15.67     15.55-15.91         0.5%   0.6%  
+  real syscall (SYS_getpid)              34.10  34.08-34.19     33.97-34.47         0.3%   0.3%  
 
-  syscall custa 46x uma chamada de funcao
+  a syscall costs 47x a function call
 
-Orcamento de 10 GbE com quadros de 64 B: 67.2 ns por pacote
-  syscalls que cabem nesse orcamento: 2.02
+10 GbE budget with 64 B frames: 67.2 ns per packet
+  syscalls that fit in that budget: 1.97
 
-  O caminho tradicional do kernel gasta pelo menos uma syscall por
-  lote de pacotes, mais interrupcao, alocacao de sk_buff e copia.
+  The traditional kernel path spends at least one syscall per
+  packet batch, plus interrupt, sk_buff allocation and a copy.
 ```
 
 > **Duas correções levaram a estes números**, e as duas estão contadas na
@@ -839,16 +839,16 @@ percorre **K cadeias independentes** sobre a mesma região, com K crescente:
 Os dois painéis são a mesma tabela, e juntos são a decisão:
 
 ```
-   K   ns/acesso   M acessos/s   lote de K completa em   ganho de vazao
+   K   ns/access   M accesses/s   batch of K ready in   throughput gain
   ---  ---------   -----------   ---------------------   --------------
-    1      94.36        10.6                 94 ns            1.0x
-    2      46.48        21.5                 93 ns            2.0x
-    4      24.77        40.4                 99 ns            3.8x
-    8      13.26        75.4                106 ns            7.1x
-   12       9.19       108.9                110 ns           10.3x
-   16       7.25       138.0                116 ns           13.0x
-   32       4.59       218.1                147 ns           20.6x
-   64       3.44       290.8                220 ns           27.4x
+    1      85.28        11.7                85 ns            1.0x
+    2      42.33        23.6                85 ns            2.0x
+    4      23.35        42.8                93 ns            3.7x
+    8      12.46        80.2               100 ns            6.8x
+   12       8.50       117.6               102 ns           10.0x
+   16       6.91       144.8               111 ns           12.3x
+   32       4.07       245.8               130 ns           21.0x
+   64       3.17       315.9               203 ns           26.9x
 ```
 
 **A latência não muda em nenhuma linha.** Ela é ~94 ns em todas — o que muda é
@@ -2367,10 +2367,10 @@ tempo**. A distribuição exata está no
   chegada       anel(n)     perda  ocup.max   p99(us)
   -----------   -------  --------  --------  --------
   cadenciada        512    0.000%         1       0.7
-  rajada            512   26.555%       512     375.7
-  rajada           1024   21.650%      1024     750.7
-  rajada           4096    6.325%      4096    3000.7
-  rajada          32768    0.000%     21242    6956.3
+  rajada            512   26.563%       512     375.9
+  rajada           1024   21.658%      1024     751.0
+  rajada           4096    6.329%      4096    3001.9
+  rajada          32768    0.000%     21247    6960.9
 ```
 
 **A previsão se sustenta.** Com 512 descritores a perda é de 26,6%; o anel de

@@ -368,7 +368,7 @@ int main(void)
     printf("  No line is shared between threads: what remains is the\n");
     printf("  memory path. %d physical cores available.\n", n_cpus_fisicas);
     printf("  (%d samples per point -- more than phase 1; see the comment\n"
-           "   de AMOSTRAS_NUCLEOS_FIXO sobre por que 7 nao bastam aqui)\n\n",
+           "   on AMOSTRAS_NUCLEOS_FIXO for why 7 are not enough here)\n\n",
            AMOSTRAS_NUCLEOS);
 
     static const int ns_nucleos[] = {1, 2, 4, 8, 12, 16};

@@ -2,27 +2,10 @@
 
 *Leia em [português](README.md).*
 
-> **The measurement blocks have their labels translated; the programs print
-> Portuguese.** The numbers, the columns and the layout are exactly what the
-> program emits — only the row labels were translated, so this page reads as
-> English. Running `custo-alocacao` yourself produces `o cache por lcore vale
-> 10,7x`, not `the per-lcore cache is worth 10.7x`.
->
-> This is declared rather than silently done, because a block presented as
-> program output that is not the program's output is the same defect class as a
-> number without provenance. The [roadmap](../../ROADMAP.md) records the
-> decision it follows from: *program output and prose stay in Portuguese, and
-> that is what the asymmetry means in practice.*
-
 > **Level 4** of the [study plan](../plano-estudo-dpdk.en.md) ·
 > Prerequisites: [02 — DPDK runtime](../02-runtime-dpdk/README.en.md) and the practical
 > topic [02 — Mempool, ring and batch](../../trilha/01-fundamentos/02-mempool-ring/)
 
-> **Note on the blocks in this English edition.** The measurement programs print in
-> Portuguese; this document translates their **labels and captions** so the tables
-> and outputs can be read here. Numbers, seals and column positions are exactly what
-> the program emitted. When a command in this page greps that output, the pattern
-> stays in Portuguese — it has to match what the program really prints.
 The [runtime module](../02-runtime-dpdk/README.en.md) showed the EAL reserving memory
 and naming regions. This one deals with what you put inside it: the three structures
 every DPDK program is built on, which answer three different questions.
@@ -82,19 +65,19 @@ on the same machine, with the same methodology as the project's other programs.
 ```
   --- one object at a time, in NANOSECONDS PER OBJECT ---
 
-  measurement                          median   p25-p75 (IQR)   min-max range      disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  malloc/free                             2.18  2.16-2.18       2.14-2.23           0.9%   1.0%  
-  mempool get/put, with cache            0.981  0.977-0.983     0.973-0.991         0.6%   0.5%  
-  mempool get/put, NO cache              10.45  10.44-10.50     10.43-10.63         0.5%   0.5%  
+  malloc/free                             2.51  2.35-2.69       2.24-2.77          13.5%   7.3% !
+  mempool get/put, with cache            0.984  0.979-0.991     0.975-1.300         1.3%  11.8%  
+  mempool get/put, NO cache              10.47  10.47-10.50     10.46-10.62         0.3%   0.3%  
 ```
 
 ```
-  frequency of core 0 during the measurement: 5.56 -> 5.56 GHz
+  frequency of core 0 during the measurement: 4.34 -> 5.55 GHz
   ratios, which do NOT depend on frequency:
-    mempool with cache is 2.23x faster than malloc
-    the per-lcore cache gives a 10.7x speedup (with cache versus without)
-    without the cache, the mempool is 4.8x SLOWER than malloc
+    mempool with cache is 2.55x faster than malloc
+    the per-lcore cache is worth 10.6x (with cache against without)
+    without the cache, the mempool is 4.2x SLOWER than malloc
 ```
 
 > **Why the program publishes ratios, and not only nanoseconds.** Without pinning the
@@ -151,9 +134,9 @@ code in [`medicoes/sizing.c`](medicoes/sizing.c), tested without an EAL, and the
 program came to **derive** the cache:
 
 ```
-  per-lcore cache ........ 455 objects (derived, not eyeballed)
+  cache per lcore ........ 455 objects (derived, not eyeballed)
     chosen ............... no caveats
-    the obvious (256) .... n is not a multiple of the cache -> 255 objects stranded
+    the obvious (256) .... n is not a multiple of the cache (objects pinned) -> 255 objects pinned
 ```
 
 > Note that 455 is not a number anyone would think of. It is the largest divisor of
@@ -165,14 +148,14 @@ program came to **derive** the cache:
 This is the section's main result, and it appears in no published comparison:
 
 ```
-  --- in BATCHES, ns per object: the two sides move in opposite ways ---
+  --- in BATCH, ns per object: the two sides move in opposite directions ---
 
   batch         malloc/free   mempool bulk      ratio
   -----         -----------   ------------      -----
-  1                 2.39 ns       1.837 ns       1.3x
-  8                 2.55 ns       0.629 ns       4.1x
-  32               12.39 ns       0.450 ns      27.6x
-  128              19.64 ns       0.523 ns      37.5x
+  1                 2.76 ns       1.842 ns       1.5x
+  8                 2.29 ns       0.636 ns       3.6x
+  32               12.56 ns       0.466 ns      26.9x
+  128              19.65 ns       0.435 ns      45.2x
 ```
 
 Asking for more objects at once **cheapens** each object in the mempool
@@ -221,8 +204,8 @@ the layout: it prints the installed version's.
   RTE_MBUF_DEFAULT_DATAROOM ... 2048 bytes for the packet
   RTE_MBUF_DEFAULT_BUF_SIZE ... 2176 bytes (dataroom + headroom)
   element (mbuf + buffer) ..... 2304 bytes
-  + mempool header ........... 64 bytes
-  = object in the pool ....... 2368 bytes
+  + mempool header ............ 64 bytes
+  = object in the pool ........ 2368 bytes
 
   A pool of 8192 mbufs takes about 18.5 MiB in objects alone.
 ```
@@ -341,12 +324,12 @@ The program [`medicoes/custo-anel.c`](medicoes/custo-anel.c) measures both modes
 a single lcore, with no contention at all**:
 
 ```
-  batch      SP/SC (ns/obj)   MP/MC (ns/obj)  MP/MC cost
+  batch      SP/SC (ns/obj)   MP/MC (ns/obj) MP/MC cost
   -----      --------------   -------------- -----------
-  1                1.539 ns         8.229 ns       435%
-  8                0.518 ns         1.259 ns       143%
-  32               0.332 ns         0.473 ns        42%
-  128              0.288 ns         0.301 ns         5%
+  1                1.630 ns         8.256 ns       407%
+  8                0.539 ns         1.285 ns       138%
+  32               0.393 ns         0.485 ns        23%
+  128              0.373 ns         0.304 ns       -18%
 ```
 
 **The cost does not depend on contention existing.** With a single producer, MP/MC

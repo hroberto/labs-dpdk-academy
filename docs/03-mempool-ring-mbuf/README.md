@@ -64,21 +64,21 @@ O programa [`medicoes/custo-alocacao.c`](medicoes/custo-alocacao.c) compara os
 dois na mesma máquina, com a mesma metodologia dos demais programas do projeto.
 
 ```
-  --- um objeto por vez, em NANOSSEGUNDOS POR OBJETO ---
+  --- one object at a time, in NANOSECONDS PER OBJECT ---
 
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  malloc/free                             2.18  2.16-2.18       2.14-2.23           0.9%   1.0%  
-  mempool get/put, com cache             0.981  0.977-0.983     0.973-0.991         0.6%   0.5%  
-  mempool get/put, SEM cache             10.45  10.44-10.50     10.43-10.63         0.5%   0.5%  
+  malloc/free                             2.51  2.35-2.69       2.24-2.77          13.5%   7.3% !
+  mempool get/put, with cache            0.984  0.979-0.991     0.975-1.300         1.3%  11.8%  
+  mempool get/put, NO cache              10.47  10.47-10.50     10.46-10.62         0.3%   0.3%  
 ```
 
 ```
-  frequencia do nucleo 0 durante a medicao: 5.56 -> 5.56 GHz
-  razoes, que NAO dependem da frequencia:
-    mempool com cache e 2.23x mais rapido que malloc
-    o cache por lcore vale 10.7x (com cache contra sem cache)
-    sem o cache, o mempool fica 4.8x mais LENTO que o malloc
+  frequency of core 0 during the measurement: 4.34 -> 5.55 GHz
+  ratios, which do NOT depend on frequency:
+    mempool with cache is 2.55x faster than malloc
+    the per-lcore cache is worth 10.6x (with cache against without)
+    without the cache, the mempool is 4.2x SLOWER than malloc
 ```
 
 > **Por que o programa publica razões, e não só nanossegundos.** Sem fixar a
@@ -136,9 +136,9 @@ código puro em [`medicoes/sizing.c`](medicoes/sizing.c), testado
 sem EAL, e o programa passou a **derivar** o cache:
 
 ```
-  cache por lcore ........ 455 objetos (derivado, nao escolhido a olho)
-    escolhido ............ sem ressalvas
-    o obvio (256) seria .. n nao e multiplo do cache (objetos presos) -> 255 objetos presos
+  cache per lcore ........ 455 objects (derived, not eyeballed)
+    chosen ............... no caveats
+    the obvious (256) .... n is not a multiple of the cache (objects pinned) -> 255 objects pinned
 ```
 
 > Repare que 455 não é um número que ocorreria a ninguém. Ele é o maior divisor
@@ -151,14 +151,14 @@ Este é o resultado principal da seção, e não aparece em nenhuma comparação
 publicada:
 
 ```
-  --- em LOTE, ns por objeto: os dois lados variam em sentidos opostos ---
+  --- in BATCH, ns per object: the two sides move in opposite directions ---
 
-  lote          malloc/free   mempool bulk      razao
+  batch         malloc/free   mempool bulk      ratio
   -----         -----------   ------------      -----
-  1                 2.39 ns       1.837 ns       1.3x
-  8                 2.55 ns       0.629 ns       4.1x
-  32               12.39 ns       0.450 ns      27.6x
-  128              19.64 ns       0.523 ns      37.5x
+  1                 2.76 ns       1.842 ns       1.5x
+  8                 2.29 ns       0.636 ns       3.6x
+  32               12.56 ns       0.466 ns      26.9x
+  128              19.65 ns       0.435 ns      45.2x
 ```
 
 Pedir mais objetos de uma vez **barateia** cada objeto no mempool (1,84 → 0,45 ns)
@@ -201,15 +201,15 @@ O programa [`medicoes/anatomia-mbuf.c`](medicoes/anatomia-mbuf.c) não descreve 
 layout: imprime o da versão instalada.
 
 ```
-  sizeof(struct rte_mbuf) ..... 128 bytes (2 linhas de cache de 64 B)
-  RTE_PKTMBUF_HEADROOM ........ 128 bytes reservados ANTES dos dados
-  RTE_MBUF_DEFAULT_DATAROOM ... 2048 bytes para o pacote
+  sizeof(struct rte_mbuf) ..... 128 bytes (2 cache lines of 64 B)
+  RTE_PKTMBUF_HEADROOM ........ 128 bytes reserved BEFORE the data
+  RTE_MBUF_DEFAULT_DATAROOM ... 2048 bytes for the packet
   RTE_MBUF_DEFAULT_BUF_SIZE ... 2176 bytes (dataroom + headroom)
-  elemento (mbuf + buffer) .... 2304 bytes
-  + cabecalho do mempool ...... 64 bytes
-  = objeto no pool ............ 2368 bytes
+  element (mbuf + buffer) ..... 2304 bytes
+  + mempool header ............ 64 bytes
+  = object in the pool ........ 2368 bytes
 
-  Um pool de 8192 mbufs ocupa cerca de 18.5 MiB so em objetos.
+  A pool of 8192 mbufs takes about 18.5 MiB in objects alone.
 ```
 
 **O descritor custa 128 bytes por pacote; o objeto inteiro no pool, 2368.** A
@@ -326,29 +326,45 @@ O programa [`medicoes/custo-anel.c`](medicoes/custo-anel.c) mede os dois modos
 **num lcore só, sem disputa nenhuma**:
 
 ```
-  lote       SP/SC (ns/obj)   MP/MC (ns/obj) custo MP/MC
+  batch      SP/SC (ns/obj)   MP/MC (ns/obj) MP/MC cost
   -----      --------------   -------------- -----------
-  1                1.539 ns         8.229 ns       435%
-  8                0.518 ns         1.259 ns       143%
-  32               0.332 ns         0.473 ns        42%
-  128              0.288 ns         0.301 ns         5%
+  1                1.630 ns         8.256 ns       407%
+  8                0.539 ns         1.285 ns       138%
+  32               0.393 ns         0.485 ns        23%
+  128              0.373 ns         0.304 ns       -18%
 ```
 
 **O custo não depende de haver disputa.** Com um produtor só, o modo MP/MC ainda
-custa 435% a mais no lote 1 — porque a instrução atômica é executada de qualquer
+custa 407% a mais no lote 1 — porque a instrução atômica é executada de qualquer
 forma. O que se paga não é a contenção; é a *possibilidade* dela.
 
-E o lote resolve: a 128 objetos por chamada, a diferença cai para 5%. É o mesmo
-padrão que já apareceu duas vezes neste projeto — o lote diluindo um custo fixo,
-seja o de atravessar núcleos, seja o de uma instrução atômica.
+E o lote resolve — mais do que resolve. A 128 objetos por chamada a diferença não
+apenas desaparece: nesta máquina o MP/MC mede **mais rápido** que o SP/SC, −18%.
+Cinco execuções seguidas reproduzem a inversão em quatro delas, entre −18% e
+−20%, então não é ruído de uma coleta só. Até o lote 32 o padrão é o esperado — o
+lote diluindo um custo fixo, como já apareceu duas vezes neste projeto, seja o de
+atravessar núcleos, seja o de uma instrução atômica. No lote 128 esse custo já foi
+diluído abaixo da diferença entre os dois caminhos de código do `rte_ring`, e o
+que sobra não é mais o preço da generalidade.
+
+> **Esta tabela já publicou "5%" no lote 128, e a prosa concluía que "MP/MC com
+> lote grande custa quase o mesmo que SP/SC".** A regeneração desta release, em
+> hardware a 6000 MT/s, mede −18% de forma reprodutível: o sinal inverteu. A
+> conclusão antiga não se sustenta como estava escrita.
+>
+> **Este projeto não explica a inversão.** Explicá-la exigiria instrumentar
+> separadamente os dois caminhos de `rte_ring_enqueue_bulk` e
+> `rte_ring_dequeue_bulk`, o que está fora do escopo deste módulo. O que está
+> medido é a inversão; a causa fica declarada como limitação, não como
+> resultado.
 
 A decisão de engenharia que sai daí:
 
 - **Se você sabe que há um produtor e um consumidor, diga.** `RING_F_SP_ENQ` e
   `RING_F_SC_DEQ` não são otimização prematura: são informação que você tem e o
   anel não.
-- **Se não sabe, o lote é o antídoto.** MP/MC com lote grande custa quase o mesmo
-  que SP/SC.
+- **Se não sabe, o lote é o antídoto.** MP/MC com lote grande custa o mesmo ou
+  menos que SP/SC nesta máquina — a vantagem do SP/SC só existe em lote pequeno.
 
 ### 3.1 `_bulk` e `_burst` não são sinônimos
 

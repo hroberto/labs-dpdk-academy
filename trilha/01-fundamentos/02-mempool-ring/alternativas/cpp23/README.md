@@ -370,10 +370,12 @@ maquinaria que a faz parecer cara existe para atravessar essa ponte.
 ```
 
 ```
-Pacotes processados: 10
-Total de bytes: 695
-Lote (burst): 32 | lotes interrompidos por fila cheia: 0
-Tempo medio: 23.1 ns/pacote
+Packets processed: 10
+Total bytes: 695
+Batch (burst): 32 | batches interrupted by a full queue: 0
+Mean time: 15.0 ns/packet  <- NOT A MEASUREMENT
+  10 packets are far too few: the cost of reading the clock is of the same
+  order as the work measured. Use -n 10000 or more for a defensible number.
 ```
 
 **Os dois primeiros valores são idênticos aos da versão DPDK.** Isso não é

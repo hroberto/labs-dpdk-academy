@@ -146,7 +146,7 @@ cronometra e devolve o resultado por um *pipe*; o pai apenas agrega.
     e fica de pe: reinicia-lo em producao nao e uma operacao barata.
 ```
 
-Subir a EAL custa **123 ms**; encerrá-la custa **0,12 ms** — três ordens de
+Subir a EAL custa **122 ms**; encerrá-la custa **0,08 ms** — três ordens de
 grandeza menos. A assimetria é o primeiro fato relevante: nascer é caro, morrer
 é barato.
 
@@ -156,21 +156,28 @@ medição, com a única diferença sendo o modo de memória da EAL:
 ```
   configuracao        rte_eal_init()   rte_eal_cleanup()   razao
   -----------------   --------------   -----------------   -------
-  -l 0 --in-memory      122.5 ms         0.118 ms  ! 32%    1038x
-  -l 0 --no-huge        122.4 ms         0.651 ms  ~  9%     188x
+  -l 0 --in-memory      122.4 ms         0.082 ms  ! 47%    1493x
+  -l 0 --no-huge        121.9 ms         0.605 ms  ! 30%     201x
 ```
 
-A inicialização não se mexe — 122,4 contra 122,5 ms. O encerramento muda por um
-fator de **5,5**, e com ele a razão sai de três ordens de grandeza para duas.
+A inicialização não se mexe — 121,9 contra 122,4 ms. O encerramento muda por um
+fator de **7,4**, e com ele a razão sai de três ordens de grandeza para duas.
 Faz sentido: encerrar devolve o que foi mapeado, e `--no-huge` mapeia de outro
 jeito. **O número do encerramento não existe sem a configuração ao lado.**
 
 > **Retratar um número exige reproduzir a configuração dele.** Esta seção já
 > declarou que os 0,08 ms de `--in-memory` "não reproduziam", tendo medido
 > `--no-huge` — outra configuração, e a tabela acima mostra que a diferença
-> entre elas é de 5,5×. Medir outra coisa e não encontrar o mesmo valor não é
+> entre elas é de 7,4×. Medir outra coisa e não encontrar o mesmo valor não é
 > refutação; é outra medição.
-> <!-- retratado: 0.082 0,082 0.30 0,30 195 -->
+>
+> **E o valor voltou.** A regeneração desta release mede o encerramento de
+> `--in-memory` em exatamente **0,082 ms**, com 11 amostras e a configuração
+> nomeada na própria tabela. O que estava retratado nunca foi o número: era a
+> atribuição dele à configuração errada. Medido sob a configuração certa, ele
+> deixa de ser uma afirmação retratada e passa a ser uma medição — com selo `!`,
+> porque a dispersão de 47% é alta e o leitor precisa saber disso.
+> <!-- retratado: 0.30 0,30 195 -->
 
 ### 2.1 De onde vêm os 123 ms
 

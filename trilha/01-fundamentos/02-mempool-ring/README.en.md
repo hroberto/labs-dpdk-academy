@@ -226,11 +226,12 @@ Expected output (omitting the `EAL:` lines):
 Packets processed: 10
 Total bytes: 695
 Batch (burst): 32 | objects that did not fit in the queue: 0
-Mode: 1 lcore (0), producer and consumer alternating
+Largest batch actually moved: enqueued 10, dequeued 10
+Mode: 1 lcore (0), producer and consumer interleaved
 Free objects in the pool at the end: 4095 of 4095
-Average time: 52.1 ns/packet  <- NOT A MEASUREMENT
+Mean time: 77.1 ns/packet  <- NOT A MEASUREMENT
   10 packets are far too few: the cost of reading the clock is of the same
-  order as the work being measured. Use -n 10000 or more for a defensible number.
+  order as the work measured. Use -n 10000 or more for a defensible number.
 ```
 
 The decisive line is the **fifth**: `4095 de 4095` means every object came back. Any
@@ -321,12 +322,15 @@ The topic compiles the **same source** twice. `pipeline_ring_vazado` is
 ```
 
 ```
-INVARIANT VIOLATED: 1403 of 4095 objects in the pool at the end. 2692 object(s)
-leaked: some return path did not give them back.
+INVARIANT VIOLATED: 1533 of 4095 objects in the pool at the end. 2562 object(s) leaked: some return path did not give back to the pool.
 Packets processed: 2000000
 Total bytes: 161000000
-Batch (burst): 256 | objects that did not fit in the queue: 2692
-Free objects in the pool at the end: 1403 of 4095
+Batch (burst): 256 | objects that did not fit in the queue: 2562
+Largest batch actually moved: enqueued 256, dequeued 256
+Mode: 2 lcores (producer 0, consumer 2)
+Free objects in the pool at the end: 1533 of 4095
+Mean time: 3.0 ns/packet
+Frequency of lcore 0: 4.32 GHz (the time above varies with it)
 ```
 
 ### 6.3 What the measurement shows
@@ -335,10 +339,10 @@ On this machine, with 2 000 000 packets and the consumer on another core:
 
 | Batch | Did not fit | Leaked | Pool at the end | Packets |
 |---:|---:|---:|---:|---:|
-| 32 | 2979 | 2979 | 1116 of 4095 | 2 000 000 |
-| 64 | 2946 | 2946 | 1149 of 4095 | 2 000 000 |
+| 32 | 3009 | 3009 | 1086 of 4095 | 2 000 000 |
+| 64 | 2945 | 2945 | 1150 of 4095 | 2 000 000 |
 | 128 | 2945 | 2945 | 1150 of 4095 | 2 000 000 |
-| 256 | 2692 | 2692 | 1403 of 4095 | 2 000 000 |
+| 256 | 2562 | 2562 | 1533 of 4095 | 2 000 000 |
 
 Three readings, and the third is the one that matters:
 
@@ -355,12 +359,12 @@ invariant checked in the output** — and that is why it exists.
 correct binary:
 
 ```
-Batch (burst): 256 | objects that did not fit in the queue: 905604
+Batch (burst): 256 | objects that did not fit in the queue: 1019654
 Free objects in the pool at the end: 4095 of 4095
 ```
 
-The **correct** program had 905 604 objects with no place in the queue; the
-**defective** one, 2 692 — about 336 times fewer. Intuition says the opposite, and
+The **correct** program had 1 019 654 objects with no place in the queue; the
+**defective** one, 2 562 — about 398 times fewer. Intuition says the opposite, and
 intuition is wrong because [`rte_mempool_get_bulk()`][apigetbulk] is **all or
 nothing**: with the pool drained, it does not return a smaller batch, it returns
 `-ENOBUFS` and the producer produces nothing on that turn. Fewer objects in

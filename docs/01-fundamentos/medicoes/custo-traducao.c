@@ -159,7 +159,7 @@ int main(void)
     print_row("4 KB pages", e4k);
     print_row("2 MB hugepages", e2m);
     printf("\n  The difference below is PAIRED -- delta_i = t_4k,i - t_2m,i in the same\n"
-           "  volta do laco -- e por isso tem distribuicao propria:\n\n");
+           "  loop iteration -- and therefore has a distribution of its own:\n\n");
     /* "DIFERENCA (o page walk)" era o rotulo, e ele prometia demais.
      *
      * t_4K - t_2M nao e uma medicao direta do page walk: e a diferenca pareada
@@ -174,7 +174,7 @@ int main(void)
     printf("\n  page walk cost: %.2f ns  (%.1f%% of the 4 KB access)\n", delta,
            100.0 * delta / ns_4k);
     printf("  the last column is what supports the conclusion: in %d of %d pairs the\n"
-           "  pagina de 4 KB foi a mais lenta. Subtrair duas medianas nao diz isso.\n",
+           "  4 KB page was the slower one. Subtracting two medians does not say that.\n",
            p.mesmo_sinal, p.n);
 
     printf("\n  RAM latency (~%.0f ns) appears in both measurements and does not\n", ns_2m);

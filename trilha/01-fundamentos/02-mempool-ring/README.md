@@ -215,14 +215,15 @@ então não deve depender dele para ser testada. É o que torna possível o test
 Saída esperada (omitindo as linhas `EAL:`):
 
 ```
-Pacotes processados: 10
-Total de bytes: 695
-Lote (burst): 32 | objetos que nao couberam na fila: 0
-Modo: 1 lcore (0), produtor e consumidor alternados
-Objetos livres no pool ao final: 4095 de 4095
-Tempo medio: 52.1 ns/pacote  <- NAO E MEDICAO
-  10 pacotes sao poucos demais: o custo de ler o relogio e da mesma
-  ordem do trabalho medido. Use -n 10000 ou mais para um numero defensavel.
+Packets processed: 10
+Total bytes: 695
+Batch (burst): 32 | objects that did not fit in the queue: 0
+Largest batch actually moved: enqueued 10, dequeued 10
+Mode: 1 lcore (0), producer and consumer interleaved
+Free objects in the pool at the end: 4095 of 4095
+Mean time: 77.1 ns/packet  <- NOT A MEASUREMENT
+  10 packets are far too few: the cost of reading the clock is of the same
+  order as the work measured. Use -n 10000 or more for a defensible number.
 ```
 
 A linha decisiva é a **quinta**: `4095 de 4095` significa que todo objeto voltou.
@@ -313,12 +314,15 @@ O tópico compila o **mesmo fonte** duas vezes. `pipeline_ring_vazado` é
 ```
 
 ```
-INVARIANTE VIOLADO: 1403 de 4095 objetos no pool ao final. 2692 objeto(s)
-vazaram: algum caminho de retorno nao devolveu ao pool.
-Pacotes processados: 2000000
-Total de bytes: 161000000
-Lote (burst): 256 | objetos que nao couberam na fila: 2692
-Objetos livres no pool ao final: 1403 de 4095
+INVARIANT VIOLATED: 1533 of 4095 objects in the pool at the end. 2562 object(s) leaked: some return path did not give back to the pool.
+Packets processed: 2000000
+Total bytes: 161000000
+Batch (burst): 256 | objects that did not fit in the queue: 2562
+Largest batch actually moved: enqueued 256, dequeued 256
+Mode: 2 lcores (producer 0, consumer 2)
+Free objects in the pool at the end: 1533 of 4095
+Mean time: 3.0 ns/packet
+Frequency of lcore 0: 4.32 GHz (the time above varies with it)
 ```
 
 ### 6.3 O que a medição mostra
@@ -327,10 +331,10 @@ Nesta máquina, com 2 000 000 de pacotes e o consumidor em outro núcleo:
 
 | Lote | Não couberam | Vazaram | Pool ao final | Pacotes |
 |---:|---:|---:|---:|---:|
-| 32 | 2979 | 2979 | 1116 de 4095 | 2 000 000 |
-| 64 | 2946 | 2946 | 1149 de 4095 | 2 000 000 |
+| 32 | 3009 | 3009 | 1086 de 4095 | 2 000 000 |
+| 64 | 2945 | 2945 | 1150 de 4095 | 2 000 000 |
 | 128 | 2945 | 2945 | 1150 de 4095 | 2 000 000 |
-| 256 | 2692 | 2692 | 1403 de 4095 | 2 000 000 |
+| 256 | 2562 | 2562 | 1533 de 4095 | 2 000 000 |
 
 Três leituras, e a terceira é a que importa:
 
@@ -347,12 +351,12 @@ invariante conferido na saída** — e é por isso que ele existe.
 binário correto:
 
 ```
-Lote (burst): 256 | objetos que nao couberam na fila: 905604
-Objetos livres no pool ao final: 4095 de 4095
+Batch (burst): 256 | objects that did not fit in the queue: 1019654
+Free objects in the pool at the end: 4095 of 4095
 ```
 
-O programa **certo** teve 905 604 objetos sem lugar na fila; o **defeituoso**,
-2 692 — cerca de 336 vezes menos. A intuição diz o contrário, e a intuição erra
+O programa **certo** teve 1 019 654 objetos sem lugar na fila; o **defeituoso**,
+2 562 — cerca de 398 vezes menos. A intuição diz o contrário, e a intuição erra
 porque [`rte_mempool_get_bulk()`][apigetbulk] é **tudo ou nada**: com o pool
 drenado, ele não devolve um lote menor, devolve `-ENOBUFS` e o produtor não
 produz nada naquela volta. Menos objetos em circulação significa menos pressão

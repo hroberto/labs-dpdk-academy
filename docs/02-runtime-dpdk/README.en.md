@@ -2,27 +2,10 @@
 
 *Leia em [português](README.md).*
 
-> **The measurement blocks have their labels translated; the programs print
-> Portuguese.** The numbers, the columns and the layout are exactly what the
-> program emits — only the row labels were translated, so this page reads as
-> English. Running `custo-alocacao` yourself produces `o cache por lcore vale
-> 10,7x`, not `the per-lcore cache is worth 10.7x`.
->
-> This is declared rather than silently done, because a block presented as
-> program output that is not the program's output is the same defect class as a
-> number without provenance. The [roadmap](../../ROADMAP.md) records the
-> decision it follows from: *program output and prose stay in Portuguese, and
-> that is what the asymmetry means in practice.*
-
 > **Level 3** of the [study plan](../plano-estudo-dpdk.en.md) ·
 > Prerequisite: [Fundamentals](../01-fundamentos/README.en.md) and the practical topic
 > [01 — EAL initialisation](../../trilha/01-fundamentos/01-eal-hello/)
 
-> **Note on the blocks in this English edition.** The measurement programs print in
-> Portuguese; this document translates their **labels and captions** so the tables
-> and outputs can be read here. Numbers, seals and column positions are exactly what
-> the program emitted. When a command in this page greps that output, the pattern
-> stays in Portuguese — it has to match what the program really prints.
 Topic 01 of the track shows a minimal program bringing the [EAL][cEAL] up and
 shutting it down. This module deals with what comes after that first run: how the
 runtime behaves as a **system**, what it costs, what it leaves on the host, and which
@@ -176,8 +159,8 @@ measurement, with the memory mode of the EAL as the only difference:
 ```
   configuration       rte_eal_init()   rte_eal_cleanup()   ratio
   -----------------   --------------   -----------------   -------
-  -l 0 --in-memory      122.5 ms         0.118 ms  ! 32%    1038x
-  -l 0 --no-huge        122.4 ms         0.651 ms  ~  9%     188x
+  -l 0 --in-memory      122.4 ms         0.082 ms  ! 47%    1493x
+  -l 0 --no-huge        121.9 ms         0.605 ms  ! 30%     201x
 ```
 
 Initialisation does not move — 122.4 against 122.5 ms. Shutdown changes by a factor

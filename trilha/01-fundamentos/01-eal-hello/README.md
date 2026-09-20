@@ -218,15 +218,11 @@ Compile e execute:
 Saída esperada:
 
 ```
-EAL: Detected CPU lcores: 24
-EAL: Detected NUMA nodes: 1
-EAL: Detected shared linkage of DPDK
-EAL: Selected IOVA mode 'VA'
-DPDK Academy: EAL inicializada com sucesso.
-Versao do DPDK: DPDK 25.11.0
-Lcores disponiveis: 1 (lcore principal: 0)
-No NUMA do lcore principal: 0
-Argumentos restantes para a aplicacao: 0
+DPDK Academy: EAL initialised successfully.
+DPDK version: DPDK 25.11.0
+Lcores available: 1 (main lcore: 0)
+NUMA node of the main lcore: 0
+Arguments left for the application: 0
 ```
 
 As linhas iniciadas por `EAL:` são da própria camada, **não são erros**. Repare
