@@ -101,7 +101,7 @@ int main(void)
         sumidouro = syscall(SYS_getpid);
     }
 
-    printf("Custo por operacao (%d iteracoes, %d amostras; tempos em ns)\n\n", ITERATIONS,
+    printf("Cost per operation (%d iterations, %d samples; times in ns)\n\n", ITERATIONS,
            DEFAULT_SAMPLES);
     print_header();
     const struct statistics e_funcao = collect_or_fail(m_funcao, DEFAULT_SAMPLES);
@@ -113,12 +113,12 @@ int main(void)
 
     const double ns_funcao = e_funcao.median;
     const double ns_syscall = e_syscall.median;
-    printf("\n  syscall custa %.0fx uma chamada de funcao\n", ns_syscall / ns_funcao);
+    printf("\n  a syscall costs %.0fx a function call\n", ns_syscall / ns_funcao);
 
-    printf("\nOrcamento de 10 GbE com quadros de 64 B: %.1f ns por pacote\n",
+    printf("\n10 GbE budget with 64 B frames: %.1f ns per packet\n",
            BUDGET_10GBE_NS);
-    printf("  syscalls que cabem nesse orcamento: %.2f\n", BUDGET_10GBE_NS / ns_syscall);
-    printf("\n  O caminho tradicional do kernel gasta pelo menos uma syscall por\n");
-    printf("  lote de pacotes, mais interrupcao, alocacao de sk_buff e copia.\n");
+    printf("  syscalls that fit in that budget: %.2f\n", BUDGET_10GBE_NS / ns_syscall);
+    printf("\n  The traditional kernel path spends at least one syscall per\n");
+    printf("  packet batch, plus interrupt, sk_buff allocation and a copy.\n");
     return 0;
 }

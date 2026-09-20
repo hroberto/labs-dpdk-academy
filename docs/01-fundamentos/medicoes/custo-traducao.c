@@ -124,13 +124,13 @@ static double amostra_2m(void)
 int main(void)
 {
     print_provenance("custo-traducao");
-    printf("Custo da traducao de endereco (percurso disperso em %llu MB)\n",
+    printf("Address translation cost (scattered walk over %llu MB)\n",
            REGIAO_BYTES / (1024 * 1024));
-    printf("(%d amostras por medicao; tempos em ns)\n\n", AMOSTRAS_PAGINA);
+    printf("(%d samples per measurement; times in ns)\n\n", AMOSTRAS_PAGINA);
 
     if (amostra_2m() < 0) {
-        printf("  2 MB hugepages indisponiveis para este processo.\n\n");
-        printf("  Reserve hugepages para completar a medicao, por exemplo:\n");
+        printf("  2 MB hugepages unavailable to this process.\n\n");
+        printf("  Reserve hugepages to complete the measurement, for example:\n");
         printf("    sudo sysctl -w vm.nr_hugepages=512\n");
         /* CÓDIGO 77 = PULADO, e não sucesso.
          *
@@ -151,14 +151,14 @@ int main(void)
         collect_paired(amostra_4k, amostra_2m, AMOSTRAS_PAGINA);
     if (!collection_is_valid(p.a, AMOSTRAS_PAGINA) ||
         !collection_is_valid(p.b, AMOSTRAS_PAGINA)) {
-        fprintf(stderr, "COLETA INVALIDA OU ABAIXO DA RESOLUCAO:"
+        fprintf(stderr, "INVALID COLLECTION OR BELOW RESOLUTION:"
                         " sem resultado publicavel\n");
         return EXIT_FAILURE;
     }
     const struct statistics e4k = p.a, e2m = p.b;
     print_row("4 KB pages", e4k);
     print_row("2 MB hugepages", e2m);
-    printf("\n  A diferenca abaixo e PAREADA -- delta_i = t_4k,i - t_2m,i na mesma\n"
+    printf("\n  The difference below is PAIRED -- delta_i = t_4k,i - t_2m,i in the same\n"
            "  volta do laco -- e por isso tem distribuicao propria:\n\n");
     /* "DIFERENCA (o page walk)" era o rotulo, e ele prometia demais.
      *
@@ -171,17 +171,17 @@ int main(void)
 
     const double ns_4k = e4k.median, ns_2m = e2m.median;
     const double delta = p.delta.median;
-    printf("\n  custo do page walk: %.2f ns  (%.1f%% do acesso com 4 KB)\n", delta,
+    printf("\n  page walk cost: %.2f ns  (%.1f%% of the 4 KB access)\n", delta,
            100.0 * delta / ns_4k);
-    printf("  a ultima coluna e o que sustenta a conclusao: em %d dos %d pares a\n"
+    printf("  the last column is what supports the conclusion: in %d of %d pairs the\n"
            "  pagina de 4 KB foi a mais lenta. Subtrair duas medianas nao diz isso.\n",
            p.mesmo_sinal, p.n);
 
-    printf("\n  A latencia da RAM (~%.0f ns) aparece nas duas medicoes e nao\n", ns_2m);
-    printf("  depende do tamanho da pagina. A diferenca acima e o custo do\n");
-    printf("  page walk, que as hugepages eliminam: %.1f%% do orcamento de\n",
+    printf("\n  RAM latency (~%.0f ns) appears in both measurements and does not\n", ns_2m);
+    printf("  depend on page size. The difference above is the cost of the\n");
+    printf("  page walk, which hugepages remove: %.1f%% of the budget of\n",
            100.0 * delta / BUDGET_10GBE_NS);
-    printf("  %.1f ns por pacote em 10 GbE, gasto antes de qualquer trabalho util.\n",
+    printf("  %.1f ns per packet at 10 GbE, spent before any useful work.\n",
            BUDGET_10GBE_NS);
     return 0;
 }
