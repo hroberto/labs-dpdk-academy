@@ -107,7 +107,7 @@ on the same machine, with the same methodology as the project's other programs.
 
 **`malloc()` costs 2.18 ns, not tens.** Repeatedly allocating and freeing an object
 of the same size is the case where glibc is good: the allocator has a per-thread
-cache, and the pair falls into it. The current claim overestimates the adversary —
+cache — the [tcache][tcache] —, and the pair falls into it. The current claim overestimates the adversary —
 and a justification that overestimates the adversary is fragile, because it collapses
 when someone measures.
 
@@ -116,7 +116,7 @@ line explains where the gain comes from.
 
 ### 1.1 The per-lcore cache is nearly the whole gain
 
-A mempool has two layers: a common, shared ring, and a **per-lcore cache** acting as
+A mempool has two layers ([mempool guide][guiamempool]): a common, shared ring, and a **per-lcore cache** acting as
 a buffer. Creating the same pool with `cache_size = 0`, the operation goes from
 **0.98 ns to 10.45 ns** — ten times more expensive, and five times more expensive
 than `malloc()`.
@@ -643,6 +643,7 @@ which is where there is a real pipeline to fill it.
 | **Next** | [Pipeline and backpressure](../../trilha/02-pipeline/) |
 | **Plan** | [Study plan](../plano-estudo-dpdk.en.md) |
 
+[tcache]: https://www.gnu.org/software/libc/manual/html_node/Memory-Allocation-Tunables.html
 [guiamempool]: https://doc.dpdk.org/guides/prog_guide/mempool_lib.html
 [guiaring]: https://doc.dpdk.org/guides/prog_guide/ring_lib.html
 [guiambuf]: https://doc.dpdk.org/guides/prog_guide/mbuf_lib.html

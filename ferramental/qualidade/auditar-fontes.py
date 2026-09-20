@@ -46,8 +46,20 @@ DOCS = sorted(str(p) for p in pathlib.Path('docs').rglob('*.md'))
 # versao trazia {"10", "13", "14"}, que e a numeracao do modulo 01, e por isso
 # declarava "0 fontes remotas" nos modulos 02 e 03 -- onde as tabelas de
 # referencia tem outro numero. Zero por miscalibragem parece zero por limpeza.
+# Secoes cujo conteudo NAO e afirmacao a ser sustentada.
+#
+# `Ao final deste modulo` entrou depois: a lista de objetivos de aprendizagem
+# -- "calcular o orcamento por pacote", "explicar por que a syscall custa" --
+# casa com NUMERO e EXTERNO, e o auditor a contava no denominador como se fosse
+# afirmacao sobre o mundo. Nao e: e promessa didatica, e quem a sustenta e o
+# resto do documento.
+#
+# Achado triando as declaracoes "dado local" do modulo 01: das oito, sete eram
+# apoio legitimo a medicao propria e UMA era esta lista.
 TABELAS = re.compile(r"(Refer[êe]ncias?|References|Confronto com a literatura"
-                     r"|literature|Navega[çc][ãa]o|Navigation)", re.I)
+                     r"|literature|Navega[çc][ãa]o|Navigation"
+                     r"|Ao final deste m[óo]dulo|By the end of this module"
+                     r"|[ÍI]ndice|Contents)", re.I)
 
 SUJEITO = (r"(o kernel|o hardware|a NIC|a placa|o processador|a CPU|o driver"
            r"|o escalonador|a glibc|o compilador|a DRAM|o controlador|o DPDK"
