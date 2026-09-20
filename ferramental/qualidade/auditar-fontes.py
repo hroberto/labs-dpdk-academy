@@ -54,10 +54,26 @@ SUJEITO = (r"(o kernel|o hardware|a NIC|a placa|o processador|a CPU|o driver"
            r"|o Linux|a MMU|a TLB|o prefetcher|o sistema operacional"
            r"|the kernel|the hardware|the NIC|the processor|the CPU|the driver"
            r"|the scheduler|glibc|the compiler|the memory controller"
-           r"|the prefetcher|the operating system)")
+           r"|the prefetcher|the operating system"
+           # OS SEIS QUE FALTAVAM, e a assimetria que eles produziam.
+           #
+           # O lado portugues listava `a placa`, `a DRAM`, `o DPDK`, `o Linux`,
+           # `a MMU` e `a TLB`; o ingles, nenhum dos seis. O MESMO documento
+           # reportava 63 afirmacoes exigindo fonte em portugues e 54 em ingles
+           # -- e a diferenca parecia divergencia de conteudo num par com
+           # paridade verificada, quando era cegueira do detector.
+           #
+           # Sem artigo nos seis: em ingles "DRAM latency" e "the DRAM" ocorrem,
+           # e exigir `the` perderia metade.
+           r"|the board|DRAM|DPDK|Linux|the MMU|the TLB)")
 MODAL = (r"(sempre|nunca|por padr[ao]|precisa|tem de|n[ao]o pode|garante"
          r"|obriga|impede|s[o0] pode"
-         r"|always|never|by default|must|cannot|guarantees|forces|prevents)")
+         # O LADO INGLES TINHA OITO FORMAS CONTRA DEZ DO PORTUGUES. Faltavam
+         # os equivalentes de `precisa`, `obriga` e `tem de` -- e sao das mais
+         # comuns em prosa tecnica inglesa, onde `requires` faz o trabalho que
+         # em portugues se reparte entre `precisa` e `exige`.
+         r"|always|never|by default|must|cannot|guarantees|forces|prevents"
+         r"|requires|needs to|has to|have to|can only|is required)")
 LOCAL = (r"(medicoes/|\.c\)|\.h\)|nesta m[a�]quina|nesta placa|on this machine"
          r"|medi[cç][ãa]o|medi[çc][õo]es|measured here|the table above"
          r"|a tabela acima)")
