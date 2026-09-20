@@ -1,0 +1,60 @@
+# CLASSIFICACAO DOS NUMEROS QUE SAO ARREDONDAMENTO DE VALOR RETRATADO
+#
+# POR QUE UM ARQUIVO AO LADO, E NAO MARCA NO TEXTO
+#
+# A marca teria de ser POR NUMERO, nao por bloco: a §10 publica
+# `| ~23 ns | < 25 ns ([Tom's Hardware][th]) |` -- MEDIDO e CITADO na MESMA
+# linha de tabela. E dois dos numeros vivem onde comentario HTML nao cabe:
+# `8,6` esta dentro de um `alt=` (quebra a renderizacao) e `11` esta dentro de
+# uma ancora de titulo (mudar quebra todos os links que apontam para ela, e o
+# `verificar-links.py` acusaria).
+#
+# Indice ao lado resolve os tres casos de uma vez, e tem a propriedade que a
+# marca inline nao tem: e legivel por maquina sem parsear markdown.
+#
+# AS QUATRO CLASSES
+#
+#   MEDIDO        saiu de um programa deste repositorio, nesta maquina
+#   CALCULADO     aritmetica declarada sobre valores medidos
+#   CITADO        veio de fonte externa, citada no ponto da afirmacao
+#   ILUSTRATIVO   ordem de grandeza num exemplo didatico ou diagrama
+#
+# A quarta classe -- CITADO -- e a que a proposta de tres rotulos nao tinha, e
+# e grande justamente na §10, que e a secao de confronto com a literatura.
+#
+# CHAVE: o numero como aparece no relatorio de arredondados. Hoje os 38 sao 13
+# numeros distintos duplicados pt/en, sem colisao de classe entre os idiomas.
+# Se um dia o mesmo numero precisar de classes diferentes em lugares
+# diferentes, esta chave deixa de bastar -- e o verificador dira, porque a nota
+# nao vai corresponder ao contexto.
+#
+# numero	classe	justificativa
+0,20	MEDIDO	atomica relaxed, 0,205 arredondado na prosa da §5.2
+8,6	MEDIDO	banda efetiva 8,63 GB/s; vive no alt= do grafico, onde marca inline nao cabe
+10,9	ILUSTRATIVO	exemplo didatico de media contra mediana na §7; nao e medicao desta maquina
+11	MEDIDO	diferenca de traducao 10,93; vive na ancora de um titulo da §4.1
+14	ILUSTRATIVO	diagrama ASCII da distribuicao de latencia na §7
+17	CALCULADO	8,5 ns por lock vezes o numero de amostras da coleta
+18	MEDIDO	o proprio texto declara "~18 ns (medido)" na tabela de polling
+25	CITADO	"< 25 ns ([Tom's Hardware][th])" na tabela de confronto da §10
+91	CALCULADO	subtracao do page walk: 101 menos 10 a 18 ns
+92	MEDIDO	ENTRE dominios, 91,75 arredondado na §4.2.1
+116	MEDIDO	linha K = 16 da tabela do custo-paralelismo
+120	CALCULADO	fila de 512 posicoes a 67,2 ns por pacote
+320	MEDIDO	linha de tabela do 6.3-aprofundamento
+0,92	MEDIDO	chamada de funcao no regime raro, medida na investigacao da §5 da metodologia
+0,45	MEDIDO	efeito do lote no mempool, modulo 03
+0,30	MEDIDO	rte_eal_cleanup no modulo 02
+7,7	MEDIDO	linha da tabela de dimensionamento do modulo 03
+15	ILUSTRATIVO	parametro de um exercicio ("depois de 15 s"), nao afirmacao de medicao
+#
+# 17,5 NAO ESTA CLASSIFICADO, E E DE PROPOSITO.
+#
+# O modulo 02 afirma "83 a 123 ns contra 17,5 ns" para latencia dentro do mesmo
+# CCD -- e `17,50` esta na lista de valores RETRATADOS do `custo-comunicacao`.
+# E a MESMA grandeza fisica.
+#
+# Classifica-lo como MEDIDO o tiraria do aviso e silenciaria exatamente o caso
+# que este verificador existe para achar: valor retratado sobrevivendo em outro
+# documento. Fica pendente ate alguem confrontar as duas coletas e decidir se o
+# numero do modulo 02 e anterior a retratacao ou independente dela.
