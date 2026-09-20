@@ -35,12 +35,16 @@ import re
 import statistics as st
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from rotulos import normalizar  # noqa: E402
+
 # Duas formas de tabela convivem no repositório, e um parser que só entenda a
 # primeira falha em SILÊNCIO sobre a segunda -- foi assim que `custo-mckenney`
 # passou despercebido numa campanha inteira.
 LINHA = re.compile(r"^\s{2,}(\S.*?)\s{2,}(\d+\.\d+)\s")
 NIVEL = re.compile(r"^  (L1d|L2|L3|RAM) ")
-SUB = re.compile(r"^    (sequencial|aleatorio|dependente)\s+\S*\s+(\d+\.\d+)\s")
+SUB = re.compile(r"^    (sequencial|aleatorio|dependente|sequential|random|dependent)\s+\S*\s+(\d+\.\d+)\s")
+SUB_EN = {"sequencial": "sequential", "aleatorio": "random", "dependente": "dependent"}
 
 
 def coletar(diretorio):
@@ -77,12 +81,13 @@ def coletar(diretorio):
                 continue
             s = SUB.match(ln)
             if s and nivel:
-                fora.setdefault(f"{prog}: {nivel} {s.group(1)}", []).append(float(s.group(2)))
+                col = SUB_EN.get(s.group(1), s.group(1))
+                fora.setdefault(f"{prog}: {nivel} {col}", []).append(float(s.group(2)))
                 continue
             c = LINHA.match(ln.rstrip())
             if c:
                 rot = c.group(1).strip()
-                if rot.startswith("-") or "medicao" in rot:
+                if rot.startswith("-") or "medicao" in rot or "measurement" in rot:
                     continue
                 # ROTULO PURAMENTE NUMERICO E COLUNA, NAO MEDICAO.
                 #
@@ -95,6 +100,15 @@ def coletar(diretorio):
                 # qual das tres citar.
                 if rot.isdigit():
                     continue
+                # NORMALIZA O IDIOMA DO ROTULO.
+                #
+                # A partir de 20/09/2026 os programas imprimem em ingles, e as
+                # 92 coletas ja arquivadas estao em portugues. O rotulo e a
+                # CHAVE da comparacao: sem normalizar, uma coleta nova
+                # comparada com uma antiga mostraria toda linha como ausente de
+                # um dos lados -- e o fatorial 2x2 do segundo pente compara
+                # exatamente atraves dessa fronteira.
+                rot = normalizar(rot)
                 k = vistos.get(rot, 0)
                 vistos[rot] = k + 1
                 chave = f"{prog}: {rot}" + (f" #{k+1}" if k else "")

@@ -171,6 +171,7 @@ static struct resultado correr(unsigned passos, double service_ns, double *lat)
 
 int main(void)
 {
+    print_provenance("orcamento-estourado");
     static double lat[MAX_LATENCIES];
 
     printf("== Quando o orcamento por pacote estoura ==\n\n");

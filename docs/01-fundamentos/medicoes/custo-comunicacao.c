@@ -447,6 +447,7 @@ static double medir_entre(void)
 
 int main(void)
 {
+    print_provenance("custo-comunicacao");
     char dominios[MAX_DOMINIOS][256];
     const int n = ler_dominios(dominios);
 
@@ -477,7 +478,7 @@ int main(void)
         par_b = cpu_local_b;
         const struct statistics so_local = collect_or_fail(measure_pair, AMOSTRAS_C2C);
         print_header();
-        snprintf(rot, sizeof(rot), "dentro do dominio 0 (cpu %d <-> %d)", par_a, par_b);
+        snprintf(rot, sizeof(rot), "within domain 0 (cpu %d <-> %d)", par_a, par_b);
         print_row(rot, so_local);
         printf("\n  Esta maquina tem um unico dominio de L3: nao ha par\n");
         printf("  'distante' para comparar. Em processadores com varios blocos\n");
@@ -516,13 +517,13 @@ int main(void)
     const double dentro = e_dentro.median, entre = e_entre.median;
 
     print_header();
-    snprintf(rot, sizeof(rot), "dentro do dominio 0 (cpu %d <-> %d)",
+    snprintf(rot, sizeof(rot), "within domain 0 (cpu %d <-> %d)",
              cpu_local_a, cpu_local_b);
     print_row(rot, e_dentro);
-    snprintf(rot, sizeof(rot), "ENTRE dominios (cpu %d <-> %d)",
+    snprintf(rot, sizeof(rot), "BETWEEN domains (cpu %d <-> %d)",
              cpu_local_a, cpu_remoto_b);
     print_row(rot, e_entre);
-    print_row("RAZAO entre/dentro (pareada)", pc.razao);
+    print_row("RATIO between/within (paired)", pc.razao);
     /* ---- Contenção de SMT ---- */
     printf("\n  Contencao entre fluxos SMT (mesmo nucleo fisico)\n\n");
     print_header();
@@ -539,7 +540,7 @@ int main(void)
 
     cpu_vizinho = -1;
     const struct statistics e_sozinho = collect_or_fail(laco_de_trabalho, AMOSTRAS_C2C);
-    print_row("laco sozinho no nucleo", e_sozinho);
+    print_row("loop alone on the core", e_sozinho);
     /* A penalidade do SMT tambem e uma RAZAO, e tambem precisa de selo
      * proprio -- ver o bloco do irmao SMT logo abaixo. */
 
@@ -559,7 +560,7 @@ int main(void)
     if (irmao > 0) {
         cpu_vizinho = irmao;
         char rot[64];
-        snprintf(rot, sizeof(rot), "vizinho no irmao SMT (cpu %d)", irmao);
+        snprintf(rot, sizeof(rot), "neighbour on SMT sibling (cpu %d)", irmao);
         /* DUAS FASES, e a razao de ser esta documentada no bloco abaixo. */
         const struct paired_stats f1 =
             collect_paired(com_vizinho, laco_sem_vizinho, AMOSTRAS_C2C);
@@ -570,7 +571,7 @@ int main(void)
         const struct statistics e_smt = f2.a;
         print_row(rot, e_smt);
 
-        print_row("RAZAO com/sem irmao SMT (pareada)", f2.razao);
+        print_row("RATIO with/without SMT sibling (paired)", f2.razao);
 
         /* O CONTROLE DE REGIME, e ele existe porque uma coleta avulsa sugeriu
          * que a razao dependia do estado da maquina: uma execucao deu 2,29 com
@@ -591,7 +592,7 @@ int main(void)
         printf("  As duas fases concordam: a razao nao depende de condicionamento.\n");
 
         cpu_vizinho = par_b; /* núcleo físico distinto, mesmo domínio */
-        snprintf(rot, sizeof(rot), "vizinho em nucleo fisico (cpu %d)", par_b);
+        snprintf(rot, sizeof(rot), "neighbour on physical core (cpu %d)", par_b);
         const struct statistics e_fis = collect_or_fail(com_vizinho, AMOSTRAS_C2C);
         print_row(rot, e_fis);
 
@@ -612,12 +613,12 @@ int main(void)
         const struct statistics a1 = collect_or_fail(m_agr_um, AMOSTRAS_C2C);
         const struct statistics a2 = collect_or_fail(m_agr_fisicos, AMOSTRAS_C2C);
         const struct statistics a3 = collect_or_fail(m_agr_irmaos, AMOSTRAS_C2C);
-        snprintf(rot, sizeof(rot), "1 thread  em 1 nucleo fisico (cpu %d)", cpu_local_a);
+        snprintf(rot, sizeof(rot), "1 thread  on 1 physical core (cpu %d)", cpu_local_a);
         print_row(rot, a1);
-        snprintf(rot, sizeof(rot), "2 threads em 2 nucleos fisicos (cpu %d,%d)",
+        snprintf(rot, sizeof(rot), "2 threads on 2 physical cores (cpu %d,%d)",
                  cpu_local_a, par_b);
         print_row(rot, a2);
-        snprintf(rot, sizeof(rot), "2 threads em 2 irmaos SMT (cpu %d,%d)",
+        snprintf(rot, sizeof(rot), "2 threads on 2 SMT siblings (cpu %d,%d)",
                  cpu_local_a, irmao);
         print_row(rot, a3);
         printf("\n  dois nucleos fisicos rendem %.2fx um nucleo\n", a2.median / a1.median);

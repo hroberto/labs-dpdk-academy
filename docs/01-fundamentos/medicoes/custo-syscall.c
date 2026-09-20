@@ -5,7 +5,7 @@
  *
  * Compara três operações:
  *   1. chamada de função comum      (referência: fica tudo em user-space)
- *   2. syscall real (SYS_getpid)    (atravessa a fronteira)
+ *   2. real syscall (SYS_getpid)    (atravessa a fronteira)
  *   3. clock_gettime()              (syscall servida pelo vDSO, sem trap)
  *
  * O item 3 existe para mostrar que "syscall" não é um custo único: o vDSO
@@ -95,6 +95,7 @@ static double m_vdso(void)
 
 int main(void)
 {
+    print_provenance("custo-syscall");
     for (int i = 0; i < AQUECIMENTO; i++) {
         sumidouro = plain_call(i);
         sumidouro = syscall(SYS_getpid);
@@ -104,11 +105,11 @@ int main(void)
            DEFAULT_SAMPLES);
     print_header();
     const struct statistics e_funcao = collect_or_fail(m_funcao, DEFAULT_SAMPLES);
-    print_row("chamada de funcao (user-space)", e_funcao);
+    print_row("function call (user-space)", e_funcao);
     const struct statistics e_vdso = collect_or_fail(m_vdso, DEFAULT_SAMPLES);
-    print_row("clock_gettime (vDSO, sem trap)", e_vdso);
+    print_row("clock_gettime (vDSO, no trap)", e_vdso);
     const struct statistics e_syscall = collect_or_fail(m_syscall, DEFAULT_SAMPLES);
-    print_row("syscall real (SYS_getpid)", e_syscall);
+    print_row("real syscall (SYS_getpid)", e_syscall);
 
     const double ns_funcao = e_funcao.median;
     const double ns_syscall = e_syscall.median;

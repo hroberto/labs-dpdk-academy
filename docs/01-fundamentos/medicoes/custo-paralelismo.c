@@ -76,7 +76,7 @@
  *
  * Com 7 amostras o selo de confianca vira loteria. Coletando 70 amostras e
  * recalculando `disp` em dez grupos de 7 — com o estimador de statistics.h,
- * interpolado —, o mesmo ponto de 2 nucleos produziu selo em branco cinco
+ * interpolado —, o mesmo ponto de 2 cores produziu selo em branco cinco
  * vezes, `~` tres e `!` duas, quando a dispersao verdadeira e 4,4%. E em 4
  * nucleos, cuja dispersao verdadeira e 10,4% (`!`), NENHUM dos dez grupos
  * chegou a marcar `!`.
@@ -291,6 +291,7 @@ static double amostra_n_nucleos(void) { return medir_n_nucleos(caso_n); }
 
 int main(void)
 {
+    print_provenance("custo-paralelismo");
     static const struct { int k; double (*percorrer)(void); } casos[] = {
         {1, percurso_1},   {2, percurso_2},   {4, percurso_4},   {8, percurso_8},
         {12, percurso_12}, {16, percurso_16}, {32, percurso_32}, {64, percurso_64},
@@ -304,7 +305,7 @@ int main(void)
     regiao = mmap(NULL, REGIAO_BYTES, PROT_READ | PROT_WRITE,
                   MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
     if (regiao == MAP_FAILED) {
-        printf("  hugepages de 2 MB indisponiveis para este processo.\n\n");
+        printf("  2 MB hugepages indisponiveis para este processo.\n\n");
         printf("  Elas nao sao o objeto desta medicao: servem para tirar a TLB\n");
         printf("  da conta, de modo que a tabela meca concorrencia e nada mais.\n");
         printf("  Reserve com, por exemplo:\n");
@@ -326,8 +327,8 @@ int main(void)
     for (size_t i = 0; i < n_ks; i++) {
         char rot[64];
         const struct statistics e = collect_or_fail(casos[i].percorrer, AMOSTRAS);
-        snprintf(rot, sizeof(rot), "K = %-2d (%d acesso%s em voo)", casos[i].k,
-                 casos[i].k, casos[i].k == 1 ? "" : "s");
+        snprintf(rot, sizeof(rot), "K = %-2d (%d access%s in flight)", casos[i].k,
+                 casos[i].k, casos[i].k == 1 ? "" : "es");
         print_row(rot, e);
         ns[i] = e.median;
     }
@@ -382,7 +383,7 @@ int main(void)
         char rot[64];
         caso_n = ns_nucleos[i];
         const struct statistics e = collect_or_fail(amostra_n_nucleos, AMOSTRAS_NUCLEOS);
-        snprintf(rot, sizeof(rot), "%d nucleo%s", caso_n, caso_n == 1 ? "" : "s");
+        snprintf(rot, sizeof(rot), "%d core%s", caso_n, caso_n == 1 ? "" : "s");
         print_row(rot, e);
         usados[n_casos] = caso_n;
         por_nucleo[n_casos] = e.median;

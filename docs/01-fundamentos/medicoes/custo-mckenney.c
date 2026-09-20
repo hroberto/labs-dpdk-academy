@@ -12,8 +12,8 @@
  * A Tabela 3.1 dele mede, num AMD Opteron 844 de 1,8 GHz com QUATRO SOQUETES:
  *
  *     período de clock ............   0,6 ns
- *     CAS em melhor caso ..........  37,9 ns
- *     trava em melhor caso ........  65,6 ns
+ *     CAS, best case ..........  37,9 ns
+ *     lock, best case ........  65,6 ns
  *     falta de cache simples ...... 139,5 ns
  *     CAS com falta de cache ...... 306,0 ns
  *
@@ -215,6 +215,7 @@ static int nucleo_de_outro_dominio(void)
 
 int main(void)
 {
+    print_provenance("custo-mckenney");
     fixar(cpu_local);
     aquecer();
 
@@ -231,15 +232,15 @@ int main(void)
 
     printf("MELHOR CASO - a linha de cache ja esta neste nucleo\n\n");
     print_header_cycles();
-    print_row_cycles("CAS em melhor caso", collect_or_fail(cas_melhor_caso, DEFAULT_SAMPLES), T);
-    print_row_cycles("trava em melhor caso", collect_or_fail(trava_melhor_caso, DEFAULT_SAMPLES), T);
+    print_row_cycles("CAS, best case", collect_or_fail(cas_melhor_caso, DEFAULT_SAMPLES), T);
+    print_row_cycles("lock, best case", collect_or_fail(trava_melhor_caso, DEFAULT_SAMPLES), T);
 
     printf("\nFALTA DE CACHE - a linha esta em outro nucleo e precisa migrar\n\n");
     print_header_cycles();
 
     cpu_remoto = 2;
-    print_row_cycles("falta simples, mesmo dominio L3", collect_or_fail(falta_de_cache, DEFAULT_SAMPLES), T);
-    print_row_cycles("CAS com falta, mesmo dominio L3", collect_or_fail(cas_com_falta, DEFAULT_SAMPLES), T);
+    print_row_cycles("plain miss, same L3 domain", collect_or_fail(falta_de_cache, DEFAULT_SAMPLES), T);
+    print_row_cycles("CAS with miss, same L3 domain", collect_or_fail(cas_com_falta, DEFAULT_SAMPLES), T);
 
     const int outro = nucleo_de_outro_dominio();
     if (outro < 0) {
@@ -253,8 +254,8 @@ int main(void)
         return 77;
     }
     cpu_remoto = outro;
-    print_row_cycles("falta simples, OUTRO dominio L3", collect_or_fail(falta_de_cache, DEFAULT_SAMPLES), T);
-    print_row_cycles("CAS com falta, OUTRO dominio L3", collect_or_fail(cas_com_falta, DEFAULT_SAMPLES), T);
+    print_row_cycles("plain miss, OTHER L3 domain", collect_or_fail(falta_de_cache, DEFAULT_SAMPLES), T);
+    print_row_cycles("CAS with miss, OTHER L3 domain", collect_or_fail(cas_com_falta, DEFAULT_SAMPLES), T);
 
     printf("\n  Para comparar, os valores de McKenney em CICLOS (periodo 0,6 ns):\n");
     printf("    CAS melhor caso  63 | trava melhor caso 109\n");

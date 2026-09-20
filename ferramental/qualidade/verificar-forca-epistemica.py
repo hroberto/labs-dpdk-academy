@@ -61,18 +61,39 @@ CLASSES = {
     # A licao das duas exclusoes e a mesma, e ela vale mais que o vocabulario:
     # ESTE VOCABULARIO TEM DE SAIR DO CORPUS, NAO DA MEMORIA DE QUEM ESCREVE.
     # Montado de cabeca, ele errou duas vezes em dez achados na primeira volta.
+    # `parece` saiu -- QUARTA ambiguidade. As tres ocorrencias do modulo 02 eram
+    # todas dele, e nenhuma era hesitacao: "um piso fixo com essa dispersao nao
+    # parece trabalho: parece espera" e "as descricoes se parecem". E
+    # "assemelha-se a", nao "sugere". Com ele fora, o par `seems` tambem sai,
+    # porque perde o correspondente.
     "fraca (sugere/indica)": (
-        r"\b(sugere|sugerem|indica|indicam|aponta|apontam|parece|parecem)\b",
-        r"\b(suggests?|indicates?|points? to|seems?)\b"),
+        r"\b(sugere|sugerem|indica|indicam|aponta|apontam)\b",
+        r"\b(suggests?|indicates?|points? to)\b"),
     "compatibilidade (nao prova)": (
         r"\b(compatív(el|eis)|coerente|coerentes|consistente|consistentes)\b",
         r"\b(consistent|compatible|coherent)\b"),
+    # ESTE nao foi ambiguidade, foi PADRAO INCOMPLETO -- a mesma classe do
+    # `limitac` que nao casava com `limitaç`. Faltavam as formas mais comuns do
+    # portugues: `medir`, `medicao`, `medicoes`, `medimos`. Do lado ingles
+    # faltava o substantivo `measurement`.
     "medicao": (
-        r"\b(mede|medem|medid[ao]s?|mensurad[ao]s?)\b",
-        r"\b(measures?|measured|measurable)\b"),
-    "modal (pode/talvez)": (
-        r"\b(pode|podem|poderia|poderiam|talvez|possivelmente)\b",
-        r"\b(may|might|could|perhaps|possibly)\b"),
+        r"\b(mede|medem|medir|medid[ao]s?|mensurad[ao]s?|mediç(ão|ões)|medimos)\b",
+        r"\b(measures?|measured|measurable|measurements?|measuring)\b"),
+    # `pode` FICOU DE FORA, e e a TERCEIRA ambiguidade que este vocabulario
+    # encontrou -- depois de `establish` e `appears`, as duas no lado ingles.
+    #
+    # Em portugues `pode` cobre possibilidade E capacidade; o ingles separa em
+    # `may` e `can`. Os 37 `pode/podem` do modulo 01 misturam os dois sentidos,
+    # e os 20 ingleses contam so o primeiro. Incluir `can` no lado ingles
+    # tornaria a classe inutil: ele e onipresente em texto tecnico.
+    #
+    # O padrao das tres exclusoes e o mesmo, e merece ser dito: NAO EXISTE
+    # PAREAMENTO 1:1 entre vocabularios epistemicos de duas linguas. O que
+    # sobrevive sao os marcadores SEM equivalente ambiguo -- e sao poucos, o
+    # que e uma limitacao do instrumento, nao um defeito dele.
+    "modal (talvez/possivelmente)": (
+        r"\b(poderia|poderiam|talvez|possivelmente|eventualmente)\b",
+        r"\b(might|perhaps|possibly)\b"),
     "escopo declarado": (
         r"(nesta máquina|neste hardware|nesta configuração|nesta coleta)",
         r"(on this machine|on this hardware|in this configuration|in this collection)"),

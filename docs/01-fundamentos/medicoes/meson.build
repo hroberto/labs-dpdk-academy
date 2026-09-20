@@ -133,6 +133,20 @@ endif
 # que NAO se resolve assim visivel, como no custo-syscall.
 alinhamento = ['-falign-loops=64']
 
+# PROVENIENCIA: o commit entra no binario NA HORA DO BUILD.
+#
+# `vcs_tag` regenera o cabecalho quando o estado do git muda; `run_command` o
+# fixaria na configuracao e o binario declararia procedencia vencida sem aviso.
+# O arquivo gerado entra como FONTE de cada programa, e nao so como include,
+# porque incluir nao garante ordem de build -- o executavel poderia ser
+# compilado antes de o cabecalho existir.
+versao_h = vcs_tag(
+  input : 'academy_version.h.in',
+  output : 'academy_version.h',
+  command : ['git', 'describe', '--always', '--dirty', '--tags'],
+  fallback : 'sem-git',
+)
+
 # Medições dos fundamentos (níveis 1 e 2).
 #
 # Não dependem do DPDK: o objetivo é medir as propriedades da MÁQUINA que
@@ -143,31 +157,31 @@ alinhamento = ['-falign-loops=64']
 # declarada do hardware. Existe porque /proc/cpuinfo reporta o valor BRUTO no
 # Zen 5 (sem o multiplicador x32) ate o kernel 7.4, e o modulo 01 publica o
 # alcance da TLB como numero. Em CPU nao-AMD sai com 77 (PULADO).
-tlb_real = executable('tlb-real', 'tlb-real.c', install : false)
+tlb_real = executable('tlb-real', 'tlb-real.c', versao_h, install : false)
 test('fundamentos - L1 (TLB real via CPUID)', tlb_real,
      suite : ['l1', 'fundamentos'], timeout : 30)
 
-custo_syscall = executable('custo-syscall', 'custo-syscall.c', c_args : alinhamento,
+custo_syscall = executable('custo-syscall', 'custo-syscall.c', versao_h, c_args : alinhamento,
                            dependencies : [libm], install : false)
-efeito_cache = executable('efeito-cache', 'efeito-cache.c', c_args : alinhamento,
+efeito_cache = executable('efeito-cache', 'efeito-cache.c', versao_h, c_args : alinhamento,
                           dependencies : [libm], install : false)
-custo_traducao = executable('custo-traducao', 'custo-traducao.c', c_args : alinhamento,
+custo_traducao = executable('custo-traducao', 'custo-traducao.c', versao_h, c_args : alinhamento,
                             dependencies : [libm], install : false)
 # L3: mede CONCORRENCIA de memoria (latencia x vazao). Usa hugepages apenas
 # para tirar a TLB da conta; sem elas sai com 77 (PULADO).
-custo_paralelismo = executable('custo-paralelismo', 'custo-paralelismo.c',
+custo_paralelismo = executable('custo-paralelismo', 'custo-paralelismo.c', versao_h,
                                c_args : alinhamento,
                                dependencies : [dependency('threads'), libm], install : false)
 test('fundamentos - custo-paralelismo (L3)', custo_paralelismo,
      suite : ['l3', 'fundamentos'], timeout : 300)
 
 # Sensivel a alinhamento: ver o bloco no topo deste arquivo.
-custo_comunicacao = executable('custo-comunicacao', 'custo-comunicacao.c',
+custo_comunicacao = executable('custo-comunicacao', 'custo-comunicacao.c', versao_h,
                                c_args : alinhamento,
                                dependencies : [dependency('threads'), libm], install : false)
 # Reproduz a Tabela 3.1 de McKenney nesta maquina, para confronto direto com a
 # referencia canonica da area.
-custo_mckenney = executable('custo-mckenney', 'custo-mckenney.c',
+custo_mckenney = executable('custo-mckenney', 'custo-mckenney.c', versao_h,
                             c_args : alinhamento,
                             dependencies : [dependency('threads'), libm], install : false)
 # L3: exige DOIS dominios de cache L3 e 3+ CPUs. Sem eles, sai com 77 (PULADO).
@@ -179,7 +193,7 @@ test('fundamentos - custo-mckenney (L3)', custo_mckenney,
 # O que acontece do outro lado do orcamento por pacote. Nao depende do DPDK,
 # como o resto deste modulo: o que se mede e o comportamento de uma fila finita
 # quando o servico passa a chegada, e isso e propriedade da maquina.
-orcamento_estourado = executable('orcamento-estourado', 'orcamento-estourado.c',
+orcamento_estourado = executable('orcamento-estourado', 'orcamento-estourado.c', versao_h,
                                  c_args : alinhamento,
                                  dependencies : [libm], install : false)
 test('fundamentos - L2 (orcamento estourado)', orcamento_estourado,
@@ -189,7 +203,7 @@ test('fundamentos - L2 (orcamento estourado)', orcamento_estourado,
 # concentrada no tempo. Ele responde quantos descritores o anel de RX precisa
 # para absorver rajada de market data, e mostra que a resposta nao depende da
 # taxa media -- depende da distribuicao dela no tempo.
-rajada_nasdaq = executable('rajada-nasdaq', 'rajada-nasdaq.c',
+rajada_nasdaq = executable('rajada-nasdaq', 'rajada-nasdaq.c', versao_h,
                            c_args : alinhamento,
                            dependencies : [libm], install : false)
 # 300 s, nao 120: a parte de socket inunda e drena o buffer 9 vezes por
@@ -198,7 +212,7 @@ rajada_nasdaq = executable('rajada-nasdaq', 'rajada-nasdaq.c',
 test('fundamentos - L2 (rajada de market data)', rajada_nasdaq,
      suite : ['l2', 'fundamentos'], timeout : 300)
 
-custo_espera = executable('custo-espera', 'custo-espera.c',
+custo_espera = executable('custo-espera', 'custo-espera.c', versao_h,
                           c_args : alinhamento,
                           dependencies : [dependency('threads'), libm], install : false)
 

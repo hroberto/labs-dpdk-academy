@@ -13,7 +13,7 @@
  *
  *   - com páginas normais de 4 KB, onde a TLB não alcança o conjunto de
  *     trabalho e quase todo acesso paga a caminhada;
- *   - com hugepages de 2 MB, onde a mesma quantidade de entradas de TLB cobre
+ *   - com 2 MB hugepages, onde a mesma quantidade de entradas de TLB cobre
  *     512x mais memória e a caminhada tem um nível a menos.
  *
  * A latência da RAM aparece nas duas medições e não é o objeto do teste. O que
@@ -123,12 +123,13 @@ static double amostra_2m(void)
 
 int main(void)
 {
+    print_provenance("custo-traducao");
     printf("Custo da traducao de endereco (percurso disperso em %llu MB)\n",
            REGIAO_BYTES / (1024 * 1024));
     printf("(%d amostras por medicao; tempos em ns)\n\n", AMOSTRAS_PAGINA);
 
     if (amostra_2m() < 0) {
-        printf("  hugepages de 2 MB indisponiveis para este processo.\n\n");
+        printf("  2 MB hugepages indisponiveis para este processo.\n\n");
         printf("  Reserve hugepages para completar a medicao, por exemplo:\n");
         printf("    sudo sysctl -w vm.nr_hugepages=512\n");
         /* CÓDIGO 77 = PULADO, e não sucesso.
@@ -155,8 +156,8 @@ int main(void)
         return EXIT_FAILURE;
     }
     const struct statistics e4k = p.a, e2m = p.b;
-    print_row("paginas de 4 KB", e4k);
-    print_row("hugepages de 2 MB", e2m);
+    print_row("4 KB pages", e4k);
+    print_row("2 MB hugepages", e2m);
     printf("\n  A diferenca abaixo e PAREADA -- delta_i = t_4k,i - t_2m,i na mesma\n"
            "  volta do laco -- e por isso tem distribuicao propria:\n\n");
     /* "DIFERENCA (o page walk)" era o rotulo, e ele prometia demais.
@@ -166,7 +167,7 @@ int main(void)
      * adicional de tradução domine a diferenca. A pagina de 2 MB tambem tem
      * tradução e tambem tem TLB -- o que ela nao tem e a mesma PRESSAO sobre
      * ela. Chamar a diferenca de "o page walk" apaga essa distincao. */
-    print_delta("DIFERENCA atribuivel a traducao", p);
+    print_delta("DIFFERENCE attributable to translation", p);
 
     const double ns_4k = e4k.median, ns_2m = e2m.median;
     const double delta = p.delta.median;

@@ -311,11 +311,11 @@ static double m_semaforo_livre(void)
 static void grupo_primitivo(void)
 {
     print_header();
-    measure_default("atomica relaxed (store+load)", m_atomica_relaxed);
-    measure_default("atomica seq_cst (store+load)", m_atomica_seqcst);
+    measure_default("atomic relaxed (store+load)", m_atomica_relaxed);
+    measure_default("atomic seq_cst (store+load)", m_atomica_seqcst);
     measure_default("mutex lock+unlock", m_mutex_simples);
     measure_default("spinlock lock+unlock", m_spinlock);
-    measure_default("semaforo post+wait", m_semaforo_livre);
+    measure_default("semaphore post+wait", m_semaforo_livre);
 }
 
 /* ================ Grupo 2: repasse de verdade entre núcleos ================ */
@@ -485,6 +485,7 @@ static double m_repasse_semaforo(void)
 
 int main(void)
 {
+    print_provenance("custo-espera");
     pthread_spin_init(&spin, 0);
     fixar(cpu_a);
     aquecer();
@@ -503,12 +504,12 @@ int main(void)
 
     print_header();
     const struct statistics e_ativa = collect_or_fail(m_repasse_atomica, AMOSTRAS_REPASSE);
-    print_row("atomica + espera ativa (nao dorme)", e_ativa);
+    print_row("atomic + busy wait (does not sleep)", e_ativa);
     const struct statistics e_mutex = collect_or_fail(m_repasse_mutex_ativo, AMOSTRAS_REPASSE);
-    print_row("mutex + espera ativa (nao dorme)", e_mutex);
+    print_row("mutex + busy wait (does not sleep)", e_mutex);
     const struct statistics e_dorme = collect_or_fail(m_repasse_condvar, AMOSTRAS_REPASSE);
-    print_row("mutex + condvar (DORME)", e_dorme);
-    print_row("semaforo POSIX (DORME)", collect_or_fail(m_repasse_semaforo, AMOSTRAS_REPASSE));
+    print_row("mutex + condvar (SLEEPS)", e_dorme);
+    print_row("POSIX semaphore (SLEEPS)", collect_or_fail(m_repasse_semaforo, AMOSTRAS_REPASSE));
 
     const double ns_ativa = e_ativa.median;
     const double ns_mutex_ativo = e_mutex.median;

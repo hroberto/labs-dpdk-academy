@@ -157,6 +157,7 @@ static double amostra_caso(void)
 
 int main(void)
 {
+    print_provenance("efeito-cache");
     const size_t tamanhos[] = {16u * 1024, 256u * 1024, 8u * 1024 * 1024, 256u * 1024 * 1024};
     const char *nivel[] = {"L1d", "L2", "L3", "RAM"};
 
@@ -173,17 +174,17 @@ int main(void)
 
         caso_modo = SEQUENCIAL;
         const struct statistics seq = collect_or_fail(amostra_caso, AMOSTRAS_CACHE);
-        snprintf(rot, sizeof(rot), "  sequencial   (amortizado)");
+        snprintf(rot, sizeof(rot), "  sequential   (amortised)");
         print_row(rot, seq);
 
         caso_modo = ALEATORIO;
         const struct statistics ale = collect_or_fail(amostra_caso, AMOSTRAS_CACHE);
-        snprintf(rot, sizeof(rot), "  aleatorio    (amortizado)");
+        snprintf(rot, sizeof(rot), "  random       (amortised)");
         print_row(rot, ale);
 
         caso_modo = DEPENDENTE;
         const struct statistics dep = collect_or_fail(amostra_caso, AMOSTRAS_CACHE);
-        snprintf(rot, sizeof(rot), "  dependente   (LATENCIA)");
+        snprintf(rot, sizeof(rot), "  dependent    (LATENCY)");
         print_row(rot, dep);
 
         printf("  -> penalidade por perder a localidade: %.1fx"

@@ -675,6 +675,7 @@ static void imprimir(struct resultado r)
 
 int main(void)
 {
+    print_provenance("rajada-nasdaq");
     /* Calibra o consumidor para um custo por pacote da ordem de grandeza de um
      * decodificador de feed: algumas centenas de nanossegundos. O laço procura
      * os passos que chegam perto de ALVO_NS nesta máquina, para que o resultado
