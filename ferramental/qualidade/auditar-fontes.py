@@ -115,6 +115,7 @@ def auditar(caminho):
 
     mecanismo, numeros = [], []
     exigem = sustentadas = 0
+    por_cita = por_ancora = por_local = 0
     for inicio, capitulo, secao, corpo in blocos(linhas):
         if TABELAS.search(secao) or any(l.lstrip().startswith("|") for l in corpo):
             continue
@@ -136,6 +137,22 @@ def auditar(caminho):
         local = bool(re.search(LOCAL, texto, re.I))
         if cita or ancora or local:
             sustentadas += 1
+            # DE QUE a sustentacao e feita, e nao so quantas ha.
+            #
+            # As tres coisas tem peso epistemico diferente e a soma as tratava
+            # como iguais. No modulo 01, das 27 sustentadas so 17 sao CITACAO:
+            # 2 sao ancora em programa deste repositorio e 8 sao declaracao de
+            # que o dado e local.
+            #
+            # Declarar "nesta maquina" e apoio legitimo para um numero MEDIDO
+            # aqui. Nao e apoio para um paragrafo que afirma como o hardware
+            # funciona EM GERAL -- e a cobertura unica escondia essa diferenca.
+            if cita:
+                por_cita += 1
+            elif ancora:
+                por_ancora += 1
+            else:
+                por_local += 1
             continue
 
         resumo = (inicio, secao, texto[:150])
@@ -143,14 +160,16 @@ def auditar(caminho):
             mecanismo.append(resumo)
         if e_numero:
             numeros.append(resumo)
-    return rotulos, remotas, nunca, mecanismo, numeros, exigem, sustentadas
+    return (rotulos, remotas, nunca, mecanismo, numeros, exigem, sustentadas,
+            por_cita, por_ancora, por_local)
 
 
 def main():
     detalhe = "-v" in sys.argv
     total = 0
     for caminho in DOCS:
-        rotulos, remotas, nunca, mecanismo, numeros, exigem, sust = auditar(caminho)
+        (rotulos, remotas, nunca, mecanismo, numeros, exigem, sust,
+         p_cita, p_anc, p_loc) = auditar(caminho)
         total += len(remotas) + len(mecanismo) + len(numeros)
         cobertura = (100.0 * sust / exigem) if exigem else 100.0
         print(f"\n== {caminho}")
@@ -166,8 +185,11 @@ def main():
         # O denominador certo e quantos paragrafos fazem afirmacao EXTERNA
         # verificavel; o numerador, quantos deles citam fonte, ancoram em
         # programa daqui ou declaram o dado como local.
+        cit_pct = (100.0 * p_cita / exigem) if exigem else 100.0
         print(f"   cobertura    : {cobertura:5.1f}%  ({sust}/{exigem} afirmacoes"
               f" externas sustentadas)   {len(rotulos)} fontes definidas")
+        print(f"     por citacao: {cit_pct:5.1f}%  ({p_cita} citam fonte, "
+              f"{p_anc} ancoram em programa, {p_loc} declaram dado local)")
         print(f"   fonte remota : {len(remotas):3d} usadas so em secao de"
               f" referencia/confronto")
         if nunca:

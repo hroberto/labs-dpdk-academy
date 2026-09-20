@@ -93,6 +93,35 @@ for _k in (1, 2, 4, 8, 12, 16, 32, 64):
 EN = set(PARES.values())
 
 
+# --- MODULOS 02 E 03 -------------------------------------------------------
+#
+# Extraidos dos BLOCOS PUBLICADOS desses modulos, que sao a saida dos programas
+# -- mesma regra do modulo 01: do corpus, nao da memoria.
+#
+# E A DESCOBERTA DESSE LEVANTAMENTO: dos 24 rotulos distintos, 14 sao NOMES DE
+# CAMPO do `rte_mbuf` -- `buf_addr`, `data_len`, `nb_segs`, `refcnt`, `next`,
+# `pkt_len`, `data_off`, `buf_len`, `port`, `pool` -- e identificador de API NAO
+# SE TRADUZ. Traduzi-los quebraria a correspondencia com a documentacao do DPDK,
+# que e o que o leitor consulta ao lado.
+#
+# A migracao desses modulos e, portanto, muito menor do que o numero bruto
+# sugeria: dez rotulos, nao vinte e quatro.
+PARES.update({
+    "publicacao -> observacao": "publication -> observation",
+    "mempool get/put, com cache": "mempool get/put, with cache",
+    "mempool get/put, SEM cache": "mempool get/put, NO cache",
+    "cabeca da cadeia": "head of the chain",
+    "segundo segmento": "second segment",
+    "recem-alocado": "freshly allocated",
+    "prepend(14) = ethernet": "prepend(14) = ethernet",
+    "prepend(20) = tunel": "prepend(20) = tunnel",
+    "adj(20) = tira o tunel": "adj(20) = strips the tunnel",
+    "trim(4) = tira do fim": "trim(4) = strips from the end",
+    "append(60) = payload": "append(60) = payload",
+})
+EN = set(PARES.values())
+
+
 def normalizar(rotulo):
     """Devolve o rótulo em inglês, venha ele em português ou já em inglês."""
     r = rotulo.strip()

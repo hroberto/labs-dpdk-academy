@@ -231,8 +231,34 @@ O que está decidido sobre **como** fazer, quando chegar a hora:
   identificadores do código, e `description` + `topics` do repositório.
   **Feito em 2026-09-10, exceto `description`/`topics`,** que dependem do
   repositório existir remotamente. Os identificadores migraram numa passada
-  verificada pela suíte: a saída dos programas e a prosa continuam em português,
-  e é isso que a assimetria significa na prática. Nomes de caso de GoogleTest
+  verificada pela suíte: ~~a saída dos programas e a prosa continuam em
+  português, e é isso que a assimetria significa na prática.~~
+
+  > **A saída dos programas foi revogada em 20/09/2026.** Ela passa a ser em
+  > inglês; a prosa continua em português, e é só isso que a assimetria
+  > significa agora.
+  >
+  > **O que forçou a mudança foi uma contradição entre dois instrumentos do
+  > próprio projeto.** O `verificar-idioma.py` foi construído para caçar
+  > português dentro de bloco de código nos documentos em inglês — e o
+  > cabeçalho dele lista "a saída dos programas" entre os alvos. Esta linha
+  > mandava manter. O portão venceu, e o resultado foram **21 blocos em 5
+  > arquivos `.en.md` mostrando saída que o programa nunca imprime**: números
+  > certos, rótulos traduzidos à mão.
+  >
+  > Um bloco apresentado como saída de programa que não é a saída do programa
+  > é a mesma classe de defeito que um número sem procedência. O portão não
+  > causou isso por engano: ele **exigia**.
+  >
+  > O argumento original continua correto e fica registrado: a assimetria
+  > entre código e prosa é deliberada, e o custo de traduzir prosa didática é
+  > alto. O que mudou foi o **limite** dela — saída de programa é código, não
+  > prosa, e a decisão de 10/09 a punha do lado errado dessa fronteira.
+  >
+  > A migração preserva as 92 coletas já arquivadas em português por um mapa
+  > de rótulos em `ferramental/qualidade/rotulos.py`, extraído delas. Sem ele,
+  > o fatorial 2×2 do segundo pente compararia coletas de idiomas diferentes
+  > e veria toda linha como ausente de um dos lados. Nomes de caso de GoogleTest
   ficaram em português por serem **prosa** — são frases lidas no relatório de
   teste (`ResultadoIndependeDoLote.DezPacotesSempreSomam695Bytes`), não símbolos
   que alguém chama.
