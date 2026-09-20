@@ -44,15 +44,15 @@
  * ordem: é assim que a relação entre eles fica visível. */
 static void estado(const char *momento, const struct rte_mbuf *m)
 {
-    printf("  %-26s %8u %9u %9u %9u %9u %7u\n", momento, m->buf_len,
+    printf("  %-30s %8u %9u %9u %9u %9u %7u\n", momento, m->buf_len,
            rte_pktmbuf_headroom(m), m->data_len, m->pkt_len, rte_pktmbuf_tailroom(m), m->nb_segs);
 }
 
 static void cabecalho_estado(void)
 {
-    printf("  %-26s %8s %9s %9s %9s %9s %7s\n", "momento", "buf_len", "headroom", "data_len",
+    printf("  %-30s %8s %9s %9s %9s %9s %7s\n", "step", "buf_len", "headroom", "data_len",
            "pkt_len", "tailroom", "nb_segs");
-    printf("  %-26s %8s %9s %9s %9s %9s %7s\n", "--------------------------", "-------",
+    printf("  %-30s %8s %9s %9s %9s %9s %7s\n", "------------------------------", "-------",
            "--------", "--------", "-------", "--------", "------");
 }
 
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
            (double)obj * 8192.0 / (1024.0 * 1024.0));
 
     printf("\n  Deslocamento de cada campo dentro da estrutura:\n\n");
-    printf("    %-14s %6s  %s\n", "campo", "offset", "linha de cache");
+    printf("    %-14s %6s  %s\n", "field", "offset", "cache line");
     printf("    %-14s %6s  %s\n", "-----", "------", "--------------");
     struct { const char *name; size_t off; } campos[] = {
         {"buf_addr", offsetof(struct rte_mbuf, buf_addr)},
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
     }
 
     cabecalho_estado();
-    estado("recem-alocado", m);
+    estado("freshly allocated", m);
 
     char *dados = rte_pktmbuf_append(m, 60);
     if (dados != NULL)
@@ -153,13 +153,13 @@ int main(int argc, char **argv)
     char *externo = rte_pktmbuf_prepend(m, 20);
     if (externo != NULL)
         memset(externo, 0xCC, 20);
-    estado("prepend(20) = tunel", m);
+    estado("prepend(20) = tunnel", m);
 
     rte_pktmbuf_adj(m, 20);
-    estado("adj(20) = tira o tunel", m);
+    estado("adj(20) = strips the tunnel", m);
 
     rte_pktmbuf_trim(m, 4);
-    estado("trim(4) = tira do fim", m);
+    estado("trim(4) = strips from the end", m);
 
     printf("\n  headroom encolhe a cada prepend e cresce a cada adj: e o espaco\n");
     printf("  ANTES dos dados. tailroom faz o oposto, no fim. buf_len nunca muda:\n");
@@ -178,8 +178,8 @@ int main(int argc, char **argv)
             memset(d2, 0xDD, 100);
         if (rte_pktmbuf_chain(m, seg) == 0) {
             cabecalho_estado();
-            estado("cabeca da cadeia", m);
-            printf("  %-26s %8u %9s %9u %9s %9s %7s\n", "segundo segmento", seg->buf_len, "-",
+            estado("head of the chain", m);
+            printf("  %-30s %8u %9s %9u %9s %9s %7s\n", "second segment", seg->buf_len, "-",
                    seg->data_len, "-", "-", "-");
             printf("\n  pkt_len (%u) = soma de todos os segmentos.\n", m->pkt_len);
             printf("  data_len (%u) = so o que cabe NESTE mbuf.\n", m->data_len);
@@ -197,7 +197,7 @@ int main(int argc, char **argv)
     printf("\n  apos rte_pktmbuf_free(cabeca):\n");
     printf("  objetos livres no pool ...... %u de %u\n", rte_mempool_avail_count(mp), N_MBUFS);
     printf("\n  Os DOIS mbufs voltaram com uma unica chamada: free() percorre a\n");
-    printf("  cadeia. Liberar o segundo segmento tambem, por conta propria,\n");
+    printf("  cadeia. Liberar o second segment tambem, por conta propria,\n");
     printf("  seria devolver duas vezes o mesmo objeto ao pool -- e o pool nao\n");
     printf("  reclama: ele passa a entregar o MESMO objeto a dois donos.\n\n");
 

@@ -286,8 +286,8 @@ int main(int argc, char **argv)
     }
 
     print_row("malloc/free", e_malloc);
-    print_row("mempool get/put, com cache", e_cache);
-    print_row("mempool get/put, SEM cache", e_sem);
+    print_row("mempool get/put, with cache", e_cache);
+    print_row("mempool get/put, NO cache", e_sem);
     const double f1 = freq_ghz(rte_lcore_id());
 
     /* AS RAZOES SAO O RESULTADO; os nanossegundos sao circunstancia.
@@ -308,7 +308,7 @@ int main(int argc, char **argv)
            e_malloc.median > 0 ? e_sem.median / e_malloc.median : 0.0);
 
     printf("\n  --- em LOTE, ns por objeto: os dois lados variam em sentidos opostos ---\n\n");
-    printf("  %-10s %14s %14s %10s\n", "lote", "malloc/free", "mempool bulk", "razao");
+    printf("  %-10s %14s %14s %10s\n", "batch", "malloc/free", "mempool bulk", "razao");
     printf("  %-10s %14s %14s %10s\n", "-----", "-----------", "------------", "-----");
     static const unsigned bursts[] = {1, 8, 32, 128};
     for (size_t i = 0; i < sizeof(bursts) / sizeof(bursts[0]); i++) {

@@ -152,7 +152,7 @@ int main(int argc, char **argv)
     printf("  migracao de linha de cache entre nucleos\n");
     printf("  amostras: %d, cada uma com %d operacoes\n\n", n, ITERATIONS);
 
-    printf("  %-8s %16s %16s %10s\n", "lote", "SP/SC (ns/obj)", "MP/MC (ns/obj)", "custo MP/MC");
+    printf("  %-8s %16s %16s %10s\n", "batch", "SP/SC (ns/obj)", "MP/MC (ns/obj)", "custo MP/MC");
     printf("  %-8s %16s %16s %10s\n", "-----", "--------------", "--------------", "-----------");
     static const unsigned bursts[] = {1, 8, 32, 128};
     for (size_t i = 0; i < sizeof(bursts) / sizeof(bursts[0]); i++) {

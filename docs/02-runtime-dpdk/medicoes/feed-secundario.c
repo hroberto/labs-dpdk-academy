@@ -219,7 +219,7 @@ int main(int argc, char **argv)
 
     printf("  --- travessia entre processos, por tick (nanossegundos) ---\n\n");
     print_header_tail();
-    print_row_tail("publicacao -> observacao", lat);
+    print_row_tail("publication -> observation", lat);
     printf("\n    resolucao do instrumento: %.1f ns (uma sondagem do consumidor).\n", passo_ns);
     printf("    amostras degeneradas: %" PRIu64 " de %" PRIu64 " %s\n", degenerados, total,
            degenerados == 0 ? "(TSC alinhado entre os dois nucleos)"

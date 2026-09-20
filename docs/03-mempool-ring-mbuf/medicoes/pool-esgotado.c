@@ -151,7 +151,7 @@ static int rule4(void)
     printf("  always stay in the pool and will never be used\". dim_leftover_objects()\n");
     printf("  calcula quantos seriam. Aqui esse numero e confrontado com um pool\n");
     printf("  real, drenado um objeto por vez ate get_bulk falhar.\n\n");
-    printf("  %-6s %-6s %-8s %-10s %-10s %-8s %s\n", "n", "cache", "lote", "previsto", "obtidos",
+    printf("  %-6s %-6s %-8s %-10s %-10s %-8s %s\n", "n", "cache", "batch", "previsto", "obtidos",
            "sobra", "confere?");
 
     int divergences = 0;

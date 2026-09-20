@@ -182,8 +182,8 @@ int main(void)
      * convertidos em ρ pela calibração, não supostos. */
     static const unsigned levels[] = {8, 16, 24, 32, 40, 64, 96};
 
-    printf("  %-8s %-10s %-7s %-11s %-11s %-9s %-10s %s\n", "passos", "servico", "rho",
-           "oferecidos", "servidos", "perdidos", "lat.med", "lat.p99");
+    printf("  %-8s %-10s %-7s %-11s %-11s %-9s %-10s %s\n", "passos", "service", "rho",
+           "oferecidos", "servidos", "dropped", "lat.med", "lat.p99");
     printf("  %-8s %-10s %-7s %-11s %-11s %-9s %-10s %s\n", "------", "-------", "---",
            "----------", "--------", "--------", "-------", "-------");
 
