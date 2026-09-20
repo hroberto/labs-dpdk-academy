@@ -8,9 +8,21 @@ nivel4_libm = meson.get_compiler('c').find_library('m', required : false)
 nivel4_estat = include_directories('../../01-fundamentos/medicoes')
 nivel4_inc = include_directories('.')
 
+# PROVENIENCIA: ver o cabecalho de `academy_version.h.in`. O arquivo de entrada
+# e o MESMO do modulo 01 -- duplica-lo criaria dois lugares para a mesma regra
+# envelhecer em direcoes diferentes.
+versao_h = vcs_tag(
+  input : files('../../01-fundamentos/medicoes/academy_version.h.in'),
+  output : 'academy_version.h',
+  command : ['git', 'describe', '--always', '--dirty', '--tags'],
+  fallback : 'sem-git',
+)
+
+
 custo_alocacao = executable(
   'custo-alocacao',
-  ['custo-alocacao.c', 'sizing.c'],
+  ['custo-alocacao.c',
+    versao_h, 'sizing.c'],
   dependencies : [dpdk_dep, nivel4_libm, dependency('threads')],
   include_directories : [nivel4_estat, nivel4_inc],
   install : false,
@@ -83,9 +95,10 @@ test('03-nivel4 - L2 (coleta invalida deve falhar)', bash,
 # hugepages, so a EAL.
 pool_esgotado = executable(
   'pool-esgotado',
-  ['pool-esgotado.c', 'sizing.c'],
+  ['pool-esgotado.c',
+    versao_h, 'sizing.c'],
   dependencies : [dpdk_dep],
-  include_directories : [nivel4_inc],
+  include_directories : [nivel4_inc, estatistica_inc],
   install : false,
 )
 test('03-nivel4 - L2 (pool esgotado e regra 4)', pool_esgotado,
@@ -95,6 +108,8 @@ test('03-nivel4 - L2 (pool esgotado e regra 4)', pool_esgotado,
 anatomia_mbuf = executable(
   'anatomia-mbuf',
   'anatomia-mbuf.c',
+    versao_h,
+    include_directories : [estatistica_inc],
   dependencies : [dpdk_dep],
   install : false,
 )
@@ -106,6 +121,7 @@ test('03-nivel4 - L2 (anatomia do mbuf)', anatomia_mbuf,
 custo_anel = executable(
   'custo-anel',
   'custo-anel.c',
+    versao_h,
   dependencies : [dpdk_dep, nivel4_libm],
   include_directories : [nivel4_estat],
   install : false,
@@ -123,6 +139,7 @@ test('03-nivel4 - L2 (custo do anel)', custo_anel,
 custo_contencao = executable(
   'custo-contencao',
   'custo-contencao.c',
+    versao_h,
   dependencies : [dpdk_dep, dependency('threads'), nivel4_libm],
   include_directories : [nivel4_estat],
   install : false,

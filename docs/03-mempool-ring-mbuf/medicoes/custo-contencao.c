@@ -178,6 +178,7 @@ static double measure_malloc(unsigned n)
 
 int main(int argc, char **argv)
 {
+    print_provenance("custo-contencao");
     if (rte_eal_init(argc, argv) < 0) { fprintf(stderr,"EAL: %s\n", rte_strerror(rte_errno)); return 2; }
     const unsigned cache = argc > 1 ? (unsigned)atoi(argv[argc-1]) : 0;
     printf("\n== Contencao sobre a MESMA fonte de objetos ==\n");

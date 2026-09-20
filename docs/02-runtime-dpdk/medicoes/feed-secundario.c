@@ -36,6 +36,7 @@
 
 int main(int argc, char **argv)
 {
+    print_provenance("feed-secundario");
     const int consumidos_pela_eal = rte_eal_init(argc, argv);
     if (consumidos_pela_eal < 0) {
         fprintf(stderr, "feed-secundario: EAL nao inicializou: %s\n", rte_strerror(rte_errno));

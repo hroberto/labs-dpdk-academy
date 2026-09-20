@@ -1085,7 +1085,7 @@ mapping and does not receive `SIGSEGV`: it goes on reading, and what it reads is
 **last published state**, indefinitely.
 
 **Nothing warns.** There is no heartbeat, no *liveness* contract, no signal. The
-secondary stays stuck in [`while (lidos < total)`](medicoes/feed-secundario.c#L149),
+secondary stays stuck in [`while (lidos < total)`](medicoes/feed-secundario.c#L150),
 waiting for data that will not come. The process did not hang because of a defect — it
 waits correctly and indefinitely for a producer that no longer exists.
 

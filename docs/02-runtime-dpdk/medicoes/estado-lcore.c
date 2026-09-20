@@ -34,6 +34,7 @@
 #include <rte_pause.h>
 #include <rte_lcore.h>
 #include <rte_version.h>
+#include "statistics.h"
 
 /* Tempo que o trabalhador fica ocupado, para o principal conseguir observá-lo
  * em RUNNING. Sem isso, a função retornaria antes da primeira amostragem. */
@@ -109,6 +110,7 @@ static void imprimir_estados(const char *momento)
 
 int main(int argc, char **argv)
 {
+    print_provenance("estado-lcore");
     const int n = rte_eal_init(argc, argv);
     if (n < 0) {
         fprintf(stderr, "estado-lcore: EAL nao inicializou: %s\n", rte_strerror(rte_errno));

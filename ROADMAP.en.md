@@ -260,7 +260,7 @@ What is decided about **how** to do it, when the time comes:
   maintaining the English.
 
 **Prerequisite for starting this stage:** the Portuguese content needs to be mature.
-None of the 25 documents is a skeleton: the last one, `trilha/04-projeto-final/`,
+None of the 26 documents is a skeleton: the last one, `trilha/04-projeto-final/`,
 became content on 16/09/2026. What is still missing there is the end-to-end
 application, and the document says so in its first section instead of declaring
 itself finished.

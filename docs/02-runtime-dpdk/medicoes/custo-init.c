@@ -137,6 +137,7 @@ static struct statistics medir(enum etapa e, int n)
 
 int main(int argc, char **argv)
 {
+    print_provenance("custo-init");
     g_argc = argc;
     g_argv = argv;
 

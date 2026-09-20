@@ -12,10 +12,22 @@ runtime_libm = meson.get_compiler('c').find_library('m', required : false)
 estatistica_inc = include_directories('../../01-fundamentos/medicoes')
 runtime_inc = include_directories('.')
 
+
+# PROVENIENCIA: ver o cabecalho de `academy_version.h.in`. O arquivo de entrada
+# e o MESMO do modulo 01 -- duplica-lo criaria dois lugares para a mesma regra
+# envelhecer em direcoes diferentes.
+versao_h = vcs_tag(
+  input : files('../../01-fundamentos/medicoes/academy_version.h.in'),
+  output : 'academy_version.h',
+  command : ['git', 'describe', '--always', '--dirty', '--tags'],
+  fallback : 'sem-git',
+)
+
 # --- Quanto custa a EAL nascer -------------------------------------------
 custo_init = executable(
   'custo-init',
   'custo-init.c',
+    versao_h,
   dependencies : [dpdk_dep, runtime_libm],
   include_directories : [estatistica_inc],
   install : false,
@@ -25,6 +37,8 @@ custo_init = executable(
 estado_lcore = executable(
   'estado-lcore',
   'estado-lcore.c',
+    versao_h,
+    include_directories : [estatistica_inc],
   dependencies : [dpdk_dep],
   install : false,
 )
@@ -36,15 +50,17 @@ estado_lcore = executable(
 # modelo que nenhum outro tópico do projeto cobre.
 feed_primario = executable(
   'feed-primario',
-  ['feed-primario.c', 'order_book.c'],
+  ['feed-primario.c',
+    versao_h, 'order_book.c'],
   dependencies : [dpdk_dep],
-  include_directories : [runtime_inc],
+  include_directories : [runtime_inc, estatistica_inc],
   install : false,
 )
 
 feed_secundario = executable(
   'feed-secundario',
-  ['feed-secundario.c', 'order_book.c'],
+  ['feed-secundario.c',
+    versao_h, 'order_book.c'],
   dependencies : [dpdk_dep, runtime_libm],
   include_directories : [runtime_inc, estatistica_inc],
   install : false,

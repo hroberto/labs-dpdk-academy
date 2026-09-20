@@ -129,6 +129,7 @@ static void demonstrate_contract(void)
 
 int main(int argc, char **argv)
 {
+    print_provenance("custo-anel");
     if (rte_eal_init(argc, argv) < 0) {
         fprintf(stderr, "custo-anel: EAL nao inicializou: %s\n", rte_strerror(rte_errno));
         return 2;

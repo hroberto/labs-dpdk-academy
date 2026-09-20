@@ -35,6 +35,7 @@
 #include <rte_lcore.h>
 #include <rte_mbuf.h>
 #include <rte_mempool.h>
+#include "statistics.h"
 
 #define N_MBUFS 1023u
 #define CACHE_MBUF 32u
@@ -57,6 +58,7 @@ static void cabecalho_estado(void)
 
 int main(int argc, char **argv)
 {
+    print_provenance("anatomia-mbuf");
     if (rte_eal_init(argc, argv) < 0) {
         fprintf(stderr, "anatomia-mbuf: EAL nao inicializou: %s\n", rte_strerror(rte_errno));
         return 2;

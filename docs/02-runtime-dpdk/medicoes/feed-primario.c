@@ -36,6 +36,7 @@
 #include <rte_pause.h>
 
 #include "feed.h"
+#include "statistics.h"
 
 #define TOTAL_PADRAO 200000u
 #define PRECO_INICIAL 3250 /* R$ 32,50, em centavos */
@@ -111,6 +112,7 @@ static void spin_cycles(uint64_t ciclos)
 
 int main(int argc, char **argv)
 {
+    print_provenance("feed-primario");
     const int consumidos_pela_eal = rte_eal_init(argc, argv);
     if (consumidos_pela_eal < 0) {
         fprintf(stderr, "feed-primario: EAL nao inicializou: %s\n", rte_strerror(rte_errno));

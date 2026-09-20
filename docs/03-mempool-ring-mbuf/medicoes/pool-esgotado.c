@@ -51,6 +51,7 @@
 #include <rte_version.h>
 
 #include "sizing.h"
+#include "statistics.h"
 
 /* Objeto sintético. O conteúdo é irrelevante: o que se estuda é a contabilidade
  * do pool, não o que cabe dentro do objeto. */
@@ -203,6 +204,7 @@ static int rule4(void)
 
 int main(int argc, char **argv)
 {
+    print_provenance("pool-esgotado");
     const int consumidos = rte_eal_init(argc, argv);
     if (consumidos < 0) {
         fprintf(stderr, "Erro ao inicializar a EAL: %s\n", rte_strerror(rte_errno));

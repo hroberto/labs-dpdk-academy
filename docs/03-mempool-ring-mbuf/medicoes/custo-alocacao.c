@@ -202,6 +202,7 @@ static double m_pool_bulk(void)
 
 int main(int argc, char **argv)
 {
+    print_provenance("custo-alocacao");
     if (rte_eal_init(argc, argv) < 0) {
         fprintf(stderr, "custo-alocacao: EAL nao inicializou: %s\n", rte_strerror(rte_errno));
         return 2;
