@@ -2,6 +2,18 @@
 
 *Leia em [português](README.md).*
 
+> **The measurement blocks have their labels translated; the programs print
+> Portuguese.** The numbers, the columns and the layout are exactly what the
+> program emits — only the row labels were translated, so this page reads as
+> English. Running `custo-alocacao` yourself produces `o cache por lcore vale
+> 10,7x`, not `the per-lcore cache is worth 10.7x`.
+>
+> This is declared rather than silently done, because a block presented as
+> program output that is not the program's output is the same defect class as a
+> number without provenance. The [roadmap](../../ROADMAP.md) records the
+> decision it follows from: *program output and prose stay in Portuguese, and
+> that is what the asymmetry means in practice.*
+
 > **Level 3** of the [study plan](../plano-estudo-dpdk.en.md) ·
 > Prerequisite: [Fundamentals](../01-fundamentos/README.en.md) and the practical topic
 > [01 — EAL initialisation](../../trilha/01-fundamentos/01-eal-hello/)
@@ -33,7 +45,7 @@ happens when one of the processes dies mid-session.
    an inaccessible one — which require different fixes;
 3. **choose between `--in-memory`, `--no-huge` and hugetlbfs** knowing what each one
    switches off;
-4. **design a system in primary and secondary processes**, and say what crosses the
+4. **design a system using primary and secondary processes**, and say what crosses the
    boundary and what does not;
 5. **isolate instances on the same machine** with `--file-prefix`, and explain the
    rule about disjoint lcore lists;
@@ -65,7 +77,7 @@ happens when one of the processes dies mid-session.
 There is no shortage of material on the EAL. There is the official documentation,
 there is a strong tradition of *source-code analysis* (源码分析) in Chinese, and
 there are dozens of tutorials in English. Before writing one more, it is worth saying
-where the existing ones are better than this document — and where they have aged.
+where the existing ones are better than this document — and where they have become outdated.
 
 **Where the existing sources are better.** The official documentation is the authority
 and should be the first stop; nothing here replaces it. And the Chinese tradition of

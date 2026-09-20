@@ -13,7 +13,7 @@ e quais decisões ele impõe a quem vai colocar um processo de plano de dados em
 produção e mantê-lo lá.
 
 O exemplo condutor é o mesmo dos fundamentos: um **servidor de *market data***,
-que recebe o *feed* de uma bolsa com ativo de alta movimentação. Ele foi
+que recebe o *feed* de uma bolsa para um ativo de alta movimentação. Ele foi
 escolhido na [§6.2 dos fundamentos](../01-fundamentos/README.md#62-o-barramento-também-tem-orçamento)
 como o caso canônico de latência ultrabaixa, e serve bem aqui porque força todas
 as perguntas deste nível de uma vez: quanto tempo o processo leva para ficar

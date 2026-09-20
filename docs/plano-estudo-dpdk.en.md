@@ -250,7 +250,7 @@ Goal: consolidate the knowledge and place DPDK among the real options.
 
 The comparison with **pure C++23** (the kernel stack via sockets) shows the cost of
 the operating system's abstractions. But the comparison the industry actually makes
-today is another: **DPDK against [AF_XDP][cAfxdp]**.
+today is another: **DPDK versus [AF_XDP][cAfxdp]**.
 
 AF_XDP bypasses the network stack **while keeping the kernel driver**. It requires no
 [PMD][cPMD] in user space, does not remove the NIC from the operating system,

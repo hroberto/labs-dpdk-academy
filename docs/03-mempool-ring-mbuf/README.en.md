@@ -2,6 +2,18 @@
 
 *Leia em [português](README.md).*
 
+> **The measurement blocks have their labels translated; the programs print
+> Portuguese.** The numbers, the columns and the layout are exactly what the
+> program emits — only the row labels were translated, so this page reads as
+> English. Running `custo-alocacao` yourself produces `o cache por lcore vale
+> 10,7x`, not `the per-lcore cache is worth 10.7x`.
+>
+> This is declared rather than silently done, because a block presented as
+> program output that is not the program's output is the same defect class as a
+> number without provenance. The [roadmap](../../ROADMAP.md) records the
+> decision it follows from: *program output and prose stay in Portuguese, and
+> that is what the asymmetry means in practice.*
+
 > **Level 4** of the [study plan](../plano-estudo-dpdk.en.md) ·
 > Prerequisites: [02 — DPDK runtime](../02-runtime-dpdk/README.en.md) and the practical
 > topic [02 — Mempool, ring and batch](../../trilha/01-fundamentos/02-mempool-ring/)
@@ -41,7 +53,7 @@ not: it **opens the structures up**, measures the cost of each operation, and co
 6. **choose between `_bulk` and `_burst`** by the contract, not by performance, and
    handle the partial return;
 7. **decide between SP/SC and MP/MC** knowing that the cost exists even without
-   contention, and that batching dilutes it.
+   contention, and that batching amortises it.
 
 ## Contents
 
@@ -81,7 +93,7 @@ on the same machine, with the same methodology as the project's other programs.
   frequency of core 0 during the measurement: 5.56 -> 5.56 GHz
   ratios, which do NOT depend on frequency:
     mempool with cache is 2.23x faster than malloc
-    the per-lcore cache is worth 10.7x (with cache against without)
+    the per-lcore cache gives a 10.7x speedup (with cache versus without)
     without the cache, the mempool is 4.8x SLOWER than malloc
 ```
 

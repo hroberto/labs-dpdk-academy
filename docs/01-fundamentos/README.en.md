@@ -2,6 +2,18 @@
 
 *Leia em [português](README.md).*
 
+> **The measurement blocks have their labels translated; the programs print
+> Portuguese.** The numbers, the columns and the layout are exactly what the
+> program emits — only the row labels were translated, so this page reads as
+> English. Running `custo-alocacao` yourself produces `o cache por lcore vale
+> 10,7x`, not `the per-lcore cache is worth 10.7x`.
+>
+> This is declared rather than silently done, because a block presented as
+> program output that is not the program's output is the same defect class as a
+> number without provenance. The [roadmap](../../ROADMAP.md) records the
+> decision it follows from: *program output and prose stay in Portuguese, and
+> that is what the asymmetry means in practice.*
+
 > **Levels 1 and 2** of the [study plan](../plano-estudo-dpdk.en.md) ·
 > No prerequisites · Next: [The DPDK runtime](../02-runtime-dpdk/)
 
@@ -41,13 +53,13 @@ Understanding *how much* they cost is what separates engineering from folklore.
 2. **explain why crossing the user/kernel boundary** costs what it costs, and measure
    that cost on your machine;
 3. **identify false sharing** in your own code, and fix it;
-4. **predict the effect of locality** — sequential against random, 4 KB pages against
+4. **predict the effect of locality** — sequential versus random, 4 KB pages versus
    2 MB — before measuring;
 5. **decide where to pin a thread** from the machine's cache topology, and justify the
    choice with a number;
 6. **choose between one synchronisation primitive and another** knowing the price of
    each without contention and under contention;
-7. **read a latency metric** without fooling yourself: median against mean,
+7. **read a latency metric** without fooling yourself: median versus mean,
    percentile, dispersion, and why the mean lies;
 8. **tell latency from throughput** when reading any memory measurement, and
    choose between the tuning levers knowing which one improves the first without
@@ -84,7 +96,7 @@ decisions per second with small frames. That is why serious *benchmarks* always
 declare the frame size — "10 Gbps" without that information says nothing about CPU
 load.
 
-**67 ns is little.** On a 3 GHz CPU, that is about 200 cycles. It is the total budget
+**67 ns is very little time.** On a 3 GHz CPU, that is about 200 cycles. It is the total budget
 to receive, examine, decide and transmit. Keep that number: it is the criterion for
 judging everything that follows.
 
