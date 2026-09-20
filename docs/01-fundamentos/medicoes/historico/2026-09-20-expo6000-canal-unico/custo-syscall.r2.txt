@@ -1,0 +1,15 @@
+Custo por operacao (2000000 iteracoes, 25 amostras; tempos em ns)
+
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  chamada de funcao (user-space)         0.723  0.720-0.737     0.719-0.748         2.3%   1.5%  
+  clock_gettime (vDSO, sem trap)         15.56  15.54-15.60     15.53-15.87         0.4%   0.6%  
+  syscall real (SYS_getpid)              33.54  33.49-33.63     33.37-33.95         0.4%   0.4%  
+
+  syscall custa 46x uma chamada de funcao
+
+Orcamento de 10 GbE com quadros de 64 B: 67.2 ns por pacote
+  syscalls que cabem nesse orcamento: 2.00
+
+  O caminho tradicional do kernel gasta pelo menos uma syscall por
+  lote de pacotes, mais interrupcao, alocacao de sk_buff e copia.

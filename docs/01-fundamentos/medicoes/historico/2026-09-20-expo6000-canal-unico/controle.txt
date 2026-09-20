@@ -1,0 +1,7 @@
+SEM reparo, com EXPO 6000
+ciclo  apos-ocio(dentro entre)  imediata(dentro entre)
+  1      25.92 85.29               19.85 80.25
+  2      27.62 85.00               19.98 78.19
+  3      23.65 85.02               20.11 78.21
+  4      26.99 85.05               18.81 78.43
+binario com reparo restaurado

@@ -1,0 +1,36 @@
+Custo de esperar por trabalho
+(25 amostras por medicao, apos 400 ms de aquecimento; tempos em ns)
+(CV = coeficiente de variacao;  ~ = dispersao moderada,  ! = instavel)
+
+GRUPO 1 - SEM DISPUTA: ninguem mais quer o mesmo primitivo
+          (processo com outra thread presente, que e o regime real
+           de qualquer programa concorrente -- ver nota no fonte)
+
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  atomica relaxed (store+load)           0.409  0.311-0.411     0.205-0.420        24.4%  19.8% !
+  atomica seq_cst (store+load)            3.70  3.69-3.90       3.68-4.01           5.8%   3.1% ~
+  mutex lock+unlock                       8.64  8.57-8.76       8.48-8.79           2.2%   1.2%  
+  spinlock lock+unlock                    4.50  4.49-4.52       4.43-4.73           0.5%   1.5%  
+  semaforo post+wait                      8.50  8.48-8.50       8.30-8.61           0.3%   0.9%  
+
+GRUPO 2 - NO REPASSE: duas threads coordenando (cpu 0 <-> cpu 2)
+
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  atomica + espera ativa (nao dorme)     17.60  17.59-17.63     17.58-18.62         0.3%   1.8%  
+  mutex + espera ativa (nao dorme)       92.25  91.98-93.68     90.65-94.30         1.8%   1.2%  
+  mutex + condvar (DORME)               1314.3  1309.2-1335.9   1260.3-1369.8       2.0%   2.0%  
+  semaforo POSIX (DORME)                1261.8  1252.1-1269.3   1223.4-1293.1       1.4%   1.4%  
+
+Leitura:
+  O primitivo nao e o problema: um mutex sem disputa custa poucos ns.
+  O MESMO mutex custa 92 ns sem dormir e 1314 ns com condvar --
+  14x de diferenca, e a unica variavel mudada foi dormir ou nao.
+
+  Orcamento de um pacote de 64 B em 10 GbE: 67.2 ns
+    espera ativa cabe 3.8 vezes nele
+    dormir gasta 19.6 orcamentos inteiros
+
+  Por isso o plano de dados faz polling: nao ha tempo para dormir.
+  O preco e ocupar 100% do nucleo mesmo sem trafego algum.

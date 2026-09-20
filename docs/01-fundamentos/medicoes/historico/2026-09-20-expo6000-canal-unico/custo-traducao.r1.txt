@@ -1,0 +1,21 @@
+Custo da traducao de endereco (percurso disperso em 512 MB)
+(21 amostras por medicao; tempos em ns)
+
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  paginas de 4 KB                        92.66  90.87-94.31     90.23-101.57        3.7%   3.0% ~
+  hugepages de 2 MB                      82.01  80.29-83.60     78.48-97.13         4.0%   4.9% ~
+
+  A diferenca abaixo e PAREADA -- delta_i = t_4k,i - t_2m,i na mesma
+  volta do laco -- e por isso tem distribuicao propria:
+
+  DIFERENCA atribuivel a traducao        10.58  IQR 10.05 a 11.02   amplitude -1.56 a 22.40   20/21 pares
+
+  custo do page walk: 10.58 ns  (11.4% do acesso com 4 KB)
+  a ultima coluna e o que sustenta a conclusao: em 20 dos 21 pares a
+  pagina de 4 KB foi a mais lenta. Subtrair duas medianas nao diz isso.
+
+  A latencia da RAM (~82 ns) aparece nas duas medicoes e nao
+  depende do tamanho da pagina. A diferenca acima e o custo do
+  page walk, que as hugepages eliminam: 15.7% do orcamento de
+  67.2 ns por pacote em 10 GbE, gasto antes de qualquer trabalho util.

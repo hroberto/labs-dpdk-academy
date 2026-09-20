@@ -1,0 +1,53 @@
+  aviso: "  aleatorio    (amortizado)" tem disp 10.0% com 9 amostras -- nessa faixa o selo
+         nao decide. Aumente para 20+ antes de explicar o resultado.
+  aviso: "  dependente   (LATENCIA)" tem disp 4.0% com 9 amostras -- nessa faixa o selo
+         nao decide. Aumente para 20+ antes de explicar o resultado.
+Latencia media por acesso, conjunto de trabalho crescente
+(linha de cache = 64 B; cada uint32_t = 4 B, logo 16 por linha)
+
+(9 amostras por medicao; tempos em ns)
+
+  L1d (16 KB)
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+    sequencial   (amortizado)            0.196  0.196-0.196     0.195-0.196         0.2%   0.1%  
+    aleatorio    (amortizado)            0.300  0.272-0.303     0.239-0.377        10.0%  13.2% !
+    dependente   (LATENCIA)              0.897  0.893-0.929     0.892-0.939         4.0%   2.3% ~
+  -> penalidade por perder a localidade: 1.5x   |  acessos em voo: ~3
+
+  L2 (256 KB)
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+    sequencial   (amortizado)            0.189  0.188-0.189     0.187-0.192         0.2%   0.7%  
+    aleatorio    (amortizado)            0.331  0.331-0.331     0.331-0.342         0.1%   1.1%  
+    dependente   (LATENCIA)               2.68  2.68-2.68       2.67-2.68           0.1%   0.1%  
+  -> penalidade por perder a localidade: 1.8x   |  acessos em voo: ~8
+
+  aviso: "  aleatorio    (amortizado)" tem disp 4.2% com 9 amostras -- nessa faixa o selo
+         nao decide. Aumente para 20+ antes de explicar o resultado.
+  L3 (8192 KB)
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+    sequencial   (amortizado)            0.188  0.187-0.188     0.186-0.190         0.3%   0.5%  
+    aleatorio    (amortizado)            0.724  0.701-0.732     0.695-0.742         4.2%   2.6% ~
+    dependente   (LATENCIA)               9.71  9.69-9.71       9.68-9.75           0.2%   0.2%  
+  -> penalidade por perder a localidade: 3.9x   |  acessos em voo: ~13
+
+  RAM (262144 KB)
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+    sequencial   (amortizado)            0.200  0.200-0.200     0.199-0.201         0.2%   0.3%  
+    aleatorio    (amortizado)             7.08  7.06-7.09       7.06-7.10           0.4%   0.2%  
+    dependente   (LATENCIA)              98.54  98.33-99.01     96.53-99.75         0.7%   1.0%  
+  -> penalidade por perder a localidade: 35.4x   |  acessos em voo: ~14
+
+
+  As duas primeiras colunas sao tempo AMORTIZADO; a terceira e
+  LATENCIA. Sequencial custa quase o mesmo em qualquer tamanho,
+  porque o prefetcher esconde a latencia. Aleatorio degrada, mas
+  ainda amortiza: os enderecos vem de um vetor lido em sequencia,
+  entao varios acessos acontecem ao mesmo tempo. So a cadeia
+  dependente expoe o preco cheio de UM acesso.
+
+  A razao entre a segunda e a terceira coluna e quantos acessos a
+  maquina mantem em voo. Ver custo-paralelismo.c.

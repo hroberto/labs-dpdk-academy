@@ -1,0 +1,46 @@
+Custo de dois nucleos trocarem uma linha de cache
+
+  Dominios de cache L3 nesta maquina: 2
+    dominio 0: CPUs 0-5,12-17
+    dominio 1: CPUs 6-11,18-23
+
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  dentro do dominio 0 (cpu 0 <-> 2)      18.44  17.93-19.33     17.51-21.15         7.6%   5.4% ~
+  ENTRE dominios (cpu 0 <-> 6)           84.61  82.20-85.24     81.95-92.33         3.6%   3.3% ~
+  RAZAO entre/dentro (pareada)            4.46  4.32-4.76       4.00-5.15           9.9%   7.0% ~
+
+  Contencao entre fluxos SMT (mesmo nucleo fisico)
+
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  laco sozinho no nucleo                 0.539  0.537-0.546     0.537-0.568         1.6%   1.9%  
+  vizinho no irmao SMT (cpu 12)           1.24  1.23-1.24       1.20-1.24           0.1%   0.6%  
+  RAZAO com/sem irmao SMT (pareada)       2.29  2.29-2.29       2.23-2.30           0.3%   0.7%  
+
+  controle de regime  fase 1: base 0.539  razao 2.29
+                      fase 2: base 0.539  razao 2.29   (apos 400 ms de carga continua)
+  As duas fases concordam: a razao nao depende de condicionamento.
+  vizinho em nucleo fisico (cpu 2)       0.551  0.549-0.566     0.537-0.583         3.0%   2.1% ~
+
+  Compartilhar o nucleo custa 129% de desempenho; usar nucleos
+  fisicos distintos custa 2%. Duas CPUs logicas nao sao dois
+  nucleos: num laco de polling, que nunca cede as unidades de
+  execucao, o irmao SMT compete o tempo todo.
+
+  Vazao AGREGADA do par de CPUs (M operacoes/s)
+
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  1 thread  em 1 nucleo fisico (cpu 0)    1853.5  1676.1-1856.1   1570.9-1920.5       9.7%   6.9% ~
+  2 threads em 2 nucleos fisicos (cpu 0,2)    3674.6  3418.0-3698.5   3129.7-3714.3       7.6%   6.4% ~
+  2 threads em 2 irmaos SMT (cpu 0,12)    1923.0  1919.1-1923.4   1908.2-1926.3       0.2%   0.2%  
+
+  dois nucleos fisicos rendem 1.98x um nucleo
+  dois irmaos SMT     rendem 1.04x um nucleo
+  A degradacao de 2.29x da thread observada NAO prediz este numero:
+  aplicada simetricamente, ela daria 0.87x.
+
+  Atravessar a interconexao custa 4.6x mais.
+  Isso e 126% do orcamento de 67.2 ns de um pacote de 64 B em 10 GbE:
+  um unico repasse entre nucleos mal posicionados ja o estoura.

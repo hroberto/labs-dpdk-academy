@@ -1,0 +1,118 @@
+name: CI
+
+# GATILHO RESTRITO A main E A PULL REQUESTS, e a razao e uma so: `on: push` sem
+# filtro dispara tambem em TAG, e reconstruir uma tag antiga com o ferramental de
+# hoje produz vermelho permanente. Foi o que aconteceu com `v0.01.00` -- a arvore
+# daquele commit nao tem os verificadores que o pre-commit de hoje executa, entao
+# a CI dela nunca mais vai passar, por definicao.
+#
+# Vermelho que nao tem conserto treina quem le a lista a ignorar o vermelho, e
+# foi exatamente assim que cinco falhas reais passaram despercebidas nesta
+# arvore. Um sinal que nao pode ficar verde nao e sinal.
+#
+# Branch de trabalho continua coberta: entra por `pull_request`, onde o resultado
+# tem para onde ir.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Menor privilegio para o GITHUB_TOKEN. Sem este bloco ele herda o padrao da
+# conta, que pode ser escrita -- e este workflow so compila e testa: nao cria
+# release, nao comenta em PR, nao empurra nada. Se uma acao de terceiros for
+# comprometida um dia, o estrago fica limitado ao que ela pode ler.
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    # Imagem FIXA, nao 'ubuntu-latest': o compilador padrao muda quando a
+    # imagem muda, e este projeto exige C++23 com <print> (GCC 14+). Com
+    # 'latest' a CI quebraria num dia em que ninguem tocou no codigo.
+    runs-on: ubuntu-24.04
+    steps:
+      # Fixada por SHA, nao por tag: `v7` e um ponteiro movel, e quem controla
+      # o repositorio da acao pode reaponta-lo. O SHA e imutavel.
+      #
+      # Corresponde a v7. Essa linha nao e decorativa: `ferramental/qualidade/pre-commit.sh`
+      # a le para resolver o SHA de volta e avisar se ele deixou de ser o topo
+      # do major declarado -- foi assim que apareceu o PR #1 do Dependabot
+      # propondo saltar de v4 para v7, e foi assim que se notou que ele trocava
+      # o SHA sem trocar esta linha.
+      #
+      # Para atualizar dentro do mesmo major:
+      #   gh api repos/actions/checkout/git/ref/tags/v7 --jq '.object.sha'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      # DPDK e dependencia de AMBIENTE (bibliotecas + hugepages + drivers), por
+      # isso vem da distribuicao e nao de um gerenciador de pacotes C++.
+      # Os testes rodam com --no-huge, entao o runner nao precisa de hugepages.
+      - name: Instalar DPDK e ferramentas de build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpdk-dev pkg-config ninja-build python3-pip g++-14
+          # GCC 14 e o minimo para <print>/<expected>, que check-env.sh exige.
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          python3 -m pip install --upgrade meson
+          pkg-config --modversion libdpdk
+
+      - name: Diagnosticar ambiente
+        run: ./scripts/check-env.sh
+
+      # As regras de consistencia do projeto rodam AQUI, e nao so num gancho.
+      #
+      # INCIDENTE: este passo ja existiu uma vez e foi perdido num `reset
+      # --hard`. Pior: o README de ferramental/qualidade continuou afirmando que
+      # "ele e executado pela CI", declarando consertada uma lacuna que voltou a
+      # existir. Retratacao falsa e pior que a lacuna original, porque desliga o
+      # alarme -- quem le acredita que esta coberto.
+      #
+      # `.github/dependabot.yml` publica este script como a protecao numero 2
+      # contra merge de major sem revisao. Um gancho LOCAL de commit nao roda em
+      # PR do Dependabot por construcao; rodando aqui, a afirmacao passa a ser
+      # verdadeira, porque a CI executa em pull_request.
+      # --rapido, e a razao importa: sem ele o pre-commit roda a SUITE INTEIRA
+      # aqui dentro, e os passos de L1/L2/L3 logo abaixo a rodam de novo. Alem do
+      # tempo dobrado, uma falha ficava sem endereco -- o X vermelho aparecia
+      # nesta etapa, antes de `meson setup`, sem dizer qual suite quebrou. Com
+      # --rapido esta etapa confere sintaxe, consistencia, segredos, documentacao
+      # e assinatura; medir o codigo e das etapas nomeadas.
+      - name: Consistencia do projeto (regras do pre-commit)
+        run: ./ferramental/qualidade/pre-commit.sh --rapido
+
+      # GTest vem do subprojeto do Meson (subprojects/gtest.wrap), com hash fixo.
+      - name: Configurar
+        run: meson setup build
+
+      - name: Compilar
+        run: meson compile -C build
+
+      - name: Testes L1 (logica pura, sem EAL)
+        run: meson test -C build --suite l1 --print-errorlogs
+
+      # Os programas de medicao dos fundamentos coletam 25 amostras por padrao,
+      # o que leva minutos. No CI o objetivo e apenas verificar que executam,
+      # entao o numero minimo basta.
+      - name: Testes L2 (EAL real, sem hugepages e sem NIC)
+        env:
+          DPDK_ACADEMY_AMOSTRAS: "3"
+          # Teto de rodadas POR amostra. Reduzir amostras nao bastava: o custo
+          # de `custo-espera` esta nas 200 000 rodadas de repasse entre threads,
+          # que num runner de 2 nucleos estouraram os 300 s do timeout.
+          DPDK_ACADEMY_RODADAS: "20000"
+        run: meson test -C build --suite l2 --print-errorlogs
+
+      # L3 exige do HOST o que o runner nao tem: hugetlbfs gravavel, dois
+      # dominios de cache L3, varios nucleos fisicos. Roda mesmo assim, e o
+      # esperado e que a maioria seja PULADA (codigo 77).
+      #
+      # Rodar e ver "Skipped" NAO e desperdicio: e o que garante que o caminho
+      # de pulo continua funcionando. Antes desta secao, estes testes saiam com
+      # 0 e apareciam como OK sem ter verificado nada -- o falso verde durou
+      # todo o tempo em que estiveram no CI.
+      - name: Testes L3 (dependem do host; PULAR aqui e o esperado)
+        env:
+          DPDK_ACADEMY_AMOSTRAS: "3"
+          DPDK_ACADEMY_RODADAS: "20000"
+        run: meson test -C build --suite l3 --print-errorlogs

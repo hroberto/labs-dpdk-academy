@@ -1,0 +1,102 @@
+# Como citar este trabalho / How to cite this work
+#
+# POR QUE ESTE ARQUIVO EXISTE
+#
+# O nome do autor já era público em quatro lugares independentes — a linha de
+# copyright da licença MIT, o cabeçalho dos fontes, a autoria de todo commit e
+# o histórico publicado. Este arquivo não expõe nada novo; ele responde uma
+# pergunta que antes não tinha resposta mecânica: "se eu usar uma metodologia,
+# um programa de medição ou um número deste projeto, o que exatamente eu cito?"
+#
+# O QUE ELE DELIBERADAMENTE NÃO TEM
+#
+#   email  — o campo é opcional, e um endereço aqui é colhido por agregador.
+#            Contato é pelo GitHub.
+#   orcid  — é a única parte que criaria ligação NOVA, entre este repositório e
+#            o histórico acadêmico do autor, nos dois sentidos. Acrescentar
+#            depois é trivial; a ligação, uma vez colhida, não é retirável.
+#   doi    — um DOI é permanente por construção, e arquivar hoje carimbaria
+#            valores ainda sob revalidação e uma cobertura de fontes medida em
+#            33–42%. Entra quando o estado for um que não se queira corrigir na
+#            semana seguinte.
+#
+# A versão é 0.01.00 e não 1.x de propósito: a história deste repositório
+# recomeça aqui, e numerar a partir de 1 sugeriria uma linhagem que não existe.
+# O 1.00.00 vem quando os débitos declarados no ROADMAP fecharem.
+#
+# O campo `version` é conferido por máquina contra a tag mais recente do
+# repositório (ferramental/qualidade/verificar-citacao.py). Um arquivo de
+# metadados que envelhece em silêncio é pior que a ausência dele: ele afirma
+# com autoridade um estado que deixou de existir.
+
+cff-version: 1.2.0
+message: >-
+  If you use this material — a method, a measurement program or a published
+  number — please cite it as below.
+
+# TITULO EM UMA LINGUA SO, E EM INGLES -- a decisao tem motivo tecnico.
+#
+# O CFF nao tem mecanismo multilingue: `title`, `abstract` e `message` sao
+# strings unicas. Um titulo com os dois idiomas separados por barra vai
+# VERBATIM para a lista de referencias de quem citar:
+#
+#   Martins Roberto, H. (2026). DPDK Academy: estudo experimental reprodutivel
+#   de desempenho no plano de dados / a reproducible experimental study of
+#   data-plane performance ...
+#
+# Isso nao aumenta alcance; inutiliza a citacao. Ingles porque e a lingua das
+# bases de citacao e das listas de referencia, que e onde este campo aparece.
+#
+# O bilinguismo da obra nao se perde: fica declarado em `languages`, que e o
+# campo do esquema para isso, e no `abstract`, que e metadado de agregador e
+# NAO entra na citacao -- ali os dois idiomas dobram a cobertura de termos de
+# graca.
+title: "DPDK Academy: a reproducible experimental study of data-plane performance"
+
+abstract: >-
+  Guia de estudo de DPDK em que todo número publicado tem um programa que o
+  produz. Medido numa máquina nomeada, e corrigido quando a medição discordou —
+  inclusive da documentação oficial. Prosa em português, código em inglês, com
+  paridade pt/en verificada por máquina, retratações preservadas e uma barra de
+  verificadores que confere aritmética, âncoras, fontes e dispersão entre
+  execuções. / A DPDK study guide where every published number has a program
+  that produces it. Measured on a named machine, and corrected when the
+  measurement disagreed — including against the official docs.
+
+type: software
+
+# A obra e bilingue, e este e o campo do esquema que diz isso. ISO 639-1.
+languages:
+  - pt
+  - en
+
+authors:
+  - given-names: Henrique
+    family-names: Martins Roberto
+    alias: hroberto
+
+repository-code: "https://github.com/hroberto/labs-dpdk-academy"
+url: "https://github.com/hroberto/labs-dpdk-academy"
+license: MIT
+version: 0.01.00
+date-released: "2026-09-20"
+
+keywords:
+  - dpdk
+  - data-plane
+  - packet-processing
+  - kernel-bypass
+  - networking
+  - linux
+  - performance-engineering
+  - benchmarking
+  - reproducible-research
+  - low-latency
+  - cpp23
+  - systems-programming
+  - hugepages
+  - tlb
+  - cache-locality
+  - meson
+  - learning-resources
+  - portuguese

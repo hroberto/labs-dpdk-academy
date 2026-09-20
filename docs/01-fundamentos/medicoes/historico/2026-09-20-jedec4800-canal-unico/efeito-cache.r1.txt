@@ -1,0 +1,61 @@
+  aviso: "  sequencial   (amortizado)" tem disp 13.9% com 9 amostras -- nessa faixa o selo
+         nao decide. Aumente para 20+ antes de explicar o resultado.
+  aviso: "  aleatorio    (amortizado)" tem disp 3.6% com 9 amostras -- nessa faixa o selo
+         nao decide. Aumente para 20+ antes de explicar o resultado.
+Latencia media por acesso, conjunto de trabalho crescente
+(linha de cache = 64 B; cada uint32_t = 4 B, logo 16 por linha)
+
+(9 amostras por medicao; tempos em ns)
+
+  L1d (16 KB)
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+    sequencial   (amortizado)            0.196  0.196-0.223     0.195-0.232        13.9%   7.7% !
+    aleatorio    (amortizado)            0.265  0.264-0.273     0.263-0.274         3.6%   1.8% ~
+    dependente   (LATENCIA)              0.899  0.898-0.903     0.894-0.908         0.6%   0.5%  
+  -> penalidade por perder a localidade: 1.4x   |  acessos em voo: ~3
+
+  aviso: "  dependente   (LATENCIA)" tem disp 4.1% com 9 amostras -- nessa faixa o selo
+         nao decide. Aumente para 20+ antes de explicar o resultado.
+  L2 (256 KB)
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+    sequencial   (amortizado)            0.190  0.189-0.190     0.188-0.198         0.5%   1.6%  
+    aleatorio    (amortizado)            0.333  0.332-0.341     0.323-0.355         2.7%   2.9%  
+    dependente   (LATENCIA)               2.81  2.71-2.82       2.68-3.01           4.1%   4.3% ~
+  -> penalidade por perder a localidade: 1.8x   |  acessos em voo: ~8
+
+  aviso: "  dependente   (LATENCIA)" tem disp 9.1% com 9 amostras -- nessa faixa o selo
+         nao decide. Aumente para 20+ antes de explicar o resultado.
+  L3 (8192 KB)
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+    sequencial   (amortizado)            0.188  0.187-0.189     0.187-0.201         1.1%   2.4%  
+    aleatorio    (amortizado)            0.760  0.747-0.770     0.704-0.813         3.0%   4.6%  
+    dependente   (LATENCIA)              10.04  9.78-10.69      9.70-12.62          9.1%   9.4% ~
+  -> penalidade por perder a localidade: 4.0x   |  acessos em voo: ~13
+
+  aviso: "  sequencial   (amortizado)" tem disp 9.7% com 9 amostras -- nessa faixa o selo
+         nao decide. Aumente para 20+ antes de explicar o resultado.
+  aviso: "  aleatorio    (amortizado)" tem disp 6.2% com 9 amostras -- nessa faixa o selo
+         nao decide. Aumente para 20+ antes de explicar o resultado.
+  aviso: "  dependente   (LATENCIA)" tem disp 3.3% com 9 amostras -- nessa faixa o selo
+         nao decide. Aumente para 20+ antes de explicar o resultado.
+  RAM (262144 KB)
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+    sequencial   (amortizado)            0.224  0.214-0.235     0.202-0.245         9.7%   6.5% ~
+    aleatorio    (amortizado)             7.75  7.35-7.83       7.34-8.35           6.2%   4.3% ~
+    dependente   (LATENCIA)              103.3  102.9-106.3     102.4-121.1         3.3%   5.9% ~
+  -> penalidade por perder a localidade: 34.6x   |  acessos em voo: ~13
+
+
+  As duas primeiras colunas sao tempo AMORTIZADO; a terceira e
+  LATENCIA. Sequencial custa quase o mesmo em qualquer tamanho,
+  porque o prefetcher esconde a latencia. Aleatorio degrada, mas
+  ainda amortiza: os enderecos vem de um vetor lido em sequencia,
+  entao varios acessos acontecem ao mesmo tempo. So a cadeia
+  dependente expoe o preco cheio de UM acesso.
+
+  A razao entre a segunda e a terceira coluna e quantos acessos a
+  maquina mantem em voo. Ver custo-paralelismo.c.

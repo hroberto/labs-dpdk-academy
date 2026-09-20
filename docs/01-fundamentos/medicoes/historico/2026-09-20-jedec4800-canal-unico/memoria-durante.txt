@@ -1,0 +1,9 @@
+Amostras de memoria DURANTE a coleta, para que a comparacao futura com dois
+pentes possa separar CAPACIDADE de BANDA. O maior conjunto de trabalho do
+conjunto e de 512 MB (custo-traducao); se o disponivel ficar sempre muito
+acima disso, capacidade nao e variavel explicativa.
+
+hora            MemFree MemAvailable    hugepages
+14:17:38          4,6 G        7,0 G     1024 livres
+14:17:58          4,6 G        7,1 G     1024 livres
+14:18:18          5,0 G        7,5 G      768 livres

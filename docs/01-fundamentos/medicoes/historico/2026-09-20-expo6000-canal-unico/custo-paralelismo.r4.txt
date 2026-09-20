@@ -1,0 +1,72 @@
+Latencia x vazao: o mesmo acesso, com K deles em voo (256 MB)
+(7 amostras por medicao; tempos em ns)
+
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  K = 1  (1 acesso em voo)               75.67  75.19-76.26     74.87-76.36         1.4%   0.8%  
+  K = 2  (2 acessos em voo)              38.04  38.02-38.09     37.95-38.15         0.2%   0.2%  
+  K = 4  (4 acessos em voo)              20.57  20.56-20.59     20.56-20.60         0.1%   0.1%  
+  K = 8  (8 acessos em voo)              10.83  10.83-10.84     10.82-10.84         0.1%   0.1%  
+  K = 12 (12 acessos em voo)              7.52  7.51-7.52       7.51-7.52           0.1%   0.1%  
+  K = 16 (16 acessos em voo)              5.83  5.82-5.83       5.82-5.83           0.1%   0.1%  
+  K = 32 (32 acessos em voo)              3.46  3.46-3.47       3.46-3.47           0.2%   0.1%  
+  K = 64 (64 acessos em voo)              2.77  2.77-2.78       2.77-2.78           0.4%   0.3%  
+
+  O que a tabela acima significa, coluna a coluna:
+
+   K   ns/acesso   M acessos/s   lote de K completa em   ganho de vazao
+  ---  ---------   -----------   ---------------------   --------------
+    1      75.67        13.2                76 ns            1.0x
+    2      38.04        26.3                76 ns            2.0x
+    4      20.57        48.6                82 ns            3.7x
+    8      10.83        92.3                87 ns            7.0x
+   12       7.52       133.0                90 ns           10.1x
+   16       5.83       171.7                93 ns           13.0x
+   32       3.46       288.9               111 ns           21.9x
+   64       2.77       361.3               177 ns           27.3x
+
+  A latencia de UM acesso e ~76 ns e nao muda em nenhuma linha.
+  O que muda e quantos deles acontecem ao mesmo tempo.
+
+  Com K = 1 esta maquina faz 13.2 M acessos/s -- ABAIXO dos 14.9 M
+  pacotes/s do line rate de 10 GbE com quadros de 64 B. Um unico
+  acesso dependente por pacote ja perde a taxa, antes de qualquer
+  processamento. Com K = 64 sobram 2328% de folga.
+
+  E o preco: o lote de 64 so fica pronto em 177 ns, contra 76 ns
+  do acesso solitario. Vazao comprada com latencia -- o orcamento de
+  67.2 ns por pacote diz quanto dessa troca voce pode pagar.
+
+
+  FASE 2 -- e quando varios nucleos querem a mesma memoria?
+
+  Cada nucleo percorre 16 cadeias proprias sobre a MESMA regiao.
+  Nenhuma linha e compartilhada entre threads: o que sobra e o
+  caminho de memoria. 12 nucleos fisicos disponiveis.
+  (21 amostras por ponto -- mais que a fase 1; ver o comentario
+   de AMOSTRAS_NUCLEOS_FIXO sobre por que 7 nao bastam aqui)
+
+  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  1 nucleo                                6.19  6.16-6.21       6.10-6.42           0.8%   1.1%  
+  2 nucleos                               6.74  6.72-6.77       6.65-6.85           0.7%   0.7%  
+  4 nucleos                               8.61  8.56-8.66       8.50-8.72           1.2%   0.8%  
+  8 nucleos                              14.35  14.31-14.40     14.21-14.57         0.6%   0.6%  
+  12 nucleos                             21.24  21.18-21.28     21.14-21.31         0.4%   0.2%  
+
+   nucleos   ns/acesso   M acessos/s      agregado   escala ideal
+  --------   ---------   -----------   -----------   ------------
+         1        6.19       161.5         161.5          100%
+         2        6.74       148.3         296.6           92%
+         4        8.61       116.2         464.6           72%
+         8       14.35        69.7         557.6           43%
+        12       21.24        47.1         565.1           29%
+
+  De 1 para 12 nucleos a vazao AGREGADA cresce 3.5x, nao 12x.
+  Cada nucleo, isolado, fazia 161.5 M acessos/s; com 12 ativos faz
+  47.1 M -- 29% do que fazia sozinho. A banda nao se multiplica
+  por nucleo: ela e dividida.
+
+  E a consequencia de projeto: dimensionar um plano de dados pela
+  medicao de UM lcore superestima o sistema inteiro. O numero que
+  importa e a linha de baixo desta tabela, nao a de cima.

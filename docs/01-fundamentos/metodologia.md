@@ -1,0 +1,518 @@
+# Metodologia e reprodutibilidade — módulo 01
+
+*Read this in [English](metodologia.en.md).*
+
+> Anexo de [Fundamentos](README.md). O corpo do módulo publica **o que muda o
+> modelo mental**; este arquivo guarda **o que prova que a medição foi feita
+> direito**.
+>
+> A separação não é cosmética. Uma autópsia de benchmark ensina muito — "em
+> microbenchmark, desmonte antes de publicar" é das lições mais úteis daqui —
+> mas ensina *sobre medição*, não sobre o custo da fronteira kernel/usuário. No
+> meio da aula, ela sequestra a aula. Aqui, ela é a aula.
+
+---
+
+## 1. §2 — as duas correções do `custo-syscall`
+
+A tabela de [§2](README.md#2-a-fronteira-user-space--kernel-space) publica três
+números: chamada de função, `clock_gettime` pelo vDSO e syscall real. Chegar
+neles exigiu duas correções, e as duas são instrutivas por razões diferentes: a
+primeira é um erro de **instrumento**, a segunda é um erro de **declaração de
+regime**.
+
+### 1.1 O compilador apagou a chamada
+
+> **Esta tabela já publicou 0,115 ns e "294×", e os dois estavam errados.** A
+> função de referência não tinha argumento nem efeito colateral e devolvia
+> constante, então o GCC a classificou como `const`, dobrou a chamada no
+> literal e a içou para fora do laço — `__attribute__((noinline))` impede
+> *inlining*, não propagação interprocedural de constante. O laço medido era
+> `movq $0x2a, sumidouro` duas vezes, sem nenhuma instrução `call`, e a razão
+> comparava uma syscall com dois *stores*.
+>
+> A correção foi tornar a função opaca ao compilador, com `asm volatile` e
+> clobber de memória. Confira que a chamada existe antes de confiar no número:
+>
+> ```bash
+> objdump -d build/docs/01-fundamentos/medicoes/custo-syscall | \
+>     awk '/<m_funcao>:/,/^$/' | grep call
+> ```
+>
+> Fica o método, que vale além deste caso: **em microbenchmark, desmonte antes
+> de publicar.** Um laço rápido demais é hipótese de erro de medição antes de
+> ser resultado.
+
+### 1.2 A razão publicada era de outro regime
+
+> **A RAZÃO 36× É DO REGIME FRIO, e isto foi medido em 16/09/2026.** A tabela
+> acima é transcrição fiel de uma execução — mas de uma **primeira execução após
+> ociosidade**, e nesse regime a chamada de função mede 0,92 ns. Oito execuções
+> seguidas, com a máquina já em uso, dão 0,72 a 0,75 ns para a mesma chamada, e a
+> razão sobe para **45× a 49×** (mediana 46×).
+>
+> Os dois regimes são reais e reprodutíveis, cada um com dispersão interna baixa
+> — a tabela acima mostra 0,4% de amplitude. O que faltava era **declarar em qual
+> deles se mediu**.
+>
+> O efeito é o mesmo que o [submódulo de benchmarking](../../trilha/03-performance/01-benchmarking/)
+> mede e explica: a primeira execução após ociosidade sai ~30% alta na operação
+> mais curta. Aqui ele não inflou um número solto — inflou o **denominador** de
+> uma razão, e por isso a razão saiu para **menos**: 33,5/0,92 = 36, contra
+> 33,8/0,73 = 46.
+>
+> **O argumento desta seção não muda**, porque ele nunca dependeu da razão: sai de
+> 33,5 ns contra 67,2 ns de orçamento, e a chamada de função não entra na conta.
+> Mas a razão é a frase que as pessoas repetem, e ela estava 22% baixa.
+>
+> Reproduza: rode `custo-syscall` uma vez depois de alguns minutos de máquina
+> parada, e depois oito vezes seguidas. A diferença aparece na primeira linha.
+
+### 1.3 O que fica das duas
+
+| Correção | Classe do erro | Lição que sobrevive |
+|---|---|---|
+| 0,115 ns / 294× | o instrumento não media o que dizia medir | desmonte o binário antes de publicar |
+| 36× contra 46× | a medição estava certa, o regime não estava declarado | diga se mediu a frio ou em regime |
+
+E uma observação que vale para o documento inteiro: **nenhuma das duas mudou a
+conclusão do §2**. Ela sai de 33,5 ns contra 67,2 ns de orçamento, e a chamada
+de função não entra nessa conta. O que as duas atingiram foi a **razão**, que é
+a frase de efeito — exatamente a parte que as pessoas repetem, e por isso a que
+mais precisa estar certa.
+
+---
+
+## 2. §4.1 — o desenho do `custo-traducao`
+
+A [§4.1](README.md#41-memória-virtual-o-que-significa-traduzir-um-endereço)
+publica a diferença entre páginas de 4 KB e hugepages de 2 MB. Três decisões de
+desenho sustentam esse número, e nenhuma delas muda o modelo mental do leitor —
+elas provam que a medição isola o *page walk* de todo o resto.
+
+### 2.1 O que fica fora do cronômetro
+
+**O que fica fora do cronômetro, de propósito.** Medido na máquina de
+referência, uma amostra de 512 MB:
+
+| Etapa | Custo | Por que fica fora |
+|---|---|---|
+| `mmap` de 512 MB | ~0 ms | só cria o mapeamento; nenhuma memória existe ainda |
+| `memset` da região | 88 ms (4 KB) / 46 ms (2 MB) | **força as faltas de página aqui**, não no laço |
+| sorteio e montagem da cadeia | ~215 ms | escrever 8,4 M ponteiros não é o objeto do teste |
+| `free` do vetor de ordem (64 MB) | — | devolvido antes do primeiro carimbo |
+| **laço cronometrado** | **~3 500 ms** | ← é só isto que entra na conta |
+
+O `memset` é o item importante dessa lista, e o número de faltas de página que
+ele provoca é a própria aritmética da seção aparecendo no contador do sistema:
+
+```
+  páginas de 4 KB:  131 072 faltas de página   (512 MB ÷ 4 KB)
+  hugepages de 2 MB:    256 faltas de página   (512 MB ÷ 2 MB)
+```
+
+Sem esse pré-toque, a primeira volta do ciclo pagaria uma falta de página a cada
+página nova — microssegundos cada — e a medição publicaria o custo de **criar**
+o mapeamento, não o de **traduzi-lo**. Repare, de passagem, que o `memset` em si
+já custa quase o dobro com páginas de 4 KB: 131 072 entradas no kernel contra
+256.
+
+### 2.2 Por que a região tem exatamente 512 MB
+
+O tamanho não é arbitrário. Ele é o único valor que satisfaz quatro restrições
+ao mesmo tempo, e entender isso é entender o experimento:
+
+| A região precisa ser… | Senão… | Nesta máquina |
+|---|---|---|
+| muito maior que o L3 | o percurso mede cache, não memória | L3 = 32 MB por bloco |
+| muito maior que o alcance da TLB com 4 KB | o lado "ruim" não falta, e não há o que medir | exige 131 072 entradas |
+| pequena o bastante para caber no alcance com 2 MB | o lado "bom" também falta, e a diferença some | exige 256 entradas |
+| pequena o bastante para a reserva ser viável | o teste vira privilégio de máquina grande | 256 hugepages = 512 MB |
+
+As duas linhas do meio são o coração do desenho. Nenhuma TLB de segundo nível de
+x86 atual guarda mais que alguns milhares de entradas — ou seja, **131 072
+entradas não cabem de jeito nenhum**, e quase todo acesso do lado de 4 KB paga a
+caminhada. Já **256 entradas cabem com folga em qualquer uma delas**, e o lado
+de 2 MB acerta quase sempre. O experimento força os dois extremos e publica a
+distância entre eles.
+
+É também a resposta do [exercício 6](README.md#exercícios): encolher a região para 4 MB
+faz a vantagem sumir, porque aí os dois lados cabem — 1 024 entradas de 4 KB
+ainda cabem na TLB, e 4 MB inteiros cabem no L3.
+
+### 2.3 A área reservada: 256 hugepages, e por que a receita pede 512
+
+**`MAP_HUGETLB` não negocia.** Diferente das *transparent hugepages*, que o
+kernel promove em segundo plano quando consegue, essa flag serve-se de um
+**pool reservado antecipadamente** e **não cai para 4 KB** quando ele não basta:
+o `mmap` falha com `ENOMEM`, e acabou.
+
+É essa ausência de silêncio que permite ao programa usar uma medição real como
+teste de capacidade — se `amostra_2m()` devolve erro, é porque a reserva não
+existe:
+
+```c
+if (amostra_2m() < 0) { /* ... */ return 77; }   /* 77 = PULADO no Meson */
+```
+
+O código de saída 77 está lá por um motivo documentado no
+[`meson.build`](medicoes/meson.build): sair com 0 fazia a suíte reportar verde
+**sem que nada tivesse sido medido**, e como `HugePages_Total=0` é o padrão da
+maioria das máquinas e do runner de CI, o falso verde era a regra, não a
+exceção.
+
+**A conta da reserva:**
+
+```
+região medida          512 MB
+tamanho da hugepage      2 MB
+                      ────────
+mínimo necessário       256 hugepages
+```
+
+A receita do documento pede **512** (`sudo sysctl -w vm.nr_hugepages=512`), o
+dobro do mínimo. A folga não é desperdício; ela cobre três situações reais:
+
+- **o pool é global.** Outro processo — um DPDK em execução, um teste anterior
+  que não encerrou — pode estar segurando parte dele.
+- **em máquina com mais de um nó NUMA o pool é dividido entre os nós.** Um
+  `mmap` de 512 MB precisa de 256 páginas **no nó onde a memória será tocada**;
+  com 512 páginas repartidas entre dois nós, sobra exatamente o mínimo e nenhuma
+  margem.
+- **a reserva pode ser parcialmente atendida** — o próximo ponto.
+
+**`sysctl` não falha alto, e este é o erro operacional mais comum.** Se a
+memória estiver fragmentada, o kernel reserva *o que conseguir* e o comando sai
+com sucesso do mesmo jeito. O único jeito de saber é ler de volta:
+
+```bash
+sudo sysctl -w vm.nr_hugepages=512
+grep -E "HugePages_Total|HugePages_Free|HugePages_Rsvd|Hugepagesize" /proc/meminfo
+#   Total = o que o kernel CONSEGUIU reservar (pode ser menor que 512)
+#   Free  = ainda não entregues a ninguém
+#   Rsvd  = prometidas a um mmap que ainda não as tocou
+```
+
+Se `HugePages_Total` voltar abaixo de 256, a medição vai pular. Em máquina ligada
+há muito tempo, reservar cedo resolve — ou no boot, que é a única forma confiável
+em memória fragmentada:
+
+```bash
+# persistente, aplicado no boot
+echo "vm.nr_hugepages = 512" | sudo tee /etc/sysctl.d/10-hugepages.conf
+# ou na linha de comando do kernel: hugepagesz=2M hugepages=512
+# por nó NUMA, quando houver mais de um:
+echo 256 | sudo tee /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages
+```
+
+**A reserva sai da memória do sistema.** Páginas reservadas deixam de estar
+disponíveis para qualquer outra coisa: não entram em `MemAvailable`, não são
+recuperadas sob pressão e não vão para swap. 512 páginas de 2 MB são **1 GB
+retirado da máquina** enquanto a reserva existir.
+
+> **Esta reserva não é a mesma do
+> [`preparar-hugepages.sh`](../../scripts/preparar-hugepages.sh).** Aquele
+> script monta um **hugetlbfs gravável**, necessário para o modelo
+> primário/secundário do módulo 02, onde dois processos precisam mapear o mesmo
+> *arquivo*. `custo-traducao.c` usa memória **anônima** (`MAP_ANONYMOUS |
+> MAP_HUGETLB`) e não precisa de ponto de montagem nenhum: precisa apenas que o
+> **pool exista**. Reservar sem montar basta aqui; montar sem reservar, não.
+
+---
+
+## 3. §5.2 — por que o regime de thread única foi descartado
+
+A [§5.2](README.md#quanto-custa-dormir--e-o-que-exatamente-é-caro) mede o mutex
+sem disputa em **8,5 ns**, e declara que todas as medições rodam com outra
+thread presente no processo. Havia um número menor disponível, e ele foi
+descartado — a razão é metodológica, e é das mais instrutivas do módulo.
+
+> **Aparte: o caminho rápido da glibc, e por que ele foi descartado.**
+>
+> A glibc mantém um atalho para processos de **thread única**, no qual o mesmo
+> mutex custa ~2 ns em vez de 8,5 — não há com quem competir, então a instrução
+> atômica é pulada. O número é real, e mesmo assim inválido como referência.
+>
+> A primeira razão é que nenhum programa concorrente o desfruta. A segunda é
+> pior: o atalho é perdido **permanentemente** na primeira criação de thread, e
+> não volta nem depois de a thread ser juntada.
+>
+> ```
+>   antes de qualquer thread      :  2.40 ns
+>   apos criar E JUNTAR uma thread:  8.99 ns
+>   __libc_single_threaded = 0
+> ```
+>
+> A consequência prática é fatal para a medição: o valor dependia da **ordem** em
+> que as medições rodavam dentro do programa, variando de 2,4 a 9,0 ns conforme
+> a posição no arquivo. **Medição que depende da ordem em que se mede não é
+> medição** — por isso o regime de thread única foi abandonado, e a tabela acima
+> reporta só o caso realista.
+
+---
+
+## 4. §10 — o estado de PTI desta máquina
+
+A [§10](README.md#por-que-a-syscall-aqui-é-tão-barata) afirma que o PTI não
+está ativo nesta máquina, e que por isso os 33,55 ns de syscall não são um custo
+universal. A afirmação é **medida**, não inferida da arquitetura — ser AMD não
+implica PTI desligado, porque a mitigação é configurável por parâmetro de boot.
+
+As três conferências, com a saída literal. Nenhuma exige privilégio:
+
+```bash
+$ cat /sys/devices/system/cpu/vulnerabilities/meltdown
+Not affected
+
+$ grep -o '\bpti\b' /proc/cpuinfo
+        (nenhuma saída — a flag `pti` só aparece quando PTI está ativo)
+
+$ cat /proc/cmdline
+BOOT_IMAGE=/boot/vmlinuz-7.0.0-31-generic root=UUID=<omitido: identifica a máquina> ro quiet splash amd_iommu=on iommu=pt crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M
+```
+
+As três dizem coisas diferentes, e as três são necessárias:
+
+| Conferência | O que ela estabelece |
+|---|---|
+| `vulnerabilities/meltdown` | o kernel classifica esta CPU como não afetada pelo Meltdown clássico |
+| flag `pti` em `/proc/cpuinfo` | **PTI não está ativo** — é esta que prova o estado, não a anterior |
+| `/proc/cmdline` | nada foi forçado por parâmetro: não há `pti=on`, `pti=off` nem `nopti` |
+
+A terceira fecha a porta para a objeção óbvia. Sem ela, um leitor poderia supor
+que o estado observado veio de configuração manual, e não do padrão do kernel
+para esta CPU.
+
+> **Uma distinção que vale manter separada.** "Esta CPU não é afetada pelo
+> Meltdown clássico" **não** é o mesmo que "esta CPU não tem vulnerabilidades de
+> execução especulativa". São afirmações diferentes, e só a primeira está aqui.
+
+---
+
+## 5. O `0,397` da `atomica relaxed`, e quem o explicou
+
+A campanha de variação entre execuções de 19/09/2026 encontrou no
+`custo-espera` um valor que **nenhuma medição de dentro da máquina explicou** —
+e a causa acabou vindo de fora dela. O caso fica registrado porque a forma de
+achar a resposta vale mais que o número.
+
+**O que foi observado.** Nove execuções do mesmo binário, com uma execução de
+aquecimento descartada, nove amostras cada:
+
+```
+com ASLR:  0,270  0,205  0,397  0,205  0,205  0,205  0,397  0,205  0,262
+sem ASLR:  0,206  0,397  0,205  0,206  0,206  0,205  0,206  0,206  0,206
+```
+
+Desligar a aleatorização de endereços com `setarch -R` elimina os valores
+**intermediários** (0,262 e 0,270) — viés de leiaute, o que a
+[§9.1](README.md#91-as-quatro-escalas-de-dispersão-e-o-que-cada-uma-não-alcança)
+descreve. Sobrava o `0,397`, **1,94 vez** o valor modal, grande demais para a
+rampa de frequência, cuja amplitude aqui é 29%.
+
+**O que a instrumentação não achou.** Medindo frequência antes, depois e máxima
+durante cada execução, mais trocas de contexto e interrupções, o fenômeno não
+reapareceu em 14 execuções. Sem a sonda, outras 14 também limpas. Vinte e oito
+seguidas sem uma ocorrência, contra taxa-base de 1 a 2 em 9 nas campanhas.
+
+**A variável faltante era ambiental.** Durante as campanhas havia **vídeo sendo
+decodificado** na máquina; durante a investigação, não. Isso é testável, e o
+teste fecha:
+
+```
+  sem carga externa          0,205  0,206  0,206  0,208  0,206
+  com carga nos irmaos SMT   0,346  0,347  0,345  0,347  0,346
+```
+
+A razão sob carga é **1,69×**; a observada na campanha, **1,94×**. As duas
+ficam entre 1 e os **2,29×** que a [§5.1.1](README.md#511-smt-duas-cpus-lógicas-não-são-dois-núcleos)
+mede para um irmão SMT saturando as ALUs — que é o intervalo em que cai um
+decodificador de vídeo, ocupando o irmão em parte do tempo.
+
+**O que fica de método, e é o motivo desta seção existir.** Nenhum instrumento
+interno ao processo podia ver isso: frequência, contexto e interrupção são
+consequências, não a causa. **A variável omitida não estava no programa nem na
+máquina — estava em quem mais usava a máquina.** É o limite prático da régua da
+[§9.1](README.md#91-as-quatro-escalas-de-dispersão-e-o-que-cada-uma-não-alcança):
+as três primeiras escalas de dispersão pressupõem que o resto do sistema não
+mudou, e essa premissa não é verificável de dentro.
+
+**A quarta escala nasceu desta lacuna, e não a fecha.** Ela mede o efeito do
+estado da máquina alternando ócio e medição — o que alcança um estado que o
+próprio protocolo produz. Carga externa e imprevisível, como a deste caso,
+continua fora: para vê-la é preciso olhar para fora do processo, e nenhum dos
+quatro instrumentos faz isso.
+
+---
+
+## 6. Pré-registro: o segundo pente de memória
+
+Esta seção é escrita **antes** da medição, e é a primeira vez que este
+repositório faz isso. O motivo é que a oportunidade é boa demais para
+desperdiçar: em 20/09/2026 o EXPO 6000 foi ligado na placa, e em três dias um
+segundo pente entra no slot B2 — mesma CPU, mesmo kernel, mesmo binário, mesma
+velocidade de memória. **Muda uma variável: o número de canais.**
+
+Isolamento assim é raro. E ele responde a uma pergunta que a §4.2 do módulo 01
+responde hoje sem ter medido.
+
+### O que a §4.2 afirma, e o que o EXPO já sugeriu
+
+O texto publicado diz, sobre os ~21 GB/s que doze núcleos alcançam juntos:
+
+> *"é a banda da memória, e os dois caminhos chegam nela. Um núcleo sequencial
+> a satura sozinho; oito núcleos dispersos precisam se juntar para isso."*
+
+O EXPO deu o primeiro indício contra a segunda frase. Ele elevou a taxa por
+canal em 25%, e o acesso sequencial de **um** núcleo não se mexeu:
+
+| RAM, um núcleo | antes do EXPO | depois |
+|---|---:|---:|
+| `sequencial` (amortizado) | 0,194 ns | **0,195 ns** |
+| `aleatorio` (amortizado) | 7,21 ns | 6,49 ns |
+| `dependente` (latência) | 101,5 ns | 89,31 ns |
+
+Latência caiu 12%, vazão de acesso disperso caiu 10% — e o sequencial ficou
+parado. Um número que não responde a memória mais rápida **não está limitado
+pela memória**.
+
+### As previsões, e o que refuta cada uma
+
+Declaradas agora, com o critério de refutação junto. Esta é a parte que a
+[§9.1](README.md#91-as-quatro-escalas-de-dispersão-e-o-que-cada-uma-não-alcança)
+cobra e que o documento vinha devendo: afirmar que dois números são iguais
+exige dizer **antes** qual diferença contaria como relevante.
+
+| # | Previsão com canal duplo | Refutada se |
+|---|---|---|
+| 1 | `sequencial` de **um** núcleo **não se move** (< 5%) | subir mais de 20% |
+| 2 | a vazão agregada de doze núcleos **sobe muito** (> 40%) | subir menos de 10% |
+| 3 | a latência `dependente` muda pouco (< 5%) | mudar mais de 10% |
+| 4 | `custo-comunicacao` não se move (< 5%) | mudar mais de 10% |
+
+A 4 é o controle negativo: comunicação entre núcleos não toca a DRAM, então se
+ela se mover, alguma coisa mudou que não é o canal, e as outras três perdem o
+valor.
+
+### O que cada desfecho obriga
+
+**Se 1 e 2 se confirmarem**, a §4.2 fica mais precisa e mais curta: os ~21 GB/s
+agregados **são** teto de banda, e a frase *"um núcleo sequencial a satura
+sozinho"* está **errada** — aquele núcleo está limitado por si mesmo, não pela
+memória. O texto passa a distinguir duas coisas que hoje ele funde.
+
+**Se 2 falhar** — se o agregado também não subir —, o teto não é da memória, e
+a explicação inteira daquela subseção precisa ser refeita, não corrigida.
+
+**Se 1 falhar**, o EXPO e o canal movem o mesmo número em direções
+inconsistentes, e o primeiro suspeito passa a ser o instrumento.
+
+### O que o EXPO já decidiu, antes do pente
+
+O pré-registro foi escrito para o segundo pente. O EXPO respondeu **duas das
+quatro previsões** antes disso, e vale registrar que foi assim — a previsão
+declarada continuou servindo para um experimento que não era o previsto.
+
+A campanha de 20/09, cinco rodadas em máquina ociosa, com o aquecimento
+descartado, comparada com os valores publicados:
+
+```
+  12 nucleos (agregado)      36,56 -> 21,28 ns/acesso    -41,8%   RESPONDE
+  1 nucleo, sequencial        0,194 -> 0,190 ns/acesso     -2,1%   nao responde
+```
+
+**Previsão 1 confirmada, previsão 2 confirmada.** Memória 25% mais rápida
+melhorou o agregado em 42% e não fez nada pelo núcleo sozinho. As duas metades
+da frase da §4.2 se separam: o agregado **é** limitado pela banda; o núcleo
+sequencial sozinho **não é** — ele está limitado por si mesmo.
+
+A frase *"um núcleo sequencial a satura sozinho"* está, portanto, **errada**, e
+o segundo pente não precisa decidir isso: ele vai servir de confirmação
+independente, com outra intervenção sobre a mesma grandeza.
+
+### E uma confirmação que a §4.1 declarava não ter
+
+A [§4.1](README.md#por-que-a-diferença-é-11-ns-e-não-três-acessos-à-ram) explica
+que o custo extra de tradução é servido pelo L3, e classifica a explicação como
+*"compatível, não demonstrado"* — porque demonstrar exigiria contador de
+hardware.
+
+O EXPO produziu a evidência por outro caminho. Se a penalidade é servida pelo
+L3, memória mais rápida **não deve** baratea-la:
+
+```
+  L3 dependente                 9,70 -> 9,70 ns      0,0%
+  DIFERENCA de traducao        10,40 -> 11,02 ns    +6,0%
+  RAM dependente              101,50 -> 86,14 ns   -15,1%
+```
+
+A DRAM melhorou 15%, o L3 não se moveu, e a tradução **acompanhou o L3**. Não é
+o contador de hardware que a seção pede, e não prova o caminho percorrido; mas
+é uma predição arriscada que se confirmou, e o experimento original não
+conseguia produzi-la.
+
+### A linha divisória, como validação do conjunto
+
+Vale o registro geral, porque ele diz mais sobre os instrumentos que sobre o
+hardware: das medições comparadas, **doze não se moveram** (0,0% a 1,5%) e
+**dez se moveram entre 11% e 42%**. O critério que as separa é único — tocar a
+DRAM ou o fabric. `laco sozinho`, `RAZAO com/sem irmao SMT`, `L1d dependente` e
+`L3 dependente` saíram em **0,0%**.
+
+Instrumento que responde onde deve e fica quieto onde deve é a única evidência
+possível de que ele mede o que diz medir.
+
+### O confundimento do segundo pente, e como ele fica tratado
+
+Acrescentar o pente muda **duas** coisas ao mesmo tempo: a capacidade vai de 16
+para 32 GB e o canal vai de único a duplo. Atribuir a diferença inteira à banda
+seria exatamente o erro que esta seção existe para evitar.
+
+**O que dá para afirmar hoje, com registro.** O maior conjunto de trabalho do
+conjunto de programas é de **512 MB** — `REGIAO_BYTES` no `custo-traducao.c`,
+constante no fonte, que não cresce com a RAM instalada. Durante a coleta de
+4800 a memória disponível ficou entre 7,0 e 7,5 GiB. Fator de catorze.
+
+O `scripts/ambiente.sh` passou a registrar o disponível junto do total, e cada
+braço carrega amostras durante a coleta. Antes disso a afirmação "a capacidade
+nunca foi limitante" dependia da minha palavra.
+
+**O que isso é, e o que não é.** É um argumento de mecanismo somado a um fato
+registrado: capacidade sobrando não tem por onde alterar a latência de uma
+cadeia dependente de 512 MB. **Não é um controle** — um controle mudaria a
+capacidade mantendo o canal fixo.
+
+**O controle existe, e tem custo próprio.** Os dois pentes no mesmo canal
+(A1+A2) dariam 32 GB em canal único, isolando a capacidade. Mas DDR5 com dois
+módulos por canal costuma forçar redução de velocidade, e isso introduziria uma
+terceira variável — trocar um confundimento por outro.
+
+**O desenho que eu proponho no lugar** aproveita o que já existe: um fatorial
+2×2, velocidade cruzada com canal.
+
+| | 4800 MT/s | 6000 MT/s |
+|---|---|---|
+| **16 GB, canal único** | coletado | coletado |
+| **32 GB, canal duplo** | a coletar | a coletar |
+
+Ele não separa capacidade de canal — nenhum desenho viável aqui separa. O que
+ele entrega é melhor do que parece: **o efeito da velocidade medido nas duas
+configurações de canal**. Se a mesma troca de 4800 para 6000 produzir o mesmo
+efeito com um e com dois pentes, o instrumento está consistente, e a diferença
+restante entre as linhas fica atribuível ao par capacidade+canal — declarado
+como par, e não como banda.
+
+### O que já está registrado como limitação
+
+A máquina mediu **em canal único** tudo o que foi publicado até aqui, e o
+documento não dizia isso — nem o `scripts/ambiente.sh`, que existe justamente
+para o ambiente não ser descrito em prosa. Os dois campos entraram junto com
+esta seção; quando exigem privilégio, eles **declaram que não foram lidos** em
+vez de sumir.
+
+---
+
+## Navegação
+
+- Volta para: [Fundamentos](README.md)
+- O programa: [`medicoes/custo-syscall.c`](medicoes/custo-syscall.c)

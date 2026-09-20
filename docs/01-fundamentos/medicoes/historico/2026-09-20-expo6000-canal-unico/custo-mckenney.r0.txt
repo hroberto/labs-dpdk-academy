@@ -1,0 +1,32 @@
+Tabela 3.1 de McKenney, reproduzida nesta maquina
+(25 amostras por medicao; tempos em ns)
+
+  Referencia: McKenney, "Is Parallel Programming Hard...", Tabela 3.1,
+  medida em AMD Opteron 844, 1,8 GHz, 4 soquetes.
+  Aqui: 1 soquete, 2 dominios de L3. Periodo de clock medido: 0.181 ns.
+
+MELHOR CASO - a linha de cache ja esta neste nucleo
+
+  medicao                              mediana  p25-p75 (IQR)     ciclos       disp
+  ---------------------------------- ---------  --------------- --------      -----
+  CAS em melhor caso                      7.16  7.14-7.21             40        1.0%  
+  trava em melhor caso                    2.03  2.02-2.03             11        0.4%  
+
+FALTA DE CACHE - a linha esta em outro nucleo e precisa migrar
+
+  medicao                              mediana  p25-p75 (IQR)     ciclos       disp
+  ---------------------------------- ---------  --------------- --------      -----
+  falta simples, mesmo dominio L3        20.97  20.84-21.28          116        2.1%  
+  CAS com falta, mesmo dominio L3        20.04  19.37-20.23          111        4.3% ~
+  falta simples, OUTRO dominio L3        83.69  82.39-83.77          463        1.6%  
+  CAS com falta, OUTRO dominio L3        83.61  83.17-85.11          463        2.3%  
+
+  Para comparar, os valores de McKenney em CICLOS (periodo 0,6 ns):
+    CAS melhor caso  63 | trava melhor caso 109
+    falta de cache  232 | CAS com falta     510
+
+  O sistema de McKenney tem 4 soquetes; nele 'outro nucleo' pode
+  significar outro soquete. Aqui a distincao equivalente e entre os
+  dois dominios de L3 -- as duas ultimas linhas contra as duas
+  anteriores. A conclusao do SOSP 2013 e essa: a escalabilidade da
+  sincronizacao e, sobretudo, propriedade do hardware.
