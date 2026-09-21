@@ -296,6 +296,17 @@ else
         ok "build limpo, zero avisos"
     fi
 
+    # Zero aviso do gcc nao e zero defeito: o compilador ve uma unidade de
+    # traducao por vez. O cppcheck ve o que ele nao ve. PULADO aparece na
+    # saida em vez de sumir -- ausencia de verificacao e informacao.
+    saida_estatica=$(ferramental/qualidade/analise-estatica.sh "$BUILD" 2>&1) && rc_est=0 || rc_est=$?
+    if [ "$rc_est" -eq 0 ]; then
+        ok "$(printf '%s' "$saida_estatica" | tail -1 | sed 's/^ *//')"
+    else
+        falha "analise estatica acusou achado(s)"
+        printf '%s\n' "$saida_estatica" | sed 's/^/          /'
+    fi
+
     # O DIAGNOSTICO SAI DA EXECUCAO QUE FALHOU, NAO DE UMA NOVA.
     #
     # Reexecutar a suite para colher o log so funciona se a falha for

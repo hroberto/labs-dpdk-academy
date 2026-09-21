@@ -267,7 +267,17 @@ struct paired_stats {
 static STAT_MAYBE_UNUSED struct paired_stats
 collect_paired(double (*ma)(void), double (*mb)(void), int n)
 {
+    /* O cppcheck acusa `memsetClassFloat` aqui: zerar bytes de um `double` so
+     * equivale a 0.0 em IEEE-754, e a linguagem nao promete isso. A ressalva e
+     * correta em geral e nao se aplica a este material, que declara a maquina
+     * de medicao e nao roda em outra.
+     *
+     * A alternativa obvia -- `= {0}` -- foi tentada e e PIOR aqui: este
+     * cabecalho tambem compila como C++, onde ela dispara dez
+     * -Wmissing-field-initializers, e a barra do projeto e zero aviso. Trocar
+     * uma nota de analisador por dez avisos de compilador nao e conserto. */
     struct paired_stats p;
+    /* cppcheck-suppress memsetClassFloat */
     memset(&p, 0, sizeof p);
 
     double *va = (double *)malloc((size_t)n * sizeof(double));

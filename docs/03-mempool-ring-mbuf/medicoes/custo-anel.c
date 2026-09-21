@@ -63,15 +63,15 @@ static double m_ciclo_bulk(void)
     for (unsigned j = 0; j < current_burst; j++)
         v[j] = &objects[j];
 
-    const int rounds = ITERATIONS / (int)current_burst;
+    const int voltas = ITERATIONS / (int)current_burst;
     const double t0 = academy_now_ns_d();
-    for (int i = 0; i < rounds; i++) {
+    for (int i = 0; i < voltas; i++) {
         if (rte_ring_enqueue_bulk(ring_current, v, current_burst, NULL) == 0)
             return -1.0; /* 0 = nada entrou: tudo ou nada */
         if (rte_ring_dequeue_bulk(ring_current, v, current_burst, NULL) == 0)
             return -1.0;
     }
-    return (academy_now_ns_d() - t0) / (rounds * (int)current_burst);
+    return (academy_now_ns_d() - t0) / (voltas * (int)current_burst);
 }
 
 static double m_spsc(void)

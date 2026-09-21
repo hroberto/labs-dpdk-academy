@@ -31,15 +31,19 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    /* Os argumentos após "--" pertencem à aplicação, não à EAL. */
+    /* Os argumentos após "--" pertencem à aplicação, não à EAL.
+     *
+     * So `argc` e ajustado: este programa nao le os argumentos da aplicacao,
+     * e `argv += consumidos` seria atribuicao morta -- o cppcheck acusa, e com
+     * razao. O ajuste de `argv` aparece nos programas que de fato os leem. */
     argc -= consumidos;
-    argv += consumidos;
 
     printf("DPDK Academy: EAL initialised successfully.\n");
     printf("DPDK version: %s\n", rte_version());
     printf("Lcores available: %u (main lcore: %u)\n",
            rte_lcore_count(), rte_get_main_lcore());
-    printf("NUMA node of the main lcore: %d\n", rte_socket_id());
+    /* `rte_socket_id()` devolve `unsigned int`, nao `int`. */
+    printf("NUMA node of the main lcore: %u\n", rte_socket_id());
     printf("Arguments left for the application: %d\n", argc - 1);
 
     rte_eal_cleanup();

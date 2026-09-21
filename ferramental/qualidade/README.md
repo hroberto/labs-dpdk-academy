@@ -23,6 +23,7 @@ um defeito medido, não de teoria:
 | `verificar-promessa.py` | todo programa citado existe na árvore, e toda fonte entra na compilação | `controle-anel.cpp` na árvore sem registro e sem compilar |
 | `verificar-idioma.py` | documento em inglês não carrega português | quatro varreduras por lista de palavras declararam a paridade limpa, e ela não estava |
 | `rastros-da-suite.py` | o que a suíte deixou no sistema: resíduo em hugetlbfs, diretório de runtime órfão, segfault/OOM no journal da janela, processo nosso vivo depois do fim | o `l3_multiprocesso.sh` vazava uma hugepage por execução com a suíte verde, e só apareceu ao inspecionar o log do sistema por outro motivo |
+| `analise-estatica.sh` | cppcheck sobre o `compile_commands.json`, com a barra em zero achado | o `%d` para `rte_socket_id()`, que devolve `unsigned int`, passou por build com zero aviso |
 | `verificar-ponteiros.py` | o ponteiro que o fonte faz para uma seção do README resolve, e o título que ele cita é o título real da seção | o raciocínio saiu do comentário para o documento na v0.02.00, e a seção renumerada deixaria o ponteiro sintaticamente válido e mentindo |
 | `verificar-paridade.py` | par pt/en tem a mesma estrutura de títulos, posição a posição | tradução ganhou seção que o original não tinha, e ninguém viu |
 | `verificar-tabelas.py` | toda linha de tabela tem a largura do cabeçalho dela | sete linhas de referência bibliográfica dentro da tabela comparativa da §6.2, com duas células numa tabela de três |
