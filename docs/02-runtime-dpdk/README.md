@@ -727,12 +727,12 @@ O programa [`medicoes/estado-lcore.c`](medicoes/estado-lcore.c) mostra as duas
 colunas lado a lado. Com `-l 0-3`:
 
 ```
-  lcore    CPU(s) reais   papel        indice no no   no NUMA 
+  lcore    real CPU(s)    role         index in node  NUMA node
   -----    ------------   -----        ------------   ------- 
-  0        0              principal    0              0       
-  1        1              trabalhador  1              0       
-  2        2              trabalhador  2              0       
-  3        3              trabalhador  3              0       
+  0        0              main         0              0       
+  1        1              worker       1              0       
+  2        2              worker       2              0       
+  3        3              worker       3              0       
 ```
 
 Com `--lcores '0@6,1@7,2@18'`, a mesma máquina:

@@ -54,7 +54,7 @@ leitura.
 > **`_bulk` e `_burst` são contratos diferentes, não sinônimos.** `_bulk` devolve
 > "either 0 or n" — tudo ou nada; `_burst` aceita parcial e devolve quantos
 > couberam. A demonstração está na
-> [§3.1 do módulo 03](../../docs/03-mempool-ring-mbuf/README.md#31-_bulk-e-_burst-não-são-sinônimos).
+> [§3.1 do módulo 03](../../docs/03-mempool-ring-mbuf/README.md#34-_bulk-e-_burst-não-são-sinônimos).
 
 > **Cuidado com `rte_lcore_to_cpu_id()`.** Apesar do nome, ela **não** devolve o
 > número da CPU: a documentação da própria função diz *"the id of the lcore on a

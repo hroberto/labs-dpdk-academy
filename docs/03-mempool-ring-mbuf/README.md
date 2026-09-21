@@ -359,6 +359,229 @@ que sobra não é mais o preço da generalidade.
 > medido é a inversão; a causa fica declarada como limitação, não como
 > resultado.
 
+### 3.1 Onde os ciclos são gastos: reservar e publicar
+
+A tabela acima diz *quanto*. Esta seção diz *o quê* — e quem responde é o
+código compilado, não a documentação.
+
+O anel é um buffer circular limitado com **dois pares head/tail**, um por lado.
+Uma operação acontece em três tempos:
+
+    1. RESERVAR   avança a head do próprio lado, ganhando um intervalo de posições
+    2. escrever   os elementos, sem coordenação — o intervalo já é seu
+    3. PUBLICAR   avança a tail, tornando visível o que foi escrito
+
+A separação entre reservar e publicar é o que permite a dois produtores
+escreverem **ao mesmo tempo** em intervalos distintos. E é dela que nasce a
+diferença entre SP e MP.
+
+> **Qual implementação este material descreve.** O `rte_ring_elem_pvt.h`
+> escolhe entre duas por `#ifdef RTE_USE_C11_MEM_MODEL`. Neste build o macro
+> **não** está definido, então o binário medido usa `rte_ring_generic_pvt.h` —
+> barreiras explícitas — e não o caminho C11, que expressa o mesmo algoritmo
+> com `memory_order`. Os dois existem e são equivalentes em garantia; o que
+> segue descreve o que **esta** máquina executou.
+
+A reserva é literalmente um `if` ([`rte_ring_generic_pvt.h`][ringgen]):
+
+```c
+if (is_st) {
+    d->head = *new_head;                    /* SP: store comum */
+    success = 1;
+} else
+    success = rte_atomic32_cmpset(          /* MP: CAS de 32 bits */
+            (uint32_t *)(uintptr_t)&d->head, ... );
+} while (unlikely(success == 0));           /* ...em laço */
+```
+
+Com um produtor, avançar a head é **um store comum**. Com vários, é um
+*compare-and-swap* num laço: se outro produtor mudou a head entre a leitura e a
+escrita, o CAS falha e a volta recomeça — relendo a tail do outro lado e
+recalculando quantas posições ainda cabem.
+
+A publicação traz a segunda diferença:
+
+```c
+if (enqueue) rte_smp_wmb(); else rte_smp_rmb();
+if (!single)
+    rte_wait_until_equal_32(&ht->tail, old_val, rte_memory_order_relaxed);
+ht->tail = new_val;
+```
+
+**A tail avança em ordem.** Se o produtor B reservou depois do A, não pode
+publicar antes: a tail é um número só, e publicar fora de ordem tornaria
+visível um intervalo ainda em escrita. Então B **espera** a tail alcançar o
+ponto onde a reserva dele começa. O caminho SP não executa essa espera.
+
+Repare que `ht->tail = new_val` é um store comum nos dois modos. A ordenação
+vem da barreira anterior, não do store — e é isso que permite ao consumidor ler
+os **elementos** sem nenhum atômico sobre eles. O custo se concentra nos
+índices, não nos dados.
+
+#### Dois vocabulários para o mesmo algoritmo
+
+O caminho genérico usa **barreiras explícitas**; o caminho C11 usa o modelo de
+memória do C++ e anota as arestas de sincronização com nome. A correspondência
+é o que interessa a quem escreve C ou C++ fora do DPDK:
+
+| genérico (este build) | C11 / [`std::memory_order`][cppmemord] | o que garante |
+|---|---|---|
+| `rte_smp_wmb()` antes de `ht->tail = v` | `store_explicit(&tail, v, release)` | os elementos ficam visíveis **antes** da tail que os anuncia |
+| `rte_smp_rmb()` antes de ler a tail | `load_explicit(&tail, acquire)` | quem vê a tail nova vê também os elementos |
+| `rte_atomic32_cmpset` em laço | `compare_exchange_*(..., release, acquire)` | reserva e sincroniza num passo indivisível |
+
+São duas formas de exprimir a mesma ordem de memória: uma por barreira de
+processador, outra pelo contrato da linguagem. Conhecer as duas é o que permite
+ler código de fila concorrente escrito em qualquer época.
+
+#### O que o binário medido realmente emite
+
+A afirmação de que "o modo MP executa uma instrução atômica" não precisa ficar
+em palavra. Desmontando o binário que produziu a tabela da §3:
+
+```bash
+objdump -d custo-anel | grep 'lock cmpxchg'
+```
+
+Duas das instruções caem exatamente sobre os campos do anel:
+
+```
+lock cmpxchg %r10d,0x80(%rdx)     <- head do produtor
+lock cmpxchg %ecx,0x100(%rdx)     <- head do consumidor
+```
+
+São operandos de **32 bits** (`%r10d`, `%ecx`), coerentes com
+`rte_atomic32_cmpset`, e os deslocamentos correspondem às uniões `prod` e
+`cons` que a `struct rte_ring` declara **alinhadas a linha de cache** e
+separadas por `RTE_CACHE_GUARD` — a mesma defesa contra falso compartilhamento
+que a [§4.2.1 dos fundamentos](../01-fundamentos/README.md#421-falso-compartilhamento-o-erro-mais-comum-de-quem-escreve-plano-de-dados)
+mede.
+
+#### Por que o atômico custa sem ninguém disputando
+
+Os 406% do lote 1 foram medidos **num lcore só**. Não há segundo produtor, o
+CAS nunca falha e o laço roda uma vez.
+
+O que resta é o custo da instrução. O prefixo `f0` que o `objdump` mostra é o
+`lock`: ele torna a operação indivisível sobre a linha de cache e ordena
+acessos à volta dela, haja ou não concorrente. Um store comum não faz nada
+disso.
+
+É o que a frase *"o que se paga não é a contenção; é a possibilidade dela"*
+significa, agora com mecanismo embaixo: o código do modo MP é o mesmo com um
+produtor ou com doze.
+
+> **O que este material não pode afirmar.** Atribuir os ciclos a eventos
+> específicos — tráfego de coerência, custo de barreira, previsão de desvio —
+> exigiria contadores de desempenho. Nesta máquina `perf_event_paranoid = 4`
+> recusa até `cycles,instructions`. O mecanismo acima **explica de forma
+> compatível** o custo observado; não foi medido como causa.
+
+---
+
+### 3.2 Quatro estratégias para o mesmo anel
+
+SP/SC e MP/MC não são o espaço inteiro. A API oferece mais dois modos, e
+percorrê-los mantém constante tudo o que um confronto com outro projeto mudaria
+de uma vez: mesma estrutura, mesmo contrato de fila, mesma implementação.
+
+| modo | reserva da head | avanço da tail | o que troca |
+|---|---|---|---|
+| **SP/SC** | store comum | store comum | nenhuma coordenação — exige a invariante 1P/1C |
+| **MP/MC** | CAS de 32 bits em laço | cada thread avança a sua | **espera** na tail até a vez chegar |
+| **RTS** | CAS de 64 bits (valor + contador) | só a **última** thread avança | troca a espera por um **segundo CAS** |
+| **HTS** | CAS de 64 bits com head e tail **juntas** | junto com a head | **serializa**: só avança se `head == tail` |
+
+Os cabeçalhos declaram a troca. O [`rte_ring_rts.h`][ringrts] descreve o
+mecanismo com um contador de atualizações em cada lado: a tail só avança quando
+`tail.cnt + 1 == head.cnt`, isto é, quando quem termina é o último da fila.
+Isso **elimina o spinning** ao preço de dois CAS de 64 bits por operação,
+contra um CAS de 32 bits mais espera no MP/MC clássico.
+
+O [`rte_ring_hts.h`][ringhts] vai ao extremo oposto: head e tail viram um único
+valor de 64 bits, atualizado por um CAS só, e uma thread só pode mexer na head
+quando `head.value == tail.value`. A fila fica **totalmente serializada** — no
+máximo uma operação em andamento por lado.
+
+A leitura de engenharia é que não existe "o melhor modo", existe **qual
+patologia se quer evitar**:
+
+- o MP/MC clássico sofre quando uma thread é **preemptada entre reservar e
+  publicar** — as que vieram depois ficam presas na espera da tail;
+- o RTS remove essa espera, e paga com mais tráfego atômico em todas as
+  operações, inclusive nas que nunca sofreriam;
+- o HTS troca paralelismo por previsibilidade, e é o modo que sustenta a API de
+  *peek*, justamente por haver no máximo uma operação em curso.
+
+O `rte_ring.h` avisa que **a implementação não é preemptível** e remete ao
+Programmer's Guide. RTS e HTS existem por causa disso: são respostas a cenários
+em que a thread pode perder a CPU no meio da operação — o caso de quem roda com
+mais threads que núcleos.
+
+#### O mesmo problema fora do DPDK
+
+Vale separar o que é API do que é princípio:
+
+| específico do DPDK | transferível para C/C++ |
+|---|---|
+| `rte_ring`, `RING_F_SP_ENQ`, `_bulk`/`_burst` | buffer circular limitado; reservar→publicar |
+| `rte_atomic32_cmpset`, `rte_smp_wmb` | `std::atomic`, release/acquire, RMW, barreiras |
+| RTS, HTS | trocar espera por tráfego atômico; serializar para ganhar previsibilidade |
+| `RTE_CACHE_GUARD` entre `prod` e `cons` | separar por linha de cache o que threads diferentes escrevem |
+
+O [Disruptor][disruptor] resolve o mesmo problema por outro caminho:
+sequenciadores distintos para um ou vários produtores, coordenação por
+**barreiras de sequência** entre consumidores em vez de posse exclusiva, e
+estratégias de espera escolhidas pela aplicação. A comparação interessante não
+é de velocidade — é notar que ele expõe como escolha o que o `rte_ring` fixa no
+modo, e fixa o que o `rte_ring` deixa aberto.
+
+> **Isto é contraponto de design, não competição.** Estruturas com contratos
+> diferentes não se comparam por número: o que uma garante, outra não oferece.
+> Comparar medições só seria legítimo sob condições equivalentes, e demonstrar
+> a equivalência é trabalho **anterior** à medição.
+
+---
+
+### 3.3 O contrafactual: o que custa adotar SP/SC
+
+Medir que SP/SC é mais barato não autoriza usá-lo. A pergunta seguinte é
+arquitetural:
+
+    quero SP/SC
+         ↓
+    que invariante preciso garantir?
+         ↓
+    exatamente um produtor e um consumidor, por anel
+         ↓
+    como a arquitetura muda para garantir isso?
+         ↓
+    um anel por par de participantes, em vez de um anel compartilhado
+         ↓
+    que complexidade isso introduz?
+         ↓
+    N×M anéis, roteamento explícito, balanceamento manual,
+    e uma invariante que o compilador não verifica
+         ↓
+    o ganho medido justifica?
+
+A última pergunta não tem resposta geral, e a tabela da §3 mostra por quê: 406%
+no lote 1, 22% no lote 32. **Se a aplicação já trabalha em lotes grandes, a
+invariante custa caro e rende pouco.** Se processa objeto a objeto, a conta
+inverte.
+
+E vale lembrar o que o lote faz e o que não faz. Ele dilui um custo **fixo**
+sobre mais objetos — não torna a operação mais rápida. É o mesmo efeito que a
+[§4.2 dos fundamentos](../01-fundamentos/README.md#42-cache-e-localidade) mede
+na concorrência de acessos: o custo por unidade cai muitas vezes sem que uma
+única unidade fique mais rápida.
+
+Há ainda um custo que não aparece em nanossegundo: `RING_F_SP_ENQ` é uma
+promessa que o anel não verifica. Quebrá-la não produz erro — produz corrupção
+silenciosa, do mesmo tipo que a §3.4 documenta no retorno do `_burst`.
+
+---
+
 A decisão de engenharia que sai daí:
 
 - **Se você sabe que há um produtor e um consumidor, diga.** `RING_F_SP_ENQ` e
@@ -367,7 +590,7 @@ A decisão de engenharia que sai daí:
 - **Se não sabe, o lote é o antídoto.** MP/MC com lote grande custa o mesmo ou
   menos que SP/SC nesta máquina — a vantagem do SP/SC só existe em lote pequeno.
 
-### 3.1 `_bulk` e `_burst` não são sinônimos
+### 3.4 `_bulk` e `_burst` não são sinônimos
 
 As duas famílias de função diferem no **contrato**, não no desempenho, e a
 escolha errada não aparece como lentidão:
@@ -647,6 +870,12 @@ que é onde há um pipeline de verdade para enchê-lo.
 [tcache]: https://www.gnu.org/software/libc/manual/html_node/Memory-Allocation-Tunables.html
 [guiamempool]: https://doc.dpdk.org/guides/prog_guide/mempool_lib.html
 [guiaring]: https://doc.dpdk.org/guides/prog_guide/ring_lib.html
+[ringgen]: https://github.com/DPDK/dpdk/blob/main/lib/ring/rte_ring_generic_pvt.h
+[ringrts]: https://github.com/DPDK/dpdk/blob/main/lib/ring/rte_ring_rts.h
+[ringhts]: https://github.com/DPDK/dpdk/blob/main/lib/ring/rte_ring_hts.h
+[cppmemord]: https://en.cppreference.com/w/cpp/atomic/memory_order
+[disruptor]: https://lmax-exchange.github.io/disruptor/disruptor.html
+
 [guiambuf]: https://doc.dpdk.org/guides/prog_guide/mbuf_lib.html
 
 [apiprepend]: https://doc.dpdk.org/api/rte__mbuf_8h.html#a37b34f8b32723db17b2df80391bfa42d
