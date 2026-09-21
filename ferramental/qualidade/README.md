@@ -22,6 +22,7 @@ um defeito medido, não de teoria:
 | `verificar-autodescricao.py` | o que o material afirma sobre si corresponde ao disco | banner "conteúdo não escrito" em documento de 171 linhas medidas |
 | `verificar-promessa.py` | todo programa citado existe na árvore, e toda fonte entra na compilação | `controle-anel.cpp` na árvore sem registro e sem compilar |
 | `verificar-idioma.py` | documento em inglês não carrega português | quatro varreduras por lista de palavras declararam a paridade limpa, e ela não estava |
+| `verificar-ponteiros.py` | o ponteiro que o fonte faz para uma seção do README resolve, e a seção local cita algum identificador desse fonte | o raciocínio saiu do comentário para o documento na v0.02.00, e a seção renumerada deixaria o ponteiro sintaticamente válido e mentindo |
 | `verificar-paridade.py` | par pt/en tem a mesma estrutura de títulos, posição a posição | tradução ganhou seção que o original não tinha, e ninguém viu |
 | `verificar-tabelas.py` | toda linha de tabela tem a largura do cabeçalho dela | sete linhas de referência bibliográfica dentro da tabela comparativa da §6.2, com duas células numa tabela de três |
 
