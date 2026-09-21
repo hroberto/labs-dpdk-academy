@@ -8,7 +8,7 @@
     "trilha/04-projeto-final/README.md"
   ],
   "limites": "Tabelas Markdown e blocos numericos nas oito paginas listadas. Nao abrange todos os numeros em prosa nem verifica automaticamente sua origem.",
-  "total": 100,
+  "total": 103,
   "entradas": [
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -425,28 +425,49 @@
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 833,
+      "linha": 817,
+      "secao": "O custo de ler o identificador",
+      "tipo": "bloco_numerico",
+      "sha256": "afc9690c9fb9bc79c19bcb7553653951d4e5778dba4867e7139fc9a739c2b3e8"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 824,
+      "secao": "O custo de ler o identificador",
+      "tipo": "bloco_numerico",
+      "sha256": "cf2161c41be0d6bbb820f053dd14477afe3a0809c402d87592b6629014db152a"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 964,
       "secao": "6. IOVA: o endereço que o dispositivo enxerga",
       "tipo": "tabela_markdown",
       "sha256": "a1a0e8b8e3d4b131b52a00172ccac4671717dbda6121bf6c79b51ace106d18ad"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 924,
+      "linha": 1055,
       "secao": "7. Encerramento: o que fica para trás",
       "tipo": "tabela_markdown",
       "sha256": "bb6fb0dc428941067c1458318de553d76e818d9860fb47125b92a6796013014e"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 960,
+      "linha": 1091,
       "secao": "8. Síntese: o runtime do feed handler",
       "tipo": "tabela_markdown",
       "sha256": "91e330f640c163713fdcbf59d785dfc40dd319a48731182ec49900509a6cc055"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 1178,
+      "linha": 1279,
+      "secao": "10.4 Detectar que o produtor parou é duas perguntas, não uma",
+      "tipo": "tabela_markdown",
+      "sha256": "ce5c41cc0db5af460b00fee0ceba6f0429673ef454873ca5735f9477fd1c1b45"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 1396,
       "secao": "13. Navegação",
       "tipo": "tabela_markdown",
       "sha256": "2c47e08d3cf4b3373b2b8065df1c9d443b49dc846cb694de9d816960eeb375d1"

@@ -756,6 +756,139 @@ the same CCD. With [`-l`][optlcore], lcores fall wherever the numbers dictate; w
 `--lcores`, the mapping is chosen — and that is how you guarantee that the producer and
 consumer of the same ring stay in the same cache domain.
 
+
+#### What an lcore is, on the inside
+
+The two tables show that the identifier and the CPU are different things. They
+do not say what the identifier **is** — and that is where the most expensive
+consequence comes from, one that shows up a module away.
+
+An lcore is an index kept in **thread-local storage**. The declaration is in
+[`rte_per_lcore.h`][ringperlcore], and it is literally this:
+
+```c
+#define RTE_DEFINE_PER_LCORE(type, name)   __thread type per_lcore_##name
+#define RTE_PER_LCORE(name)                (per_lcore_##name)
+```
+
+And `rte_lcore_id()` does nothing but read it:
+
+```c
+static inline unsigned rte_lcore_id(void) { return RTE_PER_LCORE(_lcore_id); }
+```
+
+What writes to that variable is the EAL, in `__rte_thread_init()`, and what it
+does there defines what "being an lcore" means:
+
+```c
+RTE_PER_LCORE(_lcore_id) = lcore_id;   /* the index, in TLS */
+rte_gettid();                          /* system id */
+thread_update_affinity(cpuset);        /* the affinity */
+__rte_trace_mem_per_thread_alloc();    /* per-thread trace memory */
+```
+
+**Being an lcore is not a property of the CPU; it is state installed into the
+thread.** The inverse function, `__rte_thread_uninit()`, restores
+`LCORE_ID_ANY` — and an ordinary thread, which went through neither, is born
+with that value.
+
+#### The cost of reading the identifier
+
+For an audience that cares about the hot path, the next question is what that
+read costs. C's `__thread` has different access models, and they do not cost the
+same — the general-dynamic model requires **calling** `__tls_get_addr`, which
+would be unacceptable in a function called per packet. The reference work on
+this is Drepper's on TLS in ELF ([`tls.pdf`][dreppertls]).
+
+Disassembling a binary from this repository that uses a mempool with a
+per-lcore cache:
+
+```bash
+objdump -d custo-contencao | grep -cE '%fs:|__tls_get_addr'
+```
+
+```
+24 accesses via %fs
+ 0 calls to __tls_get_addr
+```
+
+and the instruction that reads the identifier is a single one:
+
+```
+64 8b 38    mov %fs:(%rax),%edi
+```
+
+The `64` prefix is the `%fs` segment, which on x86-64 points to the thread's TLS
+block. Reading the lcore id is **one memory access with a displacement** — no
+function call and no run-time lookup. The operand is a register rather than a
+constant, which indicates the *initial-exec* model, with the displacement
+resolved when the binary is loaded, and not pure *local-exec*.
+
+#### The consequence, which lives in module 03
+
+The index is **dense** on purpose: it starts at zero and has no holes. System
+CPU numbers are sparse — `--lcores '0@6,1@7,2@18'` puts lcores 0, 1 and 2 on
+CPUs 6, 7 and 18. If the library indexed arrays by CPU number, it would need an
+array the size of the largest existing CPU.
+
+And that is exactly what the mempool does
+([`rte_mempool.h`][guiamempool], `rte_mempool_default_cache`):
+
+```c
+if (unlikely(mp->cache_size == 0))      return NULL;
+if (unlikely(lcore_id == LCORE_ID_ANY)) return NULL;
+return &mp->local_cache[lcore_id];      /* direct indexing */
+```
+
+Put the two ends together and the whole chain appears:
+
+    thread registered by the EAL
+            ↓
+    __thread per_lcore__lcore_id  ←  dense index
+            ↓
+    rte_lcore_id()  →  mov %fs:(%rax)
+            ↓
+    &mp->local_cache[lcore_id]
+            ↓
+    mempool fast path
+
+    ordinary thread, unregistered
+            ↓
+    LCORE_ID_ANY
+            ↓
+    NULL cache  →  straight to the shared ring
+
+**Two threads with the same code take different paths through the library**,
+and the variable is not in the code: it is in who registered the thread.
+[Module 03](../03-mempool-ring-mbuf/README.en.md#1-why-not-use-malloc--the-measured-answer)
+measures what that cache is worth — about 30× — and that is the difference
+between having it and not.
+
+> **Registering a non-EAL thread and using multiprocess exclude each other.** An
+> ordinary thread can acquire an lcore through
+> [`rte_thread_register()`][apiregister], but the function refuses when the
+> multiprocess model is in use:
+>
+> ```c
+> if (!rte_mp_disable()) {
+>     EAL_LOG(ERR, "Multiprocess in use, registering non-EAL threads is not supported.");
+>     rte_errno = EINVAL;
+>     return -1;
+> }
+> ```
+>
+> This matters in this module in particular, because it is the module of the
+> primary/secondary model. Whoever follows [§4](#4-primary-and-secondary-processes)
+> and then tries to register an application thread gets `EINVAL`, and the
+> message only appears in the EAL log.
+
+> **What transfers outside DPDK.** The pattern is *per-thread state indexed by a
+> dense identifier, installed at registration and read from TLS*. It shows up in
+> allocators with per-thread caches, in per-thread metric collectors, and in any
+> structure that wants to avoid coordination by trading memory for parallelism.
+> What DPDK adds is the awkward part: **whoever does not register does not take
+> part**, and the library does not warn — it merely gets slower.
+
 ### 5.2 The state machine has two states, not three
 
 A worker lcore receives work through [`rte_eal_remote_launch()`][apiremotelaunch] and is
@@ -1099,10 +1232,98 @@ Not measured here is the case of the **secondary** dying with the primary alive,
 that of a primary that restarts and tries to recreate a memzone whose name still exists.
 Both are recorded as pending, not as results.
 
-There is also no supervisor: the test kills and observes, it does not try to recover.
-Coordinated recovery — who restarts first, how the secondary knows it can reconnect, what
-to do with the stale state — is a matter of operational architecture, and does not
-belong in a runtime module.
+> **This section used to state that there was no supervisor.** There is now:
+> [`scripts/feed-supervisor.py`](../../scripts/feed-supervisor.py) restarts the
+> session in a new generation after a failure, and the test
+> [`l3_recuperacao.sh`](medicoes/tests/l3_recuperacao.sh) verifies that the
+> next session comes up with a different generation, that the old processes
+> died, and that the order of events holds. What follows replaces the old
+> statement.
+
+### 10.4 Detecting that the producer stopped is two questions, not one
+
+Killing the primary and watching the secondary answers *"does the consumer
+survive?"*. It does not answer the question operations asks: *"is the feed still
+good?"* — and that one has two halves the same symptom does not separate.
+
+[`medicoes/feed-health.h`](medicoes/feed-health.h) separates them with **two
+clocks and two thresholds**:
+
+```c
+if (gen != w->generation || gen == 0)     return FEED_WRONG_GENERATION;
+if (now - w->last_heartbeat >= silence)   return FEED_SILENT;
+if (now - w->last_data     >= freshness)  return FEED_STALE;
+return FEED_HEALTHY;
+```
+
+`last_heartbeat` advances when the producer shows signs of life; `last_data`
+advances when it publishes **new data**. They are independent instants with
+independent thresholds, and it is that independence that produces the state
+intuition does not predict:
+
+| state | heartbeat | data | what happened |
+|---|---|---|---|
+| `FEED_HEALTHY` | advances | advances | nothing |
+| `FEED_SILENT` | stopped | — | the producer died |
+| `FEED_STALE` | **advances** | stopped | the producer is alive and the feed stopped |
+| `FEED_WRONG_GENERATION` | — | — | whoever answers is not who was being watched |
+
+The third is the interesting one. A supervisor watching only the heartbeat
+declares the system healthy while no new data has arrived for minutes — because
+the process responds, the socket is open and the thread did not hang. **Alive
+and stalled are different states, and only the second clock separates them.**
+
+The L1 test ([`tests/test_l1_feed_health.cpp`](medicoes/tests/test_l1_feed_health.cpp))
+demonstrates it in three lines, with the heartbeat going from 1 to 3 and the
+data stuck at 1:
+
+```cpp
+EXPECT_EQ(feed_watch_update(&w, 7, 1, 1,  1, 10, 30), FEED_HEALTHY);
+EXPECT_EQ(feed_watch_update(&w, 7, 2, 1,  9, 10, 30), FEED_HEALTHY);
+EXPECT_EQ(feed_watch_update(&w, 7, 3, 1, 31, 10, 30), FEED_STALE);
+```
+
+#### The generation, and why the observer does not adopt it
+
+The fourth line of the other case is the subtlest in the module:
+
+```cpp
+EXPECT_EQ(feed_watch_update(&w, 8, 2, 2, 12, 10, 30), FEED_WRONG_GENERATION);
+EXPECT_EQ(w.generation, 7u);
+```
+
+On receiving generation 8, the observer **refuses and keeps its own**. It does
+not reconfigure itself. If it did, the producer's restart would become a silent
+transition — and the event operations most needs to see would be precisely the
+one that disappeared from the report.
+
+It is the same idea the supervisor uses from the other side: each session is
+born with a new generation, and `l3_recuperacao.sh` requires the two to differ.
+An incarnation identifier is what prevents confusing *"it came back"* with *"it
+never left"*.
+
+> **What transfers outside DPDK.** This is a **failure detector** with two
+> dimensions — liveness and freshness — and an incarnation number. The pattern
+> holds for any stream consumer: a database replica, a message queue, a market
+> session, a lease in a distributed service. The error it avoids is not one of
+> performance; it is publishing "healthy" about a system that stopped making
+> progress.
+>
+> The DPDK-specific part is small: the instants come from
+> [`feed-clock.h`](medicoes/feed-clock.h), with `CLOCK_MONOTONIC` and `abort()`
+> if the clock fails — because measuring time with a broken clock is worse than
+> not measuring.
+
+#### What is still not covered
+
+Coordinated recovery remains out of scope: who restarts first, how the secondary
+decides it can reconnect, what to do with the stale state. The supervisor
+restarts the **whole session** in a new generation, which is the simplest choice
+and the one that discards the most work.
+
+Also not measured is the case of the **secondary** dying with the primary alive,
+nor that of a primary that restarts and tries to recreate a memzone whose name
+still exists. Both are recorded as pending, not as results.
 
 ## 11. Limitations of this document
 
@@ -1194,3 +1415,7 @@ belong in a runtime module.
 [rel2011]: https://doc.dpdk.org/guides/rel_notes/release_20_11.html
 [api1911]: https://doc.dpdk.org/api-19.11/rte__launch_8h.html
 [fonteeal]: https://github.com/DPDK/dpdk/blob/v25.11/lib/eal/linux/eal_timer.c
+[ringperlcore]: https://github.com/DPDK/dpdk/blob/v25.11/lib/eal/include/rte_per_lcore.h
+[guiamempool]: https://doc.dpdk.org/guides/prog_guide/mempool_lib.html
+[dreppertls]: https://www.uclibc.org/docs/tls.pdf
+[apiregister]: https://doc.dpdk.org/api/rte__thread_8h.html

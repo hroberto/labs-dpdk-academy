@@ -764,6 +764,137 @@ dentro do mesmo CCD, nas cinco repetições arquivadas. Com [`-l`][optlcore], os
 `--lcores`, o mapeamento é escolhido — e é assim que se garante que produtor e
 consumidor de um mesmo anel fiquem no mesmo domínio de cache.
 
+
+#### O que um lcore é, por dentro
+
+As duas tabelas mostram que o identificador e a CPU são coisas diferentes. Mas
+não dizem o que o identificador **é** — e é daí que sai a consequência mais
+cara, que aparece a um módulo de distância.
+
+Um lcore é um índice guardado em **armazenamento local de thread**. A
+declaração está em [`rte_per_lcore.h`][ringperlcore], e é literalmente isto:
+
+```c
+#define RTE_DEFINE_PER_LCORE(type, name)   __thread type per_lcore_##name
+#define RTE_PER_LCORE(name)                (per_lcore_##name)
+```
+
+E `rte_lcore_id()` não faz nada além de lê-la:
+
+```c
+static inline unsigned rte_lcore_id(void) { return RTE_PER_LCORE(_lcore_id); }
+```
+
+Quem escreve nessa variável é a EAL, em `__rte_thread_init()`, e o que ela faz
+ali define o que significa "ser um lcore":
+
+```c
+RTE_PER_LCORE(_lcore_id) = lcore_id;   /* o indice, em TLS */
+rte_gettid();                          /* id de sistema */
+thread_update_affinity(cpuset);        /* a afinidade */
+__rte_trace_mem_per_thread_alloc();    /* memoria de rastreamento por thread */
+```
+
+**Ser lcore não é propriedade da CPU; é estado instalado na thread.** A função
+inversa, `__rte_thread_uninit()`, devolve `LCORE_ID_ANY` — e uma thread comum,
+que nunca passou por nenhuma das duas, já nasce com esse valor.
+
+#### O custo de ler o identificador
+
+Para um público que se preocupa com o caminho quente, a pergunta seguinte é
+quanto custa essa leitura. O `__thread` do C tem modelos de acesso diferentes, e
+eles não custam o mesmo — o modelo dinâmico geral exige **chamar**
+`__tls_get_addr`, o que seria inaceitável numa função chamada por pacote. O
+trabalho de referência sobre isso é o de Drepper sobre TLS em ELF
+([`tls.pdf`][dreppertls]).
+
+Desmontando um binário deste repositório que usa mempool com cache por lcore:
+
+```bash
+objdump -d custo-contencao | grep -cE '%fs:|__tls_get_addr'
+```
+
+```
+24 acessos via %fs
+ 0 chamadas a __tls_get_addr
+```
+
+e a instrução que lê o identificador é uma só:
+
+```
+64 8b 38    mov %fs:(%rax),%edi
+```
+
+O prefixo `64` é o segmento `%fs`, que no x86-64 aponta para o bloco TLS da
+thread. Ler o lcore id é **um acesso a memória com deslocamento** — sem chamada
+de função e sem consulta em tempo de execução. O operando é registrador e não
+constante, o que indica o modelo *initial-exec*, com o deslocamento resolvido na
+carga do binário, e não o *local-exec* puro.
+
+#### A consequência, que vive no módulo 03
+
+O índice é **denso** de propósito: começa em zero e não tem buracos. Números de
+CPU do sistema são esparsos — `--lcores '0@6,1@7,2@18'` põe lcores 0, 1 e 2 nas
+CPUs 6, 7 e 18. Se a biblioteca indexasse vetores por número de CPU, precisaria
+de um vetor do tamanho da maior CPU existente.
+
+E é exatamente isso que o mempool faz
+([`rte_mempool.h`][guiamempool], `rte_mempool_default_cache`):
+
+```c
+if (unlikely(mp->cache_size == 0))     return NULL;
+if (unlikely(lcore_id == LCORE_ID_ANY)) return NULL;
+return &mp->local_cache[lcore_id];     /* indexacao direta */
+```
+
+Junte as duas pontas e aparece a cadeia inteira:
+
+    thread registrada pela EAL
+            ↓
+    __thread per_lcore__lcore_id  ←  indice denso
+            ↓
+    rte_lcore_id()  →  mov %fs:(%rax)
+            ↓
+    &mp->local_cache[lcore_id]
+            ↓
+    caminho rapido do mempool
+
+    thread comum, nao registrada
+            ↓
+    LCORE_ID_ANY
+            ↓
+    cache NULO  →  vai direto ao anel compartilhado
+
+**Duas threads com o mesmo código atravessam caminhos diferentes da
+biblioteca**, e a variável não está no código: está em quem registrou a thread.
+O [módulo 03](../03-mempool-ring-mbuf/README.md#1-por-que-não-usar-malloc--a-resposta-medida)
+mede o que esse cache vale — cerca de 30× — e essa é a diferença entre tê-lo e
+não tê-lo.
+
+> **Registrar uma thread não-EAL exclui multiprocesso, e vice-versa.** Uma
+> thread comum pode adquirir um lcore por [`rte_thread_register()`][apiregister],
+> mas a função recusa quando o modelo multiprocesso está em uso:
+>
+> ```c
+> if (!rte_mp_disable()) {
+>     EAL_LOG(ERR, "Multiprocess in use, registering non-EAL threads is not supported.");
+>     rte_errno = EINVAL;
+>     return -1;
+> }
+> ```
+>
+> Isto importa neste módulo em particular, porque é o módulo do modelo
+> primário/secundário. Quem seguir a [§4](#4-processos-primário-e-secundário) e
+> depois tentar registrar uma thread da aplicação recebe `EINVAL`, e a mensagem
+> só aparece no log da EAL.
+
+> **O que transfere para fora do DPDK.** O padrão é *estado por thread indexado
+> por um identificador denso, instalado no registro e lido em TLS*. Aparece em
+> alocadores com cache por thread, em coletores de métrica por thread e em
+> qualquer estrutura que queira evitar coordenação trocando memória por
+> paralelismo. O que o DPDK acrescenta é a parte incômoda: **quem não se
+> registra não participa**, e a biblioteca não avisa — apenas fica mais lenta.
+
 ### 5.2 A máquina de estados tem dois estados, não três
 
 Um lcore trabalhador recebe trabalho por
@@ -1116,10 +1247,97 @@ Não é medido aqui o caso do **secundário** morrer com o primário vivo, nem o
 um primário que reinicia e tenta recriar uma memzone cujo nome ainda existe.
 Ambos ficam registrados como pendência, não como resultado.
 
-Também não há supervisor: o teste mata e observa, não tenta recuperar.
-Recuperação coordenada — quem reinicia primeiro, como o secundário sabe que
-pode reconectar, o que fazer com o estado obsoleto — é assunto de arquitetura
-operacional, e não cabe num módulo de runtime.
+> **Esta seção afirmava que não havia supervisor.** Passou a haver:
+> [`scripts/feed-supervisor.py`](../../scripts/feed-supervisor.py) reinicia a
+> sessão em nova geração após falha, e o teste
+> [`l3_recuperacao.sh`](medicoes/tests/l3_recuperacao.sh) verifica que a
+> sessão seguinte sobe com geração diferente, que os processos antigos
+> morreram e que a ordem dos eventos se mantém. O que segue substitui a
+> afirmação antiga.
+
+### 10.4 Detectar que o produtor parou é duas perguntas, não uma
+
+Matar o primário e observar o secundário responde *"o consumidor sobrevive?"*.
+Não responde a pergunta que a operação faz: *"o feed ainda está bom?"* — e essa
+tem duas metades que o mesmo sintoma não distingue.
+
+O [`medicoes/feed-health.h`](medicoes/feed-health.h) separa as duas com **dois
+relógios e dois limiares**:
+
+```c
+if (gen != w->generation || gen == 0)     return FEED_WRONG_GENERATION;
+if (now - w->last_heartbeat >= silence)   return FEED_SILENT;
+if (now - w->last_data     >= freshness)  return FEED_STALE;
+return FEED_HEALTHY;
+```
+
+`last_heartbeat` avança quando o produtor dá sinal de vida; `last_data` avança
+quando ele publica **dado novo**. São instantes independentes, com limiares
+independentes, e é essa independência que produz o estado que a intuição não
+prevê:
+
+| estado | heartbeat | dado | o que aconteceu |
+|---|---|---|---|
+| `FEED_HEALTHY` | avança | avança | nada |
+| `FEED_SILENT` | parou | — | o produtor morreu |
+| `FEED_STALE` | **avança** | parou | o produtor está vivo e o feed parou |
+| `FEED_WRONG_GENERATION` | — | — | quem responde não é quem se estava observando |
+
+O terceiro é o interessante. Um supervisor que monitore só o heartbeat
+declara o sistema saudável enquanto nenhum dado novo chega há minutos — porque
+o processo responde, o socket está aberto e a thread não travou. **Vivo e
+parado são estados diferentes, e só o segundo relógio os separa.**
+
+O teste L1 ([`tests/test_l1_feed_health.cpp`](medicoes/tests/test_l1_feed_health.cpp))
+demonstra em três linhas, com o heartbeat andando de 1 a 3 e o dado parado:
+
+```cpp
+EXPECT_EQ(feed_watch_update(&w, 7, 1, 1,  1, 10, 30), FEED_HEALTHY);
+EXPECT_EQ(feed_watch_update(&w, 7, 2, 1,  9, 10, 30), FEED_HEALTHY);
+EXPECT_EQ(feed_watch_update(&w, 7, 3, 1, 31, 10, 30), FEED_STALE);
+```
+
+#### A geração, e por que o observador não a adota
+
+A quarta linha do outro caso é a mais fina do módulo:
+
+```cpp
+EXPECT_EQ(feed_watch_update(&w, 8, 2, 2, 12, 10, 30), FEED_WRONG_GENERATION);
+EXPECT_EQ(w.generation, 7u);
+```
+
+Ao receber geração 8, o observador **recusa e mantém a sua**. Não se
+reconfigura sozinho. Se adotasse, o reinício do produtor viraria uma transição
+silenciosa — e o evento que a operação mais precisa ver seria justamente o que
+desapareceria do relatório.
+
+É a mesma ideia que o supervisor usa do outro lado: cada sessão nasce com uma
+geração nova, e o `l3_recuperacao.sh` exige que as duas sejam diferentes. Um
+identificador de encarnação é o que impede confundir *"voltou"* com *"nunca
+saiu"*.
+
+> **O que transfere para fora do DPDK.** Isto é um **detector de falhas** com
+> duas dimensões — *liveness* e *freshness* — e um número de encarnação. O
+> padrão vale para qualquer consumidor de fluxo: réplica de banco, fila de
+> mensagens, sessão de mercado, *lease* em serviço distribuído. O erro que ele
+> evita não é de desempenho; é publicar "saudável" sobre um sistema que parou
+> de progredir.
+>
+> A parte específica do DPDK é pequena: os instantes vêm de
+> [`feed-clock.h`](medicoes/feed-clock.h), com `CLOCK_MONOTONIC` e `abort()` se
+> o relógio falhar — porque medir tempo com relógio quebrado é pior que não
+> medir.
+
+#### O que ainda não é coberto
+
+Recuperação coordenada continua fora: quem reinicia primeiro, como o secundário
+decide que pode reconectar, o que fazer com o estado obsoleto. O supervisor
+reinicia a **sessão inteira** em nova geração, que é a escolha mais simples e a
+que descarta mais trabalho.
+
+Também não é medido o caso do **secundário** morrer com o primário vivo, nem o
+de um primário que reinicia e tenta recriar uma memzone cujo nome ainda existe.
+Ambos ficam registrados como pendência, não como resultado.
 
 ## 11. Limitações deste documento
 
@@ -1213,3 +1431,7 @@ operacional, e não cabe num módulo de runtime.
 [rel2011]: https://doc.dpdk.org/guides/rel_notes/release_20_11.html
 [api1911]: https://doc.dpdk.org/api-19.11/rte__launch_8h.html
 [fonteeal]: https://github.com/DPDK/dpdk/blob/v25.11/lib/eal/linux/eal_timer.c
+[ringperlcore]: https://github.com/DPDK/dpdk/blob/v25.11/lib/eal/include/rte_per_lcore.h
+[guiamempool]: https://doc.dpdk.org/guides/prog_guide/mempool_lib.html
+[dreppertls]: https://www.uclibc.org/docs/tls.pdf
+[apiregister]: https://doc.dpdk.org/api/rte__thread_8h.html
