@@ -296,24 +296,44 @@ else
         ok "build limpo, zero avisos"
     fi
 
+    # O DIAGNOSTICO SAI DA EXECUCAO QUE FALHOU, NAO DE UMA NOVA.
+    #
+    # Reexecutar a suite para colher o log so funciona se a falha for
+    # deterministica. Numa falha intermitente a segunda execucao passa, e o
+    # relatorio mostra o log de uma execucao bem-sucedida -- ou seja, "falhou"
+    # sem nada listado. Por isso a saida e capturada na PRIMEIRA execucao.
+    #
+    # As categorias casadas incluem UNEXPECTEDPASS e ERROR: as duas fazem o
+    # `meson test` sair diferente de zero e nenhuma contem a palavra FAIL.
+    # Quando nada casa, o resumo do meson e impresso -- um veredito de falha
+    # sem motivo visivel e pior que a falha.
+    relatar_suite() { # <arquivo-de-log>
+        if grep -qE 'FAIL|TIMEOUT|UNEXPECTEDPASS|ERROR' "$1"; then
+            grep -E 'FAIL|TIMEOUT|UNEXPECTEDPASS|ERROR' "$1" | head -8 | sed 's/^/          /'
+        else
+            sed -n '/^Ok:/,/^Timeout:/p' "$1" | sed 's/^/          /'
+        fi
+    }
+    LOG_SUITE=$(mktemp)
     if [ "$MODO" = "completo" ]; then
         # Suíte com os MESMOS tetos da CI. Rodar só o padrão local esconde
         # timeout: custo-espera leva 40 s aqui e estourou 300 s no runner.
         if DPDK_ACADEMY_AMOSTRAS=3 DPDK_ACADEMY_RODADAS=20000 \
-           meson test -C "$BUILD" >/dev/null 2>&1; then
+           meson test -C "$BUILD" --print-errorlogs >"$LOG_SUITE" 2>&1; then
             ok "suíte completa nos tetos da CI"
         else
             falha "suíte falhou (tetos da CI)"
-            DPDK_ACADEMY_AMOSTRAS=3 DPDK_ACADEMY_RODADAS=20000 \
-              meson test -C "$BUILD" --print-errorlogs 2>&1 | grep -E 'FAIL|TIMEOUT' | head -6 | sed 's/^/          /'
+            relatar_suite "$LOG_SUITE"
         fi
     else
-        if meson test -C "$BUILD" --suite l1 >/dev/null 2>&1; then
+        if meson test -C "$BUILD" --suite l1 --print-errorlogs >"$LOG_SUITE" 2>&1; then
             ok "suíte L1 (modo rápido; rode sem --rapido antes de publicar)"
         else
             falha "suíte L1 falhou"
+            relatar_suite "$LOG_SUITE"
         fi
     fi
+    rm -f "$LOG_SUITE"
 fi
 
 # --- 6. Assinatura ----------------------------------------------------------
