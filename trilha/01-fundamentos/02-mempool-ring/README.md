@@ -215,13 +215,15 @@ então não deve depender dele para ser testada. É o que torna possível o test
 Saída esperada (omitindo as linhas `EAL:`):
 
 ```
+Configured per-lcore cache: 64
 Packets processed: 10
 Total bytes: 695
 Batch (burst): 32 | objects that did not fit in the queue: 0
 Largest batch actually moved: enqueued 10, dequeued 10
 Mode: 1 lcore (0), producer and consumer interleaved
 Free objects in the pool at the end: 4095 of 4095
-Mean time: 77.1 ns/packet  <- NOT A MEASUREMENT
+mempool cache stats: UNAVAILABLE (DPDK built without RTE_LIBRTE_MEMPOOL_STATS)
+Mean time: 51.1 ns/packet  <- NOT A MEASUREMENT
   10 packets are far too few: the cost of reading the clock is of the same
   order as the work measured. Use -n 10000 or more for a defensible number.
 ```
@@ -314,15 +316,17 @@ O tópico compila o **mesmo fonte** duas vezes. `pipeline_ring_vazado` é
 ```
 
 ```
-INVARIANT VIOLATED: 1533 of 4095 objects in the pool at the end. 2562 object(s) leaked: some return path did not give back to the pool.
+INVARIANT VIOLATED: 1534 of 4095 objects in the pool at the end. 2561 object(s) leaked: some return path did not give back to the pool.
+Configured per-lcore cache: 64
 Packets processed: 2000000
 Total bytes: 161000000
-Batch (burst): 256 | objects that did not fit in the queue: 2562
+Batch (burst): 256 | objects that did not fit in the queue: 2561
 Largest batch actually moved: enqueued 256, dequeued 256
 Mode: 2 lcores (producer 0, consumer 2)
-Free objects in the pool at the end: 1533 of 4095
-Mean time: 3.0 ns/packet
-Frequency of lcore 0: 4.32 GHz (the time above varies with it)
+Free objects in the pool at the end: 1534 of 4095
+mempool cache stats: UNAVAILABLE (DPDK built without RTE_LIBRTE_MEMPOOL_STATS)
+Mean time: 2.8 ns/packet
+Frequency of lcore 0: 4.89 GHz (the time above varies with it)
 ```
 
 ### 6.3 O que a medição mostra
@@ -351,7 +355,7 @@ invariante conferido na saída** — e é por isso que ele existe.
 binário correto:
 
 ```
-Batch (burst): 256 | objects that did not fit in the queue: 1019654
+Batch (burst): 256 | objects that did not fit in the queue: 1001346
 Free objects in the pool at the end: 4095 of 4095
 ```
 

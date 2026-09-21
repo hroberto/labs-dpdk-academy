@@ -526,6 +526,31 @@ static STAT_MAYBE_UNUSED void print_row(const char *rotulo, struct statistics e)
 #define ACADEMY_COMMIT "sem-git"
 #endif
 
+/* A versao do DPDK entra na procedencia porque ela e VARIAVEL EXPERIMENTAL em
+ * estudo que compara releases: sem ela, dois bracos de campanha ficam
+ * indistinguiveis no arquivo. Programas sem DPDK devolvem string vazia, e a
+ * linha de procedencia deles nao muda.
+ *
+ * A deteccao e por `__has_include` porque este header e compartilhado entre
+ * programas que linkam DPDK e programas que nao linkam. */
+#if defined(__has_include)
+#  if __has_include(<rte_version.h>)
+#    include <rte_version.h>
+#    define ACADEMY_TEM_DPDK 1
+#  endif
+#endif
+
+static STAT_MAYBE_UNUSED const char *academy_dpdk_versao(void)
+{
+#ifdef ACADEMY_TEM_DPDK
+    static char buf[64];
+    snprintf(buf, sizeof(buf), "  |  %s", rte_version());
+    return buf;
+#else
+    return "";
+#endif
+}
+
 static STAT_MAYBE_UNUSED void print_provenance(const char *programa)
 {
     /* `uname` ja traz o hostname em `nodename`, e `localtime` e C89.
@@ -547,8 +572,9 @@ static STAT_MAYBE_UNUSED void print_provenance(const char *programa)
     if (tmv)
         strftime(quando, sizeof(quando), "%Y-%m-%dT%H:%M:%S%z", tmv);
 
-    printf("  origin: %s @ %s  |  %s %s %s  |  gcc %s  |  %s\n\n",
-           programa, ACADEMY_COMMIT, u.nodename, u.sysname, u.release, __VERSION__, quando);
+    printf("  origin: %s @ %s  |  %s %s %s  |  gcc %s  |  %s%s\n\n",
+           programa, ACADEMY_COMMIT, u.nodename, u.sysname, u.release, __VERSION__, quando,
+           academy_dpdk_versao());
 }
 
 static STAT_MAYBE_UNUSED void print_header(void)

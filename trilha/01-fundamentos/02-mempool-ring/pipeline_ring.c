@@ -39,12 +39,17 @@
 #include <stdlib.h>
 
 #include "packet.h"
+#include "../../../docs/01-fundamentos/medicoes/statistics.h"
 
 #define BURST_MAX 256u
 
 struct config {
     uint64_t num_packets;
     unsigned burst;
+    /* Cache por lcore do mempool. Parametro de execucao porque o
+     * dimensionamento otimo depende de COMO get e put se distribuem entre os
+     * lcores, e essa distribuicao muda com a topologia (-l 0 contra -l 0,2). */
+    unsigned cache_size;
     /* Prazo de PROGRESSO em milissegundos; 0 desliga.
      *
      * Nao e prazo total de execucao: e quanto tempo se aceita sem que NENHUM
@@ -71,6 +76,65 @@ static int potencia_de_dois(unsigned n)
     return n != 0 && (n & (n - 1)) == 0;
 }
 
+/* TAXA DE MISS DO CACHE DO MEMPOOL, POR LCORE.
+ *
+ * `get_common_pool_bulk` conta as vezes em que o cache nao tinha objetos e foi
+ * preciso ir ao anel compartilhado -- e isso e exatamente o "mempool cache
+ * miss" de que a release note do 26.07 fala. Nao e miss de cache de CPU, e
+ * contador da biblioteca: nao depende de PMU.
+ *
+ * Os contadores sao POR LCORE, e e isso que expoe a assimetria: numa topologia
+ * de pipeline um lcore so faz get e outro so faz put. */
+static void relatar_mempool(const struct rte_mempool *mp)
+{
+#ifdef RTE_LIBRTE_MEMPOOL_STATS
+    unsigned id;
+    uint64_t tg = 0, tgc = 0, tp = 0, tpc = 0;
+
+    printf("mempool cache stats (per lcore)\n");
+    printf("  lcore  %10s %10s %7s  %10s %10s %7s\n",
+           "get_bulk", "get_common", "miss%", "put_bulk", "put_common", "flush%");
+    for (id = 0; id <= RTE_MAX_LCORE; id++) {
+        /* OS CONTADORES VIVEM EM DOIS LUGARES, e confundi-los zera o estudo.
+         *
+         * Quando ha cache por lcore, os gets/puts bem-sucedidos sao contados
+         * DENTRO do cache (`local_cache[id].stats`) -- tanto os servidos do
+         * cache quanto os servidos apos recarga. As idas ao anel
+         * compartilhado ficam em `mp->stats[id]`. A taxa de miss e a razao
+         * entre os dois.
+         *
+         * Com cache_size = 0 nao ha cache: tudo vai para `mp->stats[id]`. */
+        uint64_t g, pu;
+        const uint64_t gc = mp->stats[id].get_common_pool_bulk;
+        const uint64_t pc = mp->stats[id].put_common_pool_bulk;
+
+        /* `stats[]` tem RTE_MAX_LCORE + 1 entradas -- a ultima e das threads
+         * nao-EAL. `local_cache[]` tem RTE_MAX_LCORE. Ler a ultima posicao no
+         * vetor errado devolve lixo, e lixo aqui e um estudo inteiro errado. */
+        if (mp->cache_size != 0 && mp->local_cache != NULL && id < RTE_MAX_LCORE) {
+            g = mp->local_cache[id].stats.get_success_bulk;
+            pu = mp->local_cache[id].stats.put_bulk;
+        } else {
+            g = mp->stats[id].get_success_bulk;
+            pu = mp->stats[id].put_bulk;
+        }
+        if (g == 0 && pu == 0 && gc == 0 && pc == 0)
+            continue;
+        printf("  %5u  %10" PRIu64 " %10" PRIu64 " %6.2f%%  %10" PRIu64 " %10" PRIu64 " %6.2f%%\n",
+               id, g, gc, g ? 100.0 * (double)gc / (double)g : 0.0,
+               pu, pc, pu ? 100.0 * (double)pc / (double)pu : 0.0);
+        tg += g; tgc += gc; tp += pu; tpc += pc;
+    }
+    printf("  total  %10" PRIu64 " %10" PRIu64 " %6.2f%%  %10" PRIu64 " %10" PRIu64 " %6.2f%%\n",
+           tg, tgc, tg ? 100.0 * (double)tgc / (double)tg : 0.0,
+           tp, tpc, tp ? 100.0 * (double)tpc / (double)tp : 0.0);
+#else
+    (void)mp;
+    printf("mempool cache stats: UNAVAILABLE"
+           " (DPDK built without RTE_LIBRTE_MEMPOOL_STATS)\n");
+#endif
+}
+
 static int parse_config(int argc, char **argv, struct config *cfg)
 {
     int opt;
@@ -78,16 +142,19 @@ static int parse_config(int argc, char **argv, struct config *cfg)
     cfg->burst = 32;
     cfg->progresso_ms = 0;
     cfg->profundidade = 1024;
+    cfg->cache_size = 64;
     optind = 1;
-    while ((opt = getopt(argc, argv, "n:b:t:q:")) != -1) {
+    while ((opt = getopt(argc, argv, "n:b:t:q:c:")) != -1) {
         switch (opt) {
         case 'n': cfg->num_packets = strtoull(optarg, NULL, 10); break;
         case 'b': cfg->burst = (unsigned)strtoul(optarg, NULL, 10); break;
         case 't': cfg->progresso_ms = strtoull(optarg, NULL, 10); break;
         case 'q': cfg->profundidade = (unsigned)strtoul(optarg, NULL, 10); break;
+        case 'c': cfg->cache_size = (unsigned)strtoul(optarg, NULL, 10); break;
         default:
             fprintf(stderr, "Usage: %s <EAL> -- [-n packets] [-b batch (1..%u)]"
-                            " [-t ms without progress] [-q queue depth]\n",
+                            " [-t ms without progress] [-q queue depth]"
+                            " [-c per-lcore cache]\n",
                     argv[0], BURST_MAX);
             return -1;
         }
@@ -274,7 +341,7 @@ int main(int argc, char **argv)
     const unsigned pool_objs = 4095;
     struct rte_mempool *pool = rte_mempool_create(
         "pool_pacotes", pool_objs, sizeof(struct packet),
-        /* cache por lcore */ 64, /* private data */ 0,
+        cfg.cache_size, /* private data */ 0,
         NULL, NULL, NULL, NULL, rte_socket_id(), 0);
     if (pool == NULL) {
         fprintf(stderr, "rte_mempool_create failed: %s\n", rte_strerror(rte_errno));
@@ -456,6 +523,8 @@ int main(int argc, char **argv)
     const uint64_t cycles = rte_rdtsc() - t0;
     const double ns_per_packet = (double)cycles * 1e9 / (double)rte_get_tsc_hz() / (double)r.packets;
 
+    print_provenance("pipeline_ring");
+    printf("Configured per-lcore cache: %u\n", cfg.cache_size);
     printf("Packets processed: %" PRIu64 "\n", r.packets);
     printf("Total bytes: %" PRIu64 "\n", r.bytes);
     /* Conta OBJETOS, nao eventos: `n - enq` e quanto sobrou do lote. Rotular
@@ -489,6 +558,7 @@ int main(int argc, char **argv)
         printf("Objects dropped at shutdown: %" PRIu64 "\n", descartados);
     }
     printf("Free objects in the pool at the end: %u of %u\n", rte_mempool_avail_count(pool), pool_objs);
+    relatar_mempool(pool);
     if (r.packets >= MIN_TO_MEASURE) {
         printf("Mean time: %.1f ns/packet\n", ns_per_packet);
         const double f = freq_ghz(rte_lcore_id());

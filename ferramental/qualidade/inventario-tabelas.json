@@ -589,25 +589,25 @@
       "linha": 217,
       "secao": "4. Implementação",
       "tipo": "bloco_numerico",
-      "sha256": "d451963d589eb3ce460c4227578c44a2f55136326d97d7fd0e567b240c9453a1"
+      "sha256": "e876bf824c3ad68cd2b3f92708cbb529c35f843252804d61e759bd0befa576a6"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
-      "linha": 242,
+      "linha": 244,
       "secao": "4. Implementação",
       "tipo": "tabela_markdown",
       "sha256": "77b7a3c0d7105145ab1fa48365feab26f23d3df01bc7c32e92774eb0b702ad35"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
-      "linha": 316,
+      "linha": 318,
       "secao": "6.2 O experimento",
       "tipo": "bloco_numerico",
-      "sha256": "9df94986771523c7b6e1aa780c517c6e880a61ec1a1a96a1d8be6f62cab696a7"
+      "sha256": "27751c9cc7d865695fd1436b9f2385f634d45f35e7ea4b19633ecd766207a8c2"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
-      "linha": 332,
+      "linha": 336,
       "secao": "6.3 O que a medição mostra",
       "tipo": "tabela_markdown",
       "sha256": "0058bbf18087412664a388b067e945e5995f2f44331334d0a9d931c17398b17a"

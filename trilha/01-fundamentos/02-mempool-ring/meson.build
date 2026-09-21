@@ -7,7 +7,7 @@ pacote_inc = include_directories('.')
 
 pipeline_ring = executable(
   'pipeline_ring',
-  ['pipeline_ring.c', 'packet.c'],
+  ['pipeline_ring.c', 'packet.c', versao_h],
   dependencies : [dpdk_dep],
   include_directories : pacote_inc,
   install : false,
@@ -52,7 +52,7 @@ endif
 # pipeline_ring_vazado logo abaixo.
 pipeline_ring_pausado = executable(
   'pipeline_ring_pausado',
-  ['pipeline_ring.c', 'packet.c'],
+  ['pipeline_ring.c', 'packet.c', versao_h],
   dependencies : [dpdk_dep],
   include_directories : pacote_inc,
   c_args : ['-DDPDK_ACADEMY_INJECT_PAUSE'],
@@ -61,7 +61,7 @@ pipeline_ring_pausado = executable(
 
 pipeline_ring_vazado = executable(
   'pipeline_ring_vazado',
-  ['pipeline_ring.c', 'packet.c'],
+  ['pipeline_ring.c', 'packet.c', versao_h],
   dependencies : [dpdk_dep],
   include_directories : pacote_inc,
   c_args : ['-DDPDK_ACADEMY_INJECT_LEAK'],
