@@ -42,6 +42,13 @@ limpar() {
     rm -f "$SAIDA_P" "$SAIDA_S"
     rm -rf "${XDG_RUNTIME_DIR:-/var/run}/dpdk/${PREFIXO}" 2>/dev/null
     rm -f "/dev/hugepages/${PREFIXO}"* 2>/dev/null
+    # O teste passa --huge-dir=$DPDK_ACADEMY_HUGE_DIR quando a variavel existe,
+    # e ate 21/09/2026 a limpeza so olhava /dev/hugepages: cada execucao com a
+    # hugepage de teste montada deixava um arquivo de 2 MB para tras.
+    [ -n "${DPDK_ACADEMY_HUGE_DIR:-}" ] && rm -f "${DPDK_ACADEMY_HUGE_DIR}/${PREFIXO}"* 2>/dev/null
+    # `return 0` porque isto roda em `trap ... EXIT`: com a variavel vazia o
+    # teste acima falha e o status da funcao viraria o status do script.
+    return 0
 }
 trap limpar EXIT
 

@@ -315,6 +315,14 @@ else
         fi
     }
     LOG_SUITE=$(mktemp)
+
+    # RASTRO DA SUITE: passar e deixar o sistema limpo sao duas afirmacoes
+    # diferentes, e o `meson test` so faz a primeira. A marca e tirada AQUI,
+    # imediatamente antes da execucao, para que a janela do journal seja a da
+    # suite e nao "desde o boot".
+    MARCA_RASTRO=$(mktemp)
+    ferramental/qualidade/rastros-da-suite.py --marcar >"$MARCA_RASTRO" 2>/dev/null || :
+
     if [ "$MODO" = "completo" ]; then
         # Suíte com os MESMOS tetos da CI. Rodar só o padrão local esconde
         # timeout: custo-espera leva 40 s aqui e estourou 300 s no runner.
@@ -334,6 +342,24 @@ else
         fi
     fi
     rm -f "$LOG_SUITE"
+
+    # Conferido mesmo quando a suite falha: uma suite que falha E vaza recurso
+    # tem dois problemas, e esconder o segundo atras do primeiro faz o segundo
+    # reaparecer depois que o primeiro for corrigido.
+    if [ -s "$MARCA_RASTRO" ]; then
+        saida_rastro=$(ferramental/qualidade/rastros-da-suite.py \
+                           --conferir "$MARCA_RASTRO" 2>&1) && rc_rastro=0 || rc_rastro=$?
+        resumo_rastro=$(printf '%s\n' "$saida_rastro" | tail -1 | sed 's/^ *//')
+        if [ "$rc_rastro" -eq 0 ]; then
+            ok "rastros: $resumo_rastro"
+        else
+            falha "a suite deixou residuo no sistema"
+            printf '%s\n' "$saida_rastro" | sed 's/^/          /'
+        fi
+    else
+        falha "rastros da suite nao conferidos (a marca nao foi tirada)"
+    fi
+    rm -f "$MARCA_RASTRO"
 fi
 
 # --- 6. Assinatura ----------------------------------------------------------
