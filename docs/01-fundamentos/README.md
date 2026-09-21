@@ -605,41 +605,66 @@ Aplicando com as 4 096 entradas medidas acima e páginas de 4 KB:
 
 **E a tabela é uma previsão, não uma descrição.** Ela diz que o ganho das
 hugepages deve ser irrelevante até ~16 MB e nascer entre 16 e 64 MB. Medindo o
-mesmo percurso disperso com os dois tamanhos de página, uma execução por região
-(`custo-traducao <MB>`), mediana de cinco repetições:
+o mesmo percurso com os dois tamanhos de página **e com os dois padrões de
+acesso** (`custo-traducao <MB> <disperso|sequencial>`), mediana de cinco
+repetições cada:
 
 ```
-   região     4 KB     2 MB    ganho
-     8 MB    11.78    10.16     1.54 ns   <- coberto: como previsto, quase nada
-    16 MB    10.78     8.62     1.98 ns   <- ainda coberto: idem
-    32 MB    46.57    25.43    18.62 ns   <- FRONTEIRA DO L3: fora do modelo
-    64 MB    72.16    65.01     6.92 ns   <- 25% coberto: o ganho aparece
-   512 MB    89.56    78.55    10.94 ns   <- 3% coberto: ganho cheio
+             percurso disperso         percurso sequencial    
+    região      4 KB    2 MB   ganho      4 KB    2 MB   ganho
+      8 MB     11.78   10.16    1.54      0.94    0.94    0.01
+     16 MB     10.78    8.62    1.98      0.96    0.90    0.06
+     32 MB     46.57   25.43   18.62      1.36    1.26    0.11
+     64 MB     72.16   65.01    6.92      1.66    1.57    0.08
+    512 MB     89.56   78.55   10.94      1.65    1.66   -0.00
 ```
 
-**A previsão se sustenta nos quatro pontos que ela cobre** — 8 e 16 MB quase
-sem ganho, 64 MB com o ganho nascendo, 512 MB com ganho cheio. É o tipo de
-confirmação que vale mais que o número isolado: o modelo não só descreve o
-resultado, ele o **antecipou**.
+**A previsão se sustenta, mas só na coluna da esquerda.** No percurso disperso,
+8 e 16 MB quase sem ganho, 64 MB com o ganho nascendo, 512 MB com ganho cheio —
+o modelo não só descreve o resultado, ele o **antecipou**. No percurso
+sequencial o ganho inteiro desaparece: de 0,01 a 0,11 ns, uma ou duas ordens de
+grandeza abaixo.
 
-**E a varredura achou um ponto que o modelo NÃO prevê.** Em 32 MB o ganho salta
-para 18,62 ns — maior que em 512 MB — e depois *cai* para 6,92 ns em 64 MB. Não
-é ruído: as cinco repetições arquivadas dão de 17,24 a 20,11 ns. O modelo de
-cobertura de TLB é monotônico por construção — quanto menos a TLB cobre, maior
-o ganho — e não tem como produzir um pico no meio.
+**E o desaparecimento é mais forte do que o número sugere.** O desenho pareado
+publica quantos dos 21 pares tiveram o mesmo sinal, e é aí que se vê a
+diferença: no disperso são 19 a 21 de 21 em todas as regiões; no sequencial a
+contagem cai para 14/21 em 64 MB e **12/21 em 512 MB** — cara ou coroa. Não é
+um efeito pequeno, é a ausência de efeito.
 
-O que 32 MB tem de especial é ser exatamente o tamanho do L3 desta máquina
-([§4.2](#42-cache-e-localidade)). Uma explicação compatível com o modelo da
-§4.1 é que, com páginas de 4 KB, os 64 kB de PTEs de uma região de 32 MB
-disputam o L3 com os próprios dados, na fronteira em que eles mal cabem; com
-hugepages de 2 MB os PTEs são 128 B e não disputam nada. **Isto é hipótese, não
-resultado**: confirmá-la exigiria medir a ocupação de L3 com contadores de
-desempenho, que este material não usa. O que está medido é o pico e a sua
-reprodutibilidade.
+> **Hugepages não tornam a tradução mais barata; elas reduzem quantas traduções
+> falham.** Se essas falhas importam depende de elas caírem no caminho crítico,
+> e é o padrão de acesso que decide isso. Num percurso sequencial, uma PTE de
+> 4 KB serve 64 linhas de cache consecutivas — o custo se dilui por 64 — e o
+> prefetcher ainda corre à frente. Num percurso disperso sobre região muito
+> maior que a cobertura da TLB, quase todo acesso cai numa página diferente:
+> uma PTE por acesso, sem diluição, e serializada pela dependência.
+>
+> O ganho de hugepages não é propriedade do tamanho de página. É propriedade do
+> par **tamanho de página × padrão de acesso**, e só existe quando o percurso
+> derrota o prefetcher e a TLB ao mesmo tempo.
 
-A lição de método é a mesma do resto do módulo: o modelo foi confirmado onde
-previa, e a varredura mostrou onde ele para de valer. Publicar só os três
-pontos que confirmam teria escondido o quarto.
+**A varredura também achou um ponto que o modelo não prevê.** No disperso, 32 MB
+dá ganho de 18,62 ns — maior que em 512 MB — e depois *cai* para 6,92 ns em
+64 MB. O modelo de cobertura de TLB é monotônico por construção e não tem como
+produzir um pico no meio. Cinco de cinco repetições reproduzem, de 17,24 a
+20,11 ns.
+
+32 MB é exatamente o tamanho do L3 desta máquina ([§4.2](#42-cache-e-localidade)),
+e é também onde a cobertura de TLB cruza 50%: o L2 DTLB tem 4 096 entradas e
+32 MB em páginas de 4 KB pedem 8 192. Uma leitura compatível com os dados é que
+na fronteira de capacidade uma perturbação pequena decide entre acertar e errar
+o L3 — com hugepages o percurso ainda colhe L3 (25,43 ns, entre os 9,7 do L3 e
+os 88,6 da RAM), com 4 KB já não colhe (46,57 ns) — e depois da fronteira os
+dois erram, então a diferença colapsa para o custo de page walk puro.
+
+**Isto é leitura, não resultado.** Separar capacidade de cobertura de TLB
+exigiria contadores de desempenho, que este material não usa. O que está medido
+é o pico, a sua reprodutibilidade, e o fato de ele **não existir no percurso
+sequencial** (0,11 ns em 32 MB) — o que já basta para dizer que não é um
+fenômeno de tamanho de página.
+
+A lição de método é a mesma do resto do módulo: publicar só a coluna que
+confirma teria escondido as duas coisas mais interessantes da tabela.
 
 Fixando a região em 512 MB, o mesmo programa publica a diferença com o
 desenho pareado ([`custo-traducao.c`](medicoes/custo-traducao.c)):
@@ -2931,6 +2956,7 @@ juntos é mais honesto que esconder a continuidade atrás de um limiar.**
 ./build/docs/01-fundamentos/medicoes/efeito-cache
 ./build/docs/01-fundamentos/medicoes/custo-traducao        # requer hugepages; 512 MB
 ./build/docs/01-fundamentos/medicoes/custo-traducao 32     # outra regiao, em MB
+./build/docs/01-fundamentos/medicoes/custo-traducao 32 sequencial   # outro percurso
 ./build/docs/01-fundamentos/medicoes/custo-paralelismo  # requer hugepages
 ./build/docs/01-fundamentos/medicoes/custo-comunicacao
 ./build/docs/01-fundamentos/medicoes/custo-espera

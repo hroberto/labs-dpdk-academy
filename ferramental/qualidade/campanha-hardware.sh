@@ -128,6 +128,11 @@ for r in 0 1 2 3 4 5; do
     for mb in 8 16 32 64; do
         ./$B/custo-traducao "$mb" > "$D/custo-traducao.regiao${mb}mb.r${r}.txt" 2>&1
     done
+    # O mesmo percurso em ordem crescente: muda so a ordem dos enderecos, com
+    # a cadeia dependente mantida, para isolar o padrao de acesso.
+    for mb in 8 16 32 64 512; do
+        ./$B/custo-traducao "$mb" sequencial > "$D/custo-traducao.seq${mb}mb.r${r}.txt" 2>&1
+    done
     corre2 "$r"
     corre3 "$r"
     corre_feed "$r"

@@ -10,3 +10,4 @@ feed: /mnt/huge-academia (coletado a mao; supervisor precisou de 2a tentativa em
 custo-comunicacao recoletado apos correcao de literal de printf (fase 2/razao -> phase 2/ratio); a mudanca e de string, nao altera medicao
 efeito-cache recoletado apos correcao de literal de printf (acessos em voo -> accesses in flight)
 varredura por regiao (8/16/32/64 MB) arquivada; 512 MB e o padrao, ja coletado como custo-traducao.r*
+varredura sequencial (8/16/32/64/512 MB) arquivada; percurso disperso e o padrao

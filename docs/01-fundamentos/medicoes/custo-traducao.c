@@ -49,6 +49,12 @@
 #define REGIAO_MB_MAX    16384u
 
 static size_t regiao_bytes = (size_t)REGIAO_MB_PADRAO * 1024 * 1024;
+
+/* Percurso: a cadeia e sempre dependente -- um acesso por vez, sem
+ * paralelismo de memoria -- e o que muda e a ORDEM dos enderecos. Mudar so a
+ * ordem isola o efeito do padrao de acesso do efeito da dependencia, que e a
+ * variavel que a tabela de ganho confronta. */
+static int percurso_sequencial = 0;
 /* Cada amostra aloca a região inteira e percorre milhões de linhas: poucas
  * amostras, senão o programa leva minutos. */
 /* VINTE E UMA, e a escolha nao e de orcamento de tempo.
@@ -83,7 +89,11 @@ static double medir(void *mem, size_t bytes)
      * escrito à mão aqui, e a terceira cópia da mesma construção saiu errada
      * em `efeito-cache.c` — ver o cabeçalho de `cadeia.h`. */
     static uint64_t semente = 0x2545F4914F6CDD1Dull;
-    academy_permutar(ordem, n, &semente);
+    if (percurso_sequencial)
+        for (size_t i = 0; i < n; i++)
+            ordem[i] = i;
+    else
+        academy_permutar(ordem, n, &semente);
     const size_t nos = academy_cadeia_nos(n, 1);
     for (size_t i = 0; i < nos; i++)
         p[ordem[i] * (LINHA_CACHE / sizeof(size_t))] =
@@ -135,14 +145,24 @@ int main(int argc, char **argv)
         char *fim = NULL;
         const unsigned long mb = strtoul(argv[1], &fim, 10);
         if (fim == argv[1] || *fim != '\0' || mb == 0 || mb > REGIAO_MB_MAX) {
-            fprintf(stderr, "uso: %s [regiao_em_MB]   (1 a %u; padrao %u)\n",
+            fprintf(stderr, "uso: %s [regiao_em_MB] [disperso|sequencial]"
+                            "   (1 a %u MB; padrao %u, disperso)\n",
                     argv[0], REGIAO_MB_MAX, REGIAO_MB_PADRAO);
             return 2;
         }
         regiao_bytes = (size_t)mb * 1024 * 1024;
     }
+    if (argc > 2) {
+        if (strcmp(argv[2], "sequencial") == 0)
+            percurso_sequencial = 1;
+        else if (strcmp(argv[2], "disperso") != 0) {
+            fprintf(stderr, "percurso invalido: %s   (disperso|sequencial)\n", argv[2]);
+            return 2;
+        }
+    }
     print_provenance("custo-traducao");
-    printf("Address translation cost (scattered walk over %zu MB)\n",
+    printf("Address translation cost (%s walk over %zu MB)\n",
+           percurso_sequencial ? "sequential" : "scattered",
            regiao_bytes / (1024 * 1024));
     printf("(%d samples per measurement; times in ns)\n\n", AMOSTRAS_PAGINA);
 

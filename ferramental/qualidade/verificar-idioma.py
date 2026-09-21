@@ -56,6 +56,9 @@ MANTER = {
     "pool", "bloco", "pacote", "pacotes", "processar", "tamanho", "consumidos",
     "primario", "secundario", "compartilhado", "publicados", "consumidos",
     "producao", "leitura", "estrutura", "estudo", "topico", "opcao", "cadencia",
+    # nomes de argumento posicional dos programas, citados nos comandos de
+    # reproducao dos dois idiomas -- mesma razao de "cadencia", que ja estava
+    "disperso", "sequencial",
     "lidos", "total", "linha", "real", "reais", "papel", "campo", "momento",
     # IDs de no e classes do Mermaid (codigo do diagrama, nao texto exibido)
     "fila", "pilha", "caro", "remoto", "fonte", "perde", "ganha", "vazio",

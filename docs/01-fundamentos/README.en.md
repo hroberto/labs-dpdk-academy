@@ -598,41 +598,67 @@ Applying it with the 4,096 entries measured above and 4 KB pages:
 
 **And the table is a prediction, not a description.** It says the hugepage gain
 should be irrelevant up to ~16 MB and be born between 16 and 64 MB. Measuring the
-same scattered walk with both page sizes, one run per region
-(`custo-traducao <MB>`), median of five repetitions:
+the same walk with both page sizes **and both access patterns**
+(`custo-traducao <MB> <disperso|sequencial>`), median of five repetitions each:
 
 ```
-   region     4 KB     2 MB     gain
-     8 MB    11.78    10.16     1.54 ns   <- covered: as predicted, almost nothing
-    16 MB    10.78     8.62     1.98 ns   <- still covered: likewise
-    32 MB    46.57    25.43    18.62 ns   <- L3 BOUNDARY: outside the model
-    64 MB    72.16    65.01     6.92 ns   <- 25% covered: the gain appears
-   512 MB    89.56    78.55    10.94 ns   <- 3% covered: full gain
+             scattered walk            sequential walk        
+    region      4 KB    2 MB    gain      4 KB    2 MB    gain
+      8 MB     11.78   10.16    1.54      0.94    0.94    0.01
+     16 MB     10.78    8.62    1.98      0.96    0.90    0.06
+     32 MB     46.57   25.43   18.62      1.36    1.26    0.11
+     64 MB     72.16   65.01    6.92      1.66    1.57    0.08
+    512 MB     89.56   78.55   10.94      1.65    1.66   -0.00
 ```
 
-**The prediction holds at the four points it covers** — 8 and 16 MB with almost
-no gain, 64 MB with the gain being born, 512 MB with the full gain. That is the
-kind of confirmation worth more than the isolated number: the model does not
-merely describe the result, it **anticipated** it.
+**The prediction holds, but only in the left-hand column.** In the scattered
+walk, 8 and 16 MB with almost no gain, 64 MB with the gain being born, 512 MB
+with the full gain — the model does not merely describe the result, it
+**anticipated** it. In the sequential walk the entire gain vanishes: 0.01 to
+0.11 ns, one or two orders of magnitude lower.
 
-**And the sweep found a point the model does NOT predict.** At 32 MB the gain
-jumps to 18.62 ns — higher than at 512 MB — and then *falls* to 6.92 ns at
-64 MB. It is not noise: the five archived repetitions give 17.24 to 20.11 ns.
-The TLB-coverage model is monotonic by construction — the less the TLB covers,
-the larger the gain — and cannot produce a peak in the middle.
+**And the disappearance is stronger than the number suggests.** The paired
+design publishes how many of the 21 pairs had the same sign, and that is where
+the difference shows: in the scattered walk it is 19 to 21 out of 21 in every
+region; in the sequential walk the count falls to 14/21 at 64 MB and **12/21 at
+512 MB** — a coin flip. This is not a small effect, it is the absence of one.
 
-What is special about 32 MB is that it is exactly the L3 size of this machine
-([§4.2](#42-cache-and-locality)). An explanation compatible with the §4.1 model
-is that, with 4 KB pages, the 64 kB of PTEs for a 32 MB region compete for L3
-with the data itself, right at the boundary where the data barely fits; with
-2 MB hugepages the PTEs are 128 B and compete for nothing. **This is a
-hypothesis, not a result**: confirming it would require measuring L3 occupancy
-with performance counters, which this material does not use. What is measured is
-the peak and its reproducibility.
+> **Hugepages do not make translation cheaper; they reduce how many
+> translations miss.** Whether those misses matter depends on their landing on
+> the critical path, and it is the access pattern that decides that. In a
+> sequential walk, one 4 KB PTE serves 64 consecutive cache lines — the cost is
+> diluted by 64 — and the prefetcher still runs ahead. In a scattered walk over
+> a region far larger than TLB coverage, nearly every access falls on a
+> different page: one PTE per access, undiluted, and serialised by the
+> dependency.
+>
+> The hugepage gain is not a property of the page size. It is a property of the
+> pair **page size × access pattern**, and it exists only when the walk defeats
+> the prefetcher and the TLB at the same time.
 
-The methodological lesson is the same as the rest of the module: the model was
-confirmed where it predicted, and the sweep showed where it stops holding.
-Publishing only the three points that confirm would have hidden the fourth.
+**The sweep also found a point the model does not predict.** In the scattered
+walk, 32 MB gives a gain of 18.62 ns — higher than at 512 MB — and then *falls*
+to 6.92 ns at 64 MB. The TLB-coverage model is monotonic by construction and
+cannot produce a peak in the middle. Five of five repetitions reproduce it,
+from 17.24 to 20.11 ns.
+
+32 MB is exactly the L3 size of this machine ([§4.2](#42-cache-and-locality)),
+and it is also where TLB coverage crosses 50%: the L2 DTLB has 4,096 entries and
+32 MB in 4 KB pages needs 8,192. A reading compatible with the data is that at
+the capacity boundary a small perturbation decides between hitting and missing
+L3 — with hugepages the walk still reaps L3 (25.43 ns, between the 9.7 of L3 and
+the 88.6 of RAM), with 4 KB it no longer does (46.57 ns) — and past the boundary
+both miss, so the difference collapses to the pure page-walk cost.
+
+**This is a reading, not a result.** Separating capacity from TLB coverage would
+require performance counters, which this material does not use. What is measured
+is the peak, its reproducibility, and the fact that it **does not exist in the
+sequential walk** (0.11 ns at 32 MB) — which is already enough to say it is not
+a page-size phenomenon.
+
+The methodological lesson is the same as the rest of the module: publishing only
+the column that confirms would have hidden the two most interesting things in
+the table.
 
 Fixing the region at 512 MB, the same program publishes the difference with the
 paired design ([`custo-traducao.c`](medicoes/custo-traducao.c)):
@@ -2870,6 +2896,7 @@ continuity behind a threshold.**
 ./build/docs/01-fundamentos/medicoes/efeito-cache
 ./build/docs/01-fundamentos/medicoes/custo-traducao        # needs hugepages; 512 MB
 ./build/docs/01-fundamentos/medicoes/custo-traducao 32     # another region, in MB
+./build/docs/01-fundamentos/medicoes/custo-traducao 32 sequencial   # another walk
 ./build/docs/01-fundamentos/medicoes/custo-paralelismo  # needs hugepages
 ./build/docs/01-fundamentos/medicoes/custo-comunicacao
 ./build/docs/01-fundamentos/medicoes/custo-espera
