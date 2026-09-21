@@ -76,13 +76,13 @@ double m_cycle() {
 
 int main() {
     const int n = DEFAULT_SAMPLES;
-    std::printf("\n== O anel SPSC em C++23, medido ==\n\n");
-    std::printf("  anel de %zu posicoes; ciclo completo enfileirar+desenfileirar\n", capacity);
-    std::printf("  UM thread, SEM disputa: mesma condicao de custo-anel.c, para\n");
-    std::printf("  que os dois numeros sejam comparaveis\n");
-    std::printf("  amostras: %d, cada uma com %d operacoes\n\n", n, iterations);
+    std::printf("\n== The SPSC ring in C++23, measured ==\n\n");
+    std::printf("  ring of %zu slots; full enqueue+dequeue cycle\n", capacity);
+    std::printf("  ONE thread, NO contention: same condition as custo-anel.c, so\n");
+    std::printf("  that the two numbers are comparable\n");
+    std::printf("  samples: %d, each with %d operations\n\n", n, iterations);
 
-    std::printf("  %-8s %16s\n", "lote", "SP/SC (ns/obj)");
+    std::printf("  %-8s %16s\n", "batch", "SP/SC (ns/obj)");
     std::printf("  %-8s %16s\n", "-----", "--------------");
 
     static const std::size_t bursts[] = {1, 8, 32, 128};
@@ -92,8 +92,8 @@ int main() {
         std::printf("  %-8zu %13.3f ns\n", l, e.median);
     }
 
-    std::printf("\n  Compare com a mesma tabela do lado C, em\n");
-    std::printf("  docs/03-mempool-ring-mbuf/medicoes/custo-anel.c: mesma condicao,\n");
-    std::printf("  mesmo numero de operacoes, mesma estatistica.\n\n");
+    std::printf("\n  Compare with the same table on the C side, in\n");
+    std::printf("  docs/03-mempool-ring-mbuf/medicoes/custo-anel.c: same condition,\n");
+    std::printf("  same number of operations, same statistic.\n\n");
     return 0;
 }

@@ -27,7 +27,7 @@ int main(int argc, char **argv)
     /* rte_eal_init devolve quantos argumentos consumiu, ou -1 com rte_errno. */
     int consumidos = rte_eal_init(argc, argv);
     if (consumidos < 0) {
-        fprintf(stderr, "Erro ao inicializar a EAL: %s\n", rte_strerror(rte_errno));
+        fprintf(stderr, "Error initialising the EAL: %s\n", rte_strerror(rte_errno));
         return EXIT_FAILURE;
     }
 
@@ -35,12 +35,12 @@ int main(int argc, char **argv)
     argc -= consumidos;
     argv += consumidos;
 
-    printf("DPDK Academy: EAL inicializada com sucesso.\n");
-    printf("Versao do DPDK: %s\n", rte_version());
-    printf("Lcores disponiveis: %u (lcore principal: %u)\n",
+    printf("DPDK Academy: EAL initialised successfully.\n");
+    printf("DPDK version: %s\n", rte_version());
+    printf("Lcores available: %u (main lcore: %u)\n",
            rte_lcore_count(), rte_get_main_lcore());
-    printf("No NUMA do lcore principal: %d\n", rte_socket_id());
-    printf("Argumentos restantes para a aplicacao: %d\n", argc - 1);
+    printf("NUMA node of the main lcore: %d\n", rte_socket_id());
+    printf("Arguments left for the application: %d\n", argc - 1);
 
     rte_eal_cleanup();
     return EXIT_SUCCESS;

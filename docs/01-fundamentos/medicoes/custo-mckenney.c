@@ -12,8 +12,8 @@
  * A Tabela 3.1 dele mede, num AMD Opteron 844 de 1,8 GHz com QUATRO SOQUETES:
  *
  *     período de clock ............   0,6 ns
- *     CAS em melhor caso ..........  37,9 ns
- *     trava em melhor caso ........  65,6 ns
+ *     CAS, best case ..........  37,9 ns
+ *     lock, best case ........  65,6 ns
  *     falta de cache simples ...... 139,5 ns
  *     CAS com falta de cache ...... 306,0 ns
  *
@@ -215,35 +215,36 @@ static int nucleo_de_outro_dominio(void)
 
 int main(void)
 {
+    print_provenance("custo-mckenney");
     fixar(cpu_local);
     aquecer();
 
     const struct statistics clk = collect_or_fail(clock_period_ns, 9);
 
-    printf("Tabela 3.1 de McKenney, reproduzida nesta maquina\n");
-    printf("(%d amostras por medicao; tempos em ns)\n\n", DEFAULT_SAMPLES);
-    printf("  Referencia: McKenney, \"Is Parallel Programming Hard...\", Tabela 3.1,\n");
-    printf("  medida em AMD Opteron 844, 1,8 GHz, 4 soquetes.\n");
-    printf("  Aqui: 1 soquete, 2 dominios de L3. Periodo de clock medido: %.3f ns.\n\n",
+    printf("McKenney's Table 3.1, reproduced on this machine\n");
+    printf("(%d samples per measurement; times in ns)\n\n", DEFAULT_SAMPLES);
+    printf("  Reference: McKenney, \"Is Parallel Programming Hard...\", Table 3.1,\n");
+    printf("  measured on an AMD Opteron 844, 1.8 GHz, 4 sockets.\n");
+    printf("  Here: 1 socket, 2 L3 domains. Measured clock period: %.3f ns.\n\n",
            clk.median);
 
     const double T = clk.median;
 
-    printf("MELHOR CASO - a linha de cache ja esta neste nucleo\n\n");
+    printf("BEST CASE - the cache line is already on this core\n\n");
     print_header_cycles();
-    print_row_cycles("CAS em melhor caso", collect_or_fail(cas_melhor_caso, DEFAULT_SAMPLES), T);
-    print_row_cycles("trava em melhor caso", collect_or_fail(trava_melhor_caso, DEFAULT_SAMPLES), T);
+    print_row_cycles("CAS, best case", collect_or_fail(cas_melhor_caso, DEFAULT_SAMPLES), T);
+    print_row_cycles("lock, best case", collect_or_fail(trava_melhor_caso, DEFAULT_SAMPLES), T);
 
-    printf("\nFALTA DE CACHE - a linha esta em outro nucleo e precisa migrar\n\n");
+    printf("\nCACHE MISS - the line is on another core and has to migrate\n\n");
     print_header_cycles();
 
     cpu_remoto = 2;
-    print_row_cycles("falta simples, mesmo dominio L3", collect_or_fail(falta_de_cache, DEFAULT_SAMPLES), T);
-    print_row_cycles("CAS com falta, mesmo dominio L3", collect_or_fail(cas_com_falta, DEFAULT_SAMPLES), T);
+    print_row_cycles("plain miss, same L3 domain", collect_or_fail(falta_de_cache, DEFAULT_SAMPLES), T);
+    print_row_cycles("CAS with miss, same L3 domain", collect_or_fail(cas_com_falta, DEFAULT_SAMPLES), T);
 
     const int outro = nucleo_de_outro_dominio();
     if (outro < 0) {
-        printf("\n  (CPU com um unico dominio de L3: sem categoria 'outro dominio')\n");
+        printf("\n  (CPU with a single L3 domain: no 'other domain' category)\n");
         /* CÓDIGO 77 = PULADO, e não sucesso.
          *
          * Sair com 0 aqui fazia o Meson reportar OK sem que nada tivesse sido medido —
@@ -253,17 +254,17 @@ int main(void)
         return 77;
     }
     cpu_remoto = outro;
-    print_row_cycles("falta simples, OUTRO dominio L3", collect_or_fail(falta_de_cache, DEFAULT_SAMPLES), T);
-    print_row_cycles("CAS com falta, OUTRO dominio L3", collect_or_fail(cas_com_falta, DEFAULT_SAMPLES), T);
+    print_row_cycles("plain miss, OTHER L3 domain", collect_or_fail(falta_de_cache, DEFAULT_SAMPLES), T);
+    print_row_cycles("CAS with miss, OTHER L3 domain", collect_or_fail(cas_com_falta, DEFAULT_SAMPLES), T);
 
-    printf("\n  Para comparar, os valores de McKenney em CICLOS (periodo 0,6 ns):\n");
-    printf("    CAS melhor caso  63 | trava melhor caso 109\n");
-    printf("    falta de cache  232 | CAS com falta     510\n");
+    printf("\n  For comparison, McKenney's values in CYCLES (0.6 ns period):\n");
+    printf("    CAS best case    63 | lock best case   109\n");
+    printf("    cache miss      232 | CAS with miss     510\n");
 
-    printf("\n  O sistema de McKenney tem 4 soquetes; nele 'outro nucleo' pode\n");
-    printf("  significar outro soquete. Aqui a distincao equivalente e entre os\n");
-    printf("  dois dominios de L3 -- as duas ultimas linhas contra as duas\n");
-    printf("  anteriores. A conclusao do SOSP 2013 e essa: a escalabilidade da\n");
-    printf("  sincronizacao e, sobretudo, propriedade do hardware.\n");
+    printf("\n  McKenney's system has 4 sockets; there 'another core' can\n");
+    printf("  mean another socket. Here the equivalent distinction is between the\n");
+    printf("  two L3 domains -- the last two rows against the two\n");
+    printf("  before them. That is the SOSP 2013 conclusion: the scalability of\n");
+    printf("  synchronisation is, above all, a property of the hardware.\n");
     return 0;
 }

@@ -13,7 +13,7 @@ practically and deeply, with:
 - theoretical foundations of the system and the network
 - an understanding of DPDK's internal mechanism
 - examples in C and C++23
-- comparison against pure C++23 implementations
+- comparison with pure C++23 implementations
 - focus on architecture, performance and software engineering
 
 ## Sections

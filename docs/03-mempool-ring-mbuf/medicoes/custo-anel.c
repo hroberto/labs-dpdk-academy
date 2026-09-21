@@ -93,7 +93,7 @@ static void demonstrate_contract(void)
     struct rte_ring *r = rte_ring_create("anel_contrato", 16, (int)rte_socket_id(),
                                          RING_F_SP_ENQ | RING_F_SC_DEQ);
     if (r == NULL) {
-        printf("  (nao foi possivel criar o anel da demonstracao)\n");
+        printf("  (could not create the demonstration ring)\n");
         return;
     }
 
@@ -103,34 +103,35 @@ static void demonstrate_contract(void)
 
     /* Anel de 16 guarda 15: um lugar fica reservado para distinguir cheio de
      * vazio. É a mesma razão do "2^q - 1" do mempool. */
-    printf("  anel pedido com 16 posicoes; capacidade real: %u\n", rte_ring_get_capacity(r));
-    printf("  (uma posicao fica reservada para distinguir cheio de vazio)\n\n");
+    printf("  ring requested with 16 slots; real capacity: %u\n", rte_ring_get_capacity(r));
+    printf("  (one slot is reserved to tell full apart from empty)\n\n");
 
     unsigned n = rte_ring_enqueue_burst(r, v, 12, NULL);
-    printf("  enfileirados 12 em anel vazio ......... burst aceitou %u, livre=%u\n", n,
+    printf("  enqueued 12 into an empty ring ........ burst accepted %u, free=%u\n", n,
            rte_ring_free_count(r));
 
     /* Agora só há 3 lugares livres, e pedimos 12. */
     unsigned livre = rte_ring_free_count(r);
     unsigned b = rte_ring_enqueue_bulk(r, v, 12, NULL);
-    printf("  pedindo mais 12 com apenas %u livres:\n", livre);
-    printf("    _bulk  aceitou %u  <- tudo ou nada: NADA entrou\n", b);
+    printf("  asking for 12 more with only %u free:\n", livre);
+    printf("    _bulk  accepted %u  <- all or nothing: NOTHING went in\n", b);
 
     unsigned c = rte_ring_enqueue_burst(r, v, 12, NULL);
-    printf("    _burst aceitou %u  <- parcial: %u entraram, %u ficaram de fora\n", c, c, 12 - c);
+    printf("    _burst accepted %u  <- partial: %u went in, %u stayed out\n", c, c, 12 - c);
 
-    printf("\n  A consequencia pratica esta no retorno do _burst: os %u objetos que\n", 12 - c);
-    printf("  NAO entraram continuam sendo seus. Quem ignora esse numero e trata\n");
-    printf("  todos como enfileirados perde a posse deles -- e, se vieram de um\n");
-    printf("  mempool, o pool esvazia em silencio ate o pipeline parar.\n");
+    printf("\n  The practical consequence is in _burst's return value: the %u objects\n", 12 - c);
+    printf("  that did NOT go in are still yours. Whoever ignores that number and\n");
+    printf("  treats them all as enqueued loses ownership of them -- and, if they came\n");
+    printf("  from a mempool, the pool drains silently until the pipeline stalls.\n");
 
     rte_ring_free(r);
 }
 
 int main(int argc, char **argv)
 {
+    print_provenance("custo-anel");
     if (rte_eal_init(argc, argv) < 0) {
-        fprintf(stderr, "custo-anel: EAL nao inicializou: %s\n", rte_strerror(rte_errno));
+        fprintf(stderr, "custo-anel: EAL did not initialise: %s\n", rte_strerror(rte_errno));
         return 2;
     }
 
@@ -138,20 +139,20 @@ int main(int argc, char **argv)
                                 RING_F_SP_ENQ | RING_F_SC_DEQ);
     ring_mpmc = rte_ring_create("anel_mpmc", RING_SIZE, (int)rte_socket_id(), 0);
     if (ring_spsc == NULL || ring_mpmc == NULL) {
-        fprintf(stderr, "custo-anel: rte_ring_create falhou: %s\n", rte_strerror(rte_errno));
+        fprintf(stderr, "custo-anel: rte_ring_create failed: %s\n", rte_strerror(rte_errno));
         rte_eal_cleanup();
         return 1;
     }
 
     const int n = samples(DEFAULT_SAMPLES_FIXED);
 
-    printf("\n== O preco da generalidade do anel ==\n\n");
-    printf("  anel de %u posicoes; ciclo completo enfileirar+desenfileirar\n", RING_SIZE);
-    printf("  UM lcore, SEM disputa: o que se mede e a instrucao atomica, nao a\n");
-    printf("  migracao de linha de cache entre nucleos\n");
-    printf("  amostras: %d, cada uma com %d operacoes\n\n", n, ITERATIONS);
+    printf("\n== The price of the ring's generality ==\n\n");
+    printf("  ring of %u slots; full enqueue+dequeue cycle\n", RING_SIZE);
+    printf("  ONE lcore, NO contention: what is measured is the atomic instruction,\n");
+    printf("  not the cache-line migration between cores\n");
+    printf("  samples: %d, each with %d operations\n\n", n, ITERATIONS);
 
-    printf("  %-8s %16s %16s %10s\n", "lote", "SP/SC (ns/obj)", "MP/MC (ns/obj)", "custo MP/MC");
+    printf("  %-8s %16s %16s %10s\n", "batch", "SP/SC (ns/obj)", "MP/MC (ns/obj)", "MP/MC cost");
     printf("  %-8s %16s %16s %10s\n", "-----", "--------------", "--------------", "-----------");
     static const unsigned bursts[] = {1, 8, 32, 128};
     for (size_t i = 0; i < sizeof(bursts) / sizeof(bursts[0]); i++) {
@@ -162,12 +163,12 @@ int main(int argc, char **argv)
                s.median > 0 ? 100.0 * (m.median - s.median) / s.median : 0.0);
     }
 
-    printf("\n  O custo do MP/MC nao desaparece por nao haver disputa: a operacao\n");
-    printf("  atomica e executada de qualquer forma. O que o lote faz e diluir\n");
-    printf("  esse custo fixo sobre mais objetos -- a mesma logica que ja apareceu\n");
-    printf("  no tamanho de lote e na travessia entre nucleos.\n");
+    printf("\n  The MP/MC cost does not vanish for lack of contention: the atomic\n");
+    printf("  operation runs either way. What batching does is dilute that fixed\n");
+    printf("  cost over more objects -- the same logic that already appeared in\n");
+    printf("  batch size and in the cross-core traversal.\n");
 
-    printf("\n== _bulk e _burst nao sao sinonimos ==\n\n");
+    printf("\n== _bulk and _burst are not synonyms ==\n\n");
     demonstrate_contract();
     printf("\n");
 

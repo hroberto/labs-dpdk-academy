@@ -33,7 +33,7 @@ It combines:
 - theoretical foundations of DPDK and of the data plane
 - software architecture and high-performance runtime
 - practical exercises in C and C++23
-- comparison against pure C++23 implementations
+- comparison with pure C++23 implementations
 - a critical take on trade-offs and performance
 - documentation treated as a source of technical knowledge
 
@@ -57,7 +57,7 @@ It combines:
 - `LICENSE` — licence for the project's content
 
 Every topic in the trail is **self-contained**: document, code, tests and, where
-it exists, the no-DPDK alternative for the same problem, under `alternativas/`
+it exists, the non-DPDK alternative for the same problem, under `alternativas/`
 inside the topic itself. For example:
 
 ```
@@ -78,7 +78,7 @@ This project does not treat DPDK as an isolated tool. It aims to teach:
 - runnable practice before imagined performance
 - software design before context-free micro-optimisation
 - clear, rigorous documentation as part of engineering
-- numbers that are measured and confronted with the literature, never asserted
+- numbers that are measured and compared against the literature, never asserted
 
 ## Study trails
 
@@ -235,7 +235,7 @@ condition is checked, not assumed. Confirm it yourself with
 for real.
 
 The distinction exists because the alternative is worse: a test that needs
-privilege and *pretends* to pass without it publishes a green that corresponds to
+privilege and *pretends* to pass without it reports a passing result that corresponds to
 no verification at all.
 
 ## Recommended flow

@@ -311,11 +311,11 @@ static double m_semaforo_livre(void)
 static void grupo_primitivo(void)
 {
     print_header();
-    measure_default("atomica relaxed (store+load)", m_atomica_relaxed);
-    measure_default("atomica seq_cst (store+load)", m_atomica_seqcst);
+    measure_default("atomic relaxed (store+load)", m_atomica_relaxed);
+    measure_default("atomic seq_cst (store+load)", m_atomica_seqcst);
     measure_default("mutex lock+unlock", m_mutex_simples);
     measure_default("spinlock lock+unlock", m_spinlock);
-    measure_default("semaforo post+wait", m_semaforo_livre);
+    measure_default("semaphore post+wait", m_semaforo_livre);
 }
 
 /* ================ Grupo 2: repasse de verdade entre núcleos ================ */
@@ -485,45 +485,46 @@ static double m_repasse_semaforo(void)
 
 int main(void)
 {
+    print_provenance("custo-espera");
     pthread_spin_init(&spin, 0);
     fixar(cpu_a);
     aquecer();
 
-    printf("Custo de esperar por trabalho\n");
-    printf("(%d amostras por medicao, apos %d ms de aquecimento; tempos em ns)\n",
+    printf("Cost of waiting for work\n");
+    printf("(%d samples per measurement, after %d ms of warm-up; times in ns)\n",
            DEFAULT_SAMPLES, AQUECIMENTO_MS);
-    printf("(CV = coeficiente de variacao;  ~ = dispersao moderada,  ! = instavel)\n\n");
-    printf("GRUPO 1 - SEM DISPUTA: ninguem mais quer o mesmo primitivo\n");
-    printf("          (processo com outra thread presente, que e o regime real\n");
-    printf("           de qualquer programa concorrente -- ver nota no fonte)\n\n");
+    printf("(CV = coefficient of variation;  ~ = moderate dispersion,  ! = unstable)\n\n");
+    printf("GROUP 1 - UNCONTENDED: nobody else wants the same primitive\n");
+    printf("          (process with another thread present, which is the real regime\n");
+    printf("           of any concurrent program -- see the note in the source)\n\n");
     grupo_primitivo();
 
-    printf("\nGRUPO 2 - NO REPASSE: duas threads coordenando (cpu %d <-> cpu %d)\n\n",
+    printf("\nGROUP 2 - HANDOFF: two threads coordinating (cpu %d <-> cpu %d)\n\n",
            cpu_a, cpu_b);
 
     print_header();
     const struct statistics e_ativa = collect_or_fail(m_repasse_atomica, AMOSTRAS_REPASSE);
-    print_row("atomica + espera ativa (nao dorme)", e_ativa);
+    print_row("atomic + busy wait (does not sleep)", e_ativa);
     const struct statistics e_mutex = collect_or_fail(m_repasse_mutex_ativo, AMOSTRAS_REPASSE);
-    print_row("mutex + espera ativa (nao dorme)", e_mutex);
+    print_row("mutex + busy wait (does not sleep)", e_mutex);
     const struct statistics e_dorme = collect_or_fail(m_repasse_condvar, AMOSTRAS_REPASSE);
-    print_row("mutex + condvar (DORME)", e_dorme);
-    print_row("semaforo POSIX (DORME)", collect_or_fail(m_repasse_semaforo, AMOSTRAS_REPASSE));
+    print_row("mutex + condvar (SLEEPS)", e_dorme);
+    print_row("POSIX semaphore (SLEEPS)", collect_or_fail(m_repasse_semaforo, AMOSTRAS_REPASSE));
 
     const double ns_ativa = e_ativa.median;
     const double ns_mutex_ativo = e_mutex.median;
     const double ns_dorme = e_dorme.median;
 
-    printf("\nLeitura:\n");
-    printf("  O primitivo nao e o problema: um mutex sem disputa custa poucos ns.\n");
-    printf("  O MESMO mutex custa %.0f ns sem dormir e %.0f ns com condvar --\n",
+    printf("\nReading:\n");
+    printf("  The primitive is not the problem: an uncontended mutex costs a few ns.\n");
+    printf("  The SAME mutex costs %.0f ns without sleeping and %.0f ns with a condvar --\n",
            ns_mutex_ativo, ns_dorme);
-    printf("  %.0fx de diferenca, e a unica variavel mudada foi dormir ou nao.\n\n",
+    printf("  %.0fx of difference, and the only variable changed was sleeping or not.\n\n",
            ns_dorme / ns_mutex_ativo);
-    printf("  Orcamento de um pacote de 64 B em 10 GbE: %.1f ns\n", BUDGET_10GBE_NS);
-    printf("    espera ativa cabe %.1f vezes nele\n", BUDGET_10GBE_NS / ns_ativa);
-    printf("    dormir gasta %.1f orcamentos inteiros\n", ns_dorme / BUDGET_10GBE_NS);
-    printf("\n  Por isso o plano de dados faz polling: nao ha tempo para dormir.\n");
-    printf("  O preco e ocupar 100%% do nucleo mesmo sem trafego algum.\n");
+    printf("  Budget of a 64 B packet at 10 GbE: %.1f ns\n", BUDGET_10GBE_NS);
+    printf("    busy waiting fits %.1f times in it\n", BUDGET_10GBE_NS / ns_ativa);
+    printf("    sleeping spends %.1f whole budgets\n", ns_dorme / BUDGET_10GBE_NS);
+    printf("\n  That is why the data plane polls: there is no time to sleep.\n");
+    printf("  The price is occupying 100%% of the core even with no traffic at all.\n");
     return 0;
 }

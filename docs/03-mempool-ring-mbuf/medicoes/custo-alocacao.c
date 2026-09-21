@@ -202,8 +202,9 @@ static double m_pool_bulk(void)
 
 int main(int argc, char **argv)
 {
+    print_provenance("custo-alocacao");
     if (rte_eal_init(argc, argv) < 0) {
-        fprintf(stderr, "custo-alocacao: EAL nao inicializou: %s\n", rte_strerror(rte_errno));
+        fprintf(stderr, "custo-alocacao: EAL did not initialise: %s\n", rte_strerror(rte_errno));
         return 2;
     }
 
@@ -213,7 +214,7 @@ int main(int argc, char **argv)
     pool_sem_cache = rte_mempool_create("pool_sem_cache", OBJECTS, OBJECT_SIZE, 0, 0, NULL, NULL,
                                         NULL, NULL, (int)rte_socket_id(), 0);
     if (pool_cache == NULL || pool_sem_cache == NULL) {
-        fprintf(stderr, "custo-alocacao: rte_mempool_create falhou: %s\n",
+        fprintf(stderr, "custo-alocacao: rte_mempool_create failed: %s\n",
                 rte_strerror(rte_errno));
         rte_eal_cleanup();
         return 1;
@@ -227,7 +228,7 @@ int main(int argc, char **argv)
 
     pthread_t t_ruido;
     if (pthread_create(&t_ruido, NULL, ruido, &cpu_ruido) != 0) {
-        fprintf(stderr, "custo-alocacao: nao foi possivel criar a thread de ruido\n");
+        fprintf(stderr, "custo-alocacao: could not create the noise thread\n");
         rte_eal_cleanup();
         return 1;
     }
@@ -252,25 +253,25 @@ int main(int argc, char **argv)
 
     const int n = samples(DEFAULT_SAMPLES_FIXED);
 
-    printf("\n== Quanto custa conseguir um objeto ==\n\n");
-    printf("  objeto de %u bytes; pool de %u objetos\n", OBJECT_SIZE, OBJECTS);
-    char warning[160], naive_warning[160];
-    printf("  cache por lcore ........ %u objetos (derivado, nao escolhido a olho)\n",
+    printf("\n== What it costs to get one object ==\n\n");
+    printf("  object of %u bytes; pool of %u objects\n", OBJECT_SIZE, OBJECTS);
+    char warning[192], naive_warning[192];
+    printf("  cache per lcore ........ %u objects (derived, not eyeballed)\n",
            cache_lcore);
-    printf("    escolhido ............ %s\n",
+    printf("    chosen ............... %s\n",
            dim_describe(dim_check(OBJECTS, cache_lcore, RTE_MEMPOOL_CACHE_MAX_SIZE), warning,
                          sizeof(warning)));
-    printf("    o obvio (256) seria .. %s -> %u objetos presos\n",
+    printf("    the obvious (256) .... %s -> %u objects pinned\n",
            dim_describe(dim_check(OBJECTS, 256, RTE_MEMPOOL_CACHE_MAX_SIZE), naive_warning,
                          sizeof(naive_warning)),
            dim_leftover_objects(OBJECTS, 256));
-    printf("  amostras: %d, cada uma com %d operacoes\n", n, ITERATIONS);
-    printf("  medindo no lcore %u; thread de ruido fixada na CPU %d\n", rte_lcore_id(),
+    printf("  samples: %d, each with %d operations\n", n, ITERATIONS);
+    printf("  measuring on lcore %u; noise thread pinned to CPU %d\n", rte_lcore_id(),
            cpu_ruido);
-    printf("  (a glibc tem caminho rapido para processo mono-thread; sem a thread\n");
-    printf("   de ruido o malloc mediria um custo que nao existe em servidor real)\n\n");
+    printf("  (glibc has a fast path for single-threaded processes; without the\n");
+    printf("   noise thread malloc would measure a cost no real server pays)\n\n");
 
-    printf("  --- um objeto por vez, em NANOSSEGUNDOS POR OBJETO ---\n\n");
+    printf("  --- one object at a time, in NANOSECONDS PER OBJECT ---\n\n");
     const double f0 = freq_ghz(rte_lcore_id());
     print_header();
     const struct statistics e_malloc = collect(m_malloc_unitario, n);
@@ -278,15 +279,15 @@ int main(int argc, char **argv)
     const struct statistics e_sem = collect(m_pool_sem_cache, n);
     if (!collection_is_valid(e_malloc, n) || !collection_is_valid(e_cache, n) ||
         !collection_is_valid(e_sem, n)) {
-        fprintf(stderr, "custo-alocacao: coleta invalida em 'um objeto por vez';"
-                        " nenhuma medicao a publicar\n");
+        fprintf(stderr, "custo-alocacao: invalid collection in 'one object at a time';"
+                        " no measurement to publish\n");
         rte_eal_cleanup();
         return EXIT_FAILURE;
     }
 
     print_row("malloc/free", e_malloc);
-    print_row("mempool get/put, com cache", e_cache);
-    print_row("mempool get/put, SEM cache", e_sem);
+    print_row("mempool get/put, with cache", e_cache);
+    print_row("mempool get/put, NO cache", e_sem);
     const double f1 = freq_ghz(rte_lcore_id());
 
     /* AS RAZOES SAO O RESULTADO; os nanossegundos sao circunstancia.
@@ -296,18 +297,18 @@ int main(int argc, char **argv)
      * para o malloc, conforme o turbo engatasse ou nao. As RAZOES, no entanto,
      * ficaram identicas (2,23x nas duas). E por isso que este modulo afirma
      * "duas vezes mais rapido" e nao "0,98 nanossegundos". */
-    printf("\n  frequencia do nucleo %u durante a medicao: %.2f -> %.2f GHz\n",
+    printf("\n  frequency of core %u during the measurement: %.2f -> %.2f GHz\n",
            rte_lcore_id(), f0, f1);
-    printf("  razoes, que NAO dependem da frequencia:\n");
-    printf("    mempool com cache e %.2fx mais rapido que malloc\n",
+    printf("  ratios, which do NOT depend on frequency:\n");
+    printf("    mempool with cache is %.2fx faster than malloc\n",
            e_cache.median > 0 ? e_malloc.median / e_cache.median : 0.0);
-    printf("    o cache por lcore vale %.1fx (com cache contra sem cache)\n",
+    printf("    the per-lcore cache is worth %.1fx (with cache against without)\n",
            e_cache.median > 0 ? e_sem.median / e_cache.median : 0.0);
-    printf("    sem o cache, o mempool fica %.1fx mais LENTO que o malloc\n",
+    printf("    without the cache, the mempool is %.1fx SLOWER than malloc\n",
            e_malloc.median > 0 ? e_sem.median / e_malloc.median : 0.0);
 
-    printf("\n  --- em LOTE, ns por objeto: os dois lados variam em sentidos opostos ---\n\n");
-    printf("  %-10s %14s %14s %10s\n", "lote", "malloc/free", "mempool bulk", "razao");
+    printf("\n  --- in BATCH, ns per object: the two sides move in opposite directions ---\n\n");
+    printf("  %-10s %14s %14s %10s\n", "batch", "malloc/free", "mempool bulk", "ratio");
     printf("  %-10s %14s %14s %10s\n", "-----", "-----------", "------------", "-----");
     static const unsigned bursts[] = {1, 8, 32, 128};
     for (size_t i = 0; i < sizeof(bursts) / sizeof(bursts[0]); i++) {
@@ -318,18 +319,18 @@ int main(int argc, char **argv)
                p.median > 0 ? m.median / p.median : 0.0);
     }
 
-    printf("\n  Leitura:\n");
-    printf("    O pool nao e magico: troca alocacao dinamica por indice em vetor\n");
-    printf("    pre-alocado, e o cache por lcore evita ate a operacao atomica do\n");
-    printf("    anel comum -- e o que a linha SEM cache mede.\n\n");
-    printf("    O sentido das duas colunas de lote e o resultado principal: pedir\n");
-    printf("    mais objetos de uma vez BARATEIA cada objeto no mempool e ENCARECE\n");
-    printf("    no malloc. O motivo do lado do malloc esta dentro do alocador da\n");
-    printf("    glibc e este projeto nao o investiga; o que importa aqui e que a\n");
-    printf("    estrategia de lote, central no plano de dados, so compensa de um\n");
-    printf("    dos lados.\n\n");
-    printf("    Nenhum destes numeros inclui falta de pagina: o pool ja esta quente.\n");
-    printf("    Em producao, a primeira passagem sobre a memoria e mais cara.\n\n");
+    printf("\n  Reading:\n");
+    printf("    The pool is not magic: it trades dynamic allocation for an index\n");
+    printf("    into a pre-allocated array, and the per-lcore cache avoids even the\n");
+    printf("    atomic operation on the shared ring -- which is what the NO-cache row measures.\n\n");
+    printf("    The direction of the two batch columns is the main result: asking for\n");
+    printf("    more objects at once makes each object CHEAPER in the mempool and MORE\n");
+    printf("    EXPENSIVE in malloc. The reason on the malloc side lies inside glibc's\n");
+    printf("    allocator and this project does not investigate it; what matters here is\n");
+    printf("    that the batching strategy, central to the data plane, only pays off on\n");
+    printf("    one of the sides.\n\n");
+    printf("    None of these numbers includes page faults: the pool is already warm.\n");
+    printf("    In production, the first pass over the memory is more expensive.\n\n");
 
     atomic_store_explicit(&parar_ruido, 1, memory_order_relaxed);
     pthread_join(t_ruido, NULL);

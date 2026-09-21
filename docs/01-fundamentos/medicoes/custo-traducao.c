@@ -13,7 +13,7 @@
  *
  *   - com páginas normais de 4 KB, onde a TLB não alcança o conjunto de
  *     trabalho e quase todo acesso paga a caminhada;
- *   - com hugepages de 2 MB, onde a mesma quantidade de entradas de TLB cobre
+ *   - com 2 MB hugepages, onde a mesma quantidade de entradas de TLB cobre
  *     512x mais memória e a caminhada tem um nível a menos.
  *
  * A latência da RAM aparece nas duas medições e não é o objeto do teste. O que
@@ -42,9 +42,21 @@
 #include "clock_ns.h"
 #include "statistics.h"
 
-#define REGIAO_BYTES (512ull * 1024 * 1024)
-/* Cada amostra aloca 512 MB e percorre milhões de linhas: poucas amostras,
- * senão o programa leva minutos. */
+/* Regiao percorrida, em MB, como parametro de execucao: a varredura por
+ * tamanho e o que confronta a previsao de cobertura de TLB com a medicao.
+ * O padrao de 512 MB e o que a tabela pareada da secao 4.1 usa. */
+#define REGIAO_MB_PADRAO 512u
+#define REGIAO_MB_MAX    16384u
+
+static size_t regiao_bytes = (size_t)REGIAO_MB_PADRAO * 1024 * 1024;
+
+/* Percurso: a cadeia e sempre dependente -- um acesso por vez, sem
+ * paralelismo de memoria -- e o que muda e a ORDEM dos enderecos. Mudar so a
+ * ordem isola o efeito do padrao de acesso do efeito da dependencia, que e a
+ * variavel que a tabela de ganho confronta. */
+static int percurso_sequencial = 0;
+/* Cada amostra aloca a região inteira e percorre milhões de linhas: poucas
+ * amostras, senão o programa leva minutos. */
 /* VINTE E UMA, e a escolha nao e de orcamento de tempo.
  *
  * Com 7 amostras estas linhas saiam com dispersao entre 3% e 15%, que e
@@ -77,7 +89,11 @@ static double medir(void *mem, size_t bytes)
      * escrito à mão aqui, e a terceira cópia da mesma construção saiu errada
      * em `efeito-cache.c` — ver o cabeçalho de `cadeia.h`. */
     static uint64_t semente = 0x2545F4914F6CDD1Dull;
-    academy_permutar(ordem, n, &semente);
+    if (percurso_sequencial)
+        for (size_t i = 0; i < n; i++)
+            ordem[i] = i;
+    else
+        academy_permutar(ordem, n, &semente);
     const size_t nos = academy_cadeia_nos(n, 1);
     for (size_t i = 0; i < nos; i++)
         p[ordem[i] * (LINHA_CACHE / sizeof(size_t))] =
@@ -101,13 +117,13 @@ static double medir(void *mem, size_t bytes)
 static double amostra(int com_hugepages)
 {
     const int extra = com_hugepages ? MAP_HUGETLB : 0;
-    void *m = mmap(NULL, REGIAO_BYTES, PROT_READ | PROT_WRITE,
+    void *m = mmap(NULL, regiao_bytes, PROT_READ | PROT_WRITE,
                    MAP_PRIVATE | MAP_ANONYMOUS | extra, -1, 0);
     if (m == MAP_FAILED)
         return -1.0;
-    memset(m, 0, REGIAO_BYTES);
-    const double r = medir(m, REGIAO_BYTES);
-    munmap(m, REGIAO_BYTES);
+    memset(m, 0, regiao_bytes);
+    const double r = medir(m, regiao_bytes);
+    munmap(m, regiao_bytes);
     return r;
 }
 
@@ -121,15 +137,38 @@ static double amostra_2m(void)
     return amostra(1);
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
-    printf("Custo da traducao de endereco (percurso disperso em %llu MB)\n",
-           REGIAO_BYTES / (1024 * 1024));
-    printf("(%d amostras por medicao; tempos em ns)\n\n", AMOSTRAS_PAGINA);
+    /* Recusa valor invalido em vez de silenciar: regiao de 0 MB mediria nada
+     * e ainda assim publicaria um numero. */
+    if (argc > 1) {
+        char *fim = NULL;
+        const unsigned long mb = strtoul(argv[1], &fim, 10);
+        if (fim == argv[1] || *fim != '\0' || mb == 0 || mb > REGIAO_MB_MAX) {
+            fprintf(stderr, "uso: %s [regiao_em_MB] [disperso|sequencial]"
+                            "   (1 a %u MB; padrao %u, disperso)\n",
+                    argv[0], REGIAO_MB_MAX, REGIAO_MB_PADRAO);
+            return 2;
+        }
+        regiao_bytes = (size_t)mb * 1024 * 1024;
+    }
+    if (argc > 2) {
+        if (strcmp(argv[2], "sequencial") == 0)
+            percurso_sequencial = 1;
+        else if (strcmp(argv[2], "disperso") != 0) {
+            fprintf(stderr, "percurso invalido: %s   (disperso|sequencial)\n", argv[2]);
+            return 2;
+        }
+    }
+    print_provenance("custo-traducao");
+    printf("Address translation cost (%s walk over %zu MB)\n",
+           percurso_sequencial ? "sequential" : "scattered",
+           regiao_bytes / (1024 * 1024));
+    printf("(%d samples per measurement; times in ns)\n\n", AMOSTRAS_PAGINA);
 
     if (amostra_2m() < 0) {
-        printf("  hugepages de 2 MB indisponiveis para este processo.\n\n");
-        printf("  Reserve hugepages para completar a medicao, por exemplo:\n");
+        printf("  2 MB hugepages unavailable to this process.\n\n");
+        printf("  Reserve hugepages to complete the measurement, for example:\n");
         printf("    sudo sysctl -w vm.nr_hugepages=512\n");
         /* CÓDIGO 77 = PULADO, e não sucesso.
          *
@@ -150,15 +189,15 @@ int main(void)
         collect_paired(amostra_4k, amostra_2m, AMOSTRAS_PAGINA);
     if (!collection_is_valid(p.a, AMOSTRAS_PAGINA) ||
         !collection_is_valid(p.b, AMOSTRAS_PAGINA)) {
-        fprintf(stderr, "COLETA INVALIDA OU ABAIXO DA RESOLUCAO:"
+        fprintf(stderr, "INVALID COLLECTION OR BELOW RESOLUTION:"
                         " sem resultado publicavel\n");
         return EXIT_FAILURE;
     }
     const struct statistics e4k = p.a, e2m = p.b;
-    print_row("paginas de 4 KB", e4k);
-    print_row("hugepages de 2 MB", e2m);
-    printf("\n  A diferenca abaixo e PAREADA -- delta_i = t_4k,i - t_2m,i na mesma\n"
-           "  volta do laco -- e por isso tem distribuicao propria:\n\n");
+    print_row("4 KB pages", e4k);
+    print_row("2 MB hugepages", e2m);
+    printf("\n  The difference below is PAIRED -- delta_i = t_4k,i - t_2m,i in the same\n"
+           "  loop iteration -- and therefore has a distribution of its own:\n\n");
     /* "DIFERENCA (o page walk)" era o rotulo, e ele prometia demais.
      *
      * t_4K - t_2M nao e uma medicao direta do page walk: e a diferenca pareada
@@ -166,21 +205,21 @@ int main(void)
      * adicional de tradução domine a diferenca. A pagina de 2 MB tambem tem
      * tradução e tambem tem TLB -- o que ela nao tem e a mesma PRESSAO sobre
      * ela. Chamar a diferenca de "o page walk" apaga essa distincao. */
-    print_delta("DIFERENCA atribuivel a traducao", p);
+    print_delta("DIFFERENCE attributable to translation", p);
 
     const double ns_4k = e4k.median, ns_2m = e2m.median;
     const double delta = p.delta.median;
-    printf("\n  custo do page walk: %.2f ns  (%.1f%% do acesso com 4 KB)\n", delta,
+    printf("\n  page walk cost: %.2f ns  (%.1f%% of the 4 KB access)\n", delta,
            100.0 * delta / ns_4k);
-    printf("  a ultima coluna e o que sustenta a conclusao: em %d dos %d pares a\n"
-           "  pagina de 4 KB foi a mais lenta. Subtrair duas medianas nao diz isso.\n",
+    printf("  the last column is what supports the conclusion: in %d of %d pairs the\n"
+           "  4 KB page was the slower one. Subtracting two medians does not say that.\n",
            p.mesmo_sinal, p.n);
 
-    printf("\n  A latencia da RAM (~%.0f ns) aparece nas duas medicoes e nao\n", ns_2m);
-    printf("  depende do tamanho da pagina. A diferenca acima e o custo do\n");
-    printf("  page walk, que as hugepages eliminam: %.1f%% do orcamento de\n",
+    printf("\n  RAM latency (~%.0f ns) appears in both measurements and does not\n", ns_2m);
+    printf("  depend on page size. The difference above is the cost of the\n");
+    printf("  page walk, which hugepages remove: %.1f%% of the budget of\n",
            100.0 * delta / BUDGET_10GBE_NS);
-    printf("  %.1f ns por pacote em 10 GbE, gasto antes de qualquer trabalho util.\n",
+    printf("  %.1f ns per packet at 10 GbE, spent before any useful work.\n",
            BUDGET_10GBE_NS);
     return 0;
 }

@@ -46,18 +46,46 @@ DOCS = sorted(str(p) for p in pathlib.Path('docs').rglob('*.md'))
 # versao trazia {"10", "13", "14"}, que e a numeracao do modulo 01, e por isso
 # declarava "0 fontes remotas" nos modulos 02 e 03 -- onde as tabelas de
 # referencia tem outro numero. Zero por miscalibragem parece zero por limpeza.
+# Secoes cujo conteudo NAO e afirmacao a ser sustentada.
+#
+# `Ao final deste modulo` entrou depois: a lista de objetivos de aprendizagem
+# -- "calcular o orcamento por pacote", "explicar por que a syscall custa" --
+# casa com NUMERO e EXTERNO, e o auditor a contava no denominador como se fosse
+# afirmacao sobre o mundo. Nao e: e promessa didatica, e quem a sustenta e o
+# resto do documento.
+#
+# Achado triando as declaracoes "dado local" do modulo 01: das oito, sete eram
+# apoio legitimo a medicao propria e UMA era esta lista.
 TABELAS = re.compile(r"(Refer[êe]ncias?|References|Confronto com a literatura"
-                     r"|literature|Navega[çc][ãa]o|Navigation)", re.I)
+                     r"|literature|Navega[çc][ãa]o|Navigation"
+                     r"|Ao final deste m[óo]dulo|By the end of this module"
+                     r"|[ÍI]ndice|Contents)", re.I)
 
 SUJEITO = (r"(o kernel|o hardware|a NIC|a placa|o processador|a CPU|o driver"
            r"|o escalonador|a glibc|o compilador|a DRAM|o controlador|o DPDK"
            r"|o Linux|a MMU|a TLB|o prefetcher|o sistema operacional"
            r"|the kernel|the hardware|the NIC|the processor|the CPU|the driver"
            r"|the scheduler|glibc|the compiler|the memory controller"
-           r"|the prefetcher|the operating system)")
+           r"|the prefetcher|the operating system"
+           # OS SEIS QUE FALTAVAM, e a assimetria que eles produziam.
+           #
+           # O lado portugues listava `a placa`, `a DRAM`, `o DPDK`, `o Linux`,
+           # `a MMU` e `a TLB`; o ingles, nenhum dos seis. O MESMO documento
+           # reportava 63 afirmacoes exigindo fonte em portugues e 54 em ingles
+           # -- e a diferenca parecia divergencia de conteudo num par com
+           # paridade verificada, quando era cegueira do detector.
+           #
+           # Sem artigo nos seis: em ingles "DRAM latency" e "the DRAM" ocorrem,
+           # e exigir `the` perderia metade.
+           r"|the board|DRAM|DPDK|Linux|the MMU|the TLB)")
 MODAL = (r"(sempre|nunca|por padr[ao]|precisa|tem de|n[ao]o pode|garante"
          r"|obriga|impede|s[o0] pode"
-         r"|always|never|by default|must|cannot|guarantees|forces|prevents)")
+         # O LADO INGLES TINHA OITO FORMAS CONTRA DEZ DO PORTUGUES. Faltavam
+         # os equivalentes de `precisa`, `obriga` e `tem de` -- e sao das mais
+         # comuns em prosa tecnica inglesa, onde `requires` faz o trabalho que
+         # em portugues se reparte entre `precisa` e `exige`.
+         r"|always|never|by default|must|cannot|guarantees|forces|prevents"
+         r"|requires|needs to|has to|have to|can only|is required)")
 LOCAL = (r"(medicoes/|\.c\)|\.h\)|nesta m[a�]quina|nesta placa|on this machine"
          r"|medi[cç][ãa]o|medi[çc][õo]es|measured here|the table above"
          r"|a tabela acima)")
@@ -115,6 +143,7 @@ def auditar(caminho):
 
     mecanismo, numeros = [], []
     exigem = sustentadas = 0
+    por_cita = por_ancora = por_local = 0
     for inicio, capitulo, secao, corpo in blocos(linhas):
         if TABELAS.search(secao) or any(l.lstrip().startswith("|") for l in corpo):
             continue
@@ -136,6 +165,22 @@ def auditar(caminho):
         local = bool(re.search(LOCAL, texto, re.I))
         if cita or ancora or local:
             sustentadas += 1
+            # DE QUE a sustentacao e feita, e nao so quantas ha.
+            #
+            # As tres coisas tem peso epistemico diferente e a soma as tratava
+            # como iguais. No modulo 01, das 27 sustentadas so 17 sao CITACAO:
+            # 2 sao ancora em programa deste repositorio e 8 sao declaracao de
+            # que o dado e local.
+            #
+            # Declarar "nesta maquina" e apoio legitimo para um numero MEDIDO
+            # aqui. Nao e apoio para um paragrafo que afirma como o hardware
+            # funciona EM GERAL -- e a cobertura unica escondia essa diferenca.
+            if cita:
+                por_cita += 1
+            elif ancora:
+                por_ancora += 1
+            else:
+                por_local += 1
             continue
 
         resumo = (inicio, secao, texto[:150])
@@ -143,14 +188,16 @@ def auditar(caminho):
             mecanismo.append(resumo)
         if e_numero:
             numeros.append(resumo)
-    return rotulos, remotas, nunca, mecanismo, numeros, exigem, sustentadas
+    return (rotulos, remotas, nunca, mecanismo, numeros, exigem, sustentadas,
+            por_cita, por_ancora, por_local)
 
 
 def main():
     detalhe = "-v" in sys.argv
     total = 0
     for caminho in DOCS:
-        rotulos, remotas, nunca, mecanismo, numeros, exigem, sust = auditar(caminho)
+        (rotulos, remotas, nunca, mecanismo, numeros, exigem, sust,
+         p_cita, p_anc, p_loc) = auditar(caminho)
         total += len(remotas) + len(mecanismo) + len(numeros)
         cobertura = (100.0 * sust / exigem) if exigem else 100.0
         print(f"\n== {caminho}")
@@ -166,8 +213,11 @@ def main():
         # O denominador certo e quantos paragrafos fazem afirmacao EXTERNA
         # verificavel; o numerador, quantos deles citam fonte, ancoram em
         # programa daqui ou declaram o dado como local.
+        cit_pct = (100.0 * p_cita / exigem) if exigem else 100.0
         print(f"   cobertura    : {cobertura:5.1f}%  ({sust}/{exigem} afirmacoes"
               f" externas sustentadas)   {len(rotulos)} fontes definidas")
+        print(f"     por citacao: {cit_pct:5.1f}%  ({p_cita} citam fonte, "
+              f"{p_anc} ancoram em programa, {p_loc} declaram dado local)")
         print(f"   fonte remota : {len(remotas):3d} usadas so em secao de"
               f" referencia/confronto")
         if nunca:

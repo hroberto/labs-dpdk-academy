@@ -36,17 +36,18 @@
 
 int main(int argc, char **argv)
 {
+    print_provenance("feed-secundario");
     const int consumidos_pela_eal = rte_eal_init(argc, argv);
     if (consumidos_pela_eal < 0) {
-        fprintf(stderr, "feed-secundario: EAL nao inicializou: %s\n", rte_strerror(rte_errno));
-        fprintf(stderr, "  Confira: mesmo --file-prefix do primario, e --proc-type=secondary.\n");
+        fprintf(stderr, "feed-secundario: EAL did not initialise: %s\n", rte_strerror(rte_errno));
+        fprintf(stderr, "  Check: same --file-prefix as the primary, and --proc-type=secondary.\n");
         return 2;
     }
 
     if (rte_eal_process_type() != RTE_PROC_SECONDARY) {
-        fprintf(stderr, "feed-secundario: este processo subiu como PRIMARIO.\n");
-        fprintf(stderr, "  Faltou --proc-type=secondary, ou o primario nao estava no ar.\n");
-        fprintf(stderr, "  Atencao: com --proc-type=auto a EAL vira primaria em silencio.\n");
+        fprintf(stderr, "feed-secundario: this process came up as PRIMARY.\n");
+        fprintf(stderr, "  Missing --proc-type=secondary, or the primary was not up.\n");
+        fprintf(stderr, "  Warning: with --proc-type=auto the EAL silently becomes primary.\n");
         rte_eal_cleanup();
         return 2;
     }
@@ -59,7 +60,7 @@ int main(int argc, char **argv)
     const uint64_t limite = rte_rdtsc() + (uint64_t)ESPERA_MEMZONE_S * hz_local;
     while ((mz = rte_memzone_lookup(FEED_MEMZONE)) == NULL) {
         if (rte_rdtsc() > limite) {
-            fprintf(stderr, "feed-secundario: memzone \"%s\" nao apareceu.\n", FEED_MEMZONE);
+            fprintf(stderr, "feed-secundario: memzone \"%s\" never appeared.\n", FEED_MEMZONE);
             rte_eal_cleanup();
             return 3;
         }
@@ -69,18 +70,18 @@ int main(int argc, char **argv)
     struct shared_feed *f = (struct shared_feed *)mz->addr;
     const uint64_t total = f->total_previsto;
 
-    printf("\n== Assinante do feed (processo secundario) ==\n\n");
-    printf("  memzone .............. \"%s\" (encontrada pelo NOME)\n", mz->name);
-    printf("  endereco virtual ..... %p        <- compare com o do primario\n", mz->addr);
+    printf("\n== Feed subscriber (secondary process) ==\n\n");
+    printf("  memzone .............. \"%s\" (found by NAME)\n", mz->name);
+    printf("  virtual address ...... %p        <- compare with the primary's\n", mz->addr);
     printf("  endereco IOVA ........ 0x%" PRIx64 "\n", (uint64_t)mz->iova);
-    printf("  lcore do consumidor .. %u (indice no no %d, no NUMA %u)\n", rte_lcore_id(),
+    printf("  consumer lcore ....... %u (index on node %d, NUMA node %u)\n", rte_lcore_id(),
            rte_lcore_to_cpu_id((int)rte_lcore_id()), rte_socket_id());
-    printf("  ticks previstos ...... %" PRIu64 "\n\n", total);
+    printf("  expected ticks ....... %" PRIu64 "\n\n", total);
     fflush(stdout);
 
     double *amostras_ns = (double *)malloc((size_t)total * sizeof(double));
     if (amostras_ns == NULL) {
-        fprintf(stderr, "feed-secundario: sem memoria para %" PRIu64 " amostras\n", total);
+        fprintf(stderr, "feed-secundario: out of memory for %" PRIu64 " samples\n", total);
         rte_eal_cleanup();
         return 1;
     }
@@ -189,7 +190,7 @@ int main(int argc, char **argv)
                         if (livros[k].best_bid != 0) lados++;
                         if (livros[k].best_ask != 0) lados++;
                     }
-                    printf("  LIVRO ATIVO: geracao=%s tick=%" PRIu64 " lados=%u\n",
+                    printf("  ACTIVE BOOK: generation=%s tick=%" PRIu64 " sides=%u\n",
                            geracao, t->sequence, lados);
                     fflush(stdout);
                     livro_anunciado = 1;
@@ -200,7 +201,7 @@ int main(int argc, char **argv)
         }
 
         if (!lote_anunciado && lidos > 0) {
-            printf("  Primeiro lote consumido: %" PRIu64 "\n", lidos);
+            printf("  First batch consumed: %" PRIu64 "\n", lidos);
             fflush(stdout);
             lote_anunciado = 1;
         }
@@ -210,36 +211,36 @@ int main(int argc, char **argv)
 
     const struct statistics lat = summarize(amostras_ns, (int)total);
     if (!collection_is_valid(lat, (int)total)) {
-        fprintf(stderr, "feed-secundario: coleta de latencia invalida;"
-                        " nenhuma medicao a publicar\n");
+        fprintf(stderr, "feed-secundario: invalid latency collection;"
+                        " no measurement to publish\n");
         rte_eal_cleanup();
         return EXIT_FAILURE;
     }
 
-    printf("  --- travessia entre processos, por tick (nanossegundos) ---\n\n");
+    printf("  --- cross-process traversal, per tick (nanoseconds) ---\n\n");
     print_header_tail();
-    print_row_tail("publicacao -> observacao", lat);
-    printf("\n    resolucao do instrumento: %.1f ns (uma sondagem do consumidor).\n", passo_ns);
-    printf("    amostras degeneradas: %" PRIu64 " de %" PRIu64 " %s\n", degenerados, total,
-           degenerados == 0 ? "(TSC alinhado entre os dois nucleos)"
-                            : "<- TSC DESALINHADO: medicao nao confiavel");
-    printf("    Os valores acima sao LIMITE SUPERIOR: entre duas sondagens o\n");
-    printf("    consumidor esta cego, entao a travessia real cabe dentro do\n");
-    printf("    ultimo passo. Diferencas menores que %.1f ns nao sao mensuraveis aqui.\n",
+    print_row_tail("publication -> observation", lat);
+    printf("\n    instrument resolution: %.1f ns (one consumer poll).\n", passo_ns);
+    printf("    degenerate samples: %" PRIu64 " of %" PRIu64 " %s\n", degenerados, total,
+           degenerados == 0 ? "(TSC aligned across the two cores)"
+                            : "<- TSC MISALIGNED: measurement not trustworthy");
+    printf("    The values above are an UPPER BOUND: between two polls the\n");
+    printf("    consumer is blind, so the real traversal fits inside the\n");
+    printf("    last step. Differences smaller than %.1f ns are not measurable here.\n",
            passo_ns);
 
-    printf("\n  --- integridade da assinatura ---\n\n");
-    printf("    ticks aceitos ........... %" PRIu64 "\n", fl.recebidos);
-    printf("    descartados (repetidos) . %" PRIu64 "\n", fl.dropped);
-    printf("    lacunas detectadas ...... %" PRIu64 " (o primario injetou %" PRIu64 ")\n",
+    printf("\n  --- subscription integrity ---\n\n");
+    printf("    ticks accepted .......... %" PRIu64 "\n", fl.recebidos);
+    printf("    dropped (duplicates) .... %" PRIu64 "\n", fl.dropped);
+    printf("    gaps detected ........... %" PRIu64 " (the primary injected %" PRIu64 ")\n",
            fl.gaps, f->lacunas_injetadas);
-    printf("    eventos com lacuna ...... %" PRIu64 "\n", lacunas_vistas);
+    printf("    events with gaps ........ %" PRIu64 "\n", lacunas_vistas);
 
-    printf("\n  --- livro por instrumento (topo de mercado) ---\n\n");
-    printf("    %-12s %10s %10s %8s %9s\n", "instrumento", "compra", "venda", "spread",
-           "aplicados");
-    printf("    %-12s %10s %10s %8s %9s\n", "-----------", "------", "-----", "------",
-           "---------");
+    printf("\n  --- book per instrument (top of market) ---\n\n");
+    printf("    %-12s %10s %10s %8s %9s\n", "instrument", "bid", "ask", "spread",
+           "applied");
+    printf("    %-12s %10s %10s %8s %9s\n", "----------", "---", "---", "------",
+           "-------");
     int cruzados = 0;
     for (unsigned i = 0; i < FEED_INSTRUMENTOS; i++) {
         const struct order_book *lv = &livros[i];
@@ -255,13 +256,13 @@ int main(int argc, char **argv)
         if (sp != LIVRO_SEM_PRECO)
             snprintf(spread, sizeof(spread), "%d", sp);
         cruzados += order_book_crossed(lv);
-        printf("    papel %-6u %10s %10s %8s %9" PRIu64 "\n", i, bid, ask, spread,
+        printf("    asset %-6u %10s %10s %8s %9" PRIu64 "\n", i, bid, ask, spread,
                lv->aplicados);
     }
-    printf("\n    livros cruzados ......... %d %s\n", cruzados,
-           cruzados == 0 ? "(nenhum: compra sempre abaixo da venda)"
-                         : "<- ANOMALIA: investigar");
-    printf("    precos em centavos; spread e venda menos compra\n");
+    printf("\n    crossed books ........... %d %s\n", cruzados,
+           cruzados == 0 ? "(none: bid always below ask)"
+                         : "<- ANOMALY: investigate");
+    printf("    prices in cents; spread is ask minus bid\n");
 
     /* Terceiro e último marcador do protocolo com o supervisor: o veredito.
      *
@@ -273,16 +274,16 @@ int main(int argc, char **argv)
      * "reconstrucoes" conta as lacunas de sequência vistas: cada uma é um ponto
      * em que o livro precisou seguir com dado faltando. Zero é o caso limpo. */
     const int livro_valido = feed_assinatura_valida(cruzados, degenerados);
-    printf("\n  Validade do livro: %s; reconstrucoes: %" PRIu64 "\n",
-           livro_valido ? "VALIDO" : "INVALIDO", lacunas_vistas);
+    printf("\n  Book validity: %s; reconstructions: %" PRIu64 "\n",
+           livro_valido ? "VALID" : "INVALID", lacunas_vistas);
     if (!livro_valido)
-        printf("    (cruzados=%d, amostras degeneradas=%" PRIu64 ")\n", cruzados, degenerados);
+        printf("    (crossed=%d, degenerate samples=%" PRIu64 ")\n", cruzados, degenerados);
     fflush(stdout);
 
-    printf("\n  Leitura: o minimo se aproxima do custo de a linha de cache com o\n");
-    printf("  tick migrar de um nucleo para o outro; a mediana e o p99 incluem\n");
-    printf("  tambem a espera pela proxima sondagem. O p99 e o que um sistema de\n");
-    printf("  producao precisa dimensionar: a media esconderia essa cauda.\n\n");
+    printf("\n  Reading: the minimum approaches the cost of the cache line holding\n");
+    printf("  the tick migrating from one core to the other; the median and p99 also\n");
+    printf("  include the wait for the next poll. The p99 is what a production\n");
+    printf("  system has to size for: the mean would hide that tail.\n\n");
 
     free(amostras_ns);
 

@@ -310,6 +310,53 @@ def arredondamentos(valor):
     return fora
 
 
+_INDICE_SOBRESCRITO = None
+
+
+def classificados():
+    """{numero: (classe, justificativa)} lido do indice ao lado.
+
+    POR QUE INDICE, E NAO MARCA NO TEXTO
+    ------------------------------------
+    A marca teria de ser POR NUMERO: a §10 publica `| ~23 ns | < 25 ns (fonte) |`
+    -- MEDIDO e CITADO na MESMA linha de tabela. E dois numeros vivem onde
+    comentario HTML nao cabe: `8,6` dentro de um `alt=`, e `11` dentro de uma
+    ancora de titulo, que mudar quebraria todos os links que apontam para ela.
+
+    O indice resolve os tres de uma vez, e e legivel por maquina sem parsear
+    markdown -- o que a marca inline nunca seria.
+    """
+    # O AUTOTESTE PRECISA SER HERMETICO. Sem este gancho ele lia o indice REAL
+    # do repositorio, e o caso historico de 19/09 -- `18,2` -- sumia do
+    # relatorio porque `18` esta classificado de verdade. Um teste que depende
+    # do estado do repositorio passa a falhar quando alguem faz o trabalho
+    # certo, que e o pior sinal possivel.
+    if _INDICE_SOBRESCRITO is not None:
+        return dict(_INDICE_SOBRESCRITO)
+    caminho = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "classificacao-numeros.tsv")
+    fora = {}
+    try:
+        for linha in open(caminho, encoding="utf-8"):
+            if linha.startswith("#") or not linha.strip():
+                continue
+            partes = linha.rstrip("\n").split("\t")
+            if len(partes) >= 3:
+                # AS DUAS GRAFIAS, e isto nao e detalhe: o documento em
+                # portugues escreve `0,20` e o em ingles `0.20`. Indexar so a
+                # forma do TSV deixava os 15 pares ingleses eternamente "sem
+                # classificacao", e o aviso nunca chegaria a zero -- o defeito
+                # que este contador existe para corrigir.
+                chave = partes[0].strip()
+                valor = (partes[1].strip(), partes[2].strip())
+                fora[chave] = valor
+                fora[chave.replace(",", ".")] = valor
+                fora[chave.replace(".", ",")] = valor
+    except OSError:
+        pass
+    return fora
+
+
 def relatar_arredondados(docs, mortos, raiz):
     """Candidatos a sobrevivente por arredondamento. NÃO entra no veredito."""
     # Chave (documento, candidato, linha): o MESMO valor retratado entra no
@@ -332,17 +379,37 @@ def relatar_arredondados(docs, mortos, raiz):
                for (d, a, l), orig in sorted(achados.items())]
     if not achados:
         return
-    print(f"\n  ARREDONDADOS: {len(achados)} candidato(s) -- inventário de"
-          f" trabalho, NÃO veredito.")
-    print("  Cada linha publica um número seguido de unidade que é o"
-          " arredondamento de um valor retratado.")
+
+    # O AVISO CONTA O QUE FALTA, NAO O QUE EXISTE.
+    #
+    # Ele dizia "38 candidatos" e ficou parado em 38 por dias, porque numero
+    # que nao muda nao e fila de trabalho: e ruido de fundo. Contando os NAO
+    # CLASSIFICADOS, cada numero triado some do aviso, e o avanco fica visivel.
+    indice = classificados()
+    pendentes = [x for x in achados if x[2] not in indice]
+    por_classe = {}
+    for _, _, a, _ in achados:
+        if a in indice:
+            por_classe[indice[a][0]] = por_classe.get(indice[a][0], 0) + 1
+
+    # O CABECALHO SAI SEMPRE. Condiciona-lo a existir algo classificado fazia
+    # a linha "ARREDONDADOS" sumir quando o indice estava vazio -- e foi assim
+    # que o autoteste, ja hermetico, continuou falhando: ele procura por essa
+    # palavra para saber que o relatorio rodou.
+    resumo = "  ".join(f"{k} {v}" for k, v in sorted(por_classe.items())) or "nenhum ainda"
+    print(f"\n  ARREDONDADOS: {len(achados)} candidato(s); "
+          f"{len(achados) - len(pendentes)} classificados -- {resumo}")
+    if not pendentes:
+        print("  Todos triados em ferramental/qualidade/classificacao-numeros.tsv")
+        return
+    print(f"  {len(pendentes)} SEM CLASSIFICACAO -- inventário de trabalho, NÃO veredito.")
     print("  A maioria é legítima (92 ns é 91,75 medido, não 91,5 retratado):"
           " confira, não corrija em massa.")
-    for doc, origens, a, linha in achados[:25]:
+    for doc, origens, a, linha in pendentes[:25]:
         print(f"    {doc}: '{a}' ~ retratado {' / '.join(origens)}")
         print(f"        {linha}")
-    if len(achados) > 25:
-        print(f"    ... e mais {len(achados) - 25}")
+    if len(pendentes) > 25:
+        print(f"    ... e mais {len(pendentes) - 25}")
 
 
 def arquivos(raiz, exts):
@@ -647,11 +714,14 @@ def autoteste():
             "> <!-- retratado: 18,2 -->\n\nO ganho vai de 11 a 18 ns por acesso.\n")
         buf = _io.StringIO()
         sys.argv.append("--arredondados")
+        global _INDICE_SOBRESCRITO
+        _INDICE_SOBRESCRITO = {}
         try:
             with redirect_stdout(buf):
                 rc = verificar(d)
         finally:
             sys.argv.remove("--arredondados")
+            _INDICE_SOBRESCRITO = None
     if rc != 0:
         print(f"  AUTOTESTE (arredondamento) FALHOU: o relatorio mudou o"
               f" veredito (rc={rc}) -- ele e inventario, nao gate")

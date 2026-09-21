@@ -63,23 +63,23 @@ mostrar_diagnostico() {
 }
 
 # Invariante do pool sem depender do numero exato nem do formato do printf:
-# extrai o par "livres de total" e exige que sejam iguais. Um pool de outro
+# extrai o par "free of total" e exige que sejam iguais. Um pool de outro
 # tamanho continua valido; um vazamento, nao. Linha ausente conta como falha --
 # se a mensagem sumir, o teste precisa gritar, nao passar em silencio.
 pool_integro() { # <saida-do-programa>
     local par
-    par=$(grep -oE 'Objetos livres no pool ao final: [0-9]+ de [0-9]+' <<<"$1" \
-          | grep -oE '[0-9]+ de [0-9]+')
+    par=$(grep -oE 'Free objects in the pool at the end: [0-9]+ of [0-9]+' <<<"$1" \
+          | grep -oE '[0-9]+ of [0-9]+')
     [ -n "$par" ] || return 1
-    [ "${par% de *}" = "${par#* de }" ]
+    [ "${par% of *}" = "${par#* of }" ]
 }
 
 saida=$("$BIN" $EAL_ARGS -- -n 10 2>&1); rc=$?
 
 ultima_saida="$saida"
 check "n=10: codigo de saida 0" "$([ $rc -eq 0 ]; echo $?)"
-grep -q "^Pacotes processados: 10$" <<<"$saida"; check "n=10: processa exatamente 10 pacotes" $?
-grep -q "^Total de bytes: 695$" <<<"$saida"; check "n=10: 695 bytes (mesmo contrato da alternativa C++23)" $?
+grep -q "^Packets processed: 10$" <<<"$saida"; check "n=10: processa exatamente 10 pacotes" $?
+grep -q "^Total bytes: 695$" <<<"$saida"; check "n=10: 695 bytes (mesmo contrato da alternativa C++23)" $?
 pool_integro "$saida"; check "n=10: pool integro, sem vazamento de objetos" $?
 
 # Volume alto com lote maior: o pool tem 4095 objetos para 100k pacotes, ou seja,
@@ -87,14 +87,14 @@ pool_integro "$saida"; check "n=10: pool integro, sem vazamento de objetos" $?
 saida=$("$BIN" $EAL_ARGS -- -n 100000 -b 64 2>&1); rc=$?
 ultima_saida="$saida"
 check "n=100000 b=64: codigo de saida 0" "$([ $rc -eq 0 ]; echo $?)"
-grep -q "^Pacotes processados: 100000$" <<<"$saida"; check "n=100000: contagem exata sob reuso do pool" $?
+grep -q "^Packets processed: 100000$" <<<"$saida"; check "n=100000: contagem exata sob reuso do pool" $?
 pool_integro "$saida"; check "n=100000: pool integro apos ~25x de reuso" $?
-grep -q "^Lote (burst): 64 " <<<"$saida"; check "n=100000: lote 64 reportado" $?
+grep -q "^Batch (burst): 64 " <<<"$saida"; check "n=100000: lote 64 reportado" $?
 # O ECO DO PARAMETRO NAO PROVA USO, e isto foi medido: um mutante que ignorasse
 # `cfg.burst` e movesse um objeto por vez continuava imprimindo "Lote (burst):
 # 64", e a assercao acima passava. O programa passou a publicar o maior lote
 # REALMENTE movido, que so chega a 64 se uma chamada tiver carregado 64 objetos.
-grep -q "^Maior lote movido de fato: enfileirado 64, desenfileirado 64$" <<<"$saida"
+grep -q "^Largest batch actually moved: enqueued 64, dequeued 64$" <<<"$saida"
 check "n=100000: lote 64 EFETIVAMENTE movido, nos dois lados" $?
 
 # --- Modo de dois lcores: o consumidor ganha nucleo proprio e a fila passa a
@@ -108,21 +108,21 @@ else
     saida=$("$BIN" $DOIS -- -n 10 2>&1); rc=$?
     ultima_saida="$saida"
     check "2 lcores: codigo de saida 0" "$([ $rc -eq 0 ]; echo $?)"
-    grep -q "^Modo: 2 lcores (produtor 0, consumidor $LCORE_CONSUMIDOR)$" <<<"$saida"
+    grep -q "^Mode: 2 lcores (producer 0, consumer $LCORE_CONSUMIDOR)$" <<<"$saida"
     check "2 lcores: consumidor no lcore $LCORE_CONSUMIDOR" $?
-    grep -q "^Pacotes processados: 10$" <<<"$saida"; check "2 lcores: mesma contagem de 1 lcore" $?
-    grep -q "^Total de bytes: 695$" <<<"$saida"; check "2 lcores: mesmo resultado de 1 lcore" $?
+    grep -q "^Packets processed: 10$" <<<"$saida"; check "2 lcores: mesma contagem de 1 lcore" $?
+    grep -q "^Total bytes: 695$" <<<"$saida"; check "2 lcores: mesmo resultado de 1 lcore" $?
     pool_integro "$saida"; check "2 lcores: pool integro" $?
 
     # shellcheck disable=SC2086
     saida=$("$BIN" $DOIS -- -n 200000 -b 32 2>&1)
     ultima_saida="$saida"
-    grep -q "^Pacotes processados: 200000$" <<<"$saida"; check "2 lcores: 200k pacotes sem perda entre nucleos" $?
+    grep -q "^Packets processed: 200000$" <<<"$saida"; check "2 lcores: 200k pacotes sem perda entre nucleos" $?
     pool_integro "$saida"; check "2 lcores: sem vazamento sob concorrencia" $?
     # O consumidor de 2 lcores roda em `consumer_loop`, que e OUTRO caminho de
     # codigo: a assercao do bloco de um lcore nao o cobre. Medido -- com so
     # aquela, um mutante que ignorasse `c->burst` passava.
-    grep -q "^Maior lote movido de fato: enfileirado 32, desenfileirado 32$" <<<"$saida"
+    grep -q "^Largest batch actually moved: enqueued 32, dequeued 32$" <<<"$saida"
     check "2 lcores: lote 32 EFETIVAMENTE movido no consumidor proprio" $?
 fi
 
@@ -158,7 +158,7 @@ if [ -n "$BIN_VAZADO" ] && [ -x "$BIN_VAZADO" ]; then
         echo "  PULADO - o ring nunca encheu; o caminho com o vazamento nao foi exercitado"
     else
         check "variante com vazamento sai com codigo != 0" "$([ $rc -ne 0 ]; echo $?)"
-        grep -q "INVARIANTE VIOLADO" <<<"$saida"
+        grep -q "INVARIANT VIOLATED" <<<"$saida"
         check "o invariante identifica o vazamento ($cheia objeto(s) sem lugar na fila)" $?
         vaz=$(grep -o '[0-9]\+ objeto(s) vazaram' <<<"$saida" | grep -o '^[0-9]\+')
         [ -n "$vaz" ] && [ "$vaz" -gt 0 ]

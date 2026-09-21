@@ -123,7 +123,7 @@ back a factor the previous one removed:
 |---:|---|---|---|
 | 1 | nothing — one core, in memory | DPDK 1.8 · C++ 1.1 | DPDK **1.6× slower** |
 | 2 | + exchange between cores | ring: DPDK 0.371 · C++ 1.037 (batch 128) | DPDK **2.8× faster** |
-| 3 | + contention between cores | DPDK 0.41 · `malloc` 13.0 | DPDK **32× faster** |
+| 3 | + contention between cores | DPDK 0.42 · `malloc` 12.9 | DPDK **31× faster** |
 | 4 | + real network (DMA, descriptors) | — not measured — | hardware missing |
 
 ```mermaid
@@ -139,7 +139,7 @@ flowchart LR
 
     V1["DPDK <b>1.6× slower</b>"]
     V2["DPDK <b>2.8× faster</b>"]
-    V3["DPDK <b>32× faster</b>"]
+    V3["DPDK <b>31× faster</b>"]
     V4["not measured on this machine"]
 
     N1 --- V1
@@ -246,33 +246,33 @@ with 9 repetitions per point:
 
 | threads | mempool | `malloc` | ratio |
 |---:|---:|---:|---:|
-| 1 | 0.48 ns | 15.5 ns | 32× |
-| 2 | 0.48 ns | 14.8 ns | 31× |
-| 4 | 0.38 ns | 12.4 ns | 33× |
-| 8 | **0.41 ns** | **13.0 ns** | **32×** |
+| 1 | 0.41 ns | 12.0 ns | 29× |
+| 2 | 0.42 ns | 12.2 ns | 29× |
+| 4 | 0.41 ns | 12.6 ns | 31× |
+| 8 | **0.42 ns** | **12.9 ns** | **31×** |
 
 **The ratio is flat.** Neither degrades with the number of cores, because each
 thread has its own: there is no contention for CPU, and the contention that remains
 — for the object source — is solved by the per-lcore cache on one side and by
 glibc's per-thread *arena* on the other.
 
-So where does the 32× advantage come from? From the cache, and you can turn it off.
+So where does the roughly 30× advantage come from? From the cache, and you can turn it off.
 Creating the **same** pool with `cache_size = 0`:
 
 | threads | mempool without cache | `malloc` | ratio |
 |---:|---:|---:|---:|
-| 1 | 0.62 ns | 12.2 ns | 20× |
-| 2 | 3.27 ns | 12.3 ns | 4× |
-| 4 | 11.54 ns | 13.1 ns | 1× |
-| 8 | **65.84 ns** | **12.9 ns** | **0.2×** — the mempool **loses** |
+| 1 | 0.62 ns | 12.0 ns | 19× |
+| 2 | 3.37 ns | 12.2 ns | 4× |
+| 4 | 11.61 ns | 12.5 ns | 1× |
+| 8 | **60.87 ns** | **13.3 ns** | **0.2×** — the mempool **loses** |
 
 ```mermaid
 xychart-beta
     title "Mempool cost per operation: with and without the per-lcore cache"
     x-axis "threads, one per core" ["1", "2", "4", "8"]
     y-axis "ns per operation" 0 --> 70
-    bar "without cache (cache_size = 0)" [0.62, 3.27, 11.54, 65.84]
-    line "with cache (cache_size = 512)" [0.48, 0.48, 0.38, 0.41]
+    bar "without cache (cache_size = 0)" [0.62, 3.37, 11.61, 60.87]
+    line "with cache (cache_size = 512)" [0.41, 0.42, 0.41, 0.42]
 ```
 
 *The line for the pool **with** cache sits glued to the axis: 0.4 ns on a 70 ns
@@ -298,7 +298,7 @@ DPDK in the abstract.
 > `malloc` was not degrading 350% from allocator contention: it was degrading from
 > being squeezed onto a single core. With mirrored placement — each thread on the
 > corresponding lcore's CPU — it stays flat at ~13 ns, and the ratio falls from 91×
-> to 32×.
+> to about 30×.
 >
 > **The conclusion survives, the magnitude does not.** And the methodological lesson
 > is this document's most expensive: in a comparison, *equalising placement is as
@@ -376,8 +376,10 @@ that makes the other look expensive exists to cross that bridge.
 ```
 Packets processed: 10
 Total bytes: 695
-Batch (burst): 32 | batches cut short by a full queue: 0
-Average time: 23.1 ns/packet
+Batch (burst): 32 | batches interrupted by a full queue: 0
+Mean time: 15.0 ns/packet  <- NOT A MEASUREMENT
+  10 packets are far too few: the cost of reading the clock is of the same
+  order as the work measured. Use -n 10000 or more for a defensible number.
 ```
 
 **The first two values are identical to the DPDK version's.** That is no accident:

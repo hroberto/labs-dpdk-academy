@@ -150,7 +150,7 @@ static double measure_malloc(unsigned n)
      * referência tem 24 lcores, e aí `n` para em 16. */
     pthread_t t[MAX_THREADS];
     if (n > MAX_THREADS) {
-        fprintf(stderr, "measure_malloc: n=%u acima do teto de %u threads\n", n, MAX_THREADS);
+        fprintf(stderr, "measure_malloc: n=%u above the ceiling of %u threads\n", n, MAX_THREADS);
         return 0.0;
     }
     /* A thread principal fica no cpus[0] -- onde a EAL já a colocou -- e cada
@@ -165,7 +165,7 @@ static double measure_malloc(unsigned n)
             CPU_ZERO(&cs);
             CPU_SET(cpus[i + 1], &cs);
             if (pthread_attr_setaffinity_np(&at, sizeof(cs), &cs) != 0)
-                fprintf(stderr, "aviso: nao fixei a thread %u na CPU %d\n", i, cpus[i + 1]);
+                fprintf(stderr, "warning: could not pin thread %u to CPU %d\n", i, cpus[i + 1]);
         }
         pthread_create(&t[i], &at, worker_malloc, NULL);
         pthread_attr_destroy(&at);
@@ -178,11 +178,12 @@ static double measure_malloc(unsigned n)
 
 int main(int argc, char **argv)
 {
+    print_provenance("custo-contencao");
     if (rte_eal_init(argc, argv) < 0) { fprintf(stderr,"EAL: %s\n", rte_strerror(rte_errno)); return 2; }
     const unsigned cache = argc > 1 ? (unsigned)atoi(argv[argc-1]) : 0;
-    printf("\n== Contencao sobre a MESMA fonte de objetos ==\n");
-    printf("  pool de %u objetos de %u B, lote %u, cache por lcore = %u\n", OBJS, TAM, BURST, cache);
-    printf("  lcores disponiveis: %u\n\n", rte_lcore_count());
+    printf("\n== Contention over the SAME source of objects ==\n");
+    printf("  pool of %u objects of %u B, batch %u, per-lcore cache = %u\n", OBJS, TAM, BURST, cache);
+    printf("  lcores available: %u\n\n", rte_lcore_count());
     pool = rte_mempool_create("p", OBJS, TAM, cache, 0, NULL,NULL,NULL,NULL,(int)rte_socket_id(),0);
     if (!pool) { fprintf(stderr,"pool: %s\n", rte_strerror(rte_errno)); return 1; }
     /* REPETICOES, e nao uma medida so.
@@ -197,10 +198,10 @@ int main(int argc, char **argv)
     const int R = samples(9);
     double *vp = malloc((size_t)R * sizeof(double));
     double *vm = malloc((size_t)R * sizeof(double));
-    if (vp == NULL || vm == NULL) { fprintf(stderr, "sem memoria\n"); return 1; }
+    if (vp == NULL || vm == NULL) { fprintf(stderr, "out of memory\n"); return 1; }
 
-    printf("  repeticoes por ponto: %d (mediana; disp = IQR/mediana)\n\n", R);
-    printf("  %-8s %20s %20s %10s\n", "threads", "mempool", "malloc", "razao");
+    printf("  repetitions per point: %d (median; disp = IQR/median)\n\n", R);
+    printf("  %-8s %20s %20s %10s\n", "threads", "mempool", "malloc", "ratio");
     printf("  %-8s %20s %20s %10s\n", "-------", "-------", "------", "-----");
     for (unsigned n = 1; n <= rte_lcore_count(); n *= 2) {
         measure_pool(n); measure_malloc(n);                 /* aquecimento */

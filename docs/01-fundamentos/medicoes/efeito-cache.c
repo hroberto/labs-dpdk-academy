@@ -157,12 +157,13 @@ static double amostra_caso(void)
 
 int main(void)
 {
+    print_provenance("efeito-cache");
     const size_t tamanhos[] = {16u * 1024, 256u * 1024, 8u * 1024 * 1024, 256u * 1024 * 1024};
     const char *nivel[] = {"L1d", "L2", "L3", "RAM"};
 
-    printf("Latencia media por acesso, conjunto de trabalho crescente\n");
-    printf("(linha de cache = 64 B; cada uint32_t = 4 B, logo 16 por linha)\n\n");
-    printf("(%d amostras por medicao; tempos em ns)\n\n", AMOSTRAS_CACHE);
+    printf("Mean latency per access, growing working set\n");
+    printf("(cache line = 64 B; each uint32_t = 4 B, so 16 per line)\n\n");
+    printf("(%d samples per measurement; times in ns)\n\n", AMOSTRAS_CACHE);
 
     for (size_t k = 0; k < sizeof(tamanhos) / sizeof(tamanhos[0]); k++) {
         caso_tam = tamanhos[k];
@@ -173,32 +174,32 @@ int main(void)
 
         caso_modo = SEQUENCIAL;
         const struct statistics seq = collect_or_fail(amostra_caso, AMOSTRAS_CACHE);
-        snprintf(rot, sizeof(rot), "  sequencial   (amortizado)");
+        snprintf(rot, sizeof(rot), "  sequential   (amortised)");
         print_row(rot, seq);
 
         caso_modo = ALEATORIO;
         const struct statistics ale = collect_or_fail(amostra_caso, AMOSTRAS_CACHE);
-        snprintf(rot, sizeof(rot), "  aleatorio    (amortizado)");
+        snprintf(rot, sizeof(rot), "  random       (amortised)");
         print_row(rot, ale);
 
         caso_modo = DEPENDENTE;
         const struct statistics dep = collect_or_fail(amostra_caso, AMOSTRAS_CACHE);
-        snprintf(rot, sizeof(rot), "  dependente   (LATENCIA)");
+        snprintf(rot, sizeof(rot), "  dependent    (LATENCY)");
         print_row(rot, dep);
 
-        printf("  -> penalidade por perder a localidade: %.1fx"
-               "   |  acessos em voo: ~%.0f\n\n",
+        printf("  -> penalty for losing locality: %.1fx"
+               "   |  accesses in flight: ~%.0f\n\n",
                ale.median / seq.median, dep.median / ale.median);
         fflush(stdout);
     }
 
-    printf("\n  As duas primeiras colunas sao tempo AMORTIZADO; a terceira e\n");
-    printf("  LATENCIA. Sequencial custa quase o mesmo em qualquer tamanho,\n");
-    printf("  porque o prefetcher esconde a latencia. Aleatorio degrada, mas\n");
-    printf("  ainda amortiza: os enderecos vem de um vetor lido em sequencia,\n");
-    printf("  entao varios acessos acontecem ao mesmo tempo. So a cadeia\n");
-    printf("  dependente expoe o preco cheio de UM acesso.\n\n");
-    printf("  A razao entre a segunda e a terceira coluna e quantos acessos a\n");
-    printf("  maquina mantem em voo. Ver custo-paralelismo.c.\n");
+    printf("\n  The first two columns are AMORTISED time; the third is\n");
+    printf("  LATENCY. Sequential costs nearly the same at any size,\n");
+    printf("  because the prefetcher hides the latency. Random degrades, but\n");
+    printf("  still amortises: the addresses come from a vector read in order,\n");
+    printf("  so several accesses happen at once. Only the dependent\n");
+    printf("  chain exposes the full price of ONE access.\n\n");
+    printf("  The ratio between the second and third columns is how many accesses\n");
+    printf("  the machine keeps in flight. See custo-paralelismo.c.\n");
     return 0;
 }

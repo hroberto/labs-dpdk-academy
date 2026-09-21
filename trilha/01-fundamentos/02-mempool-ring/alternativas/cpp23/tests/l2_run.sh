@@ -18,13 +18,13 @@ check() { if [ "$2" -eq 0 ]; then echo "  ok    - $1"; else echo "  FALHA - $1";
 
 saida=$("$BIN" -n 10 2>&1); rc=$?
 check "n=10: codigo de saida 0" "$([ $rc -eq 0 ]; echo $?)"
-grep -q "^Pacotes processados: 10$" <<<"$saida"; check "n=10: processa exatamente 10 pacotes" $?
-grep -q "^Total de bytes: 695$" <<<"$saida"; check "n=10: 695 bytes (mesmo contrato da versao DPDK)" $?
+grep -q "^Packets processed: 10$" <<<"$saida"; check "n=10: processa exatamente 10 pacotes" $?
+grep -q "^Total bytes: 695$" <<<"$saida"; check "n=10: 695 bytes (mesmo contrato da versao DPDK)" $?
 
 saida=$("$BIN" -n 100000 -b 64 2>&1); rc=$?
 check "n=100000 b=64: codigo de saida 0" "$([ $rc -eq 0 ]; echo $?)"
-grep -q "^Pacotes processados: 100000$" <<<"$saida"; check "n=100000: contagem exata" $?
-grep -q "^Lote (burst): 64 " <<<"$saida"; check "n=100000: tamanho de lote aplicado" $?
+grep -q "^Packets processed: 100000$" <<<"$saida"; check "n=100000: contagem exata" $?
+grep -q "^Batch (burst): 64 " <<<"$saida"; check "n=100000: tamanho de lote aplicado" $?
 
 # --- Modo de dois nucleos (-c): o espelho do `-l 0,N` da versao DPDK -------
 #
@@ -37,14 +37,14 @@ if [ "$CPUS" -lt 3 ]; then
 else
     saida=$("$BIN" -n 10 -c 2 2>&1); rc=$?
     check "2 threads: codigo de saida 0" "$([ $rc -eq 0 ]; echo $?)"
-    grep -q "^Pacotes processados: 10$" <<<"$saida"; check "2 threads: mesma contagem de 1 thread" $?
-    grep -q "^Total de bytes: 695$" <<<"$saida";     check "2 threads: mesmos 695 bytes" $?
-    grep -q "^Modo: 2 threads" <<<"$saida";          check "2 threads: modo reportado" $?
+    grep -q "^Packets processed: 10$" <<<"$saida"; check "2 threads: mesma contagem de 1 thread" $?
+    grep -q "^Total bytes: 695$" <<<"$saida";     check "2 threads: mesmos 695 bytes" $?
+    grep -q "^Mode: 2 threads" <<<"$saida";          check "2 threads: modo reportado" $?
 
     # Volume alto: e onde um erro de ordenacao no anel apareceria como pacote
     # perdido. Com 200k o anel de 1024 da mais de 190 voltas.
     saida=$("$BIN" -n 200000 -b 32 -c 2 2>&1)
-    grep -q "^Pacotes processados: 200000$" <<<"$saida"
+    grep -q "^Packets processed: 200000$" <<<"$saida"
     check "2 threads: 200k pacotes sem perda entre nucleos" $?
 
     # REPETICAO CURTA: a corrida de ENCERRAMENTO so aparece com poucos pacotes,
@@ -57,7 +57,7 @@ else
     # janela. Um teste que roda sozinho nao o encontraria.
     perdidos=0
     for _ in $(seq 1 40); do
-        n=$("$BIN" -n 10 -c 2 2>/dev/null | sed -n 's/^Pacotes processados: //p')
+        n=$("$BIN" -n 10 -c 2 2>/dev/null | sed -n 's/^Packets processed: //p')
         [ "$n" = "10" ] || perdidos=$((perdidos + 1))
     done
     [ "$perdidos" -eq 0 ]

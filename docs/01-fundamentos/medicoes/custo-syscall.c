@@ -5,7 +5,7 @@
  *
  * Compara três operações:
  *   1. chamada de função comum      (referência: fica tudo em user-space)
- *   2. syscall real (SYS_getpid)    (atravessa a fronteira)
+ *   2. real syscall (SYS_getpid)    (atravessa a fronteira)
  *   3. clock_gettime()              (syscall servida pelo vDSO, sem trap)
  *
  * O item 3 existe para mostrar que "syscall" não é um custo único: o vDSO
@@ -95,29 +95,30 @@ static double m_vdso(void)
 
 int main(void)
 {
+    print_provenance("custo-syscall");
     for (int i = 0; i < AQUECIMENTO; i++) {
         sumidouro = plain_call(i);
         sumidouro = syscall(SYS_getpid);
     }
 
-    printf("Custo por operacao (%d iteracoes, %d amostras; tempos em ns)\n\n", ITERATIONS,
+    printf("Cost per operation (%d iterations, %d samples; times in ns)\n\n", ITERATIONS,
            DEFAULT_SAMPLES);
     print_header();
     const struct statistics e_funcao = collect_or_fail(m_funcao, DEFAULT_SAMPLES);
-    print_row("chamada de funcao (user-space)", e_funcao);
+    print_row("function call (user-space)", e_funcao);
     const struct statistics e_vdso = collect_or_fail(m_vdso, DEFAULT_SAMPLES);
-    print_row("clock_gettime (vDSO, sem trap)", e_vdso);
+    print_row("clock_gettime (vDSO, no trap)", e_vdso);
     const struct statistics e_syscall = collect_or_fail(m_syscall, DEFAULT_SAMPLES);
-    print_row("syscall real (SYS_getpid)", e_syscall);
+    print_row("real syscall (SYS_getpid)", e_syscall);
 
     const double ns_funcao = e_funcao.median;
     const double ns_syscall = e_syscall.median;
-    printf("\n  syscall custa %.0fx uma chamada de funcao\n", ns_syscall / ns_funcao);
+    printf("\n  a syscall costs %.0fx a function call\n", ns_syscall / ns_funcao);
 
-    printf("\nOrcamento de 10 GbE com quadros de 64 B: %.1f ns por pacote\n",
+    printf("\n10 GbE budget with 64 B frames: %.1f ns per packet\n",
            BUDGET_10GBE_NS);
-    printf("  syscalls que cabem nesse orcamento: %.2f\n", BUDGET_10GBE_NS / ns_syscall);
-    printf("\n  O caminho tradicional do kernel gasta pelo menos uma syscall por\n");
-    printf("  lote de pacotes, mais interrupcao, alocacao de sk_buff e copia.\n");
+    printf("  syscalls that fit in that budget: %.2f\n", BUDGET_10GBE_NS / ns_syscall);
+    printf("\n  The traditional kernel path spends at least one syscall per\n");
+    printf("  packet batch, plus interrupt, sk_buff allocation and a copy.\n");
     return 0;
 }

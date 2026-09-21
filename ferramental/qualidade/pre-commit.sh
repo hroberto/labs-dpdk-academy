@@ -249,10 +249,15 @@ done
 # Ele aparece como AVISO: quem commita ve o numero e decide. Silencio aqui
 # seria voltar ao estado em que a classe nao existia.
 if [ -x ferramental/qualidade/verificar-retratacoes.py ]; then
+    # CONTA O QUE FALTA TRIAR, nao o total.
+    #
+    # O aviso dizia "38" e ficou parado em 38 por dias. Numero que nao se move
+    # nao e fila de trabalho: e ruido de fundo, e ruido de fundo se ignora.
+    # Contando os NAO CLASSIFICADOS, cada numero triado desaparece do aviso.
     n=$(./ferramental/qualidade/verificar-retratacoes.py --arredondados 2>&1 \
-        | grep -oP 'ARREDONDADOS: \K[0-9]+' || true)
+        | grep -oP '^\s+\K[0-9]+(?= SEM CLASSIFICACAO)' || true)
     if [ -n "$n" ] && [ "$n" -gt 0 ]; then
-        aviso "$n numero(s) publicado(s) sao arredondamento de valor retratado (triagem: --arredondados)"
+        aviso "$n numero(s) arredondados SEM CLASSIFICACAO (triagem: --arredondados)"
     fi
 fi
 

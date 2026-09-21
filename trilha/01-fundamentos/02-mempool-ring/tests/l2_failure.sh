@@ -14,12 +14,12 @@ cat "$out"
 case "$mode" in
   leak)
     [ "$rc" -eq 1 ]
-    grep -q 'INVARIANTE VIOLADO' "$out"
+    grep -q 'INVARIANT VIOLATED' "$out"
     grep -Eq 'nao couberam na fila: [1-9][0-9]*' "$out" ;;
   paused|pausedtwo)
     [ "$rc" -eq 3 ]
-    grep -q 'SEM PROGRESSO' "$out"
-    grep -q 'Objetos livres no pool ao final: 4095 de 4095' "$out"
-    grep -q 'Objetos descartados no encerramento: 64' "$out" ;;
+    grep -q 'NO PROGRESS' "$out"
+    grep -q 'Free objects in the pool at the end: 4095 of 4095' "$out"
+    grep -q 'Objects dropped at shutdown: 64' "$out" ;;
   *) exit 2 ;;
 esac

@@ -76,7 +76,7 @@
  *
  * Com 7 amostras o selo de confianca vira loteria. Coletando 70 amostras e
  * recalculando `disp` em dez grupos de 7 — com o estimador de statistics.h,
- * interpolado —, o mesmo ponto de 2 nucleos produziu selo em branco cinco
+ * interpolado —, o mesmo ponto de 2 cores produziu selo em branco cinco
  * vezes, `~` tres e `!` duas, quando a dispersao verdadeira e 4,4%. E em 4
  * nucleos, cuja dispersao verdadeira e 10,4% (`!`), NENHUM dos dez grupos
  * chegou a marcar `!`.
@@ -291,23 +291,24 @@ static double amostra_n_nucleos(void) { return medir_n_nucleos(caso_n); }
 
 int main(void)
 {
+    print_provenance("custo-paralelismo");
     static const struct { int k; double (*percorrer)(void); } casos[] = {
         {1, percurso_1},   {2, percurso_2},   {4, percurso_4},   {8, percurso_8},
         {12, percurso_12}, {16, percurso_16}, {32, percurso_32}, {64, percurso_64},
     };
     const size_t n_ks = sizeof(casos) / sizeof(casos[0]);
 
-    printf("Latencia x vazao: o mesmo acesso, com K deles em voo (%llu MB)\n",
+    printf("Latency vs throughput: the same access, with K in flight (%llu MB)\n",
            REGIAO_BYTES / (1024 * 1024));
-    printf("(%d amostras por medicao; tempos em ns)\n\n", AMOSTRAS);
+    printf("(%d samples per measurement; times in ns)\n\n", AMOSTRAS);
 
     regiao = mmap(NULL, REGIAO_BYTES, PROT_READ | PROT_WRITE,
                   MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
     if (regiao == MAP_FAILED) {
-        printf("  hugepages de 2 MB indisponiveis para este processo.\n\n");
-        printf("  Elas nao sao o objeto desta medicao: servem para tirar a TLB\n");
-        printf("  da conta, de modo que a tabela meca concorrencia e nada mais.\n");
-        printf("  Reserve com, por exemplo:\n");
+        printf("  2 MB hugepages unavailable to this process.\n\n");
+        printf("  They are not the object of this measurement: they take the TLB\n");
+        printf("  out of the picture, so the table measures concurrency and nothing else.\n");
+        printf("  Reserve them with, for example:\n");
         printf("    sudo sysctl -w vm.nr_hugepages=512\n");
         /* 77 = PULADO no Meson. Ver a nota de custo-traducao.c: sair com 0 aqui
          * publicaria verde sem que nada tivesse sido medido. */
@@ -317,7 +318,7 @@ int main(void)
     linhas = REGIAO_BYTES / LINHA_CACHE;
     ordem = malloc(linhas * sizeof(size_t));
     if (ordem == NULL) {
-        fprintf(stderr, "sem memoria para o vetor de ordem\n");
+        fprintf(stderr, "out of memory for the order vector\n");
         return EXIT_FAILURE;
     }
 
@@ -326,48 +327,48 @@ int main(void)
     for (size_t i = 0; i < n_ks; i++) {
         char rot[64];
         const struct statistics e = collect_or_fail(casos[i].percorrer, AMOSTRAS);
-        snprintf(rot, sizeof(rot), "K = %-2d (%d acesso%s em voo)", casos[i].k,
-                 casos[i].k, casos[i].k == 1 ? "" : "s");
+        snprintf(rot, sizeof(rot), "K = %-2d (%d access%s in flight)", casos[i].k,
+                 casos[i].k, casos[i].k == 1 ? "" : "es");
         print_row(rot, e);
         ns[i] = e.median;
     }
 
-    printf("\n  O que a tabela acima significa, coluna a coluna:\n\n");
-    printf("   K   ns/acesso   M acessos/s   lote de K completa em   ganho de vazao\n");
+    printf("\n  What the table above means, column by column:\n\n");
+    printf("   K   ns/access   M accesses/s   batch of K ready in   throughput gain\n");
     printf("  ---  ---------   -----------   ---------------------   --------------\n");
     for (size_t i = 0; i < n_ks; i++)
         printf("  %3d   %8.2f   %9.1f   %15.0f ns   %12.1fx\n",
                casos[i].k, ns[i], 1000.0 / ns[i], ns[i] * casos[i].k, ns[0] / ns[i]);
 
-    printf("\n  A latencia de UM acesso e ~%.0f ns e nao muda em nenhuma linha.\n", ns[0]);
-    printf("  O que muda e quantos deles acontecem ao mesmo tempo.\n\n");
-    printf("  Com K = 1 esta maquina faz %.1f M acessos/s -- ABAIXO dos %.1f M\n",
+    printf("\n  The latency of ONE access is ~%.0f ns and does not change in any row.\n", ns[0]);
+    printf("  What changes is how many of them happen at the same time.\n\n");
+    printf("  With K = 1 this machine does %.1f M accesses/s -- BELOW the %.1f M\n",
            1000.0 / ns[0], PPS_10GBE_64B);
-    printf("  pacotes/s do line rate de 10 GbE com quadros de 64 B. Um unico\n");
-    printf("  acesso dependente por pacote ja perde a taxa, antes de qualquer\n");
-    printf("  processamento. Com K = %d sobram %.0f%% de folga.\n",
+    printf("  packets/s of the 10 GbE line rate with 64 B frames. A single\n");
+    printf("  dependent access per packet already loses the rate, before any\n");
+    printf("  processing. With K = %d there is %.0f%% of headroom left.\n",
            casos[n_ks - 1].k, 100.0 * ((1000.0 / ns[n_ks - 1]) / PPS_10GBE_64B - 1.0));
-    printf("\n  E o preco: o lote de %d so fica pronto em %.0f ns, contra %.0f ns\n",
+    printf("\n  And the price: the batch of %d is only ready in %.0f ns, against %.0f ns\n",
            casos[n_ks - 1].k, ns[n_ks - 1] * casos[n_ks - 1].k, ns[0]);
-    printf("  do acesso solitario. Vazao comprada com latencia -- o orcamento de\n");
-    printf("  %.1f ns por pacote diz quanto dessa troca voce pode pagar.\n", BUDGET_10GBE_NS);
+    printf("  for the lone access. Throughput bought with latency -- the budget of\n");
+    printf("  %.1f ns per packet says how much of that trade you can afford.\n", BUDGET_10GBE_NS);
 
     /* ---------------- FASE 2: o teto compartilhado ---------------- */
     descobrir_cpus_fisicas();
     if (n_cpus_fisicas < 2) {
-        printf("\n  (fase 2 pulada: menos de dois nucleos fisicos visiveis)\n");
+        printf("\n  (phase 2 skipped: fewer than two physical cores visible)\n");
         free(ordem);
         munmap(regiao, REGIAO_BYTES);
         return 0;
     }
 
-    printf("\n\n  FASE 2 -- e quando varios nucleos querem a mesma memoria?\n\n");
-    printf("  Cada nucleo percorre %d cadeias proprias sobre a MESMA regiao.\n",
+    printf("\n\n  PHASE 2 -- and when several cores want the same memory?\n\n");
+    printf("  Each core walks %d chains of its own over the SAME region.\n",
            K_POR_NUCLEO);
-    printf("  Nenhuma linha e compartilhada entre threads: o que sobra e o\n");
-    printf("  caminho de memoria. %d nucleos fisicos disponiveis.\n", n_cpus_fisicas);
-    printf("  (%d amostras por ponto -- mais que a fase 1; ver o comentario\n"
-           "   de AMOSTRAS_NUCLEOS_FIXO sobre por que 7 nao bastam aqui)\n\n",
+    printf("  No line is shared between threads: what remains is the\n");
+    printf("  memory path. %d physical cores available.\n", n_cpus_fisicas);
+    printf("  (%d samples per point -- more than phase 1; see the comment\n"
+           "   on AMOSTRAS_NUCLEOS_FIXO for why 7 are not enough here)\n\n",
            AMOSTRAS_NUCLEOS);
 
     static const int ns_nucleos[] = {1, 2, 4, 8, 12, 16};
@@ -382,14 +383,14 @@ int main(void)
         char rot[64];
         caso_n = ns_nucleos[i];
         const struct statistics e = collect_or_fail(amostra_n_nucleos, AMOSTRAS_NUCLEOS);
-        snprintf(rot, sizeof(rot), "%d nucleo%s", caso_n, caso_n == 1 ? "" : "s");
+        snprintf(rot, sizeof(rot), "%d core%s", caso_n, caso_n == 1 ? "" : "s");
         print_row(rot, e);
         usados[n_casos] = caso_n;
         por_nucleo[n_casos] = e.median;
         n_casos++;
     }
 
-    printf("\n   nucleos   ns/acesso   M acessos/s      agregado   escala ideal\n");
+    printf("\n     cores   ns/access   M accesses/s     aggregate   ideal scaling\n");
     printf("  --------   ---------   -----------   -----------   ------------\n");
     for (size_t i = 0; i < n_casos; i++) {
         const double agregado = usados[i] * 1000.0 / por_nucleo[i];
@@ -400,17 +401,17 @@ int main(void)
     }
 
     const size_t u = n_casos - 1;
-    printf("\n  De 1 para %d nucleos a vazao AGREGADA cresce %.1fx, nao %dx.\n",
+    printf("\n  From 1 to %d cores the AGGREGATE throughput grows %.1fx, not %dx.\n",
            usados[u], (usados[u] * 1000.0 / por_nucleo[u]) / (1000.0 / por_nucleo[0]),
            usados[u]);
-    printf("  Cada nucleo, isolado, fazia %.1f M acessos/s; com %d ativos faz\n",
+    printf("  Each core, alone, did %.1f M accesses/s; with %d active it does\n",
            1000.0 / por_nucleo[0], usados[u]);
-    printf("  %.1f M -- %.0f%% do que fazia sozinho. A banda nao se multiplica\n",
+    printf("  %.1f M -- %.0f%% of what it did alone. Bandwidth does not multiply\n",
            1000.0 / por_nucleo[u], 100.0 * por_nucleo[0] / por_nucleo[u]);
-    printf("  por nucleo: ela e dividida.\n\n");
-    printf("  E a consequencia de projeto: dimensionar um plano de dados pela\n");
-    printf("  medicao de UM lcore superestima o sistema inteiro. O numero que\n");
-    printf("  importa e a linha de baixo desta tabela, nao a de cima.\n");
+    printf("  per core: it is divided.\n\n");
+    printf("  And the design consequence: sizing a data plane from the\n");
+    printf("  measurement of ONE lcore overestimates the whole system. The number\n");
+    printf("  that matters is the bottom row of this table, not the top one.\n");
 
     free(ordem);
     munmap(regiao, REGIAO_BYTES);

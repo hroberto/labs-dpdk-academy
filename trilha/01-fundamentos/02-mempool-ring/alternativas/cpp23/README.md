@@ -119,7 +119,7 @@ devolve um fator que o anterior removia:
 |---:|---|---|---|
 | 1 | nada — um núcleo, em memória | DPDK 1,8 · C++ 1,1 | DPDK **1,6× mais lento** |
 | 2 | + troca entre núcleos | anel: DPDK 0,371 · C++ 1,037 (lote 128) | DPDK **2,8× mais rápido** |
-| 3 | + disputa entre núcleos | DPDK 0,41 · `malloc` 13,0 | DPDK **32× mais rápido** |
+| 3 | + disputa entre núcleos | DPDK 0,42 · `malloc` 12,9 | DPDK **31× mais rápido** |
 | 4 | + rede real (DMA, descritores) | — não medido — | falta hardware |
 
 ```mermaid
@@ -135,7 +135,7 @@ flowchart LR
 
     V1["DPDK <b>1,6× mais lento</b>"]
     V2["DPDK <b>2,8× mais rápido</b>"]
-    V3["DPDK <b>32× mais rápido</b>"]
+    V3["DPDK <b>31× mais rápido</b>"]
     V4["não medido nesta máquina"]
 
     N1 --- V1
@@ -239,37 +239,38 @@ amortizar — enquanto o `rte_ring` continua caindo até 0,371 ns.
 **Nível 3 — o DPDK ganha por quase cem vezes.** Oito núcleos disputando a mesma
 fonte de objetos, medido por
 [`custo-contencao.c`](../../../../../docs/03-mempool-ring-mbuf/medicoes/custo-contencao.c)
-com 9 repetições por ponto:
+com 9 repetições internas por ponto e 5 execuções arquivadas em
+[`historico/`](../../../../../docs/03-mempool-ring-mbuf/medicoes/historico/) (mediana das medianas):
 
 | threads | mempool | `malloc` | razão |
 |---:|---:|---:|---:|
-| 1 | 0,48 ns | 15,5 ns | 32× |
-| 2 | 0,48 ns | 14,8 ns | 31× |
-| 4 | 0,38 ns | 12,4 ns | 33× |
-| 8 | **0,41 ns** | **13,0 ns** | **32×** |
+| 1 | 0,41 ns | 12,0 ns | 29× |
+| 2 | 0,42 ns | 12,2 ns | 29× |
+| 4 | 0,41 ns | 12,6 ns | 31× |
+| 8 | **0,42 ns** | **12,9 ns** | **31×** |
 
 **A razão é plana.** Nenhum dos dois degrada com o número de núcleos, porque
 cada thread tem o seu: não há disputa por CPU, e a disputa que resta — pela
 fonte de objetos — o cache por lcore resolve de um lado e o *arena* por thread
 da glibc resolve do outro.
 
-Então de onde vem a vantagem de 32×? Do cache, e dá para desligá-lo. Criando o
+Então de onde vem a vantagem de cerca de 30×? Do cache, e dá para desligá-lo. Criando o
 **mesmo** pool com `cache_size = 0`:
 
 | threads | mempool sem cache | `malloc` | razão |
 |---:|---:|---:|---:|
-| 1 | 0,62 ns | 12,2 ns | 20× |
-| 2 | 3,27 ns | 12,3 ns | 4× |
-| 4 | 11,54 ns | 13,1 ns | 1× |
-| 8 | **65,84 ns** | **12,9 ns** | **0,2×** — o mempool **perde** |
+| 1 | 0,62 ns | 12,0 ns | 19× |
+| 2 | 3,37 ns | 12,2 ns | 4× |
+| 4 | 11,61 ns | 12,5 ns | 1× |
+| 8 | **60,87 ns** | **13,3 ns** | **0,2×** — o mempool **perde** |
 
 ```mermaid
 xychart-beta
     title "Custo por operação do mempool: com e sem cache por lcore"
     x-axis "threads, uma por núcleo" ["1", "2", "4", "8"]
     y-axis "ns por operação" 0 --> 70
-    bar "sem cache (cache_size = 0)" [0.62, 3.27, 11.54, 65.84]
-    line "com cache (cache_size = 512)" [0.48, 0.48, 0.38, 0.41]
+    bar "sem cache (cache_size = 0)" [0.62, 3.37, 11.61, 60.87]
+    line "com cache (cache_size = 512)" [0.41, 0.42, 0.41, 0.42]
 ```
 
 *A linha do pool **com** cache fica colada no eixo: 0,4 ns numa escala de 70 ns
@@ -293,7 +294,7 @@ abstrato.
 >
 > O `malloc` não degradava 350% por contenção de alocador: degradava por estar
 > espremido num núcleo só. Com a colocação espelhada — cada thread na CPU do
-> lcore correspondente — ele fica plano em ~13 ns, e a razão cai de 91× para 32×.
+> lcore correspondente — ele fica plano em ~13 ns, e a razão cai de 91× para cerca de 30×.
 >
 > **A conclusão sobrevive, a magnitude não.** E a lição de método é a mais cara
 > deste documento: num comparativo, *igualar a colocação é tão obrigatório
@@ -370,10 +371,12 @@ maquinaria que a faz parecer cara existe para atravessar essa ponte.
 ```
 
 ```
-Pacotes processados: 10
-Total de bytes: 695
-Lote (burst): 32 | lotes interrompidos por fila cheia: 0
-Tempo medio: 23.1 ns/pacote
+Packets processed: 10
+Total bytes: 695
+Batch (burst): 32 | batches interrupted by a full queue: 0
+Mean time: 15.0 ns/packet  <- NOT A MEASUREMENT
+  10 packets are far too few: the cost of reading the clock is of the same
+  order as the work measured. Use -n 10000 or more for a defensible number.
 ```
 
 **Os dois primeiros valores são idênticos aos da versão DPDK.** Isso não é

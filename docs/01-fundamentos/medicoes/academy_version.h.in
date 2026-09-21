@@ -1,0 +1,13 @@
+/* Gerado por meson `vcs_tag` NA HORA DO BUILD, nao na configuracao.
+ *
+ * A diferenca nao e detalhe: `run_command('git','rev-parse')` no meson.build
+ * fixaria o commit quando alguem rodou `meson setup`, e o binario passaria a
+ * declarar uma procedencia que deixou de ser verdade no commit seguinte --
+ * sem aviso. Um cabecalho de proveniencia que mente e pior que a ausencia
+ * dele, porque desliga a desconfianca de quem le.
+ *
+ * `vcs_tag` regenera quando o estado do git muda, e o sufixo `-dirty` aparece
+ * quando ha alteracao nao commitada -- que e exatamente o caso em que o
+ * numero medido NAO corresponde a nenhum commit.
+ */
+#define ACADEMY_COMMIT "@VCS_TAG@"

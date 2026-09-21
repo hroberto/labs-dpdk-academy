@@ -6,11 +6,6 @@
 > Prerequisites: [02 — DPDK runtime](../02-runtime-dpdk/README.en.md) and the practical
 > topic [02 — Mempool, ring and batch](../../trilha/01-fundamentos/02-mempool-ring/)
 
-> **Note on the blocks in this English edition.** The measurement programs print in
-> Portuguese; this document translates their **labels and captions** so the tables
-> and outputs can be read here. Numbers, seals and column positions are exactly what
-> the program emitted. When a command in this page greps that output, the pattern
-> stays in Portuguese — it has to match what the program really prints.
 The [runtime module](../02-runtime-dpdk/README.en.md) showed the EAL reserving memory
 and naming regions. This one deals with what you put inside it: the three structures
 every DPDK program is built on, which answer three different questions.
@@ -41,7 +36,7 @@ not: it **opens the structures up**, measures the cost of each operation, and co
 6. **choose between `_bulk` and `_burst`** by the contract, not by performance, and
    handle the partial return;
 7. **decide between SP/SC and MP/MC** knowing that the cost exists even without
-   contention, and that batching dilutes it.
+   contention, and that batching amortises it.
 
 ## Contents
 
@@ -70,18 +65,18 @@ on the same machine, with the same methodology as the project's other programs.
 ```
   --- one object at a time, in NANOSECONDS PER OBJECT ---
 
-  measurement                          median   p25-p75 (IQR)   min-max range      disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  malloc/free                             2.18  2.16-2.18       2.14-2.23           0.9%   1.0%  
-  mempool get/put, with cache            0.981  0.977-0.983     0.973-0.991         0.6%   0.5%  
-  mempool get/put, NO cache              10.45  10.44-10.50     10.43-10.63         0.5%   0.5%  
+  malloc/free                             2.78  2.77-2.78       2.77-2.79           0.2%   0.1%  
+  mempool get/put, with cache             1.25  1.25-1.62       1.23-1.62          29.7%  12.6% !
+  mempool get/put, NO cache              13.27  10.53-13.42     10.36-13.44        21.8%  11.1% !
 ```
 
 ```
-  frequency of core 0 during the measurement: 5.56 -> 5.56 GHz
+  frequency of core 0 during the measurement: 4.33 -> 5.57 GHz
   ratios, which do NOT depend on frequency:
     mempool with cache is 2.23x faster than malloc
-    the per-lcore cache is worth 10.7x (with cache against without)
+    the per-lcore cache is worth 10.6x (with cache against without)
     without the cache, the mempool is 4.8x SLOWER than malloc
 ```
 
@@ -95,7 +90,7 @@ on the same machine, with the same methodology as the project's other programs.
 
 **`malloc()` costs 2.18 ns, not tens.** Repeatedly allocating and freeing an object
 of the same size is the case where glibc is good: the allocator has a per-thread
-cache, and the pair falls into it. The current claim overestimates the adversary —
+cache — the [tcache][tcache] —, and the pair falls into it. The current claim overestimates the adversary —
 and a justification that overestimates the adversary is fragile, because it collapses
 when someone measures.
 
@@ -104,7 +99,7 @@ line explains where the gain comes from.
 
 ### 1.1 The per-lcore cache is nearly the whole gain
 
-A mempool has two layers: a common, shared ring, and a **per-lcore cache** acting as
+A mempool has two layers ([mempool guide][guiamempool]): a common, shared ring, and a **per-lcore cache** acting as
 a buffer. Creating the same pool with `cache_size = 0`, the operation goes from
 **0.98 ns to 10.45 ns** — ten times more expensive, and five times more expensive
 than `malloc()`.
@@ -139,9 +134,9 @@ code in [`medicoes/sizing.c`](medicoes/sizing.c), tested without an EAL, and the
 program came to **derive** the cache:
 
 ```
-  per-lcore cache ........ 455 objects (derived, not eyeballed)
+  cache per lcore ........ 455 objects (derived, not eyeballed)
     chosen ............... no caveats
-    the obvious (256) .... n is not a multiple of the cache -> 255 objects stranded
+    the obvious (256) .... n is not a multiple of the cache (objects pinned) -> 255 objects pinned
 ```
 
 > Note that 455 is not a number anyone would think of. It is the largest divisor of
@@ -153,14 +148,14 @@ program came to **derive** the cache:
 This is the section's main result, and it appears in no published comparison:
 
 ```
-  --- in BATCHES, ns per object: the two sides move in opposite ways ---
+  --- in BATCH, ns per object: the two sides move in opposite directions ---
 
   batch         malloc/free   mempool bulk      ratio
   -----         -----------   ------------      -----
-  1                 2.39 ns       1.837 ns       1.3x
-  8                 2.55 ns       0.629 ns       4.1x
-  32               12.39 ns       0.450 ns      27.6x
-  128              19.64 ns       0.523 ns      37.5x
+  1                 2.74 ns       1.853 ns       1.5x
+  8                 2.28 ns       0.632 ns       3.6x
+  32               12.42 ns       0.465 ns      26.7x
+  128              19.61 ns       0.436 ns      45.0x
 ```
 
 Asking for more objects at once **cheapens** each object in the mempool
@@ -209,8 +204,8 @@ the layout: it prints the installed version's.
   RTE_MBUF_DEFAULT_DATAROOM ... 2048 bytes for the packet
   RTE_MBUF_DEFAULT_BUF_SIZE ... 2176 bytes (dataroom + headroom)
   element (mbuf + buffer) ..... 2304 bytes
-  + mempool header ........... 64 bytes
-  = object in the pool ....... 2368 bytes
+  + mempool header ............ 64 bytes
+  = object in the pool ........ 2368 bytes
 
   A pool of 8192 mbufs takes about 18.5 MiB in objects alone.
 ```
@@ -329,21 +324,38 @@ The program [`medicoes/custo-anel.c`](medicoes/custo-anel.c) measures both modes
 a single lcore, with no contention at all**:
 
 ```
-  batch      SP/SC (ns/obj)   MP/MC (ns/obj)  MP/MC cost
+  batch      SP/SC (ns/obj)   MP/MC (ns/obj) MP/MC cost
   -----      --------------   -------------- -----------
-  1                1.539 ns         8.229 ns       435%
-  8                0.518 ns         1.259 ns       143%
-  32               0.332 ns         0.473 ns        42%
-  128              0.288 ns         0.301 ns         5%
+  1                1.626 ns         8.233 ns       406%
+  8                0.530 ns         1.283 ns       142%
+  32               0.397 ns         0.484 ns        22%
+  128              0.375 ns         0.303 ns       -19%
 ```
 
 **The cost does not depend on contention existing.** With a single producer, MP/MC
-mode still costs 435% more at batch 1 — because the atomic instruction is executed
+mode still costs 406% more at batch 1 — because the atomic instruction is executed
 anyway. What you pay for is not the contention; it is the *possibility* of it.
 
-And batching solves it: at 128 objects per call, the difference falls to 5%. It is
-the same pattern that has now appeared twice in this project — the batch diluting a
-fixed cost, whether that of crossing cores or that of an atomic instruction.
+And batching solves it — more than solves it. At 128 objects per call the difference
+does not merely vanish: on this machine MP/MC measures **faster** than SP/SC, −19%.
+The archived campaign reproduces the inversion in **all five** repetitions, between
+−17% and −19%, with the machine idle. It is not the noise of a single collection,
+and the files are in [`medicoes/historico/`](medicoes/historico/) for anyone who
+wants to check. Up to batch 32 the pattern is the expected one — the batch diluting
+a fixed cost, as has now appeared twice in this project, whether that of crossing
+cores or that of an atomic instruction. At batch 128 that cost has already been
+diluted below the difference between the two `rte_ring` code paths, and what is left
+is no longer the price of generality.
+
+> **This table once published "5%" at batch 128, and the prose concluded that "MP/MC
+> with a large batch costs almost the same as SP/SC".** This release's campaign, on
+> hardware at 6000 MT/s, measures −19% in five of five repetitions: the sign
+> inverted. The old conclusion does not hold as written.
+>
+> **This project does not explain the inversion.** Explaining it would require
+> instrumenting the two paths of `rte_ring_enqueue_bulk` and `rte_ring_dequeue_bulk`
+> separately, which is outside this module's scope. What is measured is the
+> inversion; the cause is declared as a limitation, not as a result.
 
 The engineering decision that follows:
 
@@ -351,7 +363,8 @@ The engineering decision that follows:
   `RING_F_SC_DEQ` are not premature optimisation: they are information you have and
   the ring does not.
 - **If you do not know, batching is the antidote.** MP/MC with a large batch costs
-  almost the same as SP/SC.
+  the same as or less than SP/SC on this machine — the SP/SC advantage only exists
+  at small batch sizes.
 
 ### 3.1 `_bulk` and `_burst` are not synonyms
 
@@ -631,6 +644,7 @@ which is where there is a real pipeline to fill it.
 | **Next** | [Pipeline and backpressure](../../trilha/02-pipeline/) |
 | **Plan** | [Study plan](../plano-estudo-dpdk.en.md) |
 
+[tcache]: https://www.gnu.org/software/libc/manual/html_node/Memory-Allocation-Tunables.html
 [guiamempool]: https://doc.dpdk.org/guides/prog_guide/mempool_lib.html
 [guiaring]: https://doc.dpdk.org/guides/prog_guide/ring_lib.html
 [guiambuf]: https://doc.dpdk.org/guides/prog_guide/mbuf_lib.html

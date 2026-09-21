@@ -1,0 +1,21 @@
+EAL: Detected CPU lcores: 24
+EAL: Detected NUMA nodes: 1
+EAL: Detected shared linkage of DPDK
+EAL: Multi-process socket /run/user/1000/dpdk/cc512_1/mp_socket
+EAL: Selected IOVA mode 'VA'
+  origin: custo-contencao @ v0.01.00-19-gf528659-dirty  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-20T21:47:37-0300
+
+
+== Contention over the SAME source of objects ==
+  pool of 32767 objects of 128 B, batch 32, per-lcore cache = 512
+  lcores available: 8
+
+  repetitions per point: 9 (median; disp = IQR/median)
+
+  threads               mempool               malloc      ratio
+  -------               -------               ------      -----
+  1               0.42 ns     1%       12.14 ns     1%        29x
+  2               0.42 ns     4%       12.33 ns     1%        30x
+  4               0.40 ns     0%       12.61 ns     1%        32x
+  8               0.45 ns     3%       13.68 ns     6%        31x
+

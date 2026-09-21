@@ -447,12 +447,13 @@ static double medir_entre(void)
 
 int main(void)
 {
+    print_provenance("custo-comunicacao");
     char dominios[MAX_DOMINIOS][256];
     const int n = ler_dominios(dominios);
 
-    printf("Custo de dois nucleos trocarem uma linha de cache\n\n");
+    printf("Cost of two cores exchanging a cache line\n\n");
     if (n <= 0) {
-        printf("  Nao foi possivel ler os dominios de L3 do sysfs.\n");
+        printf("  Could not read the L3 domains from sysfs.\n");
         /* CÓDIGO 77 = PULADO, e não sucesso.
          *
          * Sair com 0 aqui fazia o Meson reportar OK sem que nada tivesse sido medido —
@@ -462,9 +463,9 @@ int main(void)
         return 77;
     }
 
-    printf("  Dominios de cache L3 nesta maquina: %d\n", n);
+    printf("  L3 cache domains on this machine: %d\n", n);
     for (int i = 0; i < n; i++)
-        printf("    dominio %d: CPUs %s\n", i, dominios[i]);
+        printf("    domain %d: CPUs %s\n", i, dominios[i]);
     printf("\n");
 
     const int a = primeiro_cpu(dominios[0]);
@@ -477,11 +478,11 @@ int main(void)
         par_b = cpu_local_b;
         const struct statistics so_local = collect_or_fail(measure_pair, AMOSTRAS_C2C);
         print_header();
-        snprintf(rot, sizeof(rot), "dentro do dominio 0 (cpu %d <-> %d)", par_a, par_b);
+        snprintf(rot, sizeof(rot), "within domain 0 (cpu %d <-> %d)", par_a, par_b);
         print_row(rot, so_local);
-        printf("\n  Esta maquina tem um unico dominio de L3: nao ha par\n");
-        printf("  'distante' para comparar. Em processadores com varios blocos\n");
-        printf("  (Ryzen 9/Threadripper/EPYC, Xeon com clusters) a diferenca aparece.\n");
+        printf("\n  This machine has a single L3 domain: there is no 'distant'\n");
+        printf("  pair to compare. On processors with several blocks\n");
+        printf("  (Ryzen 9/Threadripper/EPYC, Xeon with clusters) the difference shows.\n");
         /* CÓDIGO 77 = PULADO, e não sucesso.
          *
          * Sair com 0 aqui fazia o Meson reportar OK sem que nada tivesse sido medido —
@@ -516,15 +517,15 @@ int main(void)
     const double dentro = e_dentro.median, entre = e_entre.median;
 
     print_header();
-    snprintf(rot, sizeof(rot), "dentro do dominio 0 (cpu %d <-> %d)",
+    snprintf(rot, sizeof(rot), "within domain 0 (cpu %d <-> %d)",
              cpu_local_a, cpu_local_b);
     print_row(rot, e_dentro);
-    snprintf(rot, sizeof(rot), "ENTRE dominios (cpu %d <-> %d)",
+    snprintf(rot, sizeof(rot), "BETWEEN domains (cpu %d <-> %d)",
              cpu_local_a, cpu_remoto_b);
     print_row(rot, e_entre);
-    print_row("RAZAO entre/dentro (pareada)", pc.razao);
+    print_row("RATIO between/within (paired)", pc.razao);
     /* ---- Contenção de SMT ---- */
-    printf("\n  Contencao entre fluxos SMT (mesmo nucleo fisico)\n\n");
+    printf("\n  Contention between SMT threads (same physical core)\n\n");
     print_header();
 
     /* FIXA A THREAD DE MEDICAO EXPLICITAMENTE.
@@ -539,7 +540,7 @@ int main(void)
 
     cpu_vizinho = -1;
     const struct statistics e_sozinho = collect_or_fail(laco_de_trabalho, AMOSTRAS_C2C);
-    print_row("laco sozinho no nucleo", e_sozinho);
+    print_row("loop alone on the core", e_sozinho);
     /* A penalidade do SMT tambem e uma RAZAO, e tambem precisa de selo
      * proprio -- ver o bloco do irmao SMT logo abaixo. */
 
@@ -559,7 +560,7 @@ int main(void)
     if (irmao > 0) {
         cpu_vizinho = irmao;
         char rot[64];
-        snprintf(rot, sizeof(rot), "vizinho no irmao SMT (cpu %d)", irmao);
+        snprintf(rot, sizeof(rot), "neighbour on SMT sibling (cpu %d)", irmao);
         /* DUAS FASES, e a razao de ser esta documentada no bloco abaixo. */
         const struct paired_stats f1 =
             collect_paired(com_vizinho, laco_sem_vizinho, AMOSTRAS_C2C);
@@ -570,7 +571,7 @@ int main(void)
         const struct statistics e_smt = f2.a;
         print_row(rot, e_smt);
 
-        print_row("RAZAO com/sem irmao SMT (pareada)", f2.razao);
+        print_row("RATIO with/without SMT sibling (paired)", f2.razao);
 
         /* O CONTROLE DE REGIME, e ele existe porque uma coleta avulsa sugeriu
          * que a razao dependia do estado da maquina: uma execucao deu 2,29 com
@@ -583,28 +584,28 @@ int main(void)
          * 2,29 avulso era estado transitorio da maquina, nao regime. A razao
          * fica publicada como numero unico -- e este bloco fica no programa
          * para que a pergunta nao precise ser reaberta de memoria. */
-        printf("\n  controle de regime  fase 1: base %.3f  razao %.2f\n"
-               "                      fase 2: base %.3f  razao %.2f   (apos %d ms"
-               " de carga continua)\n",
+        printf("\n  regime control  phase 1: base %.3f  ratio %.2f\n"
+               "                      phase 2: base %.3f  ratio %.2f   (after %d ms"
+               " of continuous load)\n",
                f1.b.median, f1.razao.median, f2.b.median, f2.razao.median,
                CONDICIONAR_MS);
-        printf("  As duas fases concordam: a razao nao depende de condicionamento.\n");
+        printf("  The two phases agree: the ratio does not depend on conditioning.\n");
 
         cpu_vizinho = par_b; /* núcleo físico distinto, mesmo domínio */
-        snprintf(rot, sizeof(rot), "vizinho em nucleo fisico (cpu %d)", par_b);
+        snprintf(rot, sizeof(rot), "neighbour on physical core (cpu %d)", par_b);
         const struct statistics e_fis = collect_or_fail(com_vizinho, AMOSTRAS_C2C);
         print_row(rot, e_fis);
 
-        printf("\n  Compartilhar o nucleo custa %.0f%% de desempenho; usar nucleos\n",
+        printf("\n  Sharing the core costs %.0f%% of performance; using distinct\n",
                100.0 * (e_smt.median / e_sozinho.median - 1.0));
         const double custo_fis = 100.0 * (e_fis.median / e_sozinho.median - 1.0);
-        printf("  fisicos distintos custa %.0f%%. Duas CPUs logicas nao sao dois\n",
+        printf("  physical cores costs %.0f%%. Two logical CPUs are not two\n",
                custo_fis > 0.5 ? custo_fis : 0.0);
-        printf("  nucleos: num laco de polling, que nunca cede as unidades de\n");
-        printf("  execucao, o irmao SMT compete o tempo todo.\n");
+        printf("  cores: in a polling loop, which never yields the execution\n");
+        printf("  units, the SMT sibling competes all the time.\n");
 
         /* A pergunta de CAPACIDADE, que a degradacao acima nao responde. */
-        printf("\n  Vazao AGREGADA do par de CPUs (M operacoes/s)\n\n");
+        printf("\n  AGGREGATE throughput of the CPU pair (M operations/s)\n\n");
         print_header();
         cfg_um[0] = cpu_local_a;
         cfg_fisicos[0] = cpu_local_a; cfg_fisicos[1] = par_b;
@@ -612,24 +613,24 @@ int main(void)
         const struct statistics a1 = collect_or_fail(m_agr_um, AMOSTRAS_C2C);
         const struct statistics a2 = collect_or_fail(m_agr_fisicos, AMOSTRAS_C2C);
         const struct statistics a3 = collect_or_fail(m_agr_irmaos, AMOSTRAS_C2C);
-        snprintf(rot, sizeof(rot), "1 thread  em 1 nucleo fisico (cpu %d)", cpu_local_a);
+        snprintf(rot, sizeof(rot), "1 thread  on 1 physical core (cpu %d)", cpu_local_a);
         print_row(rot, a1);
-        snprintf(rot, sizeof(rot), "2 threads em 2 nucleos fisicos (cpu %d,%d)",
+        snprintf(rot, sizeof(rot), "2 threads on 2 physical cores (cpu %d,%d)",
                  cpu_local_a, par_b);
         print_row(rot, a2);
-        snprintf(rot, sizeof(rot), "2 threads em 2 irmaos SMT (cpu %d,%d)",
+        snprintf(rot, sizeof(rot), "2 threads on 2 SMT siblings (cpu %d,%d)",
                  cpu_local_a, irmao);
         print_row(rot, a3);
-        printf("\n  dois nucleos fisicos rendem %.2fx um nucleo\n", a2.median / a1.median);
-        printf("  dois irmaos SMT     rendem %.2fx um nucleo\n", a3.median / a1.median);
-        printf("  A degradacao de %.2fx da thread observada NAO prediz este numero:\n",
+        printf("\n  two physical cores yield %.2fx one core\n", a2.median / a1.median);
+        printf("  two SMT siblings    yield %.2fx one core\n", a3.median / a1.median);
+        printf("  The %.2fx degradation of the observed thread does NOT predict this:\n",
                f2.razao.median);
-        printf("  aplicada simetricamente, ela daria %.2fx.\n", 2.0 / f2.razao.median);
+        printf("  applied symmetrically, it would give %.2fx.\n", 2.0 / f2.razao.median);
     }
 
-    printf("\n  Atravessar a interconexao custa %.1fx mais.\n", entre / dentro);
-    printf("  Isso e %.0f%% do orcamento de %.1f ns de um pacote de 64 B em 10 GbE:\n",
+    printf("\n  Crossing the interconnect costs %.1fx more.\n", entre / dentro);
+    printf("  That is %.0f%% of the %.1f ns budget of a 64 B packet at 10 GbE:\n",
            100.0 * entre / BUDGET_10GBE_NS, BUDGET_10GBE_NS);
-    printf("  um unico repasse entre nucleos mal posicionados ja o estoura.\n");
+    printf("  a single handoff between badly placed cores already blows it.\n");
     return 0;
 }

@@ -105,19 +105,19 @@ registradores, e polui cache e preditor de saltos. Medindo nesta máquina de
 referência ([`custo-syscall.c`](medicoes/custo-syscall.c)):
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  chamada de funcao (user-space)         0.717  0.715-0.747     0.713-1.009         4.6%  11.3% ~
-  clock_gettime (vDSO, sem trap)         15.53  15.53-15.55     15.52-15.81         0.1%   0.6%
-  syscall real (SYS_getpid)              33.25  33.23-33.27     33.21-33.70         0.1%   0.3%
+  function call (user-space)             0.746  0.746-0.749     0.745-1.038         0.4%   7.7%  
+  clock_gettime (vDSO, no trap)          15.53  15.52-15.81     15.52-16.31         1.9%   1.8%  
+  real syscall (SYS_getpid)              33.77  33.75-33.85     33.21-35.19         0.3%   1.0%  
 
-  syscall custa 46x uma chamada de funcao
+  a syscall costs 45x a function call
 
-Orcamento de 10 GbE com quadros de 64 B: 67.2 ns por pacote
-  syscalls que cabem nesse orcamento: 2.02
+10 GbE budget with 64 B frames: 67.2 ns per packet
+  syscalls that fit in that budget: 1.99
 
-  O caminho tradicional do kernel gasta pelo menos uma syscall por
-  lote de pacotes, mais interrupcao, alocacao de sk_buff e copia.
+  The traditional kernel path spends at least one syscall per
+  packet batch, plus interrupt, sk_buff allocation and a copy.
 ```
 
 > **Duas correções levaram a estes números**, e as duas estão contadas na
@@ -605,29 +605,77 @@ Aplicando com as 4 096 entradas medidas acima e páginas de 4 KB:
 
 **E a tabela é uma previsão, não uma descrição.** Ela diz que o ganho das
 hugepages deve ser irrelevante até ~16 MB e nascer entre 16 e 64 MB. Medindo o
-mesmo percurso disperso com os dois tamanhos de página, nesta máquina:
+o mesmo percurso com os dois tamanhos de página **e com os dois padrões de
+acesso** (`custo-traducao <MB> <disperso|sequencial>`), mediana de cinco
+repetições cada:
 
 ```
-  região     4 KB     2 MB     ganho
-     8 MB    12.69    10.94    1.75 ns   <- coberto: como previsto, quase nada
-    64 MB    86.09    79.45    6.64 ns   <- 25% coberto: o ganho aparece
-   512 MB   104.20    93.40   10.80 ns   <- 3% coberto: ganho cheio
+             percurso disperso         percurso sequencial    
+    região      4 KB    2 MB   ganho      4 KB    2 MB   ganho
+      8 MB     11.78   10.16    1.54      0.94    0.94    0.01
+     16 MB     10.78    8.62    1.98      0.96    0.90    0.06
+     32 MB     46.57   25.43   18.62      1.36    1.26    0.11
+     64 MB     72.16   65.01    6.92      1.66    1.57    0.08
+    512 MB     89.56   78.55   10.94      1.65    1.66   -0.00
 ```
 
-A previsão se sustenta. É o tipo de confirmação que vale mais que o número
-isolado: o modelo não só descreve o resultado, ele o **antecipou**.
+**A previsão se sustenta, mas só na coluna da esquerda.** No percurso disperso,
+8 e 16 MB quase sem ganho, 64 MB com o ganho nascendo, 512 MB com ganho cheio —
+o modelo não só descreve o resultado, ele o **antecipou**. No percurso
+sequencial o ganho inteiro desaparece: de 0,01 a 0,11 ns, uma ou duas ordens de
+grandeza abaixo.
+
+**E o desaparecimento é mais forte do que o número sugere.** O desenho pareado
+publica quantos dos 21 pares tiveram o mesmo sinal, e é aí que se vê a
+diferença: no disperso são 19 a 21 de 21 em todas as regiões; no sequencial a
+contagem cai para 14/21 em 64 MB e **12/21 em 512 MB** — cara ou coroa. Não é
+um efeito pequeno, é a ausência de efeito.
+
+> **Hugepages não tornam a tradução mais barata; elas reduzem quantas traduções
+> falham.** Se essas falhas importam depende de elas caírem no caminho crítico,
+> e é o padrão de acesso que decide isso. Num percurso sequencial, uma PTE de
+> 4 KB serve 64 linhas de cache consecutivas — o custo se dilui por 64 — e o
+> prefetcher ainda corre à frente. Num percurso disperso sobre região muito
+> maior que a cobertura da TLB, quase todo acesso cai numa página diferente:
+> uma PTE por acesso, sem diluição, e serializada pela dependência.
+>
+> O ganho de hugepages não é propriedade do tamanho de página. É propriedade do
+> par **tamanho de página × padrão de acesso**, e só existe quando o percurso
+> derrota o prefetcher e a TLB ao mesmo tempo.
+
+**A varredura também achou um ponto que o modelo não prevê.** No disperso, 32 MB
+dá ganho de 18,62 ns — maior que em 512 MB — e depois *cai* para 6,92 ns em
+64 MB. O modelo de cobertura de TLB é monotônico por construção e não tem como
+produzir um pico no meio. Cinco de cinco repetições reproduzem, de 17,24 a
+20,11 ns.
+
+32 MB é exatamente o tamanho do L3 desta máquina ([§4.2](#42-cache-e-localidade)),
+e é também onde a cobertura de TLB cruza 50%: o L2 DTLB tem 4 096 entradas e
+32 MB em páginas de 4 KB pedem 8 192. Uma leitura compatível com os dados é que
+na fronteira de capacidade uma perturbação pequena decide entre acertar e errar
+o L3 — com hugepages o percurso ainda colhe L3 (25,43 ns, entre os 9,7 do L3 e
+os 88,6 da RAM), com 4 KB já não colhe (46,57 ns) — e depois da fronteira os
+dois erram, então a diferença colapsa para o custo de page walk puro.
+
+**Isto é leitura, não resultado.** Separar capacidade de cobertura de TLB
+exigiria contadores de desempenho, que este material não usa. O que está medido
+é o pico, a sua reprodutibilidade, e o fato de ele **não existir no percurso
+sequencial** (0,11 ns em 32 MB) — o que já basta para dizer que não é um
+fenômeno de tamanho de página.
+
+A lição de método é a mesma do resto do módulo: publicar só a coluna que
+confirma teria escondido as duas coisas mais interessantes da tabela.
 
 Fixando a região em 512 MB, o mesmo programa publica a diferença com o
 desenho pareado ([`custo-traducao.c`](medicoes/custo-traducao.c)):
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  paginas de 4 KB                        105.7  105.5-105.9     104.4-106.5         0.4%   0.4%
-  hugepages de 2 MB                      95.29  94.94-95.55     93.85-96.09         0.6%   0.6%
+  4 KB pages                             89.05  88.97-89.18     88.82-89.90         0.2%   0.3%  
+  2 MB hugepages                         77.98  77.85-78.28     77.45-79.06         0.6%   0.6%  
 
-  DIFERENCA atribuivel a traducao        10.40  IQR 10.16 a 10.84
-                                                amplitude 8.87 a 11.85   21/21 pares
+  DIFFERENCE attributable to translation     11.09  IQR 10.90 to 11.17   range 9.95 to 11.60   21/21 pairs
 ```
 
 Os ~95 ns comuns às duas medições são a latência da RAM, que hugepage nenhuma
@@ -700,21 +748,21 @@ conta:
 
 ```
   região      ns/acesso (cadeia dependente, hugepages de 2 MB)
-    8 MB        11.04     <- L3
-   16 MB        11.18     <- L3
-   32 MB        21.54     <- fronteira do L3
-   64 MB        79.80     <- RAM
-  512 MB        94.95     <- RAM
+    8 MB        10.16     <- L3
+   16 MB         8.62     <- L3
+   32 MB        25.43     <- fronteira do L3
+   64 MB        65.01     <- RAM
+  512 MB        78.55     <- RAM
 ```
 
-Um acerto de L3 custa ~11 ns nesta máquina. Numa execução de `custo-traducao`
-com a máquina ociosa, a diferença medida entre 4 KB e 2 MB foi **11,65 ns**:
+Um acerto de L3 custa de 9 a 10 ns nesta máquina. Na campanha arquivada, com a
+máquina ociosa, a diferença medida entre 4 KB e 2 MB foi **11,09 ns**:
 
 ```
-  paginas de 4 KB                        106.1  105.8-106.9     105.6-108.0         1.0%   0.8%
-  hugepages de 2 MB                      94.48  94.20-94.89     93.89-95.47         0.7%   0.6%
+  4 KB pages                             89.05  88.97-89.18     88.82-89.90         0.2%   0.3%  
+  2 MB hugepages                         77.98  77.85-78.28     77.45-79.06         0.6%   0.6%  
 
-  diferenca (o custo do page walk): 11.65 ns  (11.0%)
+  page walk cost: 11.09 ns  (12.5% of the 4 KB access)
 ```
 
 Os números são **compatíveis** com a explicação: neste conjunto de trabalho o
@@ -775,10 +823,10 @@ Medindo o efeito ([`efeito-cache.c`](medicoes/efeito-cache.c)):
 ```
   cabe em    tamanho   sequencial    aleatorio    dependente   acessos   disp do
                        (amortizado)  (amortizado) (LATENCIA)   em voo    dependente
-  L1d          16 KB    0.206 ns !    0.260 ns      0.892 ns     ~3        0.0%
-  L2          256 KB     0.186 ns     0.331 ns       2.68 ns     ~8        0.3%
-  L3         8192 KB     0.188 ns     0.744 ns       9.70 ns    ~13        4.0%
-  RAM      262144 KB     0.194 ns      7.21 ns      101.5 ns    ~14        0.4%
+  L1d          16 KB     0.187 ns      0.260 ns      0.895 ns     ~3        0.6%
+  L2          256 KB     0.186 ns      0.332 ns       2.68 ns     ~8        0.0%
+  L3         8192 KB     0.188 ns      0.742 ns       9.74 ns    ~13        1.1%
+  RAM      262144 KB     0.195 ns      6.44 ns       88.61 ns    ~14        1.3%
 ```
 
 > **Amortizado não é latência, e a distinção precisa de instrumento.** A coluna
@@ -839,23 +887,23 @@ percorre **K cadeias independentes** sobre a mesma região, com K crescente:
 Os dois painéis são a mesma tabela, e juntos são a decisão:
 
 ```
-   K   ns/acesso   M acessos/s   lote de K completa em   ganho de vazao
+   K   ns/access   M accesses/s   batch of K ready in   throughput gain
   ---  ---------   -----------   ---------------------   --------------
-    1      94.36        10.6                 94 ns            1.0x
-    2      46.48        21.5                 93 ns            2.0x
-    4      24.77        40.4                 99 ns            3.8x
-    8      13.26        75.4                106 ns            7.1x
-   12       9.19       108.9                110 ns           10.3x
-   16       7.25       138.0                116 ns           13.0x
-   32       4.59       218.1                147 ns           20.6x
-   64       3.44       290.8                220 ns           27.4x
+    1      76.57        13.1                77 ns            1.0x
+    2      38.18        26.2                76 ns            2.0x
+    4      20.64        48.5                83 ns            3.7x
+    8      10.83        92.4                87 ns            7.1x
+   12       7.52       133.0                90 ns           10.2x
+   16       5.84       171.3                93 ns           13.1x
+   32       3.49       286.4               112 ns           21.9x
+   64       2.77       360.4               178 ns           27.6x
 ```
 
-**A latência não muda em nenhuma linha.** Ela é ~94 ns em todas — o que muda é
+**A latência não muda em nenhuma linha.** Ela fica em ~77 ns até K = 16 — o que muda é
 quantos acessos acontecem ao mesmo tempo. A coluna `ns/acesso` cai 27 vezes sem
 que um único acesso tenha ficado mais rápido.
 
-**Com K = 1 esta máquina não alcança 10 GbE.** São 10,6 milhões de acessos por
+**Com K = 1 esta máquina não alcança 10 GbE.** São 13,1 milhões de acessos por
 segundo contra os 14,9 milhões de pacotes por segundo da [§1](#1-o-orçamento-quanto-tempo-existe-por-pacote).
 Um único acesso dependente por pacote — perseguir um ponteiro, consultar uma
 tabela de fluxo encadeada — **já perde a taxa antes de qualquer processamento**.
@@ -930,13 +978,13 @@ físicos, cada um com 16 cadeias próprias sobre a mesma região, sem compartilh
 uma única linha entre threads:
 
 ```
-   nucleos   ns/acesso   M acessos/s      agregado   escala ideal
+     cores   ns/access   M accesses/s     aggregate   ideal scaling
   --------   ---------   -----------   -----------   ------------
-         1        7.27       137.6         137.6          100%
-         2        8.35       119.8         239.5           87%
-         4       16.91        59.1         236.5           43%
-         8       25.82        38.7         309.8           28%
-        12       36.56        27.4         328.2           20%
+         1        6.18       161.9         161.9          100%
+         2        6.77       147.6         295.2           91%
+         4        8.61       116.2         464.8           72%
+         8       14.35        69.7         557.6           43%
+        12       21.29        47.0         563.7           29%
 ```
 
 <picture>
@@ -1384,11 +1432,11 @@ E a diferença é enorme ([`custo-comunicacao.c`](medicoes/custo-comunicacao.c))
 medindo o tempo de uma linha de cache viajar de um núcleo para outro:
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  dentro do dominio 0 (cpu 0 <-> 2)      22.89  22.32-23.81     22.09-25.64         6.5%   4.5% ~
-  ENTRE dominios (cpu 0 <-> 6)           91.75  90.71-92.75     90.30-95.03         2.2%   1.3%
-  RAZAO entre/dentro (pareada)            4.03  3.88-4.09       3.58-4.21           5.1%   4.1% ~
+  within domain 0 (cpu 0 <-> 2)          20.13  19.42-21.27     17.86-39.18         9.2%  20.5% ~
+  BETWEEN domains (cpu 0 <-> 6)          82.24  82.01-84.34     81.93-128.14        2.8%  11.8%  
+  RATIO between/within (paired)           4.09  3.91-4.32       2.32-6.71           9.9%  18.0% ~
 ```
 
 **Atravessar a interconexão custa cerca de 4,0 vezes mais — e são 137% do
@@ -1569,12 +1617,12 @@ custo dessa competição com trabalho de ALU de alto paralelismo de instruções
 ([`custo-comunicacao.c`](medicoes/custo-comunicacao.c)):
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  laco sozinho no nucleo                 0.537  0.536-0.538     0.535-0.658         0.5%   4.9%
-  vizinho no irmao SMT (cpu 12)           1.23  1.23-1.23       1.22-1.24           0.2%   0.2%
-  RAZAO com/sem irmao SMT (pareada)       2.29  2.29-2.29       2.27-2.30           0.2%   0.2%
-  vizinho em nucleo fisico (cpu 2)       0.551  0.548-0.552     0.536-0.558         0.7%   0.9%
+  loop alone on the core                 0.536  0.536-0.537     0.536-0.537         0.1%   0.1%  
+  neighbour on SMT sibling (cpu 12)       1.23  1.23-1.23       1.23-1.24           0.1%   0.1%  
+  RATIO with/without SMT sibling (paired)      2.29  2.29-2.29       2.29-2.30           0.1%   0.1%  
+  neighbour on physical core (cpu 2)     0.550  0.549-0.553     0.537-0.567         0.6%   1.3%  
 ```
 
 **Compartilhar o núcleo custa 129% de tempo por operação** — o laço fica 2,29
@@ -1634,14 +1682,14 @@ preciso medir as duas ao mesmo tempo. Três threads idênticas, barreira de
 largada, cronômetro parando na última a terminar:
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  1 thread  em 1 nucleo fisico (cpu 0)     1860  1857-1862       1855-1945           0.3%   1.0%
-  2 threads em 2 nucleos fisicos (0,2)     3711  3708-3714       3340-3723           0.1%   2.2%
-  2 threads em 2 irmaos SMT (cpu 0,12)     1928  1926-1928       1922-1929           0.1%   0.1%
+  1 thread  on 1 physical core (cpu 0)    1861.9  1859.3-1862.8   1857.0-2038.0       0.2%   2.1%  
+  2 threads on 2 physical cores (cpu 0,2)    3712.8  3708.5-3717.0   3689.1-3722.1       0.2%   0.2%  
+  2 threads on 2 SMT siblings (cpu 0,12)    1926.9  1923.6-1927.2   1921.7-1927.8       0.2%   0.1%  
 
-  dois nucleos fisicos rendem 1.99x um nucleo
-  dois irmaos SMT     rendem 1.04x um nucleo
+  two physical cores yield 1.99x one core
+  two SMT siblings    yield 1.03x one core
 ```
 
 **Dois núcleos físicos rendem 1,99×. Dois irmãos SMT rendem 1,04×.** O par de
@@ -1762,13 +1810,13 @@ fique visível em vez de precisar ser suposta.
 **1. Sem disputa — ninguém mais quer o mesmo primitivo:**
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  atomica relaxed (store+load)           0.205  0.205-0.206     0.204-0.218         0.5%   1.4%
-  atomica seq_cst (store+load)            3.69  3.69-3.70       3.68-3.96           0.4%   1.5%
-  mutex lock+unlock                       8.51  8.50-8.55       8.49-8.57           0.6%   0.3%
-  spinlock lock+unlock                    4.44  4.43-4.45       4.43-4.62           0.4%   1.1%
-  semaforo post+wait                      8.32  8.31-8.32       8.30-8.41           0.2%   0.4%
+  atomic relaxed (store+load)            0.410  0.321-0.411     0.205-0.412        21.9%  17.6% !
+  atomic seq_cst (store+load)             3.69  3.69-3.87       3.68-3.99           5.0%   3.2% ~
+  mutex lock+unlock                       8.48  8.48-8.49       8.48-8.73           0.1%   0.8%  
+  spinlock lock+unlock                    4.43  4.43-4.49       4.42-4.73           1.5%   1.7%  
+  semaphore post+wait                     8.30  8.30-8.30       8.30-8.55           0.0%   0.8%  
 ```
 
 As duas últimas colunas medem a confiança do número: `disp` diz se o valor
@@ -1846,13 +1894,17 @@ a garantia que ele precisa, e a diferença sai do orçamento por pacote.
 diferentes:**
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  atomica + espera ativa (nao dorme)     17.62  17.60-17.71     17.59-18.84         0.6%   1.6%
-  mutex + espera ativa (nao dorme)       92.37  90.96-93.80     89.56-95.43         3.1%   1.9% ~
-  mutex + condvar (DORME)               1355.6  1342.3-1368.1   1325.4-1403.0       1.9%   1.5%
-  semaforo POSIX (DORME)                1310.5  1281.5-1345.6   1225.3-1387.2       4.9%   3.3% ~
+  atomic + busy wait (does not sleep)     17.51  17.50-17.53     17.48-18.58         0.1%   2.0%  
+  mutex + busy wait (does not sleep)     95.68  95.25-96.41     94.10-97.55         1.2%   0.9%  
+  mutex + condvar (SLEEPS)              1316.0  1301.0-1331.9   1265.8-1397.8       2.3%   2.3%  
+  POSIX semaphore (SLEEPS)              1281.2  1267.7-1283.5   1224.6-1315.4       1.2%   1.5%  
 ```
+<!-- cita-retratado: 17,50 17.50 — NAO e citacao do valor retratado. O `17.50`
+     acima e o limite inferior do IQR de `atomic + busy wait`, medicao sem
+     relacao com o custo entre CCDs que foi retratado. Colisao de digitos:
+     o verificador casa a sequencia, nao a afirmacao. -->
 
 **A comparação decisiva são as duas linhas do meio: é o mesmo mutex.** A única
 diferença é que na segunda a thread realmente dorme, esperando ser acordada por
@@ -2367,10 +2419,10 @@ tempo**. A distribuição exata está no
   chegada       anel(n)     perda  ocup.max   p99(us)
   -----------   -------  --------  --------  --------
   cadenciada        512    0.000%         1       0.7
-  rajada            512   26.555%       512     375.7
-  rajada           1024   21.650%      1024     750.7
-  rajada           4096    6.325%      4096    3000.7
-  rajada          32768    0.000%     21242    6956.3
+  rajada            512   26.544%       512     375.5
+  rajada           1024   21.639%      1024     750.2
+  rajada           4096    6.319%      4096    2998.6
+  rajada          32768    0.000%     21234    6948.8
 ```
 
 **A previsão se sustenta.** Com 512 descritores a perda é de 26,6%; o anel de
@@ -2902,7 +2954,9 @@ juntos é mais honesto que esconder a continuidade atrás de um limiar.**
 ./build/docs/01-fundamentos/medicoes/tlb-real          # TLB real, via CPUID
 ./build/docs/01-fundamentos/medicoes/custo-syscall
 ./build/docs/01-fundamentos/medicoes/efeito-cache
-./build/docs/01-fundamentos/medicoes/custo-traducao   # requer hugepages
+./build/docs/01-fundamentos/medicoes/custo-traducao        # requer hugepages; 512 MB
+./build/docs/01-fundamentos/medicoes/custo-traducao 32     # outra regiao, em MB
+./build/docs/01-fundamentos/medicoes/custo-traducao 32 sequencial   # outro percurso
 ./build/docs/01-fundamentos/medicoes/custo-paralelismo  # requer hugepages
 ./build/docs/01-fundamentos/medicoes/custo-comunicacao
 ./build/docs/01-fundamentos/medicoes/custo-espera

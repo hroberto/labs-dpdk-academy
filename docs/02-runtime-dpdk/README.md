@@ -13,7 +13,7 @@ e quais decisões ele impõe a quem vai colocar um processo de plano de dados em
 produção e mantê-lo lá.
 
 O exemplo condutor é o mesmo dos fundamentos: um **servidor de *market data***,
-que recebe o *feed* de uma bolsa com ativo de alta movimentação. Ele foi
+que recebe o *feed* de uma bolsa para um ativo de alta movimentação. Ele foi
 escolhido na [§6.2 dos fundamentos](../01-fundamentos/README.md#62-o-barramento-também-tem-orçamento)
 como o caso canônico de latência ultrabaixa, e serve bem aqui porque força todas
 as perguntas deste nível de uma vez: quanto tempo o processo leva para ficar
@@ -127,26 +127,26 @@ exige um processo**. O programa faz `fork()` por amostra; o filho inicializa,
 cronometra e devolve o resultado por um *pipe*; o pai apenas agrega.
 
 ```
-== Custo de inicializar e encerrar a EAL ==
+== Cost of initialising and shutting down the EAL ==
 
-  configuracao medida: -l 0 --in-memory
-  amostras: 11 (uma por processo; rte_eal_init nao e reentrante)
+  configuration measured: -l 0 --in-memory
+  samples: 11 (one per process; rte_eal_init is not reentrant)
 
-  valores em MILISSEGUNDOS
+  warning: "rte_eal_cleanup()" has disp 6.0% with 11 samples -- in that band the seal
+           does not decide. Raise it to 20+ before explaining the result.
+  values in MILLISECONDS
 
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  rte_eal_init()                         122.5  122.1-122.7     121.6-123.2         0.5%   0.4%
-  rte_eal_cleanup()                      0.118  0.097-0.135     0.093-0.144        32.2%  16.7% !
+  rte_eal_init()                         118.8  118.3-121.4     117.8-122.1         2.6%   1.4%  
+  rte_eal_cleanup()                      0.094  0.090-0.096     0.055-0.133         6.0%  20.1% ~
 
-  Leitura:
-    Em 10 GbE com quadros de 64 B chega 1 pacote a cada 67,2 ns.
-    A janela de 123 ms da inicializacao equivale a 2 milhoes de pacotes
-    nao atendidos. Por isso o processo de plano de dados sobe uma vez
-    e fica de pe: reinicia-lo em producao nao e uma operacao barata.
+  Reading:
+    At 10 GbE with 64 B frames one packet arrives every 67.2 ns.
+    The 119 ms initialisation window is worth 2 million packets
 ```
 
-Subir a EAL custa **123 ms**; encerrá-la custa **0,12 ms** — três ordens de
+Subir a EAL custa **119 ms**; encerrá-la custa **0,09 ms** — três ordens de
 grandeza menos. A assimetria é o primeiro fato relevante: nascer é caro, morrer
 é barato.
 
@@ -156,20 +156,30 @@ medição, com a única diferença sendo o modo de memória da EAL:
 ```
   configuracao        rte_eal_init()   rte_eal_cleanup()   razao
   -----------------   --------------   -----------------   -------
-  -l 0 --in-memory      122.5 ms         0.118 ms  ! 32%    1038x
-  -l 0 --no-huge        122.4 ms         0.651 ms  ~  9%     188x
+  -l 0 --in-memory      118.8 ms         0.094 ms  ~  6%    1264x
+  -l 0 --no-huge        121.9 ms         0.577 ms  ~  5%     211x
 ```
 
-A inicialização não se mexe — 122,4 contra 122,5 ms. O encerramento muda por um
-fator de **5,5**, e com ele a razão sai de três ordens de grandeza para duas.
+A inicialização quase não se mexe — 118,8 contra 121,9 ms, 2,6% de diferença. O
+encerramento muda por um fator de **6,1**, e com ele a razão sai de três ordens
+de grandeza para duas.
 Faz sentido: encerrar devolve o que foi mapeado, e `--no-huge` mapeia de outro
 jeito. **O número do encerramento não existe sem a configuração ao lado.**
 
 > **Retratar um número exige reproduzir a configuração dele.** Esta seção já
 > declarou que os 0,08 ms de `--in-memory` "não reproduziam", tendo medido
 > `--no-huge` — outra configuração, e a tabela acima mostra que a diferença
-> entre elas é de 5,5×. Medir outra coisa e não encontrar o mesmo valor não é
+> entre elas é de 6,1×. Medir outra coisa e não encontrar o mesmo valor não é
 > refutação; é outra medição.
+>
+> **E o valor continua retratado — por pouco.** Uma execução avulsa desta
+> release, com a máquina sob carga, mediu 0,082 ms e por um momento pareceu
+> ressuscitar o número. A campanha arquivada, com a máquina ociosa e cinco
+> repetições, mede 0,094 a 0,102 ms com dispersão de 5 a 9% e selo `~`. A
+> execução avulsa tinha **47% de dispersão**: era ela a medição ruim, não a
+> campanha. O valor retratado não voltou, e o episódio é mais uma aparição da
+> dispersão entre estados de máquina — a mesma que a seção 4 do módulo 01
+> documenta.
 > <!-- retratado: 0.082 0,082 0.30 0,30 195 -->
 
 ### 2.1 De onde vêm os 123 ms
@@ -640,25 +650,35 @@ imediatamente antes de publicá-lo; o consumidor lê o carimbo e o compara com o
 mil ticks, produtor no lcore 0 e consumidor no lcore 1:
 
 ```
-  --- travessia entre processos, por tick (nanossegundos) ---
+  --- cross-process traversal, per tick (nanoseconds) ---
 
-  medicao                           minimo   mediana       p75       p99  amostras
+  measurement                      minimum    median       p75       p99  samples
   ------------------------------ --------- --------- --------- ---------  -------
-  publicacao -> observacao           10.02     20.04     30.06     40.08   200000
+  publication -> observation         10.02     20.04     30.06    110.21   200000
 
-    resolucao do instrumento: 11.8 ns (uma sondagem do consumidor).
-    amostras degeneradas: 0 de 200000 (TSC alinhado entre os dois nucleos)
-    Os valores acima sao LIMITE SUPERIOR: entre duas sondagens o
-    consumidor esta cego, entao a travessia real cabe dentro do
-    ultimo passo. Diferencas menores que 11.8 ns nao sao mensuraveis aqui.
+    instrument resolution: 11.9 ns (one consumer poll).
+    degenerate samples: 0 of 200000 (TSC aligned across the two cores)
+    The values above are an UPPER BOUND: between two polls the
+    consumer is blind, so the real traversal fits inside the
+    last step. Differences smaller than 11.9 ns are not measurable here.
 ```
 
-**Dez nanossegundos no melhor caso, quarenta no p99.** Para dimensionar: o
-orçamento de um pacote de 64 B em 10 GbE é de 67,2 ns
+**Dez nanossegundos no melhor caso, cento e dez no p99 desta execução.** Para
+dimensionar: o orçamento de um pacote de 64 B em 10 GbE é de 67,2 ns
 ([§1 dos fundamentos](../01-fundamentos/README.md#1-o-orçamento-quanto-tempo-existe-por-pacote)).
-A travessia de processo consome de 15% a 60% desse orçamento — cara o bastante
-para não ser feita por pacote sem pensar, barata o bastante para viabilizar a
-separação entre *feed handler* e estratégia, que é o que se ganha em troca.
+O mínimo consome 15% desse orçamento; o p99 desta execução consome **1,6
+orçamentos inteiros**.
+
+> **E o p99 é o número menos estável da tabela.** Nas seis repetições
+> arquivadas ele vale 50,1 / 110,2 / 60,1 / 59,9 / 60,1 / 60,1 ns — a execução
+> publicada acima é a mais alta das seis. O mínimo e a mediana praticamente não
+> se mexem (10,0 e 20,0 a 30,1 ns); a cauda varia por um fator de 2,2. Isso não
+> é defeito da coleta: é a propriedade que torna a cauda cara de dimensionar, e
+> a razão de o projeto publicar percentis em vez de média.
+
+Cara o bastante para não ser feita por pacote sem pensar, barata o bastante para
+viabilizar a separação entre *feed handler* e estratégia, que é o que se ganha
+em troca — desde que o dimensionamento use a cauda, não o mínimo.
 
 Três observações metodológicas, e a terceira é a que impede uma conclusão errada:
 
@@ -676,7 +696,7 @@ programa conta esses casos e publica a contagem: **0 de 200 000**.
 **Todos os valores são múltiplos de ~10 ns, e isso não é coincidência.** O
 consumidor descobre um tick novo ao *sondar*; entre duas sondagens ele está cego.
 O passo dessa régua é o custo de uma iteração do laço de espera — que o programa
-mede e publica: 11,8 ns, dominado por [`rte_pause()`][apipause], que nesta CPU
+mede e publica: 11,9 ns, dominado por [`rte_pause()`][apipause], que nesta CPU
 custa cerca de 55 ciclos. Ou seja, a tabela diz "o tick foi visto na 1ª, 2ª, 3ª ou
 4ª sondagem depois de publicado", e os valores são **limite superior** da
 travessia real.
@@ -718,11 +738,11 @@ colunas lado a lado. Com `-l 0-3`:
 Com `--lcores '0@6,1@7,2@18'`, a mesma máquina:
 
 ```
-  lcore    CPU(s) reais   papel        indice no no   no NUMA 
+  lcore    real CPU(s)    role         index in node  NUMA node
   -----    ------------   -----        ------------   ------- 
-  0        6              principal    0              0       
-  1        7              trabalhador  1              0       
-  2        18             trabalhador  2              0       
+  0        6              main         0              0       
+  1        7              worker       1              0       
+  2        18             worker       2              0       
 ```
 
 O lcore 0 agora executa na CPU 6. E repare na quarta coluna: ela **não** mudou.
@@ -739,8 +759,8 @@ o conjunto de CPUs ao qual o lcore está fixado — a terceira coluna da tabela.
 
 A sintaxe de [`--lcores`][optlcore] importa em máquina com topologia relevante. A da
 [§4.3 dos fundamentos](../01-fundamentos/README.md#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só)
-tem dois CCDs, e a comunicação entre eles custou de 83 a 123 ns contra 17,5 ns
-dentro do mesmo CCD. Com [`-l`][optlcore], os lcores caem onde os números mandarem; com
+tem dois CCDs, e a comunicação entre eles custou de 82 a 99 ns contra 20 a 22 ns
+dentro do mesmo CCD, nas cinco repetições arquivadas. Com [`-l`][optlcore], os lcores caem onde os números mandarem; com
 `--lcores`, o mapeamento é escolhido — e é assim que se garante que produtor e
 consumidor de um mesmo anel fiquem no mesmo domínio de cache.
 
@@ -1075,7 +1095,7 @@ não perde o mapeamento e não recebe `SIGSEGV`: ele continua lendo, e o que lê
 o **último estado publicado**, indefinidamente.
 
 **Nada avisa.** Não há batimento cardíaco, contrato de *liveness* nem sinal. O
-secundário fica preso em [`while (lidos < total)`](medicoes/feed-secundario.c#L149),
+secundário fica preso em [`while (lidos < total)`](medicoes/feed-secundario.c#L150),
 esperando dados que não virão. O processo não travou por defeito — ele espera
 correta e indefinidamente por um produtor que não existe mais.
 

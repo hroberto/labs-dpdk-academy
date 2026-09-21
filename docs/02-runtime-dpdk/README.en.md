@@ -6,11 +6,6 @@
 > Prerequisite: [Fundamentals](../01-fundamentos/README.en.md) and the practical topic
 > [01 — EAL initialisation](../../trilha/01-fundamentos/01-eal-hello/)
 
-> **Note on the blocks in this English edition.** The measurement programs print in
-> Portuguese; this document translates their **labels and captions** so the tables
-> and outputs can be read here. Numbers, seals and column positions are exactly what
-> the program emitted. When a command in this page greps that output, the pattern
-> stays in Portuguese — it has to match what the program really prints.
 Topic 01 of the track shows a minimal program bringing the [EAL][cEAL] up and
 shutting it down. This module deals with what comes after that first run: how the
 runtime behaves as a **system**, what it costs, what it leaves on the host, and which
@@ -33,7 +28,7 @@ happens when one of the processes dies mid-session.
    an inaccessible one — which require different fixes;
 3. **choose between `--in-memory`, `--no-huge` and hugetlbfs** knowing what each one
    switches off;
-4. **design a system in primary and secondary processes**, and say what crosses the
+4. **design a system using primary and secondary processes**, and say what crosses the
    boundary and what does not;
 5. **isolate instances on the same machine** with `--file-prefix`, and explain the
    rule about disjoint lcore lists;
@@ -65,7 +60,7 @@ happens when one of the processes dies mid-session.
 There is no shortage of material on the EAL. There is the official documentation,
 there is a strong tradition of *source-code analysis* (源码分析) in Chinese, and
 there are dozens of tutorials in English. Before writing one more, it is worth saying
-where the existing ones are better than this document — and where they have aged.
+where the existing ones are better than this document — and where they have become outdated.
 
 **Where the existing sources are better.** The official documentation is the authority
 and should be the first stop; nothing here replaces it. And the Chinese tradition of
@@ -135,23 +130,23 @@ requires a process**. The program does a `fork()` per sample; the child initiali
 times it and returns the result through a *pipe*; the parent only aggregates.
 
 ```
-== Cost of starting and shutting down the EAL ==
+== Cost of initialising and shutting down the EAL ==
 
   configuration measured: -l 0 --in-memory
   samples: 11 (one per process; rte_eal_init is not reentrant)
 
+  warning: "rte_eal_cleanup()" has disp 6.0% with 11 samples -- in that band the seal
+           does not decide. Raise it to 20+ before explaining the result.
   values in MILLISECONDS
 
-  measurement                          median   p25-p75 (IQR)   min-max range      disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  rte_eal_init()                         122.5  122.1-122.7     121.6-123.2         0.5%   0.4%
-  rte_eal_cleanup()                      0.118  0.097-0.135     0.093-0.144        32.2%  16.7% !
+  rte_eal_init()                         118.8  118.3-121.4     117.8-122.1         2.6%   1.4%  
+  rte_eal_cleanup()                      0.094  0.090-0.096     0.055-0.133         6.0%  20.1% ~
 
   Reading:
-    On 10 GbE with 64 B frames, one packet arrives every 67.2 ns.
-    The 123 ms startup window is worth 2 million packets
-    unserved. This is why a data-plane process starts once
-    and stays up: restarting it in production is not a cheap operation.
+    At 10 GbE with 64 B frames one packet arrives every 67.2 ns.
+    The 119 ms initialisation window is worth 2 million packets
 ```
 
 Bringing the EAL up costs **123 ms**; shutting it down costs **0.12 ms** — three
@@ -164,8 +159,8 @@ measurement, with the memory mode of the EAL as the only difference:
 ```
   configuration       rte_eal_init()   rte_eal_cleanup()   ratio
   -----------------   --------------   -----------------   -------
-  -l 0 --in-memory      122.5 ms         0.118 ms  ! 32%    1038x
-  -l 0 --no-huge        122.4 ms         0.651 ms  ~  9%     188x
+  -l 0 --in-memory      118.8 ms         0.094 ms  ~  6%    1264x
+  -l 0 --no-huge        121.9 ms         0.577 ms  ~  5%     211x
 ```
 
 Initialisation does not move — 122.4 against 122.5 ms. Shutdown changes by a factor
@@ -646,25 +641,35 @@ before publishing it; the consumer reads the stamp and compares it with its own 
 Two hundred thousand ticks, producer on lcore 0 and consumer on lcore 1:
 
 ```
-  --- crossing between processes, per tick (nanoseconds) ---
+  --- cross-process traversal, per tick (nanoseconds) ---
 
-  measurement                       minimum  median        p75       p99  samples 
+  measurement                      minimum    median       p75       p99  samples
   ------------------------------ --------- --------- --------- ---------  -------
-  publish -> observe                 10.02     20.04     30.06     40.08   200000
+  publication -> observation         10.02     20.04     30.06    110.21   200000
 
-    instrument resolution: 11.8 ns (one consumer poll).
+    instrument resolution: 11.9 ns (one consumer poll).
     degenerate samples: 0 of 200000 (TSC aligned across the two cores)
     The values above are an UPPER BOUND: between two polls the
-    the consumer is blind, so the real crossing fits inside the
-    last step. Differences under 11.8 ns are not measurable here.
+    consumer is blind, so the real traversal fits inside the
+    last step. Differences smaller than 11.9 ns are not measurable here.
 ```
 
-**Ten nanoseconds in the best case, forty at p99.** For scale: the budget of a 64 B
-packet on 10 GbE is 67.2 ns
+**Ten nanoseconds in the best case, one hundred and ten at this run's p99.** For
+scale: the budget of a 64 B packet on 10 GbE is 67.2 ns
 ([§1 of the fundamentals](../01-fundamentos/README.en.md#1-the-budget-how-much-time-exists-per-packet)).
-The process crossing consumes 15% to 60% of that budget — expensive enough not to be
-done per packet without thinking, cheap enough to make the separation between *feed
-handler* and strategy viable, which is what you get in return.
+The minimum consumes 15% of that budget; this run's p99 consumes **1.6 whole
+budgets**.
+
+> **And the p99 is the least stable number in the table.** Across the six archived
+> repetitions it is 50.1 / 110.2 / 60.1 / 59.9 / 60.1 / 60.1 ns — the run published
+> above is the highest of the six. The minimum and the median barely move (10.0 and
+> 20.0 to 30.1 ns); the tail varies by a factor of 2.2. This is not a flaw in the
+> collection: it is the property that makes the tail expensive to size for, and the
+> reason this project publishes percentiles rather than means.
+
+Expensive enough not to be done per packet without thinking, cheap enough to make
+the separation between *feed handler* and strategy viable, which is what you get in
+return — provided the sizing uses the tail, not the minimum.
 
 Three methodological observations, and the third is the one that prevents a wrong
 conclusion:
@@ -682,7 +687,7 @@ publishes the count: **0 of 200 000**.
 **All the values are multiples of ~10 ns, and that is no coincidence.** The consumer
 discovers a new tick by *polling*; between two polls it is blind. That ruler's step is
 the cost of one iteration of the wait loop — which the program measures and publishes:
-11.8 ns, dominated by [`rte_pause()`][apipause], which on this CPU costs about 55
+11.9 ns, dominated by [`rte_pause()`][apipause], which on this CPU costs about 55
 cycles. That is, the table says "the tick was seen at the 1st, 2nd, 3rd or 4th poll
 after being published", and the values are an **upper bound** on the real crossing.
 
@@ -745,7 +750,8 @@ delivers the set of CPUs the lcore is pinned to — the table's third column.
 The syntax of [`--lcores`][optlcore] matters on a machine with relevant topology. The
 one in
 [§4.3 of the fundamentals](../01-fundamentos/README.en.md#43-numa-when-memory-stops-being-one-thing)
-has two CCDs, and communication between them cost 83 to 123 ns against 17.5 ns within
+has two CCDs, and communication between them cost 82 to 99 ns against 20 to
+22 ns within the same CCD, across the five archived repetitions.5 ns within
 the same CCD. With [`-l`][optlcore], lcores fall wherever the numbers dictate; with
 `--lcores`, the mapping is chosen — and that is how you guarantee that the producer and
 consumer of the same ring stay in the same cache domain.
@@ -1073,7 +1079,7 @@ mapping and does not receive `SIGSEGV`: it goes on reading, and what it reads is
 **last published state**, indefinitely.
 
 **Nothing warns.** There is no heartbeat, no *liveness* contract, no signal. The
-secondary stays stuck in [`while (lidos < total)`](medicoes/feed-secundario.c#L149),
+secondary stays stuck in [`while (lidos < total)`](medicoes/feed-secundario.c#L150),
 waiting for data that will not come. The process did not hang because of a defect — it
 waits correctly and indefinitely for a producer that no longer exists.
 

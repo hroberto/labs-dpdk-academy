@@ -120,6 +120,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/utsname.h>
+#include <time.h>
 
 /* Nem todo programa usa todas as variantes de impressão. */
 #if defined(__GNUC__)
@@ -454,7 +456,7 @@ static STAT_MAYBE_UNUSED int decimals(double v)
 static STAT_MAYBE_UNUSED void print_delta(const char *rotulo, struct paired_stats p)
 {
     const int d = decimals(p.delta.median < 0 ? -p.delta.median : p.delta.median);
-    printf("  %-34s %9.*f  IQR %.*f a %.*f   amplitude %.*f a %.*f   %d/%d pares\n",
+    printf("  %-34s %9.*f  IQR %.*f to %.*f   range %.*f to %.*f   %d/%d pairs\n",
            rotulo, d, p.delta.median, d, p.delta.p25, d, p.delta.p75,
            d, p.delta.minimum, d, p.delta.maximum, p.mesmo_sinal, p.n);
 }
@@ -474,8 +476,8 @@ static STAT_MAYBE_UNUSED void avisar_selo_indeciso(const char *rotulo, struct st
 {
     if (e.samples < 20 && e.disp >= DISP_ESTAVEL && e.disp <= 15.0)
         fprintf(stderr,
-                "  aviso: \"%s\" tem disp %.1f%% com %d amostras -- nessa faixa o selo\n"
-                "         nao decide. Aumente para 20+ antes de explicar o resultado.\n",
+                "  warning: \"%s\" has disp %.1f%% with %d samples -- in that band the seal\n"
+                "           does not decide. Raise it to 20+ before explaining the result.\n",
                 rotulo, e.disp, e.samples);
 }
 
@@ -490,10 +492,69 @@ static STAT_MAYBE_UNUSED void print_row(const char *rotulo, struct statistics e)
            e.disp, e.cv, badge(e));
 }
 
+/* --- PROVENIENCIA ---------------------------------------------------------
+ *
+ * POR QUE ISTO EXISTE
+ *
+ * Ate 20/09/2026 NENHUM dos 21 programas de medicao se identificava. A saida
+ * publicada era anonima: tinha numero, dispersao e selo, e nada que dissesse
+ * DE ONDE VEIO. O repositorio inteiro se apoia na regra de que todo numero tem
+ * um programa que o produz -- e o bloco publicado nao dizia QUAL VERSAO desse
+ * programa, em que maquina, com que compilador.
+ *
+ * Isso ficou caro no dia em que o hardware mudou: com o EXPO 6000 ligado, os
+ * numeros antigos passaram a descrever uma maquina que nao existia mais, e nao
+ * havia no proprio bloco com o que compara-los.
+ *
+ * O QUE ELE NAO FAZ
+ *
+ * Nao substitui o `scripts/ambiente.sh`, que reporta topologia, governor,
+ * mitigacoes, hugepages e velocidade de memoria. Este cabecalho responde uma
+ * pergunta menor e diferente: QUAL BINARIO produziu ESTE bloco. Os dois juntos
+ * fecham a cadeia; separados, cada um responde metade.
+ */
+/* O cabecalho gerado vive no diretorio de BUILD, e so existe quando o
+ * programa foi construido pelo meson. `__has_include` deixa o mesmo fonte
+ * compilar a mao, com `gcc programa.c`, sem quebrar -- e nesse caso o campo
+ * diz `sem-git`, que e a verdade: aquele binario nao tem procedencia. */
+#if defined(__has_include)
+#  if __has_include("academy_version.h")
+#    include "academy_version.h"
+#  endif
+#endif
+#ifndef ACADEMY_COMMIT
+#define ACADEMY_COMMIT "sem-git"
+#endif
+
+static STAT_MAYBE_UNUSED void print_provenance(const char *programa)
+{
+    /* `uname` ja traz o hostname em `nodename`, e `localtime` e C89.
+     *
+     * `gethostname` e `localtime_r` exigem macro de teste de funcionalidade
+     * (_POSIX_C_SOURCE / _GNU_SOURCE), que precisa ser definida ANTES de
+     * qualquer header do sistema -- e este arquivo e incluido DEPOIS dos
+     * includes de quem o usa. Depender disso faria a compilacao quebrar
+     * conforme o programa, que e pior que usar a alternativa portatil. */
+    struct utsname u;
+    char quando[40];
+    const time_t agora = time(NULL);
+    const struct tm *tmv;
+
+    if (uname(&u) != 0)
+        u.nodename[0] = u.sysname[0] = u.release[0] = '\0';
+    quando[0] = '\0';
+    tmv = localtime(&agora);
+    if (tmv)
+        strftime(quando, sizeof(quando), "%Y-%m-%dT%H:%M:%S%z", tmv);
+
+    printf("  origin: %s @ %s  |  %s %s %s  |  gcc %s  |  %s\n\n",
+           programa, ACADEMY_COMMIT, u.nodename, u.sysname, u.release, __VERSION__, quando);
+}
+
 static STAT_MAYBE_UNUSED void print_header(void)
 {
-    printf("  %-34s %9s  %-15s %-17s %5s %5s\n", "medicao", "mediana", "p25-p75 (IQR)",
-           "amplitude min-max", "disp", "CV");
+    printf("  %-34s %9s  %-15s %-17s %5s %5s\n", "measurement", "median", "p25-p75 (IQR)",
+           "range min-max", "disp", "CV");
     printf("  %-34s %9s  %-15s %-17s %5s %5s\n", "----------------------------------", "---------",
            "---------------", "-----------------", "-----", "-----");
 }
@@ -517,7 +578,7 @@ static STAT_MAYBE_UNUSED void print_header_cycles(void)
      * projeto -- a que confronta a Tabela 3.1 de McKenney -- rotulava a
      * dispersão robusta com o nome do coeficiente de variação, que é outra
      * grandeza e vive na outra variante de impressão. */
-    printf("  %-34s %9s  %-15s %8s      %5s\n", "medicao", "mediana", "p25-p75 (IQR)", "ciclos",
+    printf("  %-34s %9s  %-15s %8s      %5s\n", "measurement", "median", "p25-p75 (IQR)", "cycles",
            "disp");
     printf("  %-34s %9s  %-15s %8s      %5s\n", "----------------------------------", "---------",
            "---------------", "--------", "-----");
@@ -535,8 +596,8 @@ static STAT_MAYBE_UNUSED void print_row_tail(const char *rotulo, struct statisti
 
 static STAT_MAYBE_UNUSED void print_header_tail(void)
 {
-    printf("  %-30s %9s %9s %9s %9s  %7s\n", "medicao", "minimo", "mediana", "p75", "p99",
-           "amostras");
+    printf("  %-30s %9s %9s %9s %9s  %7s\n", "measurement", "minimum", "median", "p75", "p99",
+           "samples");
     printf("  %-30s %9s %9s %9s %9s  %7s\n", "------------------------------", "---------",
            "---------", "---------", "---------", "-------");
 }
