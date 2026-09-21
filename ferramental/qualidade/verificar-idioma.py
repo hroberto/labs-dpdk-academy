@@ -83,6 +83,11 @@ MANTER = {
     # que o leitor confira contra o cabecalho.
     "lado", "reservado", "cruzados", "degenerados", "assinatura", "valida",
     "fluxo", "livro", "toleraveis",
+    # valores de --file-prefix nos comandos de reproducao do modulo 03. Os dois
+    # idiomas mostram o MESMO comando de proposito: o prefixo nomeia um arquivo
+    # em /var/run, e traduzi-lo faria os dois documentos criarem instancias
+    # diferentes a partir do mesmo passo.
+    "esgotado",
 }
 
 

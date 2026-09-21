@@ -687,7 +687,26 @@ livre: é o `rte_mbuf`, com o layout que a NIC e os drivers esperam.
 ./build/docs/03-mempool-ring-mbuf/medicoes/custo-anel     -l 0 --no-huge --file-prefix=anel
 ```
 
-Os três entram na suíte L2, e as regras de dimensionamento têm teste L1:
+O módulo constrói mais dois programas, e eles exigem linha de comando própria —
+o de contenção porque precisa de vários lcores, e o de esgotamento porque não
+mede tempo:
+
+```bash
+./build/docs/03-mempool-ring-mbuf/medicoes/custo-contencao \
+    -l 0-7 --no-huge --file-prefix=contencao --no-pci 64
+./build/docs/03-mempool-ring-mbuf/medicoes/pool-esgotado -l 0 --no-huge --file-prefix=esgotado
+```
+
+> **Os trabalhadores do programa de contenção são lançados com
+> `rte_eal_remote_launch`, e isso é condição de validade, não estilo.** O cache
+> por lcore é indexado por `rte_lcore_id()`. Uma thread comum, criada com
+> `pthread_create` sem registro na EAL, recebe `LCORE_ID_ANY` e **pula o
+> cache**, caindo direto no anel comum — a medição sairia ruim pelo motivo
+> errado, e sem aviso nenhum. O lado do `malloc` usa *pthreads* porque é o que
+> um programa comum faria. O mecanismo do `LCORE_ID_ANY` está na
+> [§5.1 do módulo 02](../02-runtime-dpdk/README.md#51-lcore-não-é-cpu).
+
+Os cinco entram na suíte L2, e as regras de dimensionamento têm teste L1:
 
 ```bash
 ./scripts/test-all.sh l1     # regras de dimensionamento, sem EAL
@@ -700,6 +719,30 @@ um dos casos é literalmente o par (4095, 256) que este módulo usava, e falha s
 alguém o reintroduzir. Ele também trava o valor de `RTE_MEMPOOL_CACHE_MAX_SIZE`
 que o material assume — se o DPDK mudar de 512, o teste acusa em vez de o
 documento envelhecer calado.
+
+### 5.1 Nem todo programa deste módulo é medição
+
+Quatro dos cinco programas publicam tempo, e as suas tabelas trazem mediana,
+dispersão e selo. O [`pool-esgotado`](medicoes/pool-esgotado.c) não traz, e a
+ausência é deliberada.
+
+O que ele observa é **comportamento na fronteira**: o que acontece quando o
+último objeto do pool já foi emprestado. A resposta é uma contagem, e contagem é
+exata e reprodutível — não há dispersão a relatar, porque não há variável
+aleatória. Por isso o programa não inclui `statistics.h` e não aceita
+`DPDK_ACADEMY_AMOSTRAS`.
+
+| Pergunta que o programa faz | Instrumento | Exemplo neste módulo |
+|---|---|---|
+| quanto custa? | tempo, com mediana e dispersão | `custo-alocacao`, `custo-anel`, `custo-contencao` |
+| o que acontece quando? | contagem exata | `pool-esgotado` |
+
+> **A distinção decide o que se pode exigir de um resultado.** Cobrar barra de
+> erro de uma contagem é ruído cerimonial; aceitar um tempo sem dispersão é
+> publicar um número cuja confiabilidade ninguém pode avaliar. O
+> [módulo 01](../01-fundamentos/README.md#92-por-que-estes-estimadores-e-o-que-eles-não-são)
+> trata do segundo caso; este parágrafo existe para que o primeiro não seja lido
+> como descuido.
 
 ### Exercícios
 

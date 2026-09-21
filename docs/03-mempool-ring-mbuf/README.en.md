@@ -688,7 +688,27 @@ no longer free: it is the `rte_mbuf`, with the layout the NIC and the drivers ex
 ./build/docs/03-mempool-ring-mbuf/medicoes/custo-anel     -l 0 --no-huge --file-prefix=anel
 ```
 
-All three enter the L2 suite, and the sizing rules have an L1 test:
+The module builds two more programs, and they need their own command line — the
+contention one because it requires several lcores, the exhaustion one because it
+does not measure time:
+
+```bash
+./build/docs/03-mempool-ring-mbuf/medicoes/custo-contencao \
+    -l 0-7 --no-huge --file-prefix=contencao --no-pci 64
+./build/docs/03-mempool-ring-mbuf/medicoes/pool-esgotado -l 0 --no-huge --file-prefix=esgotado
+```
+
+> **The contention program's workers are launched with
+> `rte_eal_remote_launch`, and that is a validity condition, not style.** The
+> per-lcore cache is indexed by `rte_lcore_id()`. An ordinary thread created
+> with `pthread_create` without registering with the EAL gets `LCORE_ID_ANY` and
+> **skips the cache**, falling straight through to the common ring — the
+> measurement would come out bad for the wrong reason, with no warning at all.
+> The `malloc` side uses pthreads because that is what an ordinary program would
+> do. The `LCORE_ID_ANY` mechanism is in
+> [§5.1 of module 02](../02-runtime-dpdk/README.en.md#51-an-lcore-is-not-a-cpu).
+
+All five enter the L2 suite, and the sizing rules have an L1 test:
 
 ```bash
 ./scripts/test-all.sh l1     # sizing rules, without the EAL
@@ -701,6 +721,30 @@ exists because of the defect in
 pair (4095, 256) this module used, and it fails if anyone reintroduces it. It also
 pins the value of `RTE_MEMPOOL_CACHE_MAX_SIZE` that the material assumes — if DPDK
 changes from 512, the test flags it instead of the document ageing silently.
+
+### 5.1 Not every program in this module is a measurement
+
+Four of the five programs publish time, and their tables carry median,
+dispersion and a seal. [`pool-esgotado`](medicoes/pool-esgotado.c) does not, and
+the absence is deliberate.
+
+What it observes is **behaviour at a boundary**: what happens once the pool's
+last object has been lent out. The answer is a count, and a count is exact and
+reproducible — there is no dispersion to report, because there is no random
+variable. That is why the program does not include `statistics.h` and does not
+accept `DPDK_ACADEMY_AMOSTRAS`.
+
+| Question the program asks | Instrument | Example in this module |
+|---|---|---|
+| how much does it cost? | time, with median and dispersion | `custo-alocacao`, `custo-anel`, `custo-contencao` |
+| what happens when? | exact count | `pool-esgotado` |
+
+> **The distinction decides what may be demanded of a result.** Requiring an
+> error bar on a count is ceremonial noise; accepting a time without dispersion
+> is publishing a number whose reliability nobody can assess.
+> [Module 01](../01-fundamentos/README.en.md#92-why-these-estimators-and-what-they-are-not)
+> covers the second case; this paragraph exists so the first is not read as an
+> oversight.
 
 ### Exercises
 
