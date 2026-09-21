@@ -628,6 +628,104 @@ stop.
 > reserved to distinguish full from empty. It is the same reason a mempool's optimal
 > size is `2^q - 1`, and not `2^q`.
 
+### 3.5 When output order matters: `rte_soring`
+
+The four strategies of §3.2 answer *who may enter at the same time*. None
+answers the question that appears as soon as processing becomes a pipeline with
+parallel stages: **stages finish out of order — how do you publish in order?**
+
+This is not fussiness. Market data delivered out of order forces the consumer to
+reorder; a TCP stream reassembled out of order is not the stream; a sequence of
+transactions applied out of order is a different database. In all of them,
+parallelism is desirable **inside** the stage and unacceptable **at the output**.
+
+[`rte_soring`][apisoring] — *Staged Ordered Ring* — is DPDK's structure for
+this. It is an `rte_ring` with **stages**: besides `enqueue` and `dequeue`, each
+stage has an `acquire`/`release` pair.
+
+```c
+uint32_t ftoken;
+n = rte_soring_acquire_bulk(r, objs, stage, num, &ftoken, NULL);
+/* exclusive possession of the n objects; process in parallel with other lcores */
+rte_soring_release(r, objs, stage, n, ftoken);
+```
+
+#### The `ftoken` is the mechanism, and it is worth seeing why
+
+`acquire` returns an **opaque token** that the caller keeps and gives back to
+`release`. That token is what separates *finishing* from *publishing*: it
+records the reserved position, so two lcores can complete their work in any
+order and the next stage still sees the elements in the original one.
+
+It is the same **reserve and publish** protocol §3.1 showed inside the ring —
+`head` moves, work happens, `tail` moves — now **exposed in the API** instead of
+hidden in the implementation. There the gap between reserve and publish was a
+few cycles; here it is the whole stage.
+
+Two obligations the documentation states, and they change the caller's design:
+
+| Obligation | Consequence |
+|---|---|
+| `acquire` returns **exactly** what was asked, or zero | there is no partial acquisition to handle, unlike `_burst` |
+| `release` must return **the same number** acquired | a stage cannot drop elements midway; dropping becomes element state, not disappearance |
+
+The second is the one that usually surprises. A stage that decides to throw a
+packet away cannot simply fail to return it: it must return it marked. That is
+what `meta_size` in `rte_soring_param` is for — a parallel metadata array,
+written on `release` and read on `dequeue`, which the header suggests precisely
+for a per-element "return code".
+
+#### The cost: head-of-line blocking
+
+Guaranteeing output order has a price, and it is structural rather than an
+implementation detail: **one slow element blocks the publication of every
+element behind it**, even those already finished. It is the same phenomenon that
+makes a single bank queue slower than several when one customer takes long.
+
+The choice, then, is not between "ordered" and "unordered", but among:
+
+| Alternative | What you gain | What you pay |
+|---|---|---|
+| `rte_ring` + reorder in the consumer | stages never block | a reorder buffer and its complexity in the consumer |
+| `rte_soring` | guaranteed order at the output | head-of-line blocking inside the pipeline |
+| partition by key | order **per key**, no blocking across keys | only valid when the required order is per key, not global |
+
+The third is the one most often right and least often raised: if the real
+requirement is *order per instrument* rather than *global order*, partitioning
+dissolves the problem instead of solving it.
+
+#### What 26.07 adds
+
+The `rte_ring` peek API, which §3.2 identified as sustained by the HTS mode —
+because at most one operation is in flight — now has an equivalent over
+`soring`:
+
+```
+rte_soring_enqueue_bulk_start / rte_soring_enqueue_finish
+rte_soring_dequeue_burst_start / rte_soring_dequeue_finish
+```
+
+The `start`/`finish` pair makes explicit in the interface the same separation
+the `ftoken` makes between stages: look at what is available, decide, and only
+then commit. The `enqueux`/`dequeux` variants are the ones that also move the
+metadata array.
+
+> **Not measured.** This section describes mechanism from the header and the
+> documentation, with no measurement of its own. `rte_soring` is declared
+> `__rte_experimental` by DPDK itself, and measuring an experimental API as
+> though it were stable would give the number a stability the interface does not
+> have. What is asserted here is verifiable in the installed header; what it
+> costs is not.
+
+> **What transfers.** This is a **reorder buffer**, and the pattern is old: a
+> superscalar processor executes out of order and *retires* in order, for the
+> same reason and with the same structure — a circular queue where the slot is
+> reserved on entry and confirmed on exit. TCP does it in reassembly; databases
+> do it in group commit. Recognizing the shape avoids reinventing it badly:
+> people who write their own reorderer tend to discover late that they need the
+> token, the cap on elements in flight, and a policy for the element that never
+> arrives.
+
 ---
 
 ## 4. The three together: a packet's life cycle
@@ -930,3 +1028,4 @@ which is where there is a real pipeline to fill it.
 [apienqbulk]: https://doc.dpdk.org/api/rte__ring_8h.html#ab8debfb458e927d559e7ce750048502d
 [apiget]: https://doc.dpdk.org/api/rte__mempool_8h.html#a6150c041e889498a08d0e0d0769292cb
 [apigetbulk]: https://doc.dpdk.org/api/rte__mempool_8h.html#a0d326354d53ef5068d86a8b7d9ec2d61
+[apisoring]: https://doc.dpdk.org/api/rte__soring_8h.html

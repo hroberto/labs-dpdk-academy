@@ -626,6 +626,104 @@ silêncio.
 > Uma posição fica reservada para distinguir cheio de vazio. É a mesma razão pela
 > qual o tamanho ótimo de um mempool é `2^q - 1`, e não `2^q`.
 
+### 3.5 Quando a ordem de saída importa: `rte_soring`
+
+As quatro estratégias da §3.2 respondem *quem pode entrar ao mesmo tempo*.
+Nenhuma responde a pergunta que aparece assim que o processamento vira pipeline
+com estágios paralelos: **os estágios terminam fora de ordem — como publicar em
+ordem?**
+
+Não é preciosismo. Um feed de *market data* entregue fora de ordem obriga o
+consumidor a reordenar; um fluxo TCP remontado fora de ordem não é o fluxo; uma
+sequência de transações aplicada fora de ordem é outro banco de dados. Em todos,
+o paralelismo é desejável **dentro** do estágio e inaceitável **na saída**.
+
+O [`rte_soring`][apisoring] — *Staged Ordered Ring* — é a estrutura do DPDK para
+isso. Ele é um `rte_ring` com **estágios**: além de `enqueue` e `dequeue`, cada
+estágio tem um par `acquire`/`release`.
+
+```c
+uint32_t ftoken;
+n = rte_soring_acquire_bulk(r, objs, stage, num, &ftoken, NULL);
+/* posse exclusiva dos n objetos; processar em paralelo com outros lcores */
+rte_soring_release(r, objs, stage, n, ftoken);
+```
+
+#### O `ftoken` é o mecanismo, e vale entender por quê
+
+`acquire` devolve um **token opaco** que o chamador guarda e devolve em
+`release`. Esse token é o que separa *terminar* de *publicar*: ele registra a
+posição reservada, de modo que dois lcores possam concluir o trabalho em
+qualquer ordem e mesmo assim o estágio seguinte veja os elementos na ordem
+original.
+
+É o mesmo protocolo de **reservar e publicar** que a §3.1 mostrou dentro do
+anel — `head` move, trabalha-se, `tail` move —, agora **exposto na API** em vez
+de escondido na implementação. Lá o intervalo entre reserva e publicação era de
+alguns ciclos; aqui é o tempo do estágio inteiro.
+
+Duas obrigações que a documentação declara e que mudam o desenho de quem usa:
+
+| Obrigação | Consequência |
+|---|---|
+| `acquire` devolve **exatamente** o pedido, ou zero | não há aquisição parcial para tratar, ao contrário de `_burst` |
+| `release` precisa devolver **o mesmo número** adquirido | o estágio não pode descartar elementos no meio; descarte vira estado do elemento, não sumiço |
+
+A segunda é a que costuma surpreender. Um estágio que decide jogar um pacote
+fora não pode simplesmente não devolvê-lo: ele precisa devolvê-lo marcado. É
+para isso que serve o `meta_size` do `rte_soring_param` — um vetor paralelo de
+metadados, escrito no `release` e lido no `dequeue`, que o cabeçalho sugere
+justamente para o caso de "código de retorno" por elemento.
+
+#### O custo: *head-of-line blocking*
+
+Garantir ordem de saída tem um preço, e ele é estrutural, não de implementação:
+**um elemento lento bloqueia a publicação de todos os que vierem depois dele**,
+mesmo que já estejam prontos. É o mesmo fenômeno que faz uma fila única de banco
+ser mais lenta que várias quando um cliente demora.
+
+A escolha, então, não é entre "com ordem" e "sem ordem", e sim entre:
+
+| Alternativa | O que se ganha | O que se paga |
+|---|---|---|
+| `rte_ring` + reordenar no consumidor | estágios nunca bloqueiam | buffer de reordenação e sua complexidade no consumidor |
+| `rte_soring` | ordem garantida na saída | *head-of-line blocking* dentro do pipeline |
+| particionar por chave | ordem **por chave**, sem bloqueio entre chaves | só vale quando a ordem exigida é por chave, não global |
+
+A terceira é a que mais frequentemente é a resposta certa e a que menos aparece
+na discussão: se o requisito real é *ordem por instrumento*, e não *ordem
+global*, particionar dissolve o problema em vez de resolvê-lo.
+
+#### O que o 26.07 acrescenta
+
+A API de *peek* do `rte_ring`, que a §3.2 apontou como sustentada pelo modo HTS
+— por haver no máximo uma operação em curso —, ganhou equivalente sobre o
+`soring`:
+
+```
+rte_soring_enqueue_bulk_start / rte_soring_enqueue_finish
+rte_soring_dequeue_burst_start / rte_soring_dequeue_finish
+```
+
+O par `start`/`finish` explicita na interface a mesma separação que o `ftoken`
+faz entre estágios: olhar o que está disponível, decidir, e só então confirmar.
+As variantes `enqueux`/`dequeux` são as que também movem o vetor de metadados.
+
+> **Não medido.** Esta seção descreve mecanismo a partir do cabeçalho e da
+> documentação, sem medição própria. O `rte_soring` é declarado
+> `__rte_experimental` pelo próprio DPDK, e medir uma API experimental como se
+> fosse estável daria ao número uma estabilidade que a interface não tem. O que
+> está afirmado aqui é verificável no cabeçalho instalado; o que custa, não.
+
+> **O que transfere.** Isto é um **buffer de reordenação**, e o padrão é antigo:
+> um processador superescalar executa fora de ordem e *retira* em ordem, pelo
+> mesmo motivo e com a mesma estrutura — uma fila circular onde a posição é
+> reservada na entrada e confirmada na saída. TCP faz o mesmo na remontagem;
+> bancos de dados fazem no *group commit*. Reconhecer a forma evita reinventá-la
+> mal: quem escreve o próprio reordenador costuma descobrir tarde que precisa do
+> token, do limite de elementos em voo e da política para o elemento que nunca
+> chega.
+
 ---
 
 ## 4. As três juntas: o ciclo de vida de um pacote
@@ -927,3 +1025,4 @@ que é onde há um pipeline de verdade para enchê-lo.
 [apienqbulk]: https://doc.dpdk.org/api/rte__ring_8h.html#ab8debfb458e927d559e7ce750048502d
 [apiget]: https://doc.dpdk.org/api/rte__mempool_8h.html#a6150c041e889498a08d0e0d0769292cb
 [apigetbulk]: https://doc.dpdk.org/api/rte__mempool_8h.html#a0d326354d53ef5068d86a8b7d9ec2d61
+[apisoring]: https://doc.dpdk.org/api/rte__soring_8h.html

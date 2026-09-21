@@ -181,6 +181,51 @@ Three of those fields have already changed a conclusion in this project:
 > and that is why the documents publish median and dispersion instead of a single
 > value.
 
+### 5.1 When DPDK is the experiment's variable
+
+Most of the material uses a single DPDK, the distribution's. The mempool cache
+study compares **two versions**, and there DPDK stops being environment and
+becomes a variable — with two practical consequences.
+
+**The first is that both prefixes must exist side by side.**
+[`scripts/preparar-dpdk.sh`](../../scripts/preparar-dpdk.sh) builds a DPDK into
+its own prefix, without touching the system:
+
+```bash
+./scripts/preparar-dpdk.sh 25.11          # installs into ~/opt/dpdk-25.11
+./scripts/preparar-dpdk.sh 26.07
+./scripts/preparar-dpdk.sh --conferir 25.11
+```
+
+The project builds against one of them by pointing `PKG_CONFIG_PATH` at that
+prefix's `pkgconfig`; the `meson.build` only requires `>= 23.11` and needs no
+change.
+
+**The second is an ABI trap that cost a whole collection.** The cache hit
+counter only exists under `RTE_LIBRTE_MEMPOOL_STATS`, and that macro **has no
+meson option**. The obvious attempt fails silently:
+
+| attempt | what happens |
+|---|---|
+| `meson setup -Dc_args=-DRTE_LIBRTE_MEMPOOL_STATS` | the **library** counts; the **consumer** does not know |
+| `#define` in `config/rte_config.h` | holds for both |
+
+The reason is in `libdpdk.pc`, which publishes only `-I${includedir}`: the
+define never reaches the program, the header's `#ifdef` comes out false, and the
+program reports `UNAVAILABLE` against a library that was counting all along.
+`rte_config.h` is installed together with the headers, so what goes in there
+does reach across.
+
+> **Such a prefix is for measuring cache hits, not time.** The counter is
+> updated on the hot path, and a program compiled against it is not the program
+> that runs in production. Publishing timings from that build would compare two
+> versions by the cost of the instrumentation.
+
+The script checks the result by the test that matters — whether the macro
+reaches the **consumer** — and refuses a version whose marker line it does not
+recognize, rather than installing a prefix with no counter and finding out
+later.
+
 ---
 
 ## 6. In this section

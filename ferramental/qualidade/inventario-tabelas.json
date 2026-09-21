@@ -8,7 +8,7 @@
     "trilha/04-projeto-final/README.md"
   ],
   "limites": "Tabelas Markdown e blocos numericos nas oito paginas listadas. Nao abrange todos os numeros em prosa nem verifica automaticamente sua origem.",
-  "total": 113,
+  "total": 115,
   "entradas": [
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -586,28 +586,42 @@
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 735,
+      "linha": 667,
+      "secao": "O `ftoken` é o mecanismo, e vale entender por quê",
+      "tipo": "tabela_markdown",
+      "sha256": "8c3d40fac1d31a3464342657a6f46e0629a055c693300c578a3ead472362bdc4"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 687,
+      "secao": "O custo: *head-of-line blocking*",
+      "tipo": "tabela_markdown",
+      "sha256": "42d6b1b1ded41b342728d22b0042e63325b15591cb9251b507581b5c9ab8dce7"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 833,
       "secao": "5.1 Nem todo programa deste módulo é medição",
       "tipo": "tabela_markdown",
       "sha256": "07d25a3ba8143d70d7eacd5492099acd55bb72a67db6f208d345b7faa7b50237"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 783,
+      "linha": 881,
       "secao": "6.1 O degrau: `get_bulk` não entrega lote parcial",
       "tipo": "tabela_markdown",
       "sha256": "138622c9479008925c9f6f7db7278cca2bf1c617e01922d867e6d61e5cd14b0b"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 819,
+      "linha": 917,
       "secao": "6.2 A regra 4, confrontada — e corrigida",
       "tipo": "tabela_markdown",
       "sha256": "c5738905a71ae0f061eb7fc88e3b4337edd9ed1f423346ea4f115122183550f3"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 906,
+      "linha": 1004,
       "secao": "9. Navegação",
       "tipo": "tabela_markdown",
       "sha256": "573d3d447bf73781ac79c5cf02601f1a7b90b0951d1c2deb35ed7cb38634f23b"

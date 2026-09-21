@@ -182,6 +182,49 @@ Três desses campos já mudaram uma conclusão neste projeto:
 > é por isso que os documentos publicam mediana e dispersão em vez de um valor
 > só.
 
+### 5.1 Quando o DPDK é a variável do experimento
+
+A maior parte do material usa um DPDK só, o da distribuição. O estudo do cache
+do mempool compara **duas versões**, e aí o DPDK deixa de ser ambiente e passa a
+ser variável — com duas consequências práticas.
+
+**A primeira é que os dois prefixos precisam existir lado a lado.**
+[`scripts/preparar-dpdk.sh`](../../scripts/preparar-dpdk.sh) constrói um DPDK
+num prefixo próprio, sem tocar no sistema:
+
+```bash
+./scripts/preparar-dpdk.sh 25.11          # instala em ~/opt/dpdk-25.11
+./scripts/preparar-dpdk.sh 26.07
+./scripts/preparar-dpdk.sh --conferir 25.11
+```
+
+O projeto compila contra um deles apontando `PKG_CONFIG_PATH` para o `pkgconfig`
+do prefixo; o `meson.build` exige apenas `>= 23.11` e não precisa mudar.
+
+**A segunda é uma armadilha de ABI que custou uma coleta inteira.** O contador
+de acertos do cache só existe sob `RTE_LIBRTE_MEMPOOL_STATS`, e essa macro
+**não tem opção de meson**. A tentativa óbvia falha de um jeito silencioso:
+
+| tentativa | o que acontece |
+|---|---|
+| `meson setup -Dc_args=-DRTE_LIBRTE_MEMPOOL_STATS` | a **biblioteca** conta; o **consumidor** não sabe |
+| `#define` em `config/rte_config.h` | vale para os dois |
+
+A razão está no `libdpdk.pc`, que publica apenas `-I${includedir}`: o define não
+atravessa até o programa, o `#ifdef` do cabeçalho sai falso, e o programa relata
+`UNAVAILABLE` contra uma biblioteca que estava contando o tempo todo. O
+`rte_config.h` é instalado junto com os cabeçalhos, então o que entra ali
+atravessa.
+
+> **Um prefixo assim serve para medir acerto de cache, não tempo.** O contador é
+> atualizado no caminho quente, e um programa compilado contra ele não é o
+> programa que roda em produção. Publicar tempo dessa build seria comparar duas
+> versões pelo custo da instrumentação.
+
+O script confere o resultado pelo teste que importa — se a macro chega a **quem
+consome** —, e recusa a versão cuja linha-marcador ele não reconheça, em vez de
+instalar um prefixo sem contador e descobrir depois.
+
 ---
 
 ## 6. Nesta seção
