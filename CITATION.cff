@@ -20,8 +20,8 @@
 #            33–42%. Entra quando o estado for um que não se queira corrigir na
 #            semana seguinte.
 #
-# A versão é 0.01.00 e não 1.x de propósito: a história deste repositório
-# recomeça aqui, e numerar a partir de 1 sugeriria uma linhagem que não existe.
+# A série é 0.0x e não 1.x de propósito: a história deste repositório recomeça
+# em 0.01.00, e numerar a partir de 1 sugeriria uma linhagem que não existe.
 # O 1.00.00 vem quando os débitos declarados no ROADMAP fecharem.
 #
 # O campo `version` é conferido por máquina contra a tag mais recente do
@@ -78,8 +78,8 @@ authors:
 repository-code: "https://github.com/hroberto/labs-dpdk-academy"
 url: "https://github.com/hroberto/labs-dpdk-academy"
 license: MIT
-version: 0.01.00
-date-released: "2026-09-20"
+version: 0.02.00
+date-released: "2026-09-21"
 
 keywords:
   - dpdk
