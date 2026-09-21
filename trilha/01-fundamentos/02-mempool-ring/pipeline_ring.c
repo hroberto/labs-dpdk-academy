@@ -46,45 +46,24 @@
 struct config {
     uint64_t num_packets;
     unsigned burst;
-    /* Cache por lcore do mempool. Parametro de execucao porque o
-     * dimensionamento otimo depende de COMO get e put se distribuem entre os
-     * lcores, e essa distribuicao muda com a topologia (-l 0 contra -l 0,2). */
+    /* Cache por lcore do mempool. Ver README.md secao 4.2. */
     unsigned cache_size;
-    /* Prazo de PROGRESSO em milissegundos; 0 desliga.
-     *
-     * Nao e prazo total de execucao: e quanto tempo se aceita sem que NENHUM
-     * pacote avance. A distincao importa -- uma execucao longa e legitima, uma
-     * execucao parada nao. */
+    /* Prazo SEM PROGRESSO em milissegundos; 0 desliga. Nao e prazo total de
+     * execucao. Ver README.md secao 4.2. */
     uint64_t progresso_ms;
-    /* Profundidade da fila, em objetos.
-     *
-     * Era fixa em 1024, e o submodulo de contrapressao existe para medir
-     * justamente o que se ganha e o que se perde ao mexer nela -- nao dava para
-     * medir o que nao era ajustavel.
-     *
-     * `rte_ring_create` exige POTENCIA DE DOIS (sem RING_F_EXACT_SZ), e a
-     * capacidade util e a profundidade MENOS UM: o anel reserva uma posicao para
-     * distinguir cheio de vazio. Pedir 1024 da 1023 objetos, e essa diferenca
-     * aparece na conta de quem dimensiona o pool. */
+    /* Profundidade da fila, em objetos. Potencia de dois; capacidade util e
+     * profundidade-1. Ver README.md secao 4.1. */
     unsigned profundidade;
 };
 
-/* Potencia de dois? Exigencia do rte_ring, conferida aqui para que o erro saia
- * com a explicacao em vez de sair do DPDK como "invalid argument". */
+/* Exigencia do rte_ring, conferida aqui para que o erro saia com a explicacao
+ * em vez de sair do DPDK como "invalid argument". */
 static int potencia_de_dois(unsigned n)
 {
     return n != 0 && (n & (n - 1)) == 0;
 }
 
-/* TAXA DE MISS DO CACHE DO MEMPOOL, POR LCORE.
- *
- * `get_common_pool_bulk` conta as vezes em que o cache nao tinha objetos e foi
- * preciso ir ao anel compartilhado -- e isso e exatamente o "mempool cache
- * miss" de que a release note do 26.07 fala. Nao e miss de cache de CPU, e
- * contador da biblioteca: nao depende de PMU.
- *
- * Os contadores sao POR LCORE, e e isso que expoe a assimetria: numa topologia
- * de pipeline um lcore so faz get e outro so faz put. */
+/* Taxa de acerto do cache do mempool, por lcore. Ver README.md secao 4.3. */
 static void relatar_mempool(const struct rte_mempool *mp)
 {
 #ifdef RTE_LIBRTE_MEMPOOL_STATS
@@ -95,22 +74,13 @@ static void relatar_mempool(const struct rte_mempool *mp)
     printf("  lcore  %10s %10s %7s  %10s %10s %7s\n",
            "get_bulk", "get_common", "miss%", "put_bulk", "put_common", "flush%");
     for (id = 0; id <= RTE_MAX_LCORE; id++) {
-        /* OS CONTADORES VIVEM EM DOIS LUGARES, e confundi-los zera o estudo.
-         *
-         * Quando ha cache por lcore, os gets/puts bem-sucedidos sao contados
-         * DENTRO do cache (`local_cache[id].stats`) -- tanto os servidos do
-         * cache quanto os servidos apos recarga. As idas ao anel
-         * compartilhado ficam em `mp->stats[id]`. A taxa de miss e a razao
-         * entre os dois.
-         *
-         * Com cache_size = 0 nao ha cache: tudo vai para `mp->stats[id]`. */
+        /* Os contadores vivem em dois lugares. Ver README.md secao 4.3. */
         uint64_t g, pu;
         const uint64_t gc = mp->stats[id].get_common_pool_bulk;
         const uint64_t pc = mp->stats[id].put_common_pool_bulk;
 
-        /* `stats[]` tem RTE_MAX_LCORE + 1 entradas -- a ultima e das threads
-         * nao-EAL. `local_cache[]` tem RTE_MAX_LCORE. Ler a ultima posicao no
-         * vetor errado devolve lixo, e lixo aqui e um estudo inteiro errado. */
+        /* `stats[]` tem RTE_MAX_LCORE + 1 entradas; `local_cache[]` tem
+         * RTE_MAX_LCORE. Delimitar o indice e obrigatorio. Ver secao 4.3. */
         if (mp->cache_size != 0 && mp->local_cache != NULL && id < RTE_MAX_LCORE) {
             g = mp->local_cache[id].stats.get_success_bulk;
             pu = mp->local_cache[id].stats.put_bulk;
@@ -168,10 +138,8 @@ static int parse_config(int argc, char **argv, struct config *cfg)
                         " (rte_ring requirement); got %u\n", cfg->profundidade);
         return -1;
     }
-    /* A fila precisa caber um lote inteiro, senao o produtor nunca consegue
-     * enfileirar e o programa gira sem avancar ate o prazo de progresso. Recusar
-     * aqui e melhor que descobrir depois de 5 s de nada. A capacidade util e
-     * profundidade-1, dai o `<=`. */
+    /* Invariante 2 do README.md secao 4.1: a fila precisa caber um lote
+     * inteiro. Capacidade util e profundidade-1, dai o `<=`. */
     if (cfg->profundidade <= cfg->burst) {
         fprintf(stderr, "Invalid parameters: -q %u cannot hold a batch of %u"
                         " (usable capacity is depth-1)\n",
@@ -190,22 +158,11 @@ struct consumer_context {
     unsigned burst;
     uint64_t target;
     struct summary r;
-    /* Pedido de parada, escrito pelo produtor e lido pelo consumidor.
-     *
-     * Existe porque a espera limitada precisa encerrar os DOIS lados: sem isto,
-     * o produtor desistiria por prazo e `rte_eal_wait_lcore` ficaria esperando
-     * para sempre um consumidor que nunca alcanca o alvo. Desistir de um lado
-     * so nao e desistir: e travar noutro lugar. */
+    /* Pedido de parada, escrito pelo produtor e lido pelo consumidor. A
+     * terminacao e pedida, nao imposta. Ver README.md secao 6.5. */
     volatile int parar;
-    /* Maior lote REALMENTE desenfileirado de uma vez.
-     *
-     * Existe por causa de um defeito do TESTE, nao do programa: o runner L2
-     * conferia `grep "Lote (burst): 64"`, que imprime o valor PEDIDO. Um mutante
-     * que ignorasse `cfg.burst` e processasse de um em um continuava anunciando
-     * 64, e o teste passava. O parametro ecoado nao e evidencia de uso.
-     *
-     * Este contador nao pode ser falsificado pelo eco: so chega a 64 se uma
-     * chamada tiver movido 64 objetos. */
+    /* Maior lote REALMENTE desenfileirado de uma vez. O parametro ecoado nao
+     * e evidencia de uso. Ver README.md secao 5.2. */
     unsigned maior_deq;
 } __rte_cache_aligned;
 
@@ -330,14 +287,9 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    /* Pool de objetos fixos, alocado no nó NUMA do lcore principal.
-     *
-     * 4095 = 2^12 - 1, e isso é OTIMIZAÇÃO, não exigência da API: qualquer n
-     * funciona. A documentação de rte_mempool_create diz que "the optimum size
-     * (in terms of memory usage) for a mempool is when n is a power of two
-     * minus one", porque o anel interno é dimensionado em potência de dois e um
-     * elemento fica reservado para distinguir cheio de vazio. Pedir 4096
-     * gastaria o dobro de anel para caber um objeto a mais. */
+    /* Pool de objetos fixos, alocado no no NUMA do lcore principal. O 4095 e
+     * recomendacao de uso de memoria, nao exigencia da API. Ver README.md
+     * secao 4.1. */
     const unsigned pool_objs = 4095;
     struct rte_mempool *pool = rte_mempool_create(
         "pool_pacotes", pool_objs, sizeof(struct packet),
@@ -365,14 +317,10 @@ int main(int argc, char **argv)
 #endif
     struct summary r = {0, 0};
     uint64_t produced = 0, did_not_fit = 0;
-    /* Maiores lotes REALMENTE movidos, produtor e consumidor. Ver o comentario
-     * em `struct consumer_context`: o valor PEDIDO nao prova uso. */
+    /* Maiores lotes REALMENTE movidos, produtor e consumidor. Ver secao 5.2. */
     unsigned maior_enq = 0, maior_deq_local = 0;
-    /* Espera limitada: quanto tempo se aceita SEM PROGRESSO antes de desistir.
-     *
-     * O relogio so anda quando nada avanca. Qualquer pacote produzido ou
-     * consumido rearma o prazo, entao uma execucao lenta nao e confundida com
-     * uma parada -- que e a diferenca entre demorar e travar. */
+    /* Espera limitada: tempo aceito SEM PROGRESSO. O relogio so anda quando
+     * nada avanca. Ver README.md secao 4.2. */
     const uint64_t prazo_ciclos = cfg.progresso_ms
                                       ? cfg.progresso_ms * (rte_get_tsc_hz() / 1000ULL)
                                       : 0;
@@ -439,16 +387,8 @@ int main(int argc, char **argv)
 #ifndef DPDK_ACADEMY_INJECT_LEAK
                 rte_mempool_put_bulk(pool, (void *const *)&burst_prod[enq], n - enq);
 #else
-                /* VAZAMENTO DELIBERADO, compilado só na variante de teste.
-                 *
-                 * Existe porque o invariante do pool, verificado no fim de
-                 * main(), precisa de um teste NEGATIVO: uma verificação que
-                 * nunca falhou é indistinguível de uma que nunca dispara. A
-                 * variante `pipeline_ring_vazado` remove esta devolução e o
-                 * teste L2 exige que o programa detecte e saia com erro.
-                 *
-                 * É também o exercício 3 do README deste tópico, agora
-                 * automatizado em vez de sugerido ao leitor. */
+                /* VAZAMENTO DELIBERADO, compilado so na variante de teste.
+                 * Injecao de defeito; ver README.md secao 5.1. */
 #endif
                 did_not_fit += n - enq;
             }
@@ -464,12 +404,8 @@ int main(int argc, char **argv)
                 rte_mempool_put_bulk(pool, (void *const *)burst_cons, deq);
             }
 #else
-            /* CONSUMIDOR PARADO DE PROPOSITO, compilado so na variante de teste.
-             *
-             * Existe porque a espera limitada, como o invariante do pool,
-             * precisa de um teste NEGATIVO: um prazo que nunca estourou e
-             * indistinguivel de um prazo que nunca e conferido. Mesma razao do
-             * `pipeline_ring_vazado`. */
+            /* CONSUMIDOR PARADO DE PROPOSITO, compilado so na variante de
+             * teste. Injecao de defeito; ver README.md secao 5.1. */
 #endif
         }
 
@@ -490,15 +426,9 @@ int main(int argc, char **argv)
     }
 
     if (two_cores) {
-        /* O PRAZO VALE TAMBEM PARA A ESPERA, e isto nao e detalhe.
-         *
-         * Com dois lcores o produtor sai do laco assim que termina de produzir
-         * -- ele nunca chega a estourar o prazo. Quem pode travar e a espera
-         * pelo consumidor, e era exatamente ali que `rte_eal_wait_lcore`
-         * esperava para sempre por um alvo que nao vinha.
-         *
-         * Espera limitada que cobre so metade do programa nao e espera
-         * limitada. */
+        /* O prazo vale tambem para a espera: com dois lcores quem pode
+         * bloquear e `rte_eal_wait_lcore`, nao o laco do produtor.
+         * Ver README.md secao 6.5. */
         if (prazo_ciclos && !sem_progresso) {
             uint64_t visto = ctx.r.packets, desde = rte_rdtsc();
             while (ctx.r.packets < cfg.num_packets) {
@@ -512,8 +442,7 @@ int main(int argc, char **argv)
                 rte_pause();
             }
         }
-        /* Pede a parada ANTES de esperar. Sem isto, desistir por prazo deixaria
-         * o consumidor girando ate alcancar um alvo que nunca chega. */
+        /* Pede a parada ANTES de esperar. Ver README.md secao 6.5. */
         if (sem_progresso)
             ctx.parar = 1;
         rte_eal_wait_lcore(lcore_consumer);
@@ -541,10 +470,7 @@ int main(int argc, char **argv)
     else
         printf("Mode: 1 lcore (%u), producer and consumer interleaved\n", rte_lcore_id());
     /* DRENAGEM: o que ficou no anel volta ao pool antes de qualquer relato.
-     *
-     * Sem isto, desistir por prazo deixaria objetos presos no anel e o
-     * invariante do pool acusaria vazamento -- um defeito inventado pela
-     * propria desistencia. Encerrar sob falha nao autoriza encerrar sujo. */
+     * Ver README.md secao 6.5. */
     uint64_t descartados = 0;
     if (sem_progresso) {
         void *sobra[BURST_MAX];
@@ -573,17 +499,9 @@ int main(int argc, char **argv)
                MIN_TO_MEASURE);
     }
 
-    /* O INVARIANTE DO TÓPICO, verificado pelo próprio programa.
-     *
-     * Antes, quem verificava isto era o teste L2, procurando a substring
-     * "4095 de 4095" na saída. Uma revisão externa apontou o problema: um
-     * teste que casa texto valida a MENSAGEM, não a propriedade. Mudar o
-     * formato do printf quebraria o teste sem que nada estivesse errado; e,
-     * pior, um vazamento acompanhado de mudança de formato passaria despercebido.
-     *
-     * A verificação agora vive aqui, onde o dado está, e o programa sai com
-     * código diferente de zero se falhar. O teste L2 passa a conferir o código
-     * de saída — que é o contrato — e usa o texto apenas para diagnóstico. */
+    /* O INVARIANTE DO TOPICO, verificado aqui, onde o dado esta. O contrato
+     * com a suite e o codigo de saida, nao a mensagem. Ver README.md
+     * secao 5.2. */
     const unsigned free_objs = rte_mempool_avail_count(pool);
     const int intact = (free_objs == pool_objs);
     if (!intact)
@@ -595,13 +513,8 @@ int main(int argc, char **argv)
     rte_ring_free(ring);
     rte_mempool_free(pool);
     rte_eal_cleanup();
-    /* Tres desfechos distintos, e a distincao e o ponto:
-     *   0  correu e o pool fechou
-     *   1  INVARIANTE VIOLADO -- objeto sumiu, defeito de posse
-     *   3  SEM PROGRESSO -- prazo estourado, pool devolvido inteiro
-     *
-     * Usar 1 para os dois faria "travou" e "vazou" indistinguiveis para a
-     * suite, e sao problemas diferentes com causas diferentes. */
+    /* Tres desfechos distintos: 0 integro, 1 invariante violado, 3 sem
+     * progresso. Ver README.md secao 6.5. */
     if (!intact)
         return EXIT_FAILURE;
     return sem_progresso ? 3 : EXIT_SUCCESS;

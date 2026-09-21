@@ -8,7 +8,7 @@
     "trilha/04-projeto-final/README.md"
   ],
   "limites": "Tabelas Markdown e blocos numericos nas oito paginas listadas. Nao abrange todos os numeros em prosa nem verifica automaticamente sua origem.",
-  "total": 103,
+  "total": 108,
   "entradas": [
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -621,17 +621,52 @@
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
-      "linha": 318,
+      "linha": 261,
+      "secao": "4.1 A estrutura de configuração e seus invariantes",
+      "tipo": "tabela_markdown",
+      "sha256": "30d35849775c5f13a392977037179771b64ff2f13af0fe6668b85f4ddc039528"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 295,
+      "secao": "Três grandezas em potência de dois, com estatutos distintos",
+      "tipo": "tabela_markdown",
+      "sha256": "5f533a189cc40b504b3c71094e3b5878230e8d0f1067e511b1a923e2f1d34502"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 350,
+      "secao": "4.3 Contabilização do cache do mempool",
+      "tipo": "tabela_markdown",
+      "sha256": "ae4692f2ced213b86b4f80c79a626cb4b581037bd8db1f7462c98efb07498897"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 414,
+      "secao": "5.1 Injeção de defeito: verificar que a verificação dispara",
+      "tipo": "tabela_markdown",
+      "sha256": "3ad3025c7bfd8ab007445c75e4f45e96279ef440e8f385d9dd14b4d536f2b66f"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 488,
       "secao": "6.2 O experimento",
       "tipo": "bloco_numerico",
       "sha256": "27751c9cc7d865695fd1436b9f2385f634d45f35e7ea4b19633ecd766207a8c2"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
-      "linha": 336,
+      "linha": 506,
       "secao": "6.3 O que a medição mostra",
       "tipo": "tabela_markdown",
       "sha256": "0058bbf18087412664a388b067e945e5995f2f44331334d0a9d931c17398b17a"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 591,
+      "secao": "Códigos de saída",
+      "tipo": "tabela_markdown",
+      "sha256": "8d2fe43b6dd11f29e32297129535dc3b9e09f1998a2bd57ee3c314051ce9ef25"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
