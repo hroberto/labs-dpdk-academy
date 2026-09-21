@@ -58,8 +58,9 @@ else
        suite : ['l1', 'nivel4'], timeout : 30)
 endif
 
-test('03-nivel4 - L2 (custo de alocacao)', custo_alocacao,
-     args : ['-l', '0', '--no-huge', '--file-prefix=academy_custo_alocacao'],
+test('03-nivel4 - L2 (custo de alocacao)', bash,
+     args : [files('../../../scripts/tests/com-limpeza.sh'), 'academy_custo_alocacao', custo_alocacao,
+             '-l', '0', '--no-huge'],
      suite : ['l2', 'nivel4'], timeout : 300)
 
 # --- Variante com AMOSTRA INVALIDA DELIBERADA, para o teste negativo ------
@@ -101,8 +102,9 @@ pool_esgotado = executable(
   include_directories : [nivel4_inc, estatistica_inc],
   install : false,
 )
-test('03-nivel4 - L2 (pool esgotado e regra 4)', pool_esgotado,
-     args : ['-l', '0', '--no-huge', '--file-prefix=academy_pool_esgotado'],
+test('03-nivel4 - L2 (pool esgotado e regra 4)', bash,
+     args : [files('../../../scripts/tests/com-limpeza.sh'), 'academy_pool_esgotado', pool_esgotado,
+             '-l', '0', '--no-huge'],
      suite : ['l2', 'nivel4'], timeout : 60)
 
 anatomia_mbuf = executable(
@@ -114,8 +116,8 @@ anatomia_mbuf = executable(
   install : false,
 )
 
-test('03-nivel4 - L2 (anatomia do mbuf)', anatomia_mbuf,
-     args : ['-l', '0', '--no-huge', '--file-prefix=academy_anatomia_mbuf'],
+test('03-nivel4 - L2 (anatomia do mbuf)', bash,
+     args : [files('tests/l2_anatomia.sh'), anatomia_mbuf],
      suite : ['l2', 'nivel4'], timeout : 120)
 
 custo_anel = executable(
@@ -127,8 +129,9 @@ custo_anel = executable(
   install : false,
 )
 
-test('03-nivel4 - L2 (custo do anel)', custo_anel,
-     args : ['-l', '0', '--no-huge', '--file-prefix=academy_custo_anel'],
+test('03-nivel4 - L2 (custo do anel)', bash,
+     args : [files('../../../scripts/tests/com-limpeza.sh'), 'academy_custo_anel', custo_anel,
+             '-l', '0', '--no-huge'],
      suite : ['l2', 'nivel4'], timeout : 300)
 
 # --- O regime em que o mempool ganha: contenção entre núcleos --------------

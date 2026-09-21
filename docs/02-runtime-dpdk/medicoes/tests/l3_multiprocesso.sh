@@ -37,6 +37,7 @@ SAIDA_S=$(mktemp) || exit 1
 pid_primario=""
 
 limpar() {
+    rc_original=$?
     [ -n "$pid_primario" ] && kill "$pid_primario" 2>/dev/null
     wait "$pid_primario" 2>/dev/null
     rm -f "$SAIDA_P" "$SAIDA_S"
@@ -46,8 +47,13 @@ limpar() {
     # e ate 21/09/2026 a limpeza so olhava /dev/hugepages: cada execucao com a
     # hugepage de teste montada deixava um arquivo de 2 MB para tras.
     [ -n "${DPDK_ACADEMY_HUGE_DIR:-}" ] && rm -f "${DPDK_ACADEMY_HUGE_DIR}/${PREFIXO}"* 2>/dev/null
-    # `return 0` porque isto roda em `trap ... EXIT`: com a variavel vazia o
-    # teste acima falha e o status da funcao viraria o status do script.
+    # A limpeza confere o proprio resultado. Sem isto, a remocao acima poderia
+    # voltar a olhar o diretorio errado e a suite continuaria verde.
+    if ! conferir_sem_residuo "$PREFIXO"; then
+        [ "$rc_original" -eq 0 ] && exit 1
+    fi
+    # `return 0` preserva o status original quando ele ja era de falha: quem
+    # decide o veredito e o teste, nao a limpeza.
     return 0
 }
 trap limpar EXIT

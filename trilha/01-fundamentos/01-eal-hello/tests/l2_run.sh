@@ -17,6 +17,12 @@
 #
 # Uso: l2_run.sh <caminho-do-binario>
 set -u
+
+# O DPDK NAO REMOVE O DIRETORIO DE RUNTIME do --file-prefix ao encerrar, e
+# ate 21/09/2026 nenhum runner L2 removia: 97 diretorios acumulados em
+# /run/user/<uid>/dpdk/, cada um com config e os fbarray, em tmpfs. O sufixo
+# e o PID DESTE script, entao o glob nao alcanca execucao alheia.
+trap 'rm -rf "${XDG_RUNTIME_DIR:-/var/run}"/dpdk/academy_*_$$' EXIT
 BIN=${1:?uso: l2_run.sh <caminho-do-binario>}
 # `--no-huge` com prefixo proprio, e NAO `--in-memory --no-huge`.
 #

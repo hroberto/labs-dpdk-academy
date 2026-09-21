@@ -139,8 +139,9 @@ endif
 # sem depender de uma opção que não é portável.
 test(
   '02-runtime - L2 (custo de init)',
-  custo_init,
-  args : ['-l', '0', '--no-huge', '--file-prefix=academy_custo_init'],
+  bash,
+  args : [files('../../../scripts/tests/com-limpeza.sh'), 'academy_custo_init', custo_init,
+          '-l', '0', '--no-huge'],
   suite : ['l2', 'runtime'],
   timeout : 300,
 )
@@ -166,8 +167,9 @@ test(
 
 test(
   '02-runtime - L2 (estados do lcore)',
-  estado_lcore,
-  args : ['-l', '0-1', '--no-huge', '--file-prefix=academy_estado_lcore'],
+  bash,
+  args : [files('../../../scripts/tests/com-limpeza.sh'), 'academy_estado_lcore', estado_lcore,
+          '-l', '0-1', '--no-huge'],
   suite : ['l2', 'runtime'],
   timeout : 120,
 )

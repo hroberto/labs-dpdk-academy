@@ -57,8 +57,11 @@ import sys
 
 # Prefixos de --file-prefix usados pelos testes e pelos comandos publicados.
 # Um arquivo em hugetlbfs que comece por um destes e nosso.
-PREFIXOS = ("academia", "topico", "alocacao", "anel", "mbuf", "esgotado",
-            "contencao", "producao", "feed", "pipeline", "rte_")
+# "academia" cobre os runners L3; "academy_session_" e o do feed-supervisor.py,
+# que NAO casa com "academia" -- a primeira versao desta lista deixava o
+# supervisor de fora e teria perdido um vazamento dele.
+PREFIXOS = ("academia", "academy", "topico", "alocacao", "anel", "mbuf",
+            "esgotado", "contencao", "producao", "feed", "pipeline", "rte_")
 
 PADRAO_JORNAL = re.compile(
     r"segfault|general protection|traps:|oom-kill|Out of memory|"
