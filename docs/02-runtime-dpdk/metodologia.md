@@ -103,7 +103,7 @@ A travessia entre processos é medida com o produtor carimbando cada tick com
 `rte_rdtsc()` e o consumidor lendo. O instrumento tem um piso:
 
 ```
-  resolucao do instrumento: 11.8 ns (uma sondagem do consumidor)
+  instrument resolution: 11.9 ns (one consumer poll)
 ```
 
 **Nenhum valor abaixo disso significa alguma coisa.** O consumidor só observa o

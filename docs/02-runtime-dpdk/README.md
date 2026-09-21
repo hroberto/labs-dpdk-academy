@@ -650,25 +650,35 @@ imediatamente antes de publicá-lo; o consumidor lê o carimbo e o compara com o
 mil ticks, produtor no lcore 0 e consumidor no lcore 1:
 
 ```
-  --- travessia entre processos, por tick (nanossegundos) ---
+  --- cross-process traversal, per tick (nanoseconds) ---
 
-  medicao                           minimo   mediana       p75       p99  amostras
+  measurement                      minimum    median       p75       p99  samples
   ------------------------------ --------- --------- --------- ---------  -------
-  publicacao -> observacao           10.02     20.04     30.06     40.08   200000
+  publication -> observation         10.02     20.04     30.06    110.21   200000
 
-    resolucao do instrumento: 11.8 ns (uma sondagem do consumidor).
-    amostras degeneradas: 0 de 200000 (TSC alinhado entre os dois nucleos)
-    Os valores acima sao LIMITE SUPERIOR: entre duas sondagens o
-    consumidor esta cego, entao a travessia real cabe dentro do
-    ultimo passo. Diferencas menores que 11.8 ns nao sao mensuraveis aqui.
+    instrument resolution: 11.9 ns (one consumer poll).
+    degenerate samples: 0 of 200000 (TSC aligned across the two cores)
+    The values above are an UPPER BOUND: between two polls the
+    consumer is blind, so the real traversal fits inside the
+    last step. Differences smaller than 11.9 ns are not measurable here.
 ```
 
-**Dez nanossegundos no melhor caso, quarenta no p99.** Para dimensionar: o
-orçamento de um pacote de 64 B em 10 GbE é de 67,2 ns
+**Dez nanossegundos no melhor caso, cento e dez no p99 desta execução.** Para
+dimensionar: o orçamento de um pacote de 64 B em 10 GbE é de 67,2 ns
 ([§1 dos fundamentos](../01-fundamentos/README.md#1-o-orçamento-quanto-tempo-existe-por-pacote)).
-A travessia de processo consome de 15% a 60% desse orçamento — cara o bastante
-para não ser feita por pacote sem pensar, barata o bastante para viabilizar a
-separação entre *feed handler* e estratégia, que é o que se ganha em troca.
+O mínimo consome 15% desse orçamento; o p99 desta execução consome **1,6
+orçamentos inteiros**.
+
+> **E o p99 é o número menos estável da tabela.** Nas seis repetições
+> arquivadas ele vale 50,1 / 110,2 / 60,1 / 59,9 / 60,1 / 60,1 ns — a execução
+> publicada acima é a mais alta das seis. O mínimo e a mediana praticamente não
+> se mexem (10,0 e 20,0 a 30,1 ns); a cauda varia por um fator de 2,2. Isso não
+> é defeito da coleta: é a propriedade que torna a cauda cara de dimensionar, e
+> a razão de o projeto publicar percentis em vez de média.
+
+Cara o bastante para não ser feita por pacote sem pensar, barata o bastante para
+viabilizar a separação entre *feed handler* e estratégia, que é o que se ganha
+em troca — desde que o dimensionamento use a cauda, não o mínimo.
 
 Três observações metodológicas, e a terceira é a que impede uma conclusão errada:
 
@@ -686,7 +696,7 @@ programa conta esses casos e publica a contagem: **0 de 200 000**.
 **Todos os valores são múltiplos de ~10 ns, e isso não é coincidência.** O
 consumidor descobre um tick novo ao *sondar*; entre duas sondagens ele está cego.
 O passo dessa régua é o custo de uma iteração do laço de espera — que o programa
-mede e publica: 11,8 ns, dominado por [`rte_pause()`][apipause], que nesta CPU
+mede e publica: 11,9 ns, dominado por [`rte_pause()`][apipause], que nesta CPU
 custa cerca de 55 ciclos. Ou seja, a tabela diz "o tick foi visto na 1ª, 2ª, 3ª ou
 4ª sondagem depois de publicado", e os valores são **limite superior** da
 travessia real.

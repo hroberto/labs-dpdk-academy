@@ -157,12 +157,12 @@ EXTRA_EAL=${DPDK_ACADEMY_HUGE_DIR:+--huge-dir=$DPDK_ACADEMY_HUGE_DIR}
 pid_primario=$!
 
 for _ in $(seq 1 100); do
-    grep -q "aguardando o assinante conectar" "$SAIDA_P" 2>/dev/null && break
+    grep -q "waiting for the subscriber to connect" "$SAIDA_P" 2>/dev/null && break
     kill -0 "$pid_primario" 2>/dev/null || break
     sleep 0.2
 done
 
-if grep -q "EAL nao inicializou" "$SAIDA_P" 2>/dev/null; then
+if grep -q "EAL did not initialise" "$SAIDA_P" 2>/dev/null; then
     sed 's/^/    | /' "$SAIDA_P"
     falhar "a EAL nao subiu, e o requisito de hugetlbfs ja fora apurado"
 fi
@@ -178,7 +178,7 @@ fi
 pid_secundario=$!
 
 for _ in $(seq 1 100); do
-    grep -qE "endereco virtual|processo secundario|tipo de processo" "$SAIDA_S" 2>/dev/null && break
+    grep -qE "virtual address|secondary process" "$SAIDA_S" 2>/dev/null && break
     kill -0 "$pid_secundario" 2>/dev/null || break
     sleep 0.2
 done
@@ -218,7 +218,7 @@ if [ "$vivo" -eq 0 ]; then
     check "secundario NAO detectou a morte apos ${ESPERA_S}s: segue esperando" 0
     ! grep -qiE "primario morreu|produtor ausente|conexao perdida|primary died|producer (absent|missing)|connection lost|peer.*(dead|gone)" "$SAIDA_S"
     check "secundario nao emitiu nenhum aviso de produtor ausente" $?
-    ! grep -q "ticks aceitos" "$SAIDA_S"
+    ! grep -q "ticks accepted" "$SAIDA_S"
     check "secundario nao concluiu: ficou no laco 'while (lidos < total)'" $?
 
     kill -9 "$pid_secundario" 2>/dev/null

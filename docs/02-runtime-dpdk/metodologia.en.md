@@ -102,7 +102,7 @@ is part of the exercise, not a courtesy suggestion.
 
 The cross-process crossing is measured with the producer stamping each tick with
 `rte_rdtsc()` and the consumer reading it. The instrument has a floor, and the
-program prints it next to the result: **11.8 ns, one consumer poll**.
+program prints it next to the result: **11.9 ns, one consumer poll**.
 
 **No value below that means anything.** The consumer only observes the tick when
 it polls; the interval between polls is the granularity of what it can

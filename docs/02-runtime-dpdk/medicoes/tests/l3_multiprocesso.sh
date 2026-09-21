@@ -147,12 +147,12 @@ pid_primario=$!
 # O secundário só pode subir depois de o primário ter criado os arquivos de
 # runtime. Em vez de dormir um tempo fixo, espera o sinal no próprio log.
 for _ in $(seq 1 100); do
-    grep -q "aguardando o assinante conectar" "$SAIDA_P" 2>/dev/null && break
+    grep -q "waiting for the subscriber to connect" "$SAIDA_P" 2>/dev/null && break
     kill -0 "$pid_primario" 2>/dev/null || break
     sleep 0.2
 done
 
-if grep -q "EAL nao inicializou" "$SAIDA_P" 2>/dev/null; then
+if grep -q "EAL did not initialise" "$SAIDA_P" 2>/dev/null; then
     sed 's/^/    | /' "$SAIDA_P"
     falhar "a EAL nao subiu, e o requisito de hugetlbfs ja fora apurado"
 fi
@@ -176,7 +176,7 @@ wait "$pid_primario"
 rc_primario=$?
 pid_primario=""
 
-if grep -q "EAL nao inicializou\|nao apareceu" "$SAIDA_S" 2>/dev/null && [ $rc_secundario -ne 0 ]; then
+if grep -q "EAL did not initialise\|never appeared" "$SAIDA_S" 2>/dev/null && [ $rc_secundario -ne 0 ]; then
     sed 's/^/    | /' "$SAIDA_S"
     falhar "o secundario nao conseguiu se anexar a memoria do primario"
 fi
@@ -185,32 +185,32 @@ fi
 check "primario encerrou com codigo 0" "$([ $rc_primario -eq 0 ]; echo $?)"
 check "secundario encerrou com codigo 0" "$([ $rc_secundario -eq 0 ]; echo $?)"
 
-grep -q "tipo de processo\|processo secundario" "$SAIDA_S"
+grep -q "secondary process" "$SAIDA_S"
 check "secundario se identificou como secundario" $?
 
 # O mesmo endereço virtual dos dois lados é a propriedade central do modelo:
 # é o que permite que estruturas em memória compartilhada sejam lidas como
 # estruturas normais, sem tradução de offset.
-end_p=$(grep -m1 "endereco virtual" "$SAIDA_P" | awk '{print $4}')
-end_s=$(grep -m1 "endereco virtual" "$SAIDA_S" | awk '{print $4}')
+end_p=$(grep -m1 "virtual address" "$SAIDA_P" | awk '{print $4}')
+end_s=$(grep -m1 "virtual address" "$SAIDA_S" | awk '{print $4}')
 [ -n "$end_p" ] && [ "$end_p" = "$end_s" ]
 check "memzone no mesmo endereco virtual nos dois processos ($end_p / $end_s)" $?
 
-grep -q "ticks aceitos ........... $TOTAL" "$SAIDA_S"
+grep -q "ticks accepted .......... $TOTAL" "$SAIDA_S"
 check "secundario aceitou os $TOTAL ticks publicados" $?
 
 # O produtor injeta lacunas de sequência; o consumidor precisa contar as mesmas.
-inj=$(grep -m1 "lacunas de sequencia injetadas" "$SAIDA_P" | grep -o '[0-9]\+' | head -1)
-det=$(grep -m1 "lacunas detectadas" "$SAIDA_S" | grep -o '[0-9]\+' | head -1)
+inj=$(grep -m1 "sequence gaps injected" "$SAIDA_P" | grep -o '[0-9]\+' | head -1)
+det=$(grep -m1 "gaps detected" "$SAIDA_S" | grep -o '[0-9]\+' | head -1)
 [ -n "$inj" ] && [ "$inj" = "$det" ]
 check "lacunas detectadas ($det) batem com as injetadas ($inj)" $?
 
-grep -q "publicacao -> observacao" "$SAIDA_S"
+grep -q "publication -> observation" "$SAIDA_S"
 check "latencia de travessia entre processos foi medida" $?
 
 # Livro cruzado (melhor compra >= melhor venda) e estado impossivel em mercado.
 # Ja apareceu aqui, por misturar papeis num livro so: e uma trava contra a volta.
-grep -q "livros cruzados ......... 0" "$SAIDA_S"
+grep -q "crossed books ........... 0" "$SAIDA_S"
 check "nenhum livro cruzado" $?
 
 # Encerramento ordenado: o primario e dono da memoria e do socket de controle,

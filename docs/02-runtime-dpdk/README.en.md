@@ -641,25 +641,35 @@ before publishing it; the consumer reads the stamp and compares it with its own 
 Two hundred thousand ticks, producer on lcore 0 and consumer on lcore 1:
 
 ```
-  --- crossing between processes, per tick (nanoseconds) ---
+  --- cross-process traversal, per tick (nanoseconds) ---
 
-  measurement                       minimum  median        p75       p99  samples 
+  measurement                      minimum    median       p75       p99  samples
   ------------------------------ --------- --------- --------- ---------  -------
-  publish -> observe                 10.02     20.04     30.06     40.08   200000
+  publication -> observation         10.02     20.04     30.06    110.21   200000
 
-    instrument resolution: 11.8 ns (one consumer poll).
+    instrument resolution: 11.9 ns (one consumer poll).
     degenerate samples: 0 of 200000 (TSC aligned across the two cores)
     The values above are an UPPER BOUND: between two polls the
-    the consumer is blind, so the real crossing fits inside the
-    last step. Differences under 11.8 ns are not measurable here.
+    consumer is blind, so the real traversal fits inside the
+    last step. Differences smaller than 11.9 ns are not measurable here.
 ```
 
-**Ten nanoseconds in the best case, forty at p99.** For scale: the budget of a 64 B
-packet on 10 GbE is 67.2 ns
+**Ten nanoseconds in the best case, one hundred and ten at this run's p99.** For
+scale: the budget of a 64 B packet on 10 GbE is 67.2 ns
 ([§1 of the fundamentals](../01-fundamentos/README.en.md#1-the-budget-how-much-time-exists-per-packet)).
-The process crossing consumes 15% to 60% of that budget — expensive enough not to be
-done per packet without thinking, cheap enough to make the separation between *feed
-handler* and strategy viable, which is what you get in return.
+The minimum consumes 15% of that budget; this run's p99 consumes **1.6 whole
+budgets**.
+
+> **And the p99 is the least stable number in the table.** Across the six archived
+> repetitions it is 50.1 / 110.2 / 60.1 / 59.9 / 60.1 / 60.1 ns — the run published
+> above is the highest of the six. The minimum and the median barely move (10.0 and
+> 20.0 to 30.1 ns); the tail varies by a factor of 2.2. This is not a flaw in the
+> collection: it is the property that makes the tail expensive to size for, and the
+> reason this project publishes percentiles rather than means.
+
+Expensive enough not to be done per packet without thinking, cheap enough to make
+the separation between *feed handler* and strategy viable, which is what you get in
+return — provided the sizing uses the tail, not the minimum.
 
 Three methodological observations, and the third is the one that prevents a wrong
 conclusion:
@@ -677,7 +687,7 @@ publishes the count: **0 of 200 000**.
 **All the values are multiples of ~10 ns, and that is no coincidence.** The consumer
 discovers a new tick by *polling*; between two polls it is blind. That ruler's step is
 the cost of one iteration of the wait loop — which the program measures and publishes:
-11.8 ns, dominated by [`rte_pause()`][apipause], which on this CPU costs about 55
+11.9 ns, dominated by [`rte_pause()`][apipause], which on this CPU costs about 55
 cycles. That is, the table says "the tick was seen at the 1st, 2nd, 3rd or 4th poll
 after being published", and the values are an **upper bound** on the real crossing.
 

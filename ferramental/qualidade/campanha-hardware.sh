@@ -70,10 +70,39 @@ B3=build-precommit/docs/03-mempool-ring-mbuf/medicoes
 ninja -C build-precommit >/dev/null 2>&1 || { echo "build falhou" >&2; exit 1; }
 PROGS="custo-syscall custo-comunicacao custo-mckenney efeito-cache custo-espera custo-paralelismo custo-traducao orcamento-estourado rajada-nasdaq tlb-real"
 
-# feed-primario/feed-secundario ficam de FORA: exigem memoria compartilhada
-# real, e /dev/hugepages e root:root 755 nesta maquina. A propria suite de
-# testes ja pula os runners multiprocesso pelo mesmo motivo. Ausencia
-# declarada e melhor que coleta invalida.
+# O PAR DO FEED EXIGE HUGETLBFS GRAVAVEL, e por isso e condicional.
+#
+# feed-primario/feed-secundario sao o unico caso do projeto que precisa de
+# memoria compartilhada REAL: --in-memory desliga o suporte a secundario e
+# --no-huge usa memoria anonima que o outro processo nao mapeia. Em muitas
+# distribuicoes /dev/hugepages e root:root 755, e entao a coleta e impossivel
+# sem privilegio.
+#
+# Prepare antes com:  sudo ./scripts/preparar-hugepages.sh
+# e exporte DPDK_ACADEMY_HUGE_DIR. Sem a variavel a campanha segue sem o feed e
+# DIZ isso no diario -- ausencia declarada e melhor que coleta invalida, mas
+# silencio nao e nenhum dos dois.
+#
+# O supervisor pode precisar de mais de uma tentativa: o secundario recusa
+# publicar veredito valido se qualquer amostra sair degenerada, e a sessao
+# reinicia em nova geracao. Arquivamos a sessao que CONCLUIU.
+corre_feed() { # <rodada>
+    [ -n "${DPDK_ACADEMY_HUGE_DIR:-}" ] || return 0
+    local t; t=$(mktemp -d)
+    python3 ./scripts/feed-supervisor.py --primary "$B2/feed-primario" \
+        --secondary "$B2/feed-secundario" --huge-dir "$DPDK_ACADEMY_HUGE_DIR" \
+        --output "$t" --ticks 200000 >/dev/null 2>&1
+    local d; d=$(ls -d "$t"/session-* 2>/dev/null | tail -1)
+    if [ -n "$d" ]; then
+        cp "$d/secondary.txt" "$D2/feed-secundario.r$1.txt"
+        cp "$d/primary.txt"   "$D2/feed-primario.r$1.txt"
+        echo "  feed r$1: $(basename "$d")" >> "$D/diario.txt"
+cat "$D/diario.txt.tmp" >> "$D/diario.txt" 2>/dev/null; rm -f "$D/diario.txt.tmp"
+    else
+        echo "  feed r$1: SEM SAIDA" >> "$D/diario.txt"
+    fi
+    rm -rf "$t"
+}
 corre2() { # <rodada>
     "$B2/custo-init"    -l 0 --in-memory                    > "$D2/custo-init.in-memory.r$1.txt" 2>&1
     "$B2/custo-init"    -l 0 --no-huge                      > "$D2/custo-init.no-huge.r$1.txt"   2>&1
@@ -88,6 +117,7 @@ corre3() { # <rodada>
 
 ./scripts/ambiente.sh > "$D/ambiente.txt"
 cp "$D/ambiente.txt" "$D2/ambiente.txt"; cp "$D/ambiente.txt" "$D3/ambiente.txt"
+echo "feed: ${DPDK_ACADEMY_HUGE_DIR:-AUSENTE (par primario/secundario nao coletado)}" >> "$D/diario.txt.tmp"
 echo "inicio: $(date -Is)  carga: $(cut -d' ' -f1-3 /proc/loadavg)  uptime: $(uptime -p)" > "$D/diario.txt"
 for r in 0 1 2 3 4 5; do
     [ $r -eq 0 ] && rot="aquecimento(descartado)" || rot="rodada$r"
@@ -95,6 +125,7 @@ for r in 0 1 2 3 4 5; do
     for p in $PROGS; do ./$B/$p > "$D/${p}.r${r}.txt" 2>&1; done
     corre2 "$r"
     corre3 "$r"
+    corre_feed "$r"
 done
 echo "fim: $(date -Is)  carga: $(cut -d' ' -f1-3 /proc/loadavg)" >> "$D/diario.txt"
 
