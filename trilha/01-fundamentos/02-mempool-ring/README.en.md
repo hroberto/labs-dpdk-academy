@@ -223,13 +223,15 @@ not depend on it to be tested. That is what makes the L1 test possible.
 Expected output (omitting the `EAL:` lines):
 
 ```
+Configured per-lcore cache: 64
 Packets processed: 10
 Total bytes: 695
 Batch (burst): 32 | objects that did not fit in the queue: 0
 Largest batch actually moved: enqueued 10, dequeued 10
 Mode: 1 lcore (0), producer and consumer interleaved
 Free objects in the pool at the end: 4095 of 4095
-Mean time: 77.1 ns/packet  <- NOT A MEASUREMENT
+mempool cache stats: UNAVAILABLE (DPDK built without RTE_LIBRTE_MEMPOOL_STATS)
+Mean time: 51.1 ns/packet  <- NOT A MEASUREMENT
   10 packets are far too few: the cost of reading the clock is of the same
   order as the work measured. Use -n 10000 or more for a defensible number.
 ```
@@ -258,6 +260,121 @@ program that prints a number it cannot support teaches the reader to trust numbe
 that cannot be supported — which is why the threshold is in the code, and not only in
 the text. The number with meaning is in section 3, and it requires a large `-n`.
 
+### 4.1 The configuration structure and its invariants
+
+The program's execution state resides in `struct config`, populated by
+`parse_config()` from the command line and treated as immutable from then on.
+Its fields are the following:
+
+| Field | Type | Semantics | Default |
+|---|---|---|---|
+| `num_packets` | `uint64_t` | total packets to process | 10 |
+| `burst` | `unsigned` | objects per batch call; bounded by `BURST_MAX` | 32 |
+| `cache_size` | `unsigned` | per-lcore mempool cache | 64 |
+| `progresso_ms` | `uint64_t` | deadline without progress, in ms; 0 disables | 0 |
+| `profundidade` | `unsigned` | ring slots | 1024 |
+
+Three invariants apply to these fields, checked before any allocation. Checking
+early is deliberate: all three violations would manifest late and with symptoms
+that do not point at the cause.
+
+**Invariant 1 — `profundidade` is a power of two.** `rte_ring_create()` imposes
+this restriction in the absence of the `RING_F_EXACT_SZ` flag, because the ring
+derives its index mask from the depth. The violation is detected by DPDK, which
+reports it as `invalid argument` without identifying which argument;
+`potencia_de_dois()` brings the diagnosis forward.
+
+**Invariant 2 — `profundidade > burst`.** The usable capacity of an `rte_ring`
+is the depth **minus one**: one slot stays reserved to distinguish the full
+state from the empty one. A queue unable to hold a complete batch does not
+degrade the producer's throughput; it prevents it from enqueuing at all. The
+program makes no progress, and the symptom is the deadline of section 6.5
+expiring several seconds later, with no apparent relation to the configuration
+that caused it.
+
+**Invariant 3 — `burst` within `[1, BURST_MAX]` and `num_packets > 0`.**
+`BURST_MAX` sizes the automatic arrays of both loops; exceeding it would corrupt
+the stack.
+
+#### Three power-of-two quantities with distinct statuses
+
+Three numbers in the program share the same form and obey different regimes. The
+distinction is not terminological: each one fails in its own way.
+
+| Quantity | Status | Origin of the restriction |
+|---|---|---|
+| pool size (4095) | recommendation | optimal memory usage |
+| ring depth | **requirement** | index mask derivation |
+| usable capacity | consequence | slot reserved for full/empty |
+
+The pool size is not constrained by the API: `rte_mempool_create()` accepts any
+`n`. The value 4095 = 2¹² − 1 follows the recommendation in the
+[mempool programmer's guide][guiamempool], according to which memory consumption
+is optimal when `n` is a power of two minus one. The reason is structural: the
+pool maintains an internal ring, sized to a power of two, which reserves one
+element. A pool of 4096 objects requires a ring of 8192 slots — twice the
+control memory to accommodate one additional object.
+
+Usable capacity is the most frequent source of error of the three, being the
+only one that produces no immediate failure. A depth of 1024 provides 1023
+slots. Sizing a pool from the ring depth without the decrement produces an
+off-by-one whose observable effect is the producer blocking at a point the
+arithmetic did not predict.
+
+### 4.2 Runtime parameters and the impossibility of measuring constants
+
+Three of the five fields of `struct config` used to be constants in the source.
+Their conversion into runtime parameters follows a single criterion: **a
+quantity whose optimal value depends on the environment cannot be measured while
+it remains a literal.**
+
+`cache_size` is the illustrative case. Sizing the per-lcore cache depends on how
+`get` and `put` operations are distributed among lcores, and that distribution is
+determined by the execution topology: with `-l 0`, producer and consumer
+alternate on the same lcore and both operations hit the same cache; with
+`-l 0,2`, one lcore performs `get` exclusively and the other `put` exclusively.
+The two regimes have distinct optima, and neither is observable with the value
+fixed at 64.
+
+`progresso_ms` defines a deadline **without progress**, not an execution
+deadline. The timer is rearmed on every packet produced or consumed and advances
+only during the absence of movement. The distinction is necessary because a
+total execution deadline does not separate two operationally distinct states: a
+slow execution and a blocked one. Section 6.5 covers its implementation.
+
+### 4.3 Mempool cache accounting
+
+The `mempool cache stats: UNAVAILABLE` line in the output above indicates absent
+instrumentation, not failure: the counters are compiled conditionally under
+`RTE_LIBRTE_MEMPOOL_STATS`. When present, the `get_common_pool_bulk` counter
+records the operations in which the per-lcore cache was empty and the object had
+to be obtained from the common ring. It is a library counter, not a hardware
+event: reading it depends neither on the PMU nor on `perf_event_paranoid`
+permissions.
+
+**Accounting is distributed across two structures.** The split is not
+prominently documented and is the origin of a silent misreading:
+
+| Structure | Operations recorded |
+|---|---|
+| `mp->local_cache[id].stats` | `get`/`put` served — from the cache or after a refill |
+| `mp->stats[id]` | accesses to the common ring |
+
+The hit rate is the ratio between the two. Reading `mp->stats[id]` alone with
+the cache active returns zeros, indistinguishable from a regime with no access
+to the common ring at all. With `cache_size` equal to zero there is no local
+cache, and every operation is recorded in `mp->stats[id]`.
+
+**The two arrays have different dimensions.** `stats[]` has `RTE_MAX_LCORE + 1`
+entries — the last one for non-EAL threads — while `local_cache[]` has
+`RTE_MAX_LCORE`. Accessing the last slot of the wrong array is not detected at
+run time and returns adjacent memory interpreted as a counter.
+`relatar_mempool()` bounds the index before the access.
+
+The counters are kept per lcore. Under the pipeline topology, in which each
+lcore performs only one of the two roles, the asymmetry between `get` and `put`
+is observable in the per-lcore breakdown and would disappear in an aggregate.
+
 ### Exercises
 
 1. Run with `-n 5000000 -b 1` and then `-n 5000000 -b 128`, and compare with section
@@ -268,6 +385,8 @@ the text. The number with meaning is in section 3, and it requires a large `-n`.
 2. Increase to `-n 1000000`. Is the pool still intact?
 3. **Provoke the bug:** comment out the [`rte_mempool_put_bulk`][apiputbulk] on the
    partial-return path and run with `-b 256`. What happens to the pool's final count?
+   (Section 5.1 describes the automated form of this exercise: a binary derived
+   from the same source that the suite builds and requires to fail.)
 4. Why is the total 695 bytes and not 690? (Hint: look at `pacote_processar`.)
 
 ## 5. Validation
@@ -289,6 +408,57 @@ semantic one.
 [EAL][cEAL]. The central assertion is the pool's integrity after ~25 cycles of
 complete reuse (100 000 packets with 4095 objects). No L1 test could detect this: the
 leak only exists at runtime.
+
+### 5.1 Fault injection: verifying that the check fires
+
+An assertion that has never failed and an assertion that is never evaluated
+produce the same record in the suite. Telling them apart requires a case in
+which the assertion **must** fail, and that case does not arise spontaneously in
+correct code: it has to be constructed.
+
+The topic's `meson.build` builds, from the same source file, two binaries with a
+fault injected by macro:
+
+| Binary | Macro | Injected fault | Property verified |
+|---|---|---|---|
+| `pipeline_ring_vazado` | `DPDK_ACADEMY_INJECT_LEAK` | suppresses the partial-return give-back | pool integrity |
+| `pipeline_ring_pausado` | `DPDK_ACADEMY_INJECT_PAUSE` | suppresses consumption | deadline without progress |
+
+Choosing a macro over a duplicated source preserves the essential property of
+the technique: both binaries derive from the same text as the correct binary and
+diverge from it in exactly one construct. A copied source would diverge through
+maintenance, and the negative test would then exercise code that no longer
+corresponds to the program.
+
+The suite requires both to **fail**. Section 6.4 describes the precondition that
+the leak case imposes before accusing.
+
+### 5.2 The contract is the exit code, not the message
+
+In an earlier version, the L2 test verified pool integrity by the presence of
+the string `4095 de 4095` on standard output. An external review identified the
+defect: **string matching validates the message, not the property.** There are
+two consequences, and the second is the serious one:
+
+1. a change to the `printf` format would break the test with no defect in the
+   program;
+2. a leak accompanied by a format change would go unnoticed.
+
+The invariant check was moved into `main()`, where the data resides, and the
+program now exits with a non-zero code on violation. The L2 test checks the exit
+code, which constitutes the contract, and uses the text only for diagnosis.
+
+The same defect appeared in a second assertion. The runner checked for the
+presence of `Lote (burst): 64` to confirm batch processing, a string that echoes
+the **requested** value. An implementation ignoring `cfg.burst` and processing
+objects one at a time would keep announcing 64, and the assertion would keep
+passing. The program now publishes the largest batch actually moved, a counter
+that only reaches 64 if some call has transferred 64 objects.
+
+> **An echoed parameter is not evidence of use.** The generalization holds
+> beyond this program: any output that reproduces its input is a property of the
+> configuration, not of the behaviour, and a test checking it is checking the
+> argument parser.
 
 ## 6. When it goes wrong
 
@@ -322,15 +492,17 @@ The topic compiles the **same source** twice. `pipeline_ring_vazado` is
 ```
 
 ```
-INVARIANT VIOLATED: 1533 of 4095 objects in the pool at the end. 2562 object(s) leaked: some return path did not give back to the pool.
+INVARIANT VIOLATED: 1534 of 4095 objects in the pool at the end. 2561 object(s) leaked: some return path did not give back to the pool.
+Configured per-lcore cache: 64
 Packets processed: 2000000
 Total bytes: 161000000
-Batch (burst): 256 | objects that did not fit in the queue: 2562
+Batch (burst): 256 | objects that did not fit in the queue: 2561
 Largest batch actually moved: enqueued 256, dequeued 256
 Mode: 2 lcores (producer 0, consumer 2)
-Free objects in the pool at the end: 1533 of 4095
-Mean time: 3.0 ns/packet
-Frequency of lcore 0: 4.32 GHz (the time above varies with it)
+Free objects in the pool at the end: 1534 of 4095
+mempool cache stats: UNAVAILABLE (DPDK built without RTE_LIBRTE_MEMPOOL_STATS)
+Mean time: 2.8 ns/packet
+Frequency of lcore 0: 4.89 GHz (the time above varies with it)
 ```
 
 ### 6.3 What the measurement shows
@@ -359,7 +531,7 @@ invariant checked in the output** — and that is why it exists.
 correct binary:
 
 ```
-Batch (burst): 256 | objects that did not fit in the queue: 1019654
+Batch (burst): 256 | objects that did not fit in the queue: 1001346
 Free objects in the pool at the end: 4095 of 4095
 ```
 
@@ -392,6 +564,48 @@ queue.
 > not the **policy**: the packet that did not fit still has not been sent. Choosing
 > between dropping, blocking or pushing the pressure back is the subject of the
 > [batching and backpressure topic](../../02-pipeline/02-batching-backpressure/).
+
+### 6.5 Termination under failure
+
+The deadline without progress introduces a termination path that did not exist
+in the original program, and handling it correctly involves three operations the
+initial implementation did not contain.
+
+**The wait is under the deadline too.** In the two-lcore topology the producer
+leaves its loop as soon as it finishes producing; it is not the one that can
+block. The potential block is in `rte_eal_wait_lcore()`, waiting for a consumer
+that does not reach its target. An implementation whose deadline covers only the
+producer loop is not a bounded wait: it moves the block to the next line.
+
+**Termination is requested, not imposed.** `struct consumer_context` holds the
+field `volatile int parar`, written by the producer and read by the consumer on
+every iteration. The producer asserts it **before** entering the wait. Without
+it, giving up on the deadline would leave the consumer spinning after an
+unreachable target.
+
+**The ring is drained before reporting.** Objects retained in the ring at the
+moment of giving up belong to the pool and have not yet returned to it. Without
+the drain, the invariant checked in `main()` would report a leak produced by the
+act of giving up itself — a defect absent from the program, introduced by its
+own error handling. Terminating under failure does not authorize terminating in
+an inconsistent state.
+
+#### Exit codes
+
+The program distinguishes three outcomes, and the distinction is the very point:
+
+| Code | Condition | Pool state |
+|---|---|---|
+| 0 | execution completed | intact |
+| 1 | invariant violated — object disappeared | incomplete |
+| 3 | deadline expired without progress | intact, after draining |
+
+Assigning code 1 to both failure cases would make *blocked* and *leaked*
+indistinguishable to the suite. They are failure modes with disjoint causes: the
+first is an object-ownership defect, the second is an absence of progress with
+ownership preserved. The suite has to be able to state which of the two
+occurred without resorting to text inspection — for the reason set out in
+section 5.2.
 
 ## 7. Limitations
 

@@ -41,7 +41,11 @@ import sys
 # o material movido para eles SAIU do alcance desta auditoria. Mover conteudo
 # de lugar nao pode tirar cobertura: e a mesma falha do bit de execucao e do
 # nome `inventariar-*`, agora pela terceira vez.
-DOCS = sorted(str(p) for p in pathlib.Path('docs').rglob('*.md'))
+# A trilha entra pelo mesmo motivo: ela publica afirmacao de mecanismo e
+# numero medido, e estava fora do glob -- sete dos seus doze READMEs nao
+# definem fonte alguma, e nada apontava isso porque nada olhava.
+DOCS = sorted(str(p) for raiz in ('docs', 'trilha')
+              for p in pathlib.Path(raiz).rglob('*.md'))
 # As secoes de tabela sao reconhecidas pelo TITULO, nao pelo numero. A primeira
 # versao trazia {"10", "13", "14"}, que e a numeracao do modulo 01, e por isso
 # declarava "0 fontes remotas" nos modulos 02 e 03 -- onde as tabelas de

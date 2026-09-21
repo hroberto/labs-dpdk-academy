@@ -365,6 +365,8 @@ maquinaria que a faz parecer cara existe para atravessar essa ponte.
 |---|---|
 | [`packet.hpp`](packet.hpp) | lógica pura, `constexpr`, testável |
 | [`packet_pipeline.cpp`](packet_pipeline.cpp) | montagem do pipeline |
+| [`custo-anel-cpp.cpp`](custo-anel-cpp.cpp) | o anel em C++23, para a linha do nível 2 |
+| [`controle-anel.cpp`](controle-anel.cpp) | o **controle** da comparação de nível 2 — ver §5.1 |
 
 ```bash
 ./build/trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/packet_pipeline -n 10
@@ -391,6 +393,75 @@ mesmo teste parametrizado sobre tamanhos de lote.
 Quando as duas suítes passam com as mesmas asserções, fica demonstrado que a
 diferença entre as abordagens é de **arquitetura e custo**, não de
 comportamento. Sem isso, a comparação seria retórica.
+
+### 5.1 O controle, e o que ele impede de concluir
+
+A linha de nível 2 da tabela da §3 compara o anel do DPDK com o anel em C++23 e
+conclui a favor do DPDK. A conclusão só se sustenta se as duas medições
+diferirem em **uma** coisa — a implementação do anel — e não em duas.
+
+Elas diferiam em duas. O lado DPDK publica em **lote**, com
+`rte_ring_enqueue_burst`; o lado C++ publicava **por objeto**. Uma diferença de
+desempenho entre os dois seria atribuível à biblioteca ou à estratégia de
+publicação, sem que os números dissessem qual.
+
+[`controle-anel.cpp`](controle-anel.cpp) separa os dois efeitos. Ele mantém
+fixos o anel (`academy::SpscRing`), o *payload* e a verificação de integridade,
+e varia apenas dois fatores, de forma cruzada:
+
+| Fator | Valores | Posição na linha de comando |
+|---|---|---|
+| publicação | por objeto / por lote | 1º argumento, 0 ou 1 |
+| colocação | um núcleo / dois núcleos | 3º e 4º argumentos |
+
+Os cinco argumentos posicionais são, em ordem: publicação em lote, tamanho do
+lote, CPU do produtor, CPU do consumidor e número de amostras. Uma execução do
+braço "em lote, dois núcleos":
+
+```bash
+./build/trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/controle-anel 1 128 2 4 25
+```
+
+A saída é CSV, uma linha por amostra, com a primeira passagem descartada como
+aquecimento. Duas decisões do programa merecem nota, porque ambas existem para
+impedir que um resultado bonito seja publicado por engano:
+
+- **A integridade é verificada a cada objeto.** O consumidor confere `id` e
+  `checksum` contra o valor esperado, e qualquer divergência aborta a amostra.
+  Um anel que perde ou duplica objetos é mais rápido que um anel correto.
+- **Há prazo de cinco segundos.** Uma combinação de fatores que não progride
+  encerra com código diferente de zero, em vez de produzir uma linha de CSV
+  tardia que entraria na tabela como se fosse medição.
+
+> **O que o controle transfere.** Toda comparação entre duas implementações
+> carrega o risco de variar mais de um fator ao mesmo tempo. O instrumento que
+> resolve não é mais amostras — é um desenho **cruzado**, em que cada fator é
+> variado com o outro fixo. Sem ele, o resultado é real e a explicação é
+> arbitrária. É a mesma distinção entre problema estatístico e problema
+> experimental que o
+> [módulo 01](../../../../../docs/01-fundamentos/README.md#91-as-quatro-escalas-de-dispersão-e-o-que-cada-uma-não-alcança)
+> registra: mais amostras não corrigem um desenho que confunde dois efeitos.
+
+### 5.2 O fonte que o portão não via
+
+Este programa esteve na árvore, até 15/09/2026, **sem registro em nenhum
+`meson.build`** — e não compilava: chamava `enqueue_burst` e `dequeue_burst`,
+que já não existiam em `packet.hpp`.
+
+A causa tem nome: um `git filter-branch` faz *checkout* ao terminar, e a API de
+lote nunca chegara a ser commitada. O `git log` de `packet.hpp` tinha um commit
+apenas. O código foi recuperado de
+[`scripts/tests/fixtures/controle-anel/`](../../../../../scripts/tests/fixtures/controle-anel/),
+que congela as fontes da campanha com o SHA256 de cada uma no manifesto — e,
+depois da recuperação, o `packet.hpp` da árvore voltou a bater byte a byte com o
+declarado, tornando a medição publicada reproduzível a partir da **árvore**, e
+não apenas do *fixture*.
+
+> **Um fonte que nenhum `meson.build` referencia não entra no portão de "build
+> limpo, zero avisos".** O portão anuncia que conferiu, e não conferiu. Essa é
+> a forma mais silenciosa de um controle de qualidade falhar: não é um alarme
+> perdido, é um alarme que nunca foi armado. Compilar é barato; descobrir tarde
+> não é.
 
 ## 6. Limitações
 

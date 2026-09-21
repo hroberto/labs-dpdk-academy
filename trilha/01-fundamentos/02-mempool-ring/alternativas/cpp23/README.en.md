@@ -368,6 +368,8 @@ that makes the other look expensive exists to cross that bridge.
 |---|---|
 | [`packet.hpp`](packet.hpp) | pure logic, `constexpr`, testable |
 | [`packet_pipeline.cpp`](packet_pipeline.cpp) | assembly of the pipeline |
+| [`custo-anel-cpp.cpp`](custo-anel-cpp.cpp) | the ring in C++23, for the level-2 row |
+| [`controle-anel.cpp`](controle-anel.cpp) | the **control** for the level-2 comparison — see §5.1 |
 
 ```bash
 ./build/trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/packet_pipeline -n 10
@@ -394,6 +396,75 @@ parameterised test over batch sizes.
 When both suites pass with the same assertions, it is demonstrated that the
 difference between the approaches is one of **architecture and cost**, not of
 behaviour. Without that, the comparison would be rhetorical.
+
+### 5.1 The control, and what it prevents concluding
+
+The level-2 row of the table in §3 compares DPDK's ring with the C++23 ring and
+concludes in favour of DPDK. The conclusion only holds if the two measurements
+differ in **one** thing — the ring implementation — and not in two.
+
+They differed in two. The DPDK side publishes in **batches**, with
+`rte_ring_enqueue_burst`; the C++ side published **per object**. A performance
+difference between them would be attributable either to the library or to the
+publication strategy, with the numbers unable to say which.
+
+[`controle-anel.cpp`](controle-anel.cpp) separates the two effects. It holds the
+ring (`academy::SpscRing`), the payload and the integrity check fixed, and
+varies only two factors, crossed:
+
+| Factor | Values | Position on the command line |
+|---|---|---|
+| publication | per object / per batch | 1st argument, 0 or 1 |
+| placement | one core / two cores | 3rd and 4th arguments |
+
+The five positional arguments are, in order: batch publication, batch size,
+producer CPU, consumer CPU and sample count. One run of the "batched, two
+cores" arm:
+
+```bash
+./build/trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/controle-anel 1 128 2 4 25
+```
+
+The output is CSV, one line per sample, with the first pass discarded as warm-up.
+Two decisions in the program deserve note, because both exist to prevent a
+pretty result from being published by mistake:
+
+- **Integrity is checked on every object.** The consumer verifies `id` and
+  `checksum` against the expected value, and any divergence aborts the sample. A
+  ring that loses or duplicates objects is faster than a correct one.
+- **There is a five-second deadline.** A combination of factors that makes no
+  progress exits non-zero, rather than producing a late CSV line that would
+  enter the table as though it were a measurement.
+
+> **What the control transfers.** Every comparison between two implementations
+> carries the risk of varying more than one factor at a time. The instrument
+> that fixes it is not more samples — it is a **crossed** design, in which each
+> factor is varied with the other held fixed. Without it, the result is real and
+> the explanation is arbitrary. It is the same distinction between a statistical
+> problem and an experimental one that
+> [module 01](../../../../../docs/01-fundamentos/README.en.md#91-the-four-scales-of-dispersion-and-what-each-one-cannot-reach)
+> records: more samples do not fix a design that confounds two effects.
+
+### 5.2 The source the gate could not see
+
+Until 2026-09-15 this program sat in the tree **with no entry in any
+`meson.build`** — and did not compile: it called `enqueue_burst` and
+`dequeue_burst`, which no longer existed in `packet.hpp`.
+
+The cause has a name: a `git filter-branch` performs a checkout when it
+finishes, and the batch API had never been committed. The `git log` for
+`packet.hpp` had a single commit. The code was recovered from
+[`scripts/tests/fixtures/controle-anel/`](../../../../../scripts/tests/fixtures/controle-anel/),
+which freezes the campaign's sources with the SHA256 of each in its manifest —
+and after the recovery the tree's `packet.hpp` matched the declared hash byte
+for byte, making the published measurement reproducible from the **tree** rather
+than only from the fixture.
+
+> **A source that no `meson.build` references does not enter the "clean build,
+> zero warnings" gate.** The gate announces that it checked, and it did not.
+> That is the quietest way for a quality control to fail: it is not a missed
+> alarm, it is an alarm that was never armed. Compiling is cheap; finding out
+> late is not.
 
 ## 6. Limitations
 

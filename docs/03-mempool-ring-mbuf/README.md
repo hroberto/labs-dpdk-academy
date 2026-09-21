@@ -187,6 +187,164 @@ em que a diferença é menor.
 
 ---
 
+### 1.4 Quando o modelo de execução muda o dimensionamento
+
+O DPDK 26.07 alterou o algoritmo de recarga e descarga do cache do mempool. A
+nota de versão declara duas coisas: o campo `flushthresh` ficou obsoleto, e o
+tamanho **efetivo** do cache passou a corresponder ao solicitado — antes era
+cerca de 50% maior. A orientação que acompanha a mudança é que, em aplicações
+onde um lcore só obtém e outro só devolve, convém **dobrar** o cache
+configurado.
+
+A pergunta que este experimento faz não é "o 26.07 ficou mais rápido". É:
+
+> A mudança altera a relação entre `cache_size` e desempenho de forma
+> **diferente** conforme o modelo de execução?
+
+#### O desenho
+
+O [`pipeline_ring`](../../trilha/01-fundamentos/02-mempool-ring/pipeline_ring.c)
+já implementa as duas topologias sem alteração: com `-l 0`, produtor e consumidor
+se alternam no mesmo lcore e as duas operações incidem sobre o mesmo cache; com
+`-l 0,2`, um lcore só faz `get` e o outro só faz `put`.
+
+| Elemento | Valor |
+|---|---|
+| fatorial | 2 versões × 2 topologias |
+| varredura interna | `cache_size` ∈ {16, 24, 32, 48, 64, 96, 128, 256, 512} |
+| controle | `cache_size` = 0, que **desliga** o cache em vez de dimensioná-lo |
+| repetições | 6 por célula, 240 execuções |
+| métrica | taxa de miss do cache, contador da biblioteca |
+
+**A coleta é intercalada**, e isso é condição de validade, não estilo: as duas
+versões de uma mesma célula correm adjacentes e a ordem das células é permutada
+a cada repetição. Braços em blocos confundem o efeito com deriva de estado da
+máquina — foi assim que, numa campanha anterior deste mesmo estudo, uma
+diferença de 0,70 ns por pacote virou 0,15 ns ao ser reproduzida intercalada.
+
+**A métrica é contador da biblioteca**, não evento de hardware: não depende do
+PMU, que nesta máquina está bloqueado. Ela conta as vezes em que o cache por
+lcore não tinha objetos e foi preciso ir ao anel comum.
+
+#### Topologia simétrica: o efeito é invisível, menos em um ponto
+
+| `cache_size` | 25.11 | 26.07 |
+|---:|---:|---:|
+| 0 (controle) | 100,00% | 100,00% |
+| 16 | 100,00% | 100,00% |
+| **24** | **0,00%** | **100,00%** |
+| 32 a 512 | 0,00% | 0,00% |
+
+Em nove das dez linhas as duas versões são indistinguíveis. Na décima, a
+diferença é total — e é ela que expõe o mecanismo.
+
+O lote deste experimento é de **32 objetos**. Um cache incapaz de servir um
+lote inteiro cai no anel comum **em toda** operação, o que dá 100% de miss:
+é o que se vê em `cache_size` = 16 nas duas versões. Em `cache_size` = 32 e
+acima, ambas servem, e o miss vai a zero.
+
+O `cache_size` = 24 é o único ponto do intervalo em que as duas versões
+discordam, e a discordância segue exatamente o que a nota de versão declara: com
+o tamanho efetivo cerca de 50% maior, 24 solicitados davam algo em torno de 36
+utilizáveis no 25.11 — acima do lote de 32, portanto suficiente. No 26.07, 24
+solicitados são 24, abaixo do lote, e o cache deixa de servir.
+
+> **A fronteira está delimitada, não fixada.** A varredura tem 16 e 24, e o
+> ponto de virada do 25.11 cai entre eles — `32 / 1,5 ≈ 21,3`. Fixá-lo exigiria
+> passo mais fino, que este experimento não tem. O que está demonstrado é a
+> existência da fronteira e o lado de cada versão.
+
+#### Topologia assimétrica: a diferença existe em toda a faixa
+
+| `cache_size` | 25.11 | 26.07 | diferença |
+|---:|---:|---:|---:|
+| 0 (controle) | 100,00% | 100,00% | — |
+| 16 | 100,00% | 100,00% | — |
+| 24 | 61,25% | 100,00% | +38,75 |
+| 32 | 34,57% | 60,03% | +25,46 |
+| 48 | 26,11% | 60,83% | +34,73 |
+| 64 | 16,36% | 61,88% | +45,52 |
+| 96 | 14,06% | 36,80% | +22,74 |
+| 128 | 10,59% | 30,80% | +20,22 |
+| 256 | 6,38% | 15,29% | +8,91 |
+| 512 | 3,32% | 8,32% | +5,00 |
+
+Aqui não há ponto isolado: o 26.07 tem taxa de miss maior em **todos** os
+tamanhos, e a diferença só se fecha quando o cache cresce o bastante para que os
+dois regimes fiquem folgados.
+
+#### As três hipóteses, e o que aconteceu com cada uma
+
+As hipóteses foram registradas **antes** da coleta. Reportar apenas as
+confirmadas anularia a razão de registrá-las.
+
+| Hipótese | Enunciado | Desfecho |
+|---|---|---|
+| 1 | em workload assimétrico, `cache_size = N` no 26.07 terá miss maior que no 25.11 | **confirmada**, em toda a faixa |
+| 2 | `cache_size = 2N` no 26.07 recupera o comportamento do 25.11 | **refutada** |
+| 3 | em workload simétrico o efeito será menor ou ausente | **refutada pelo detalhe** |
+
+**A segunda é a que contraria a orientação do upstream.** Dobrando o cache no
+26.07 e comparando com o 25.11 no valor original:
+
+| 25.11 | 26.07 com o dobro | recupera? |
+|---|---|---|
+| `c=32` → 34,57% | `c=64` → 61,88% | não |
+| `c=48` → 26,11% | `c=96` → 36,80% | não |
+| `c=64` → 16,36% | `c=128` → 30,80% | não |
+| `c=256` → 6,38% | `c=512` → 8,32% | não |
+
+Dobrar melhora — `c=64` no 26.07 é melhor que `c=32` no 26.07 — mas **não
+alcança** o 25.11 no valor original, em nenhum par. A orientação não é falsa;
+ela é insuficiente para este workload.
+
+**A terceira foi refutada de um jeito mais interessante do que se confirmada
+fosse.** O efeito no caso simétrico não é "menor": é **ausente em toda a faixa e
+total num ponto**. Uma conclusão de que "no simétrico não muda nada" seria
+verdadeira em nove medições de dez e faria o leitor escolher `cache_size` = 24
+sem saber que atravessou uma fronteira.
+
+#### O caso assimétrico também é menos estável no 26.07
+
+A dispersão entre as seis repetições, no assimétrico, separa as versões:
+
+| `cache_size` | amplitude 25.11 | amplitude 26.07 |
+|---:|---:|---:|
+| 32 | 0,95 | 6,42 |
+| 48 | 0,78 | 4,68 |
+| 64 | 0,94 | 17,51 |
+| 96 | 0,66 | 17,12 |
+| 128 | 2,30 | 4,00 |
+| 512 | 0,62 | 0,67 |
+
+O 25.11 fica abaixo de um ponto percentual em quase toda a faixa. O 26.07 chega
+a 17 pontos de amplitude em `c=64` e `c=96` — as mesmas células onde a curva
+forma um patamar em vez de descer. **Isto é leitura, não resultado:** a causa
+não foi investigada, e atribuí-la ao algoritmo novo sem medir seria exatamente o
+tipo de conclusão que este material recusa.
+
+#### O que este experimento não autoriza
+
+- **Não há medida de tempo.** Os dois DPDK foram construídos com
+  `RTE_LIBRTE_MEMPOOL_STATS`, cujo contador é atualizado no caminho quente: o
+  programa medido não é o programa de produção. A afirmação do upstream é sobre
+  taxa de miss, e é a ela que este experimento responde — nem mais, nem menos. O
+  elo entre miss e tempo fica por medir.
+- **O workload é um pipeline de dois estágios com um anel.** Aplicações reais
+  têm mais estágios e mais anéis, e a orientação do upstream pode ser suficiente
+  em topologias que este programa não representa.
+- **O braço do 25.11 é um build novo**, feito por
+  [`scripts/preparar-dpdk.sh`](../../scripts/preparar-dpdk.sh), e não o pacote da
+  distribuição usado no histórico anterior. Esta é campanha nova, não
+  continuação.
+
+A coleta está em
+[`medicoes/historico/2026-09-21-mempool-cache-intercalada/`](medicoes/historico/2026-09-21-mempool-cache-intercalada/),
+com a saída bruta de cada uma das 240 execuções e a procedência que o programa
+imprime — versão do DPDK, commit, host, compilador e data.
+
+---
+
 ## 2. O mbuf: quatro números que parecem redundantes
 
 O [`rte_mbuf`][guiambuf] é a estrutura que carrega um pacote. Ela foi prometida
@@ -359,6 +517,229 @@ que sobra não é mais o preço da generalidade.
 > medido é a inversão; a causa fica declarada como limitação, não como
 > resultado.
 
+### 3.1 Onde os ciclos são gastos: reservar e publicar
+
+A tabela acima diz *quanto*. Esta seção diz *o quê* — e quem responde é o
+código compilado, não a documentação.
+
+O anel é um buffer circular limitado com **dois pares head/tail**, um por lado.
+Uma operação acontece em três tempos:
+
+    1. RESERVAR   avança a head do próprio lado, ganhando um intervalo de posições
+    2. escrever   os elementos, sem coordenação — o intervalo já é seu
+    3. PUBLICAR   avança a tail, tornando visível o que foi escrito
+
+A separação entre reservar e publicar é o que permite a dois produtores
+escreverem **ao mesmo tempo** em intervalos distintos. E é dela que nasce a
+diferença entre SP e MP.
+
+> **Qual implementação este material descreve.** O `rte_ring_elem_pvt.h`
+> escolhe entre duas por `#ifdef RTE_USE_C11_MEM_MODEL`. Neste build o macro
+> **não** está definido, então o binário medido usa `rte_ring_generic_pvt.h` —
+> barreiras explícitas — e não o caminho C11, que expressa o mesmo algoritmo
+> com `memory_order`. Os dois existem e são equivalentes em garantia; o que
+> segue descreve o que **esta** máquina executou.
+
+A reserva é literalmente um `if` ([`rte_ring_generic_pvt.h`][ringgen]):
+
+```c
+if (is_st) {
+    d->head = *new_head;                    /* SP: store comum */
+    success = 1;
+} else
+    success = rte_atomic32_cmpset(          /* MP: CAS de 32 bits */
+            (uint32_t *)(uintptr_t)&d->head, ... );
+} while (unlikely(success == 0));           /* ...em laço */
+```
+
+Com um produtor, avançar a head é **um store comum**. Com vários, é um
+*compare-and-swap* num laço: se outro produtor mudou a head entre a leitura e a
+escrita, o CAS falha e a volta recomeça — relendo a tail do outro lado e
+recalculando quantas posições ainda cabem.
+
+A publicação traz a segunda diferença:
+
+```c
+if (enqueue) rte_smp_wmb(); else rte_smp_rmb();
+if (!single)
+    rte_wait_until_equal_32(&ht->tail, old_val, rte_memory_order_relaxed);
+ht->tail = new_val;
+```
+
+**A tail avança em ordem.** Se o produtor B reservou depois do A, não pode
+publicar antes: a tail é um número só, e publicar fora de ordem tornaria
+visível um intervalo ainda em escrita. Então B **espera** a tail alcançar o
+ponto onde a reserva dele começa. O caminho SP não executa essa espera.
+
+Repare que `ht->tail = new_val` é um store comum nos dois modos. A ordenação
+vem da barreira anterior, não do store — e é isso que permite ao consumidor ler
+os **elementos** sem nenhum atômico sobre eles. O custo se concentra nos
+índices, não nos dados.
+
+#### Dois vocabulários para o mesmo algoritmo
+
+O caminho genérico usa **barreiras explícitas**; o caminho C11 usa o modelo de
+memória do C++ e anota as arestas de sincronização com nome. A correspondência
+é o que interessa a quem escreve C ou C++ fora do DPDK:
+
+| genérico (este build) | C11 / [`std::memory_order`][cppmemord] | o que garante |
+|---|---|---|
+| `rte_smp_wmb()` antes de `ht->tail = v` | `store_explicit(&tail, v, release)` | os elementos ficam visíveis **antes** da tail que os anuncia |
+| `rte_smp_rmb()` antes de ler a tail | `load_explicit(&tail, acquire)` | quem vê a tail nova vê também os elementos |
+| `rte_atomic32_cmpset` em laço | `compare_exchange_*(..., release, acquire)` | reserva e sincroniza num passo indivisível |
+
+São duas formas de exprimir a mesma ordem de memória: uma por barreira de
+processador, outra pelo contrato da linguagem. Conhecer as duas é o que permite
+ler código de fila concorrente escrito em qualquer época.
+
+#### O que o binário medido realmente emite
+
+A afirmação de que "o modo MP executa uma instrução atômica" não precisa ficar
+em palavra. Desmontando o binário que produziu a tabela da §3:
+
+```bash
+objdump -d custo-anel | grep 'lock cmpxchg'
+```
+
+Duas das instruções caem exatamente sobre os campos do anel:
+
+```
+lock cmpxchg %r10d,0x80(%rdx)     <- head do produtor
+lock cmpxchg %ecx,0x100(%rdx)     <- head do consumidor
+```
+
+São operandos de **32 bits** (`%r10d`, `%ecx`), coerentes com
+`rte_atomic32_cmpset`, e os deslocamentos correspondem às uniões `prod` e
+`cons` que a `struct rte_ring` declara **alinhadas a linha de cache** e
+separadas por `RTE_CACHE_GUARD` — a mesma defesa contra falso compartilhamento
+que a [§4.2.1 dos fundamentos](../01-fundamentos/README.md#421-falso-compartilhamento-o-erro-mais-comum-de-quem-escreve-plano-de-dados)
+mede.
+
+#### Por que o atômico custa sem ninguém disputando
+
+Os 406% do lote 1 foram medidos **num lcore só**. Não há segundo produtor, o
+CAS nunca falha e o laço roda uma vez.
+
+O que resta é o custo da instrução. O prefixo `f0` que o `objdump` mostra é o
+`lock`: ele torna a operação indivisível sobre a linha de cache e ordena
+acessos à volta dela, haja ou não concorrente. Um store comum não faz nada
+disso.
+
+É o que a frase *"o que se paga não é a contenção; é a possibilidade dela"*
+significa, agora com mecanismo embaixo: o código do modo MP é o mesmo com um
+produtor ou com doze.
+
+> **O que este material não pode afirmar.** Atribuir os ciclos a eventos
+> específicos — tráfego de coerência, custo de barreira, previsão de desvio —
+> exigiria contadores de desempenho. Nesta máquina `perf_event_paranoid = 4`
+> recusa até `cycles,instructions`. O mecanismo acima **explica de forma
+> compatível** o custo observado; não foi medido como causa.
+
+---
+
+### 3.2 Quatro estratégias para o mesmo anel
+
+SP/SC e MP/MC não são o espaço inteiro. A API oferece mais dois modos, e
+percorrê-los mantém constante tudo o que um confronto com outro projeto mudaria
+de uma vez: mesma estrutura, mesmo contrato de fila, mesma implementação.
+
+| modo | reserva da head | avanço da tail | o que troca |
+|---|---|---|---|
+| **SP/SC** | store comum | store comum | nenhuma coordenação — exige a invariante 1P/1C |
+| **MP/MC** | CAS de 32 bits em laço | cada thread avança a sua | **espera** na tail até a vez chegar |
+| **RTS** | CAS de 64 bits (valor + contador) | só a **última** thread avança | troca a espera por um **segundo CAS** |
+| **HTS** | CAS de 64 bits com head e tail **juntas** | junto com a head | **serializa**: só avança se `head == tail` |
+
+Os cabeçalhos declaram a troca. O [`rte_ring_rts.h`][ringrts] descreve o
+mecanismo com um contador de atualizações em cada lado: a tail só avança quando
+`tail.cnt + 1 == head.cnt`, isto é, quando quem termina é o último da fila.
+Isso **elimina o spinning** ao preço de dois CAS de 64 bits por operação,
+contra um CAS de 32 bits mais espera no MP/MC clássico.
+
+O [`rte_ring_hts.h`][ringhts] vai ao extremo oposto: head e tail viram um único
+valor de 64 bits, atualizado por um CAS só, e uma thread só pode mexer na head
+quando `head.value == tail.value`. A fila fica **totalmente serializada** — no
+máximo uma operação em andamento por lado.
+
+A leitura de engenharia é que não existe "o melhor modo", existe **qual
+patologia se quer evitar**:
+
+- o MP/MC clássico sofre quando uma thread é **preemptada entre reservar e
+  publicar** — as que vieram depois ficam presas na espera da tail;
+- o RTS remove essa espera, e paga com mais tráfego atômico em todas as
+  operações, inclusive nas que nunca sofreriam;
+- o HTS troca paralelismo por previsibilidade, e é o modo que sustenta a API de
+  *peek*, justamente por haver no máximo uma operação em curso.
+
+O `rte_ring.h` avisa que **a implementação não é preemptível** e remete ao
+Programmer's Guide. RTS e HTS existem por causa disso: são respostas a cenários
+em que a thread pode perder a CPU no meio da operação — o caso de quem roda com
+mais threads que núcleos.
+
+#### O mesmo problema fora do DPDK
+
+Vale separar o que é API do que é princípio:
+
+| específico do DPDK | transferível para C/C++ |
+|---|---|
+| `rte_ring`, `RING_F_SP_ENQ`, `_bulk`/`_burst` | buffer circular limitado; reservar→publicar |
+| `rte_atomic32_cmpset`, `rte_smp_wmb` | `std::atomic`, release/acquire, RMW, barreiras |
+| RTS, HTS | trocar espera por tráfego atômico; serializar para ganhar previsibilidade |
+| `RTE_CACHE_GUARD` entre `prod` e `cons` | separar por linha de cache o que threads diferentes escrevem |
+
+O [Disruptor][disruptor] resolve o mesmo problema por outro caminho:
+sequenciadores distintos para um ou vários produtores, coordenação por
+**barreiras de sequência** entre consumidores em vez de posse exclusiva, e
+estratégias de espera escolhidas pela aplicação. A comparação interessante não
+é de velocidade — é notar que ele expõe como escolha o que o `rte_ring` fixa no
+modo, e fixa o que o `rte_ring` deixa aberto.
+
+> **Isto é contraponto de design, não competição.** Estruturas com contratos
+> diferentes não se comparam por número: o que uma garante, outra não oferece.
+> Comparar medições só seria legítimo sob condições equivalentes, e demonstrar
+> a equivalência é trabalho **anterior** à medição.
+
+---
+
+### 3.3 O contrafactual: o que custa adotar SP/SC
+
+Medir que SP/SC é mais barato não autoriza usá-lo. A pergunta seguinte é
+arquitetural:
+
+    quero SP/SC
+         ↓
+    que invariante preciso garantir?
+         ↓
+    exatamente um produtor e um consumidor, por anel
+         ↓
+    como a arquitetura muda para garantir isso?
+         ↓
+    um anel por par de participantes, em vez de um anel compartilhado
+         ↓
+    que complexidade isso introduz?
+         ↓
+    N×M anéis, roteamento explícito, balanceamento manual,
+    e uma invariante que o compilador não verifica
+         ↓
+    o ganho medido justifica?
+
+A última pergunta não tem resposta geral, e a tabela da §3 mostra por quê: 406%
+no lote 1, 22% no lote 32. **Se a aplicação já trabalha em lotes grandes, a
+invariante custa caro e rende pouco.** Se processa objeto a objeto, a conta
+inverte.
+
+E vale lembrar o que o lote faz e o que não faz. Ele dilui um custo **fixo**
+sobre mais objetos — não torna a operação mais rápida. É o mesmo efeito que a
+[§4.2 dos fundamentos](../01-fundamentos/README.md#42-cache-e-localidade) mede
+na concorrência de acessos: o custo por unidade cai muitas vezes sem que uma
+única unidade fique mais rápida.
+
+Há ainda um custo que não aparece em nanossegundo: `RING_F_SP_ENQ` é uma
+promessa que o anel não verifica. Quebrá-la não produz erro — produz corrupção
+silenciosa, do mesmo tipo que a §3.4 documenta no retorno do `_burst`.
+
+---
+
 A decisão de engenharia que sai daí:
 
 - **Se você sabe que há um produtor e um consumidor, diga.** `RING_F_SP_ENQ` e
@@ -367,7 +748,7 @@ A decisão de engenharia que sai daí:
 - **Se não sabe, o lote é o antídoto.** MP/MC com lote grande custa o mesmo ou
   menos que SP/SC nesta máquina — a vantagem do SP/SC só existe em lote pequeno.
 
-### 3.1 `_bulk` e `_burst` não são sinônimos
+### 3.4 `_bulk` e `_burst` não são sinônimos
 
 As duas famílias de função diferem no **contrato**, não no desempenho, e a
 escolha errada não aparece como lentidão:
@@ -402,6 +783,104 @@ silêncio.
 > Repare também na primeira linha: um anel pedido com 16 posições guarda **15**.
 > Uma posição fica reservada para distinguir cheio de vazio. É a mesma razão pela
 > qual o tamanho ótimo de um mempool é `2^q - 1`, e não `2^q`.
+
+### 3.5 Quando a ordem de saída importa: `rte_soring`
+
+As quatro estratégias da §3.2 respondem *quem pode entrar ao mesmo tempo*.
+Nenhuma responde a pergunta que aparece assim que o processamento vira pipeline
+com estágios paralelos: **os estágios terminam fora de ordem — como publicar em
+ordem?**
+
+Não é preciosismo. Um feed de *market data* entregue fora de ordem obriga o
+consumidor a reordenar; um fluxo TCP remontado fora de ordem não é o fluxo; uma
+sequência de transações aplicada fora de ordem é outro banco de dados. Em todos,
+o paralelismo é desejável **dentro** do estágio e inaceitável **na saída**.
+
+O [`rte_soring`][apisoring] — *Staged Ordered Ring* — é a estrutura do DPDK para
+isso. Ele é um `rte_ring` com **estágios**: além de `enqueue` e `dequeue`, cada
+estágio tem um par `acquire`/`release`.
+
+```c
+uint32_t ftoken;
+n = rte_soring_acquire_bulk(r, objs, stage, num, &ftoken, NULL);
+/* posse exclusiva dos n objetos; processar em paralelo com outros lcores */
+rte_soring_release(r, objs, stage, n, ftoken);
+```
+
+#### O `ftoken` é o mecanismo, e vale entender por quê
+
+`acquire` devolve um **token opaco** que o chamador guarda e devolve em
+`release`. Esse token é o que separa *terminar* de *publicar*: ele registra a
+posição reservada, de modo que dois lcores possam concluir o trabalho em
+qualquer ordem e mesmo assim o estágio seguinte veja os elementos na ordem
+original.
+
+É o mesmo protocolo de **reservar e publicar** que a §3.1 mostrou dentro do
+anel — `head` move, trabalha-se, `tail` move —, agora **exposto na API** em vez
+de escondido na implementação. Lá o intervalo entre reserva e publicação era de
+alguns ciclos; aqui é o tempo do estágio inteiro.
+
+Duas obrigações que a documentação declara e que mudam o desenho de quem usa:
+
+| Obrigação | Consequência |
+|---|---|
+| `acquire` devolve **exatamente** o pedido, ou zero | não há aquisição parcial para tratar, ao contrário de `_burst` |
+| `release` precisa devolver **o mesmo número** adquirido | o estágio não pode descartar elementos no meio; descarte vira estado do elemento, não sumiço |
+
+A segunda é a que costuma surpreender. Um estágio que decide jogar um pacote
+fora não pode simplesmente não devolvê-lo: ele precisa devolvê-lo marcado. É
+para isso que serve o `meta_size` do `rte_soring_param` — um vetor paralelo de
+metadados, escrito no `release` e lido no `dequeue`, que o cabeçalho sugere
+justamente para o caso de "código de retorno" por elemento.
+
+#### O custo: *head-of-line blocking*
+
+Garantir ordem de saída tem um preço, e ele é estrutural, não de implementação:
+**um elemento lento bloqueia a publicação de todos os que vierem depois dele**,
+mesmo que já estejam prontos. É o mesmo fenômeno que faz uma fila única de banco
+ser mais lenta que várias quando um cliente demora.
+
+A escolha, então, não é entre "com ordem" e "sem ordem", e sim entre:
+
+| Alternativa | O que se ganha | O que se paga |
+|---|---|---|
+| `rte_ring` + reordenar no consumidor | estágios nunca bloqueiam | buffer de reordenação e sua complexidade no consumidor |
+| `rte_soring` | ordem garantida na saída | *head-of-line blocking* dentro do pipeline |
+| particionar por chave | ordem **por chave**, sem bloqueio entre chaves | só vale quando a ordem exigida é por chave, não global |
+
+A terceira é a que mais frequentemente é a resposta certa e a que menos aparece
+na discussão: se o requisito real é *ordem por instrumento*, e não *ordem
+global*, particionar dissolve o problema em vez de resolvê-lo.
+
+#### O que o 26.07 acrescenta
+
+A API de *peek* do `rte_ring`, que a §3.2 apontou como sustentada pelo modo HTS
+— por haver no máximo uma operação em curso —, ganhou equivalente sobre o
+`soring`:
+
+```
+rte_soring_enqueue_bulk_start / rte_soring_enqueue_finish
+rte_soring_dequeue_burst_start / rte_soring_dequeue_finish
+```
+
+O par `start`/`finish` explicita na interface a mesma separação que o `ftoken`
+faz entre estágios: olhar o que está disponível, decidir, e só então confirmar.
+As variantes `enqueux`/`dequeux` são as que também movem o vetor de metadados.
+
+> **Não medido.** Esta seção descreve mecanismo a partir do cabeçalho e da
+> documentação, sem medição própria. O `rte_soring` é declarado
+> `__rte_experimental` pelo próprio DPDK, e medir uma API experimental como se
+> fosse estável daria ao número uma estabilidade que a interface não tem. O que
+> está afirmado aqui é verificável no cabeçalho instalado; o que custa, não.
+
+> **O que transfere.** Isto é um **buffer de reordenação**, e o padrão é antigo:
+> um processador superescalar executa fora de ordem e *retira* em ordem, pelo
+> mesmo motivo e com a mesma estrutura — uma fila circular onde a posição é
+> reservada na entrada e confirmada na saída. TCP faz o mesmo na remontagem;
+> bancos de dados fazem no *group commit*. Reconhecer a forma evita reinventá-la
+> mal: quem escreve o próprio reordenador costuma descobrir tarde que precisa do
+> token, do limite de elementos em voo e da política para o elemento que nunca
+> chega.
 
 ---
 
@@ -464,7 +943,26 @@ livre: é o `rte_mbuf`, com o layout que a NIC e os drivers esperam.
 ./build/docs/03-mempool-ring-mbuf/medicoes/custo-anel     -l 0 --no-huge --file-prefix=anel
 ```
 
-Os três entram na suíte L2, e as regras de dimensionamento têm teste L1:
+O módulo constrói mais dois programas, e eles exigem linha de comando própria —
+o de contenção porque precisa de vários lcores, e o de esgotamento porque não
+mede tempo:
+
+```bash
+./build/docs/03-mempool-ring-mbuf/medicoes/custo-contencao \
+    -l 0-7 --no-huge --file-prefix=contencao --no-pci 64
+./build/docs/03-mempool-ring-mbuf/medicoes/pool-esgotado -l 0 --no-huge --file-prefix=esgotado
+```
+
+> **Os trabalhadores do programa de contenção são lançados com
+> `rte_eal_remote_launch`, e isso é condição de validade, não estilo.** O cache
+> por lcore é indexado por `rte_lcore_id()`. Uma thread comum, criada com
+> `pthread_create` sem registro na EAL, recebe `LCORE_ID_ANY` e **pula o
+> cache**, caindo direto no anel comum — a medição sairia ruim pelo motivo
+> errado, e sem aviso nenhum. O lado do `malloc` usa *pthreads* porque é o que
+> um programa comum faria. O mecanismo do `LCORE_ID_ANY` está na
+> [§5.1 do módulo 02](../02-runtime-dpdk/README.md#51-lcore-não-é-cpu).
+
+Os cinco entram na suíte L2, e as regras de dimensionamento têm teste L1:
 
 ```bash
 ./scripts/test-all.sh l1     # regras de dimensionamento, sem EAL
@@ -477,6 +975,30 @@ um dos casos é literalmente o par (4095, 256) que este módulo usava, e falha s
 alguém o reintroduzir. Ele também trava o valor de `RTE_MEMPOOL_CACHE_MAX_SIZE`
 que o material assume — se o DPDK mudar de 512, o teste acusa em vez de o
 documento envelhecer calado.
+
+### 5.1 Nem todo programa deste módulo é medição
+
+Quatro dos cinco programas publicam tempo, e as suas tabelas trazem mediana,
+dispersão e selo. O [`pool-esgotado`](medicoes/pool-esgotado.c) não traz, e a
+ausência é deliberada.
+
+O que ele observa é **comportamento na fronteira**: o que acontece quando o
+último objeto do pool já foi emprestado. A resposta é uma contagem, e contagem é
+exata e reprodutível — não há dispersão a relatar, porque não há variável
+aleatória. Por isso o programa não inclui `statistics.h` e não aceita
+`DPDK_ACADEMY_AMOSTRAS`.
+
+| Pergunta que o programa faz | Instrumento | Exemplo neste módulo |
+|---|---|---|
+| quanto custa? | tempo, com mediana e dispersão | `custo-alocacao`, `custo-anel`, `custo-contencao` |
+| o que acontece quando? | contagem exata | `pool-esgotado` |
+
+> **A distinção decide o que se pode exigir de um resultado.** Cobrar barra de
+> erro de uma contagem é ruído cerimonial; aceitar um tempo sem dispersão é
+> publicar um número cuja confiabilidade ninguém pode avaliar. O
+> [módulo 01](../01-fundamentos/README.md#92-por-que-estes-estimadores-e-o-que-eles-não-são)
+> trata do segundo caso; este parágrafo existe para que o primeiro não seja lido
+> como descuido.
 
 ### Exercícios
 
@@ -647,6 +1169,12 @@ que é onde há um pipeline de verdade para enchê-lo.
 [tcache]: https://www.gnu.org/software/libc/manual/html_node/Memory-Allocation-Tunables.html
 [guiamempool]: https://doc.dpdk.org/guides/prog_guide/mempool_lib.html
 [guiaring]: https://doc.dpdk.org/guides/prog_guide/ring_lib.html
+[ringgen]: https://github.com/DPDK/dpdk/blob/main/lib/ring/rte_ring_generic_pvt.h
+[ringrts]: https://github.com/DPDK/dpdk/blob/main/lib/ring/rte_ring_rts.h
+[ringhts]: https://github.com/DPDK/dpdk/blob/main/lib/ring/rte_ring_hts.h
+[cppmemord]: https://en.cppreference.com/w/cpp/atomic/memory_order
+[disruptor]: https://lmax-exchange.github.io/disruptor/disruptor.html
+
 [guiambuf]: https://doc.dpdk.org/guides/prog_guide/mbuf_lib.html
 
 [apiprepend]: https://doc.dpdk.org/api/rte__mbuf_8h.html#a37b34f8b32723db17b2df80391bfa42d
@@ -655,3 +1183,4 @@ que é onde há um pipeline de verdade para enchê-lo.
 [apienqbulk]: https://doc.dpdk.org/api/rte__ring_8h.html#ab8debfb458e927d559e7ce750048502d
 [apiget]: https://doc.dpdk.org/api/rte__mempool_8h.html#a6150c041e889498a08d0e0d0769292cb
 [apigetbulk]: https://doc.dpdk.org/api/rte__mempool_8h.html#a0d326354d53ef5068d86a8b7d9ec2d61
+[apisoring]: https://doc.dpdk.org/api/rte__soring_8h.html

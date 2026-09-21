@@ -1,0 +1,18 @@
+EAL: Detected CPU lcores: 24
+EAL: Detected NUMA nodes: 1
+EAL: Detected shared linkage of DPDK
+EAL: Multi-process socket /run/user/1000/dpdk/topico02/mp_socket
+EAL: Selected IOVA mode 'VA'
+  origin: pipeline_ring @ v0.02.00-5-g19417af-dirty  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-21T15:31:14-0300  |  DPDK 25.11.0
+
+Configured per-lcore cache: 64
+Packets processed: 10
+Total bytes: 695
+Batch (burst): 32 | objects that did not fit in the queue: 0
+Largest batch actually moved: enqueued 10, dequeued 10
+Mode: 1 lcore (0), producer and consumer interleaved
+Free objects in the pool at the end: 4095 of 4095
+mempool cache stats: UNAVAILABLE (DPDK built without RTE_LIBRTE_MEMPOOL_STATS)
+Mean time: 51.1 ns/packet  <- NOT A MEASUREMENT
+  10 packets are far too few: the cost of reading the clock is of the same
+  order as the work measured. Use -n 10000 or more for a defensible number.

@@ -77,6 +77,20 @@ MANTER = {
     "quando", "errado", "esqueletos", "documentos",
     # chaves da saida de `ambiente-medicao.sh`, que o leitor vai ver iguais
     "carga",
+    # campos e funcoes de `order_book.h`, citados no bloco de codigo da §8.1 e
+    # da §9.1 do modulo 02. Traduzi-los faria o documento em ingles mostrar uma
+    # estrutura que nao existe no fonte -- e o bloco esta la justamente para
+    # que o leitor confira contra o cabecalho.
+    "lado", "reservado", "cruzados", "degenerados", "assinatura", "valida",
+    "fluxo", "livro", "toleraveis",
+    # valores de --file-prefix nos comandos de reproducao do modulo 03. Os dois
+    # idiomas mostram o MESMO comando de proposito: o prefixo nomeia um arquivo
+    # em /var/run, e traduzi-lo faria os dois documentos criarem instancias
+    # diferentes a partir do mesmo passo.
+    "esgotado",
+    # opcao de linha de comando do scripts/preparar-dpdk.sh, citada igual nos
+    # dois idiomas porque e o nome real da flag.
+    "conferir",
 }
 
 

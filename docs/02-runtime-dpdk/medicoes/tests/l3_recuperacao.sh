@@ -28,3 +28,11 @@ assert names.index('consumption_observed') < names.index('crash_injected')
 assert sessions[0]['timeline'][-1]['monotonic_ns'] < sessions[1]['timeline'][0]['monotonic_ns']
 assert 'session_completed' in [e['event'] for e in sessions[1]['timeline']]
 PY
+
+# O bloco acima confere que `resources_removed` APARECEU na linha do tempo --
+# ou seja, que o passo rodou. Isto confere que ele FUNCIONOU: sao afirmacoes
+# diferentes, e a segunda e a que faltava quando o l3_multiprocesso vazava uma
+# hugepage com a suite verde. Ver `conferir_sem_residuo` em lib-hugetlbfs.sh.
+conferir_sem_residuo academy_session_ || exit 1
+echo '  ok - o supervisor nao deixou residuo em hugetlbfs'
+

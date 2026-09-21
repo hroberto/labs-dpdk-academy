@@ -2983,6 +2983,88 @@ getconf PAGE_SIZE ; getconf LEVEL1_DCACHE_LINESIZE
 grep -E "HugePages_Total|Hugepagesize" /proc/meminfo
 ```
 
+### 9.2 Por que estes estimadores, e o que eles não são
+
+Toda tabela deste módulo reporta o mesmo conjunto: mediana, mínimo, intervalo
+interquartil, amplitude e coeficiente de variação. A escolha não é
+convencional — a convenção em relatório de desempenho é média e desvio padrão —
+e cada elemento responde a uma propriedade do fenômeno medido.
+
+#### O ruído de um microbenchmark é unilateral
+
+A propriedade que governa a escolha é esta: em uma operação determinística, a
+interferência externa só pode fazer a medição **demorar mais**. Uma interrupção,
+uma migração de núcleo, uma queda de frequência, um despejo de cache causado por
+outro processo — nenhum desses eventos faz a operação custar menos do que custa.
+Não há mecanismo simétrico.
+
+Disso decorrem duas leituras distintas, e é por isso que as duas são publicadas:
+
+| Estimador | O que estima | Fundamento |
+|---|---|---|
+| mínimo | o custo **real** da operação | a amostra menos contaminada, já que a contaminação é unilateral |
+| mediana | o custo **observado na prática** | tendência central robusta, não arrastada por uma amostra ruim |
+
+Quando os dois quase coincidem, a coleta está limpa: a interferência foi rara o
+bastante para não alcançar o miolo da distribuição. Quando divergem, a diferença
+é a magnitude da interferência, e é informação, não defeito da medição.
+
+A média não aparece em nenhuma das duas colunas porque não estima nem uma coisa
+nem outra sob ruído unilateral: ela é arrastada pela cauda superior, e a cauda
+superior é exatamente o que não pertence ao custo da operação.
+
+#### A amplitude é publicada apesar de ser frágil
+
+O par mínimo-máximo é sensível a uma única amostra, e essa é uma objeção
+legítima. Ele é publicado mesmo assim, por uma razão que não é estatística:
+omitir a extensão do que se observou é menos honesto do que exibi-la. Quando a
+amplitude é muito maior que o intervalo interquartil, houve interferência
+esporádica, e o leitor precisa saber disso para decidir se aceita o número.
+
+#### O coeficiente de variação é detector, não medida de confiança
+
+O CV é reportado e **não** decide o selo. Ele é sensível a uma amostra isolada:
+uma única excursão entre vinte e cinco pode levá-lo de 2 % a 27 % sem que a
+mediana se mova. Como medida de confiança isso o tornaria enganoso; como
+detector de excursão é exatamente o instrumento certo. O selo sai de `disp`, que
+é interquartil e portanto robusto contra cauda. A §9.1 trata de como ler os dois
+em conjunto.
+
+#### Não há marcador binário de excursão, deliberadamente
+
+Um limiar do tipo *"máximo acima de 1,25 vez a mediana"* produz um penhasco
+arbitrário: duas linhas com excursão praticamente igual receberiam selos opostos
+por uma diferença de pouco mais de um por cento. Exibir os dois números e
+ensinar a lê-los em conjunto preserva a continuidade que o limiar esconderia.
+
+#### O que isto não é
+
+Não é análise estatística rigorosa, e a distinção importa para o que se pode
+concluir das tabelas. **Não há intervalo de confiança formal nem teste de
+hipótese**, e a omissão é deliberada: as amostras de um microbenchmark não
+satisfazem as premissas que dariam sentido a esses instrumentos. Elas não são
+independentes — há autocorrelação por estado de cache e por frequência da CPU,
+de modo que a amostra `i` informa sobre a `i+1` — nem são normalmente
+distribuídas, já que o ruído unilateral produz assimetria à direita por
+construção.
+
+Calcular um intervalo de confiança sobre amostras autocorrelacionadas produz um
+intervalo **mais estreito** que o correto, porque o cálculo supõe mais
+informação independente do que existe. O resultado teria aparência de rigor e
+conteúdo de otimismo.
+
+O objetivo declarado é honestidade sobre a dispersão, não inferência. Onde a
+comparação entre duas condições precisa de mais do que isso, o que decide é o
+**desenho** da coleta — intercalar em vez de coletar em blocos —, e não o
+instrumento aplicado ao resultado. A §9.1 desenvolve esse ponto.
+
+> **O que transfere para fora deste módulo.** A escolha de estimador segue da
+> estrutura do ruído, não do costume da área. Onde o ruído é unilateral —
+> latência sob contenção, tempo de resposta com repetição, qualquer grandeza com
+> piso físico e sem teto — mínimo e mediana dizem coisas diferentes e ambas são
+> úteis, e a média não diz nenhuma das duas. Onde o ruído é simétrico, o
+> raciocínio se inverte e a média volta a ser o estimador natural.
+
 ### Exercícios
 
 1. Rode `custo-syscall` três vezes. Quanto os resultados variam? O que isso diz
@@ -3358,8 +3440,33 @@ utilização. A observação do documento estava certa e sem nome.
 > **E isso deixou de ser advertência.** A
 > [§6.3](#63-quantos-descritores-e-o-que-eles-não-compram) mede o mesmo tráfego
 > nas duas distribuições: cadenciado, perda zero; em rajada, **30,8 % de perda
-> com ρ médio de 0,022**. O `ca²` sai de 0,00 para 2,82 — o termo de Kingman,
-> medido em vez de suposto.
+> com ρ médio de 0,022**. O `ca²` sai de 0,00 para 2,82.
+
+> **Correção: esta seção atribuía essa perda ao termo de Kingman, e a
+> atribuição estava errada.** O texto dizia que o `ca²` medido era "o termo de
+> Kingman, medido em vez de suposto", o que sugere que a aproximação explica os
+> 30,8 %. Ela não explica, e a §6.3 sempre disse o contrário — *"com `ρ > 1` não
+> há estado estacionário para calcular; é aritmética de acúmulo"*. O documento
+> contradizia a si mesmo, e o lado errado era este.
+>
+> Kingman é aproximação de **tráfego pesado para fila estável e infinita**, e
+> pressupõe chegada de **renovação** — intervalos independentes e identicamente
+> distribuídos. Nenhuma das três premissas vale aqui: durante a rajada `ρ` passa
+> de 1 e não há estado estacionário; o anel de descritores é finito; e um
+> processo de dois estados tem intervalos **correlacionados**, porque o estado
+> modulador persiste. A própria aritmética denuncia o problema — uma
+> aproximação avaliada em `ρ = 0,022` prevê espera desprezível, não 30,8 % de
+> perda.
+>
+> O que governa é o acúmulo, `dQ/dt = λ_rajada − μ`, integrado sobre a duração
+> da rajada. O `ca²` continua valendo como **evidência** da diferença de
+> variabilidade entre os dois cenários; não como **fundamento** da perda.
+>
+> A distinção transfere: `ca²` resume a variabilidade dos intervalos em um
+> escalar e descarta a ordem em que eles chegam. Dois processos com o mesmo
+> `ca²` e concentração temporal diferente enchem uma fila finita de modos
+> diferentes. Um número que resume uma distribuição não carrega a dependência
+> temporal dela.
 
 > **Consequência de projeto.** Dimensionar para a carga média é insuficiente. O
 > que decide a sobrevivência é a margem sobre o **pico**, e o indicador que

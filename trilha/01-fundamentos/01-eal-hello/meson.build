@@ -5,7 +5,7 @@
 
 hello_dpdk = executable(
   'hello_dpdk',
-  'hello_dpdk.c',
+  ['hello_dpdk.c', versao_h],
   dependencies : [dpdk_dep],
   install : false,
 )

@@ -57,6 +57,7 @@ pid_primario=""
 pid_secundario=""
 
 limpar() {
+    rc_original=$?
     [ -n "$pid_secundario" ] && kill -9 "$pid_secundario" 2>/dev/null
     [ -n "$pid_primario" ] && kill -9 "$pid_primario" 2>/dev/null
     wait 2>/dev/null
@@ -64,6 +65,10 @@ limpar() {
     rm -rf "${XDG_RUNTIME_DIR:-/var/run}/dpdk/${PREFIXO}" 2>/dev/null
     rm -f "/dev/hugepages/${PREFIXO}"* 2>/dev/null
     [ -n "${DPDK_ACADEMY_HUGE_DIR:-}" ] && rm -f "${DPDK_ACADEMY_HUGE_DIR}/${PREFIXO}"* 2>/dev/null
+    # Ver o comentario de `conferir_sem_residuo` em lib-hugetlbfs.sh.
+    if ! conferir_sem_residuo "$PREFIXO"; then
+        [ "$rc_original" -eq 0 ] && exit 1
+    fi
     return 0
 }
 trap limpar EXIT

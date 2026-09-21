@@ -1,0 +1,21 @@
+EAL: Detected CPU lcores: 24
+EAL: Detected NUMA nodes: 1
+EAL: Detected shared linkage of DPDK
+EAL: Multi-process socket /run/user/1000/dpdk/academy_b4_182849_2511_assimetrico_0/mp_socket
+EAL: Selected IOVA mode 'VA'
+  origin: pipeline_ring @ v0.02.00-5-g19417af-dirty  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-21T19:25:05-0300  |  DPDK 25.11.0
+
+Configured per-lcore cache: 0
+Packets processed: 2000000
+Total bytes: 161000000
+Batch (burst): 32 | objects that did not fit in the queue: 1116514
+Largest batch actually moved: enqueued 32, dequeued 32
+Mode: 2 lcores (producer 0, consumer 2)
+Free objects in the pool at the end: 4095 of 4095
+mempool cache stats (per lcore)
+  lcore    get_bulk get_common   miss%    put_bulk put_common  flush%
+      0       97521      97521 100.00%       35021      39116 111.69%
+      2           0          0   0.00%       62500      62500 100.00%
+  total       97521      97521 100.00%       97521     101616 104.20%
+Mean time: 5.6 ns/packet
+Frequency of lcore 0: 4.32 GHz (the time above varies with it)

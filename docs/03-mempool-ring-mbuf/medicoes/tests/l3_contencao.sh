@@ -27,4 +27,8 @@ if [ "$CPUS" -lt "$NECESSARIAS" ]; then
     exit 77   # 77 = PULADO para o Meson, nao sucesso
 fi
 
-exec "$BIN" -l "0-$((NECESSARIAS - 1))" --no-huge --file-prefix=academy_contencao_$$ --no-pci 64
+# Sem `exec`: ele substituiria este shell e o trap de limpeza nunca rodaria.
+# O DPDK nao remove o diretorio de runtime do --file-prefix ao encerrar. O
+# sufixo e o PID deste script, entao o glob nao alcanca execucao alheia.
+trap 'rm -rf "${XDG_RUNTIME_DIR:-/var/run}"/dpdk/academy_*_$$' EXIT
+"$BIN" -l "0-$((NECESSARIAS - 1))" --no-huge --file-prefix=academy_contencao_$$ --no-pci 64

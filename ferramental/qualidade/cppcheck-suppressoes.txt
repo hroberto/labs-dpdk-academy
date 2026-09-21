@@ -1,0 +1,55 @@
+// Supressoes do cppcheck, cada uma com o motivo. Sem motivo, a entrada nao entra.
+//
+// 1. MACROS DO GOOGLETEST
+// O cppcheck nao expande `TEST(Suite, Caso)` e reporta `syntaxError` na linha da
+// macro. Nao e defeito do nosso codigo: e limite do analisador. Os arquivos
+// compilam e a suite roda.
+syntaxError:*/tests/test_l1*.cpp
+syntaxError:*/tests/test_l1*.cc
+
+// 2. CABECALHO C COMPILADO TAMBEM COMO C++
+// `statistics.h` e `cadeia.h` sao C e sao incluidos por unidades C++ (os testes
+// L1 em GoogleTest e a alternativa em C++23). O cppcheck aplica entao regras de
+// C++ a codigo C: `cstyleCast` (cast em C e cast em C) e `passedByValue`
+// (sugerir referencia const em C nao compila). Trocar para satisfazer o
+// analisador quebraria o lado C, que e o principal.
+cstyleCast:docs/01-fundamentos/medicoes/statistics.h
+passedByValue:docs/01-fundamentos/medicoes/statistics.h
+cstyleCast:docs/01-fundamentos/medicoes/cadeia.h
+passedByValue:docs/01-fundamentos/medicoes/cadeia.h
+
+// 3. BUFFER DE RECEPCAO NAO PODE SER CONST
+// `lotes` e o destino de `recvmmsg` via `iov_base`: quem escreve nele e o
+// kernel, que o cppcheck nao enxerga. Declara-lo const nao compilaria.
+constVariable:docs/01-fundamentos/medicoes/rajada-nasdaq.c:390
+
+// 4. INICIALIZACAO DEFENSIVA
+// `agora` recebe 0.0 e so e lido depois da primeira atribuicao do laco. O
+// inicializador e redundante para o fluxo atual e barato como defesa contra uma
+// reordenacao futura do laco.
+unreadVariable:docs/01-fundamentos/medicoes/rajada-nasdaq.c:550
+variableScope:docs/01-fundamentos/medicoes/rajada-nasdaq.c:550
+
+// 5. CAMPO QUE DOCUMENTA O LEIAUTE DO CPUID
+// `struct nivel` guarda itlb e dtlb porque e isso que a folha do CPUID devolve.
+// O programa reporta apenas dtlb; apagar itlb faria a estrutura mentir sobre o
+// dado que ela modela.
+unusedStructMember:docs/01-fundamentos/medicoes/tlb-real.c:36
+
+// 6. ASSINATURA DE CALLBACK
+// `trabalhador` e passada a `rte_eal_remote_launch`, cuja assinatura exige
+// `void *`. O proprio cppcheck avisa que mudar exigiria cast do ponteiro de
+// funcao -- troca ruim: perde-se verificacao de tipo para ganhar um const.
+constParameterCallback:docs/02-runtime-dpdk/medicoes/estado-lcore.c:89
+
+// 7. SOMBREAMENTO ENTRE CABECALHO E UNIDADE
+// Resolvido por renomeacao onde valia a pena (cadeia.h, custo-anel.c). O que
+// resta e `rot` em custo-comunicacao.c, local de um bloco curto cujo nome
+// externo nao e visivel ali -- renomear so para calar o analisador pioraria a
+// leitura do trecho.
+shadowVariable:docs/01-fundamentos/medicoes/custo-comunicacao.c:562
+
+// 8. CODIGO DE TERCEIRO
+// O googletest entra como subprojeto e e analisado junto. Nao e nosso, e
+// consertar o analisador de outro projeto nao e trabalho deste.
+*:subprojects/*

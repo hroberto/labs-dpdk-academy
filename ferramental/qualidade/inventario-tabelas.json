@@ -8,7 +8,7 @@
     "trilha/04-projeto-final/README.md"
   ],
   "limites": "Tabelas Markdown e blocos numericos nas oito paginas listadas. Nao abrange todos os numeros em prosa nem verifica automaticamente sua origem.",
-  "total": 96,
+  "total": 121,
   "entradas": [
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -327,35 +327,42 @@
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3038,
+      "linha": 3003,
+      "secao": "O ruído de um microbenchmark é unilateral",
+      "tipo": "tabela_markdown",
+      "sha256": "54eea35977e1d4384041a48300b93e5c682190e957a7dd254d44d9b2e60a099d"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 3120,
       "secao": "10. Confronto com a literatura",
       "tipo": "tabela_markdown",
       "sha256": "e8f03e426187cbfe9c9d2066def2b14d5a593d209253b9330156c2d417c172d8"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3065,
+      "linha": 3147,
       "secao": "Sincronização: confronto com a referência canônica",
       "tipo": "tabela_markdown",
       "sha256": "24b2328b38e3e43d71a09cb63ae7014f3260b554f378f4b6a61d289f449c8c14"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3076,
+      "linha": 3158,
       "secao": "Sincronização: confronto com a referência canônica",
       "tipo": "tabela_markdown",
       "sha256": "18623a7657be2a8b2745e3687b73bd0bd4a8cc7fdc23d084fd477037282ba425"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3295,
+      "linha": 3377,
       "secao": "11.1 A travessia, medida",
       "tipo": "tabela_markdown",
       "sha256": "e86f0631b44b8671c5e622540f75d6b5b327e176f9663f0a95f069e85eb9c423"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3409,
+      "linha": 3516,
       "secao": "13. Referências externas",
       "tipo": "tabela_markdown",
       "sha256": "a89da528537fb8b8265e00a4a17829269f45353e171ab76444543db94a3858ff"
@@ -425,28 +432,63 @@
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 833,
+      "linha": 817,
+      "secao": "O custo de ler o identificador",
+      "tipo": "bloco_numerico",
+      "sha256": "afc9690c9fb9bc79c19bcb7553653951d4e5778dba4867e7139fc9a739c2b3e8"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 824,
+      "secao": "O custo de ler o identificador",
+      "tipo": "bloco_numerico",
+      "sha256": "cf2161c41be0d6bbb820f053dd14477afe3a0809c402d87592b6629014db152a"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 964,
       "secao": "6. IOVA: o endereço que o dispositivo enxerga",
       "tipo": "tabela_markdown",
       "sha256": "a1a0e8b8e3d4b131b52a00172ccac4671717dbda6121bf6c79b51ace106d18ad"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 924,
+      "linha": 1055,
       "secao": "7. Encerramento: o que fica para trás",
       "tipo": "tabela_markdown",
       "sha256": "bb6fb0dc428941067c1458318de553d76e818d9860fb47125b92a6796013014e"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 960,
+      "linha": 1091,
       "secao": "8. Síntese: o runtime do feed handler",
       "tipo": "tabela_markdown",
       "sha256": "91e330f640c163713fdcbf59d785dfc40dd319a48731182ec49900509a6cc055"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 1178,
+      "linha": 1146,
+      "secao": "Duas estruturas, porque são duas grandezas",
+      "tipo": "tabela_markdown",
+      "sha256": "2a7cb0e750e100f98abaa3f8447bc189d79ba6af9c17ebc415fb63eca6d1797f"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 1260,
+      "secao": "9.1 O critério de validade da assinatura, e como o limiar foi calibrado",
+      "tipo": "tabela_markdown",
+      "sha256": "7f8e12757331e3ec150b24a305493c527a7af3ab33d5ad142be1b968097865d4"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 1431,
+      "secao": "10.4 Detectar que o produtor parou é duas perguntas, não uma",
+      "tipo": "tabela_markdown",
+      "sha256": "ce5c41cc0db5af460b00fee0ceba6f0429673ef454873ca5735f9477fd1c1b45"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 1548,
       "secao": "13. Navegação",
       "tipo": "tabela_markdown",
       "sha256": "2c47e08d3cf4b3373b2b8065df1c9d443b49dc846cb694de9d816960eeb375d1"
@@ -488,49 +530,140 @@
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 203,
+      "linha": 211,
+      "secao": "O desenho",
+      "tipo": "tabela_markdown",
+      "sha256": "1d55425b05eb41d9c552086c507e97fa0eac85a3056430d0cc8b0c5768da8d0f"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 231,
+      "secao": "Topologia simétrica: o efeito é invisível, menos em um ponto",
+      "tipo": "tabela_markdown",
+      "sha256": "463e221448e9f40d9342ecb3680cc645d9c13fde3b08c59328c6c24c0912dcaf"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 259,
+      "secao": "Topologia assimétrica: a diferença existe em toda a faixa",
+      "tipo": "tabela_markdown",
+      "sha256": "94320419c702326dbcff4250c8abddfa3a8a6fddf07e755fe0d61f75cd83abad"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 281,
+      "secao": "As três hipóteses, e o que aconteceu com cada uma",
+      "tipo": "tabela_markdown",
+      "sha256": "c43cc24a05ef8c53dc6a46901cd5f67abee6d3beab14fdd3df4c0b264b10a07a"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 290,
+      "secao": "As três hipóteses, e o que aconteceu com cada uma",
+      "tipo": "tabela_markdown",
+      "sha256": "2b0682d343bc5eddd5bde05b47d731833df6f406f08e65a5609159b78bea6839"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 311,
+      "secao": "O caso assimétrico também é menos estável no 26.07",
+      "tipo": "tabela_markdown",
+      "sha256": "b5f626341b0f03957057b36fd1847ef184078b8eec2989e38f0dbb7a37839f14"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 361,
       "secao": "2. O mbuf: quatro números que parecem redundantes",
       "tipo": "bloco_numerico",
       "sha256": "063a80f47eed6ff44059abe004fbe398fd205226398c965587339b8a04690f05"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 311,
+      "linha": 469,
       "secao": "2.4 Posse: quem libera",
       "tipo": "tabela_markdown",
       "sha256": "202c753512434d518a531ceeaaaafcc64f525775309fe643baa36455b395db34"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 328,
+      "linha": 486,
       "secao": "3. O anel: o preço da generalidade",
       "tipo": "bloco_numerico",
       "sha256": "635a5bc04c2782211cb2777c3588827f990748652bf9da1c4ad6a8bf8bf617e7"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 391,
-      "secao": "3.1 `_bulk` e `_burst` não são sinônimos",
+      "linha": 585,
+      "secao": "Dois vocabulários para o mesmo algoritmo",
+      "tipo": "tabela_markdown",
+      "sha256": "7ba41f93bcf63c33458cbfa515963e3731fa36f57f9371edd17d929ca62f2c5d"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 606,
+      "secao": "O que o binário medido realmente emite",
+      "tipo": "bloco_numerico",
+      "sha256": "f69a6483eaed3ac18b791c38993e2a5d922a82a93e72c7ff0c0ce02731e8cd8d"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 646,
+      "secao": "3.2 Quatro estratégias para o mesmo anel",
+      "tipo": "tabela_markdown",
+      "sha256": "209fe27c59a18b9e8239ca79d82583a85f1da4496034725bfd9dc06fa9240c30"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 683,
+      "secao": "O mesmo problema fora do DPDK",
+      "tipo": "tabela_markdown",
+      "sha256": "6643cd297fca5a9251f25a04778d681f73365198e6ef05d2c9fd047503f14fba"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 772,
+      "secao": "3.4 `_bulk` e `_burst` não são sinônimos",
       "tipo": "tabela_markdown",
       "sha256": "733444ebfad15508e3e54b6f82c6fc05db78fdcfccce7adbc656a4354a45c54e"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 517,
+      "linha": 825,
+      "secao": "O `ftoken` é o mecanismo, e vale entender por quê",
+      "tipo": "tabela_markdown",
+      "sha256": "8c3d40fac1d31a3464342657a6f46e0629a055c693300c578a3ead472362bdc4"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 845,
+      "secao": "O custo: *head-of-line blocking*",
+      "tipo": "tabela_markdown",
+      "sha256": "42d6b1b1ded41b342728d22b0042e63325b15591cb9251b507581b5c9ab8dce7"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 991,
+      "secao": "5.1 Nem todo programa deste módulo é medição",
+      "tipo": "tabela_markdown",
+      "sha256": "07d25a3ba8143d70d7eacd5492099acd55bb72a67db6f208d345b7faa7b50237"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 1039,
       "secao": "6.1 O degrau: `get_bulk` não entrega lote parcial",
       "tipo": "tabela_markdown",
       "sha256": "138622c9479008925c9f6f7db7278cca2bf1c617e01922d867e6d61e5cd14b0b"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 553,
+      "linha": 1075,
       "secao": "6.2 A regra 4, confrontada — e corrigida",
       "tipo": "tabela_markdown",
       "sha256": "c5738905a71ae0f061eb7fc88e3b4337edd9ed1f423346ea4f115122183550f3"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 640,
+      "linha": 1162,
       "secao": "9. Navegação",
       "tipo": "tabela_markdown",
       "sha256": "573d3d447bf73781ac79c5cf02601f1a7b90b0951d1c2deb35ed7cb38634f23b"
@@ -561,28 +694,63 @@
       "linha": 217,
       "secao": "4. Implementação",
       "tipo": "bloco_numerico",
-      "sha256": "d451963d589eb3ce460c4227578c44a2f55136326d97d7fd0e567b240c9453a1"
+      "sha256": "e876bf824c3ad68cd2b3f92708cbb529c35f843252804d61e759bd0befa576a6"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
-      "linha": 242,
+      "linha": 244,
       "secao": "4. Implementação",
       "tipo": "tabela_markdown",
       "sha256": "77b7a3c0d7105145ab1fa48365feab26f23d3df01bc7c32e92774eb0b702ad35"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
-      "linha": 316,
-      "secao": "6.2 O experimento",
-      "tipo": "bloco_numerico",
-      "sha256": "9df94986771523c7b6e1aa780c517c6e880a61ec1a1a96a1d8be6f62cab696a7"
+      "linha": 261,
+      "secao": "4.1 A estrutura de configuração e seus invariantes",
+      "tipo": "tabela_markdown",
+      "sha256": "30d35849775c5f13a392977037179771b64ff2f13af0fe6668b85f4ddc039528"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
-      "linha": 332,
+      "linha": 295,
+      "secao": "Três grandezas em potência de dois, com estatutos distintos",
+      "tipo": "tabela_markdown",
+      "sha256": "5f533a189cc40b504b3c71094e3b5878230e8d0f1067e511b1a923e2f1d34502"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 350,
+      "secao": "4.3 Contabilização do cache do mempool",
+      "tipo": "tabela_markdown",
+      "sha256": "ae4692f2ced213b86b4f80c79a626cb4b581037bd8db1f7462c98efb07498897"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 414,
+      "secao": "5.1 Injeção de defeito: verificar que a verificação dispara",
+      "tipo": "tabela_markdown",
+      "sha256": "3ad3025c7bfd8ab007445c75e4f45e96279ef440e8f385d9dd14b4d536f2b66f"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 488,
+      "secao": "6.2 O experimento",
+      "tipo": "bloco_numerico",
+      "sha256": "27751c9cc7d865695fd1436b9f2385f634d45f35e7ea4b19633ecd766207a8c2"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 506,
       "secao": "6.3 O que a medição mostra",
       "tipo": "tabela_markdown",
       "sha256": "0058bbf18087412664a388b067e945e5995f2f44331334d0a9d931c17398b17a"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
+      "linha": 591,
+      "secao": "Códigos de saída",
+      "tipo": "tabela_markdown",
+      "sha256": "8d2fe43b6dd11f29e32297129535dc3b9e09f1998a2bd57ee3c314051ce9ef25"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
@@ -645,14 +813,21 @@
       "linha": 364,
       "secao": "5. Implementação e validação",
       "tipo": "tabela_markdown",
-      "sha256": "87fd8f01987d348ad69eab30f6c9e963f152177f7167f945586d2c13d26b2216"
+      "sha256": "9590d3ca6535e4a61290532ff1f1191054fcbbfa98ffab9e37082fde0f92d150"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 373,
+      "linha": 375,
       "secao": "5. Implementação e validação",
       "tipo": "bloco_numerico",
       "sha256": "1aa6f01b72a2a778b0faabe18dc6ac8ce31abbb6eca50928e926dd2236a6d78c"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
+      "linha": 412,
+      "secao": "5.1 O controle, e o que ele impede de concluir",
+      "tipo": "tabela_markdown",
+      "sha256": "5dc6a2c52a7440906a779ebc54c32edff4345a98dfae3ea0b296ad4383d80b1a"
     },
     {
       "arquivo": "trilha/04-projeto-final/README.md",

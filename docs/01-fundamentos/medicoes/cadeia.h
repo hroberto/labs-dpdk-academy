@@ -72,15 +72,15 @@ static CADEIA_MAYBE_UNUSED uint64_t academy_aleatorio(uint64_t *semente)
  *
  * O laço vai do fim para o começo e sorteia em [0, i], que é a forma correta:
  * sortear em [0, n) a cada passo produz distribuição não uniforme. */
-static CADEIA_MAYBE_UNUSED void academy_permutar(size_t *ordem, size_t n, uint64_t *semente)
+static CADEIA_MAYBE_UNUSED void academy_permutar(size_t *perm, size_t n, uint64_t *semente)
 {
     for (size_t i = 0; i < n; i++)
-        ordem[i] = i;
+        perm[i] = i;
     for (size_t i = n; i-- > 1;) {
         const size_t j = (size_t)(academy_aleatorio(semente) % (i + 1));
-        const size_t t = ordem[i];
-        ordem[i] = ordem[j];
-        ordem[j] = t;
+        const size_t t = perm[i];
+        perm[i] = perm[j];
+        perm[j] = t;
     }
 }
 
@@ -94,13 +94,13 @@ static CADEIA_MAYBE_UNUSED void academy_permutar(size_t *ordem, size_t n, uint64
  * As `n % k` posições finais ficam de fora quando n não divide por k; quem
  * chama deve percorrer apenas `(n / k) * k` posições. `academy_cadeia_nos()`
  * devolve esse número. */
-static CADEIA_MAYBE_UNUSED size_t academy_sucessor(const size_t *ordem, size_t n, int k, size_t i)
+static CADEIA_MAYBE_UNUSED size_t academy_sucessor(const size_t *perm, size_t n, int k, size_t i)
 {
     const size_t por_fatia = n / (size_t)k;
     const size_t fatia = i / por_fatia;
     const size_t inicio = fatia * por_fatia;
     const size_t prox = i + 1;
-    return ordem[(prox == inicio + por_fatia) ? inicio : prox];
+    return perm[(prox == inicio + por_fatia) ? inicio : prox];
 }
 
 /* Quantas posições de `ordem` participam das k cadeias. */

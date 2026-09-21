@@ -2923,6 +2923,90 @@ getconf PAGE_SIZE ; getconf LEVEL1_DCACHE_LINESIZE
 grep -E "HugePages_Total|Hugepagesize" /proc/meminfo
 ```
 
+### 9.2 Why these estimators, and what they are not
+
+Every table in this module reports the same set: median, minimum, interquartile
+range, full range and coefficient of variation. The choice is not the
+conventional one — the convention in performance reporting is mean and standard
+deviation — and each element answers to a property of the measured phenomenon.
+
+#### Microbenchmark noise is one-sided
+
+The governing property is this: in a deterministic operation, external
+interference can only make the measurement **take longer**. An interrupt, a core
+migration, a frequency drop, a cache eviction caused by another process — none
+of those events makes the operation cost less than it costs. There is no
+symmetric mechanism.
+
+Two distinct readings follow, which is why both are published:
+
+| Estimator | What it estimates | Rationale |
+|---|---|---|
+| minimum | the **real** cost of the operation | the least contaminated sample, contamination being one-sided |
+| median | the cost **observed in practice** | robust central tendency, not dragged by one bad sample |
+
+When the two nearly coincide, the collection is clean: interference was rare
+enough not to reach the bulk of the distribution. When they diverge, the
+difference is the magnitude of the interference, and that is information, not a
+defect of the measurement.
+
+The mean appears in neither column because under one-sided noise it estimates
+neither: it is dragged by the upper tail, and the upper tail is precisely what
+does not belong to the cost of the operation.
+
+#### The full range is published despite being fragile
+
+The min-max pair is sensitive to a single sample, and that is a legitimate
+objection. It is published regardless, for a reason that is not statistical:
+omitting the extent of what was observed is less honest than showing it. When
+the range is much larger than the interquartile range, there was sporadic
+interference, and the reader needs to know in order to decide whether to accept
+the number.
+
+#### The coefficient of variation is a detector, not a confidence measure
+
+The CV is reported and does **not** decide the seal. It is sensitive to a single
+sample: one excursion among twenty-five can take it from 2% to 27% without the
+median moving. As a confidence measure that would make it misleading; as an
+excursion detector it is exactly the right instrument. The seal comes from
+`disp`, which is interquartile and therefore robust against tails. Section 9.1
+covers how to read the two together.
+
+#### There is no binary excursion marker, deliberately
+
+A threshold such as *"maximum above 1.25 times the median"* produces an
+arbitrary cliff: two rows with practically equal excursions would get opposite
+seals over a difference of little more than one per cent. Showing both numbers
+and teaching how to read them together preserves the continuity a threshold
+would hide.
+
+#### What this is not
+
+This is not rigorous statistical analysis, and the distinction matters for what
+can be concluded from the tables. **There is no formal confidence interval and
+no hypothesis test**, and the omission is deliberate: microbenchmark samples do
+not satisfy the premises that would give those instruments meaning. They are not
+independent — there is autocorrelation through cache state and CPU frequency, so
+sample `i` informs about `i+1` — nor are they normally distributed, since
+one-sided noise produces right skew by construction.
+
+Computing a confidence interval over autocorrelated samples produces an interval
+**narrower** than the correct one, because the computation assumes more
+independent information than exists. The result would have the appearance of
+rigour and the content of optimism.
+
+The stated goal is honesty about dispersion, not inference. Where a comparison
+between two conditions needs more than that, what decides is the **design** of
+the collection — interleaving rather than collecting in blocks — and not the
+instrument applied to the result. Section 9.1 develops that point.
+
+> **What transfers beyond this module.** The choice of estimator follows from
+> the structure of the noise, not from the custom of the field. Where noise is
+> one-sided — latency under contention, response time with retries, any quantity
+> with a physical floor and no ceiling — minimum and median say different things
+> and both are useful, and the mean says neither. Where noise is symmetric, the
+> reasoning inverts and the mean becomes the natural estimator again.
+
 ### Exercises
 
 1. Run `custo-syscall` three times. How much do the results vary? What does that say about
@@ -3271,8 +3355,33 @@ The document's observation was right, and unnamed.
 > **And that is no longer just a warning.**
 > [§6.3](#63-how-many-descriptors-and-what-they-do-not-buy) measures the same
 > traffic under both distributions: paced, zero loss; bursty, **30.8% loss at a
-> mean ρ of 0.022**. `ca²` goes from 0.00 to 2.82 — Kingman's term, measured
-> rather than assumed.
+> mean ρ of 0.022**. `ca²` goes from 0.00 to 2.82.
+
+> **Correction: this section attributed that loss to Kingman's term, and the
+> attribution was wrong.** The text called the measured `ca²` "Kingman's term,
+> measured rather than assumed", which suggests the approximation explains the
+> 30.8%. It does not, and §6.3 always said the opposite — *"with `ρ > 1` there
+> is no steady state to compute; it is the arithmetic of accumulation"*. The
+> document contradicted itself, and this was the wrong side.
+>
+> Kingman is a **heavy-traffic approximation for a stable, infinite queue**, and
+> it assumes **renewal** arrivals — independent, identically distributed
+> intervals. None of the three premises holds here: during the burst `ρ` exceeds
+> 1 and there is no steady state; the descriptor ring is finite; and a two-state
+> process has **correlated** intervals, because the modulating state persists.
+> The arithmetic gives the problem away on its own — an approximation evaluated
+> at `ρ = 0.022` predicts negligible waiting, not 30.8% loss.
+>
+> What governs is accumulation, `dQ/dt = λ_burst − μ`, integrated over the
+> duration of the burst. `ca²` remains valid as **evidence** of the difference
+> in variability between the two scenarios; not as the **foundation** of the
+> loss.
+>
+> The distinction transfers: `ca²` summarizes interval variability into a scalar
+> and discards the order in which the intervals arrive. Two processes with the
+> same `ca²` and different temporal concentration fill a finite queue in
+> different ways. A number that summarizes a distribution does not carry that
+> distribution's temporal dependence.
 
 > **Design consequence.** Sizing for the average load is insufficient. What decides survival is
 > the margin over the **peak**, and the indicator that warns in time is the high percentile,

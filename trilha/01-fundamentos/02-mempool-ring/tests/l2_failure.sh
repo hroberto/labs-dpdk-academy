@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: MIT
 set -eu
+
+# O DPDK NAO REMOVE O DIRETORIO DE RUNTIME do --file-prefix ao encerrar, e
+# ate 21/09/2026 nenhum runner L2 removia: 97 diretorios acumulados em
+# /run/user/<uid>/dpdk/, cada um com config e os fbarray, em tmpfs. O sufixo
+# e o PID DESTE script, entao o glob nao alcanca execucao alheia.
 bin=${1:?}; mode=${2:?}
-out=$(mktemp); trap 'rm -f "$out"' EXIT
+out=$(mktemp)
+# UM trap so: um segundo `trap ... EXIT` SUBSTITUI o primeiro em vez de somar,
+# e foi assim que a primeira versao desta limpeza nao removeu nada.
+trap 'rm -f "$out"; rm -rf "${XDG_RUNTIME_DIR:-/var/run}"/dpdk/academy_*_$$' EXIT
 rc=0
 cores=0
 if [ "$mode" = pausedtwo ]; then

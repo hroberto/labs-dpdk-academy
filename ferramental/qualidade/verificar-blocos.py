@@ -72,7 +72,11 @@ def forma(l):
 def coletas():
     """Linhas arquivadas: o conjunto literal e o conjunto de formas."""
     literais, formas = set(), set()
-    dirs = sorted(set(RAIZ.glob("docs/*/medicoes/historico/*/")))
+    # A trilha tambem arquiva: ela publica bloco de saida como qualquer
+    # modulo, e enquanto esteve fora deste glob seus blocos apareciam
+    # como "sem procedencia" sem que houvesse onde procurar.
+    dirs = sorted(set(RAIZ.glob("docs/*/medicoes/historico/*/")) |
+                  set(RAIZ.glob("trilha/**/historico/*/")))
     for d in dirs:
         for f in d.glob("*.txt"):
             for l in f.read_text(errors="replace").split("\n"):

@@ -756,6 +756,139 @@ the same CCD. With [`-l`][optlcore], lcores fall wherever the numbers dictate; w
 `--lcores`, the mapping is chosen — and that is how you guarantee that the producer and
 consumer of the same ring stay in the same cache domain.
 
+
+#### What an lcore is, on the inside
+
+The two tables show that the identifier and the CPU are different things. They
+do not say what the identifier **is** — and that is where the most expensive
+consequence comes from, one that shows up a module away.
+
+An lcore is an index kept in **thread-local storage**. The declaration is in
+[`rte_per_lcore.h`][ringperlcore], and it is literally this:
+
+```c
+#define RTE_DEFINE_PER_LCORE(type, name)   __thread type per_lcore_##name
+#define RTE_PER_LCORE(name)                (per_lcore_##name)
+```
+
+And `rte_lcore_id()` does nothing but read it:
+
+```c
+static inline unsigned rte_lcore_id(void) { return RTE_PER_LCORE(_lcore_id); }
+```
+
+What writes to that variable is the EAL, in `__rte_thread_init()`, and what it
+does there defines what "being an lcore" means:
+
+```c
+RTE_PER_LCORE(_lcore_id) = lcore_id;   /* the index, in TLS */
+rte_gettid();                          /* system id */
+thread_update_affinity(cpuset);        /* the affinity */
+__rte_trace_mem_per_thread_alloc();    /* per-thread trace memory */
+```
+
+**Being an lcore is not a property of the CPU; it is state installed into the
+thread.** The inverse function, `__rte_thread_uninit()`, restores
+`LCORE_ID_ANY` — and an ordinary thread, which went through neither, is born
+with that value.
+
+#### The cost of reading the identifier
+
+For an audience that cares about the hot path, the next question is what that
+read costs. C's `__thread` has different access models, and they do not cost the
+same — the general-dynamic model requires **calling** `__tls_get_addr`, which
+would be unacceptable in a function called per packet. The reference work on
+this is Drepper's on TLS in ELF ([`tls.pdf`][dreppertls]).
+
+Disassembling a binary from this repository that uses a mempool with a
+per-lcore cache:
+
+```bash
+objdump -d custo-contencao | grep -cE '%fs:|__tls_get_addr'
+```
+
+```
+24 accesses via %fs
+ 0 calls to __tls_get_addr
+```
+
+and the instruction that reads the identifier is a single one:
+
+```
+64 8b 38    mov %fs:(%rax),%edi
+```
+
+The `64` prefix is the `%fs` segment, which on x86-64 points to the thread's TLS
+block. Reading the lcore id is **one memory access with a displacement** — no
+function call and no run-time lookup. The operand is a register rather than a
+constant, which indicates the *initial-exec* model, with the displacement
+resolved when the binary is loaded, and not pure *local-exec*.
+
+#### The consequence, which lives in module 03
+
+The index is **dense** on purpose: it starts at zero and has no holes. System
+CPU numbers are sparse — `--lcores '0@6,1@7,2@18'` puts lcores 0, 1 and 2 on
+CPUs 6, 7 and 18. If the library indexed arrays by CPU number, it would need an
+array the size of the largest existing CPU.
+
+And that is exactly what the mempool does
+([`rte_mempool.h`][guiamempool], `rte_mempool_default_cache`):
+
+```c
+if (unlikely(mp->cache_size == 0))      return NULL;
+if (unlikely(lcore_id == LCORE_ID_ANY)) return NULL;
+return &mp->local_cache[lcore_id];      /* direct indexing */
+```
+
+Put the two ends together and the whole chain appears:
+
+    thread registered by the EAL
+            ↓
+    __thread per_lcore__lcore_id  ←  dense index
+            ↓
+    rte_lcore_id()  →  mov %fs:(%rax)
+            ↓
+    &mp->local_cache[lcore_id]
+            ↓
+    mempool fast path
+
+    ordinary thread, unregistered
+            ↓
+    LCORE_ID_ANY
+            ↓
+    NULL cache  →  straight to the shared ring
+
+**Two threads with the same code take different paths through the library**,
+and the variable is not in the code: it is in who registered the thread.
+[Module 03](../03-mempool-ring-mbuf/README.en.md#1-why-not-use-malloc--the-measured-answer)
+measures what that cache is worth — about 30× — and that is the difference
+between having it and not.
+
+> **Registering a non-EAL thread and using multiprocess exclude each other.** An
+> ordinary thread can acquire an lcore through
+> [`rte_thread_register()`][apiregister], but the function refuses when the
+> multiprocess model is in use:
+>
+> ```c
+> if (!rte_mp_disable()) {
+>     EAL_LOG(ERR, "Multiprocess in use, registering non-EAL threads is not supported.");
+>     rte_errno = EINVAL;
+>     return -1;
+> }
+> ```
+>
+> This matters in this module in particular, because it is the module of the
+> primary/secondary model. Whoever follows [§4](#4-primary-and-secondary-processes)
+> and then tries to register an application thread gets `EINVAL`, and the
+> message only appears in the EAL log.
+
+> **What transfers outside DPDK.** The pattern is *per-thread state indexed by a
+> dense identifier, installed at registration and read from TLS*. It shows up in
+> allocators with per-thread caches, in per-thread metric collectors, and in any
+> structure that wants to avoid coordination by trading memory for parallelism.
+> What DPDK adds is the awkward part: **whoever does not register does not take
+> part**, and the library does not warn — it merely gets slower.
+
 ### 5.2 The state machine has two states, not three
 
 A worker lcore receives work through [`rte_eal_remote_launch()`][apiremotelaunch] and is
@@ -956,6 +1089,82 @@ justified choices:
 None of those options is about code performance. All are about **the environment** —
 which is precisely the definition of the EAL: *Environment Abstraction Layer*.
 
+### 8.1 The data that crosses the process boundary
+
+The multi-process model of §4 imposes constraints on the **shape** of the data,
+not only on where it is allocated.
+[`medicoes/order_book.h`](medicoes/order_book.h) defines the structure the
+primary writes and the secondary reads, and every layout decision answers to one
+of those constraints.
+
+```c
+struct tick {
+    uint64_t sequence;   /* STREAM numbering, contiguous and increasing */
+    uint64_t tsc;        /* publication stamp, in cycles (rte_rdtsc) */
+    uint32_t instrument; /* instrument identifier */
+    int32_t  price;      /* in cents */
+    uint32_t quantity;   /* zero means this side is cancelled */
+    uint8_t  lado;
+    uint8_t  _reservado[3];
+};
+```
+
+**There is no pointer.** The structure resides in EAL shared memory, mapped by
+two processes. A pointer stored here would be valid only in the address space
+that wrote it. The mechanism that makes the mapping possible is the one from
+§4.2 — the identical base address in both processes — but depending on it for
+application data transfers to the layout a guarantee that belongs to the
+allocator.
+
+**The price is an integer, in cents.** Binary floating point does not represent
+0.1 exactly, and `0.1 + 0.2 ≠ 0.3`. One cent of error in a price comparison is
+an order executed at the wrong level. Exchanges publish prices as integers with
+a declared exponent for the same reason.
+
+**The padding is explicit.** The three bytes of `_reservado` complete the
+alignment the compiler would insert anyway. Declaring them makes the layout the
+same under different compilers — relevant because the two processes are distinct
+binaries, and nothing requires that they were compiled together.
+
+#### Two structures, because they are two quantities
+
+The separation between `struct fluxo` and `struct order_book` is the central
+concept of the file, and grouping them would be the natural error:
+
+| Structure | Scope | What a jump means |
+|---|---|---|
+| `struct fluxo` | the **transport** | a datagram was lost; the whole subscription is incomplete |
+| `struct order_book` | the **instrument** | does not apply: each instrument has its own top of book |
+
+Sequence numbering belongs to the stream, not to the instrument: the feed
+numbers the datagrams it sends, and losing one affects the subscription as a
+whole. Price belongs to the instrument. Mixing instruments into a single book
+produces a "best bid" of one instrument set against a "best ask" of another —
+and a negative spread, which does not exist.
+
+Real protocols make the same separation: MoldUDP64 numbers the **session**, and
+the messages it carries hold the instrument identifier.
+
+#### Which book model, and why the distinction is not academic
+
+The file implements a **level 1** book (*top of book*): each update **replaces**
+the current value on that side. A **depth** book (levels 2 and 3) is a different
+structure — it keeps every live order, and the best price is the maximum of the
+bids and the minimum of the asks, with removal on cancel or execution.
+
+The distinction matters for an operational reason: applying replacement
+semantics to a depth feed, or the reverse, produces a book that is **wrong and
+keeps working**. There is no exception, no type error, and the structures look
+the same in memory. What gives it away is the crossed-book indicator.
+
+> **A crossed book is a published anomaly, not an assumed invariant.**
+> `order_book_crossed()` is true when the best bid is greater than or equal to
+> the best ask — someone would pay more than another accepts to receive, and the
+> trade should have happened. In production this follows from message loss,
+> delay or an application error: exactly the three failures this module teaches
+> how to detect. Publishing the indicator is preferable to trusting that it
+> never occurs.
+
 ---
 
 ## 9. Validation: reproduce it on your machine
@@ -1017,6 +1226,84 @@ same virtual address on both sides.
 > **not evaluated**. On the CI runner the requirement never exists, so this test never
 > verified anything and always appeared green. A test that passes without testing is
 > worse than an absent test: it consumes the confidence it should build.
+
+### 9.1 The subscription validity criterion, and how the threshold was calibrated
+
+Every feed collection is published with a validity verdict. The verdict is
+computed by `feed_assinatura_valida()`, in
+[`medicoes/order_book.h`](medicoes/order_book.h), from two independent
+conditions:
+
+```c
+static inline int feed_assinatura_valida(int cruzados,
+                                         unsigned long long degenerados)
+{
+    return cruzados == 0 && feed_degenerados_toleraveis(degenerados);
+}
+```
+
+The two conditions invalidate different things, and bringing them under a single
+seal requires both to hold:
+
+| Condition | What it invalidates | Tolerance |
+|---|---|---|
+| `cruzados` | the **book** — a bid above an ask is impossible | zero |
+| `degenerados` | the **measurement** published beside it — impossible latencies from TSC misaligned across cores | `FEED_DEGENERADOS_MAX` |
+
+#### The function receives the numbers instead of computing them
+
+The signature takes `cruzados` and `degenerados` as parameters rather than
+reading them from state. The reason was measured, not estimated: while the
+decision lived embedded at the end of `feed-secundario.c`, a mutant replacing it
+with *"always valid"* **survived** the suite — because on this machine the book
+really is valid, and *"always yes"* is indistinguishable from *"yes because I
+checked"* when the answer is yes.
+
+It is the same pattern as `modelo_de_driver()` in `lib-nic.sh` and
+`hugepages_veredito()` in `lib-hugepages.sh`: **a decision that reads the
+environment on its own can only be tested in the environment one is in.** Taking
+the numbers as arguments makes the threshold exercisable at its edges, with no
+book and no EAL.
+
+#### Calibrating the threshold, and why the unit is a count
+
+The threshold separates a transient event from a degraded session. The value
+came from twenty archived sessions in [`medicoes/historico/`](medicoes/historico/)
+— ten of 200,000 ticks and ten of 1,000,000 — collected with the machine
+dedicated.
+
+**The distribution is bimodal.** A session has at most **one** degenerate
+sample, or it has **82**. There is no observation at all between 2 and 81.
+
+**The count does not scale with collection size.** The 1,000,000-tick sessions
+show the same zero or one degenerate as the 200,000-tick ones. The defect is
+**per event**, not per sample — and the choice of unit follows: an absolute
+count, not a fraction. A fraction would produce different verdicts for the same
+event depending on whether the collection was short or long, which is precisely
+the opposite of what a validity criterion should do.
+
+**The 82-sample session is not transient.** In it the published minimum was
+0.00 ns — an impossible traversal — and the instrument's resolution doubled,
+from about 11.9 to 23.5 ns. It is a session under scheduling pressure, and it is
+exactly what the seal needs to refuse.
+
+The limit sits at the **foot of the empty interval**: two impossible samples
+already suggest a condition that persisted rather than an isolated event. Any
+value between 2 and 81 would separate the two populations in this data; the foot
+is the conservative choice, because it refuses earlier.
+
+> **The count stays printed beside the result.** The threshold decides the seal;
+> it does not hide the number. A criterion that replaces the data with the
+> verdict prevents the reader from disagreeing with the calibration.
+
+> **What transfers beyond DPDK.** Calibrating a threshold requires observing the
+> **shape of the distribution** before choosing the value. Here the shape was
+> bimodal with a wide gap, and that is the favourable case: the threshold can
+> fall anywhere in the gap without changing a verdict. When the distribution is
+> continuous, any threshold produces an arbitrary cliff — and the right answer
+> becomes publishing the quantity instead of binarizing it, as §9.2 of
+> [module 01](../01-fundamentos/README.en.md#92-why-these-estimators-and-what-they-are-not)
+> does when it refuses a binary excursion marker.
 
 ### Exercises
 
@@ -1099,10 +1386,98 @@ Not measured here is the case of the **secondary** dying with the primary alive,
 that of a primary that restarts and tries to recreate a memzone whose name still exists.
 Both are recorded as pending, not as results.
 
-There is also no supervisor: the test kills and observes, it does not try to recover.
-Coordinated recovery — who restarts first, how the secondary knows it can reconnect, what
-to do with the stale state — is a matter of operational architecture, and does not
-belong in a runtime module.
+> **This section used to state that there was no supervisor.** There is now:
+> [`scripts/feed-supervisor.py`](../../scripts/feed-supervisor.py) restarts the
+> session in a new generation after a failure, and the test
+> [`l3_recuperacao.sh`](medicoes/tests/l3_recuperacao.sh) verifies that the
+> next session comes up with a different generation, that the old processes
+> died, and that the order of events holds. What follows replaces the old
+> statement.
+
+### 10.4 Detecting that the producer stopped is two questions, not one
+
+Killing the primary and watching the secondary answers *"does the consumer
+survive?"*. It does not answer the question operations asks: *"is the feed still
+good?"* — and that one has two halves the same symptom does not separate.
+
+[`medicoes/feed-health.h`](medicoes/feed-health.h) separates them with **two
+clocks and two thresholds**:
+
+```c
+if (gen != w->generation || gen == 0)     return FEED_WRONG_GENERATION;
+if (now - w->last_heartbeat >= silence)   return FEED_SILENT;
+if (now - w->last_data     >= freshness)  return FEED_STALE;
+return FEED_HEALTHY;
+```
+
+`last_heartbeat` advances when the producer shows signs of life; `last_data`
+advances when it publishes **new data**. They are independent instants with
+independent thresholds, and it is that independence that produces the state
+intuition does not predict:
+
+| state | heartbeat | data | what happened |
+|---|---|---|---|
+| `FEED_HEALTHY` | advances | advances | nothing |
+| `FEED_SILENT` | stopped | — | the producer died |
+| `FEED_STALE` | **advances** | stopped | the producer is alive and the feed stopped |
+| `FEED_WRONG_GENERATION` | — | — | whoever answers is not who was being watched |
+
+The third is the interesting one. A supervisor watching only the heartbeat
+declares the system healthy while no new data has arrived for minutes — because
+the process responds, the socket is open and the thread did not hang. **Alive
+and stalled are different states, and only the second clock separates them.**
+
+The L1 test ([`tests/test_l1_feed_health.cpp`](medicoes/tests/test_l1_feed_health.cpp))
+demonstrates it in three lines, with the heartbeat going from 1 to 3 and the
+data stuck at 1:
+
+```cpp
+EXPECT_EQ(feed_watch_update(&w, 7, 1, 1,  1, 10, 30), FEED_HEALTHY);
+EXPECT_EQ(feed_watch_update(&w, 7, 2, 1,  9, 10, 30), FEED_HEALTHY);
+EXPECT_EQ(feed_watch_update(&w, 7, 3, 1, 31, 10, 30), FEED_STALE);
+```
+
+#### The generation, and why the observer does not adopt it
+
+The fourth line of the other case is the subtlest in the module:
+
+```cpp
+EXPECT_EQ(feed_watch_update(&w, 8, 2, 2, 12, 10, 30), FEED_WRONG_GENERATION);
+EXPECT_EQ(w.generation, 7u);
+```
+
+On receiving generation 8, the observer **refuses and keeps its own**. It does
+not reconfigure itself. If it did, the producer's restart would become a silent
+transition — and the event operations most needs to see would be precisely the
+one that disappeared from the report.
+
+It is the same idea the supervisor uses from the other side: each session is
+born with a new generation, and `l3_recuperacao.sh` requires the two to differ.
+An incarnation identifier is what prevents confusing *"it came back"* with *"it
+never left"*.
+
+> **What transfers outside DPDK.** This is a **failure detector** with two
+> dimensions — liveness and freshness — and an incarnation number. The pattern
+> holds for any stream consumer: a database replica, a message queue, a market
+> session, a lease in a distributed service. The error it avoids is not one of
+> performance; it is publishing "healthy" about a system that stopped making
+> progress.
+>
+> The DPDK-specific part is small: the instants come from
+> [`feed-clock.h`](medicoes/feed-clock.h), with `CLOCK_MONOTONIC` and `abort()`
+> if the clock fails — because measuring time with a broken clock is worse than
+> not measuring.
+
+#### What is still not covered
+
+Coordinated recovery remains out of scope: who restarts first, how the secondary
+decides it can reconnect, what to do with the stale state. The supervisor
+restarts the **whole session** in a new generation, which is the simplest choice
+and the one that discards the most work.
+
+Also not measured is the case of the **secondary** dying with the primary alive,
+nor that of a primary that restarts and tries to recreate a memzone whose name
+still exists. Both are recorded as pending, not as results.
 
 ## 11. Limitations of this document
 
@@ -1194,3 +1569,7 @@ belong in a runtime module.
 [rel2011]: https://doc.dpdk.org/guides/rel_notes/release_20_11.html
 [api1911]: https://doc.dpdk.org/api-19.11/rte__launch_8h.html
 [fonteeal]: https://github.com/DPDK/dpdk/blob/v25.11/lib/eal/linux/eal_timer.c
+[ringperlcore]: https://github.com/DPDK/dpdk/blob/v25.11/lib/eal/include/rte_per_lcore.h
+[guiamempool]: https://doc.dpdk.org/guides/prog_guide/mempool_lib.html
+[dreppertls]: https://www.uclibc.org/docs/tls.pdf
+[apiregister]: https://doc.dpdk.org/api/rte__thread_8h.html

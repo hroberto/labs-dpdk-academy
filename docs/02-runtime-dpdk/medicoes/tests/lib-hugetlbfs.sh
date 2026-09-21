@@ -79,3 +79,34 @@ hugetlbfs_disponivel() {
     livres="/sys/kernel/mm/hugepages/hugepages-$((tamanho / 1024))kB/free_hugepages"
     [ -r "$livres" ] && [ "$(cat "$livres")" -gt 0 ]
 }
+
+# Confere que a limpeza do teste FUNCIONOU, e nao apenas que ela rodou.
+#
+# POR QUE ISTO EXISTE
+#
+# Ate 21/09/2026 o `l3_multiprocesso.sh` removia `/dev/hugepages/${PREFIXO}*`
+# com o caminho fixo no codigo, enquanto passava `--huge-dir` para outro lugar.
+# Cada execucao vazava uma hugepage de 2 MB, e a suite ficava VERDE: nada
+# conferia o resultado da limpeza.
+#
+# Corrigir a remocao nao resolve o problema de fundo. Uma limpeza sem
+# verificacao e indistinguivel de uma limpeza que nao funciona -- o mesmo
+# argumento que a secao 5.1 do topico de mempool faz sobre asserçao que nunca
+# falha. Esta funcao e a verificacao, e o teste negativo dela esta no
+# `l1_multiprocesso.sh`.
+#
+# Ecoa cada residuo encontrado e devolve 1 se houver algum.
+conferir_sem_residuo() { # <prefixo>
+    local prefixo=$1 achou=0 d f
+    [ -n "$prefixo" ] || return 0
+    for d in /dev/hugepages "${DPDK_ACADEMY_HUGE_DIR:-}" \
+             "${XDG_RUNTIME_DIR:-/var/run}/dpdk"; do
+        [ -n "$d" ] && [ -d "$d" ] || continue
+        for f in "$d/$prefixo"*; do
+            [ -e "$f" ] || continue
+            echo "  FALHA - a limpeza deixou residuo: $f"
+            achou=1
+        done
+    done
+    return "$achou"
+}

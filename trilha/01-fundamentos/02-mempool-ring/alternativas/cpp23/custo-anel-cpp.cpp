@@ -58,9 +58,9 @@ double m_cycle() {
     academy::Packet p = academy::make(1, 64);
     academy::Packet out{};
 
-    const int rounds = iterations / static_cast<int>(current_burst);
+    const int voltas = iterations / static_cast<int>(current_burst);
     const auto t0 = now_ns();
-    for (int i = 0; i < rounds; i++) {
+    for (int i = 0; i < voltas; i++) {
         for (std::size_t j = 0; j < current_burst; j++)
             if (!ring.enqueue(p)) break;
         for (std::size_t j = 0; j < current_burst; j++)

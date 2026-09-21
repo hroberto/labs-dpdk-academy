@@ -2,7 +2,10 @@
 # O erro esperado precisa acontecer na coleta, depois da EAL.
 set -eu
 out=$(mktemp)
-trap 'rm -f "$out"' EXIT
+# O segundo alvo e o diretorio de runtime do --file-prefix, que o DPDK nao
+# remove sozinho. Os dois num trap so porque um segundo `trap ... EXIT`
+# SUBSTITUI o primeiro em vez de somar.
+trap 'rm -f "$out"; rm -rf "${XDG_RUNTIME_DIR:-/var/run}"/dpdk/academy_*_$$' EXIT
 rc=0
 "${1:?binario}" -l 0 --no-huge --no-pci --file-prefix="academy_invalid_$$" >"$out" 2>&1 || rc=$?
 cat "$out"

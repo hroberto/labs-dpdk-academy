@@ -13,12 +13,11 @@
  *
  * POR QUE OS TRABALHADORES SÃO LANÇADOS COM rte_eal_remote_launch
  *
- * Não é estilo: é condição de validade. O cache por lcore do mempool é indexado
- * por rte_lcore_id(). Uma thread comum, criada com pthread_create sem registro
- * na EAL, recebe LCORE_ID_ANY e **pula o cache**, caindo direto no anel comum.
- * Medir assim daria um resultado ruim pelo motivo errado — e sem nenhum aviso.
+ * Nao e estilo: e condicao de validade. Uma thread comum recebe LCORE_ID_ANY e
+ * pula o cache por lcore. Ver README.md secao 5 "Validacao: reproduza na sua
+ * maquina".
  *
- * O lado do malloc usa pthreads porque é o que um programa comum faria.
+ * O lado do malloc usa pthreads porque e o que um programa comum faria.
  *
  * USO: ./custo-contencao -l 0-7 --no-huge --file-prefix=meu_teste --no-pci <cache_size>
  */

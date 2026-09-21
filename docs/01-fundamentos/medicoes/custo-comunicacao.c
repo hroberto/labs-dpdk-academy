@@ -501,7 +501,7 @@ int main(void)
      * a rampa de frequencia. O sintoma: `dentro do dominio` variou de 17,65 a
      * 27,25 ns entre coletas, 55% de faixa, enquanto `ENTRE dominios` saia
      * estavel na mesma execucao. Medir durante a rampa e o mesmo defeito que a
-     * secao 2 ja documentava para a chamada de funcao, em outro lugar. */
+     * secao 2 "A fronteira user-space / kernel-space" ja documentava para a chamada de funcao, em outro lugar. */
     fixar(cpu_local_a);
     acomodar_frequencia();
 

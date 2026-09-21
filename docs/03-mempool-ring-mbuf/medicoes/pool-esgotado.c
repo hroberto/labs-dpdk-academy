@@ -30,10 +30,10 @@
  *
  * POR QUE ISTO NÃO É UM BENCHMARK
  *
- * Não há tempo medido aqui, de propósito: o que se mede é COMPORTAMENTO na
- * fronteira, e comportamento não precisa de mediana nem de dispersão. Números
- * de contagem são exatos e reprodutíveis; por isso este programa não usa
- * statistics.h e não aceita DPDK_ACADEMY_AMOSTRAS.
+ * Nao ha tempo medido aqui, de proposito: mede-se COMPORTAMENTO na fronteira, e
+ * contagem e exata. Por isso nao usa statistics.h nem aceita
+ * DPDK_ACADEMY_AMOSTRAS. Ver README.md secao 5.1 "Nem todo programa deste
+ * modulo e medicao".
  *
  * USO: ./pool-esgotado -l 0 --no-huge --file-prefix=meu_teste
  *
