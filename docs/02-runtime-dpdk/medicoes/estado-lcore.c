@@ -130,7 +130,7 @@ int main(int argc, char **argv)
     printf("  clock (TSC) .......... %.3f GHz\n\n", (double)rte_get_tsc_hz() / 1e9);
 
     printf("  %-8s %-14s %-12s %-14s %-8s\n", "lcore", "real CPU(s)", "role", "index in node",
-           "no NUMA");
+           "NUMA node");
     printf("  %-8s %-14s %-12s %-14s %-8s\n", "-----", "------------", "-----", "------------",
            "-------");
     unsigned id;
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
         char cpus[64] = "";
         imprimir_cpuset(cpus, sizeof(cpus), rte_lcore_cpuset(id));
         printf("  %-8u %-14s %-12s %-14d %-8u\n", id, cpus,
-               id == rte_get_main_lcore() ? "principal" : "trabalhador",
+               id == rte_get_main_lcore() ? "main" : "worker",
                rte_lcore_to_cpu_id((int)id), rte_lcore_to_socket_id(id));
     }
 

@@ -585,8 +585,8 @@ int main(void)
          * fica publicada como numero unico -- e este bloco fica no programa
          * para que a pergunta nao precise ser reaberta de memoria. */
         printf("\n  regime control  phase 1: base %.3f  ratio %.2f\n"
-               "                      fase 2: base %.3f  razao %.2f   (apos %d ms"
-               " de carga continua)\n",
+               "                      phase 2: base %.3f  ratio %.2f   (after %d ms"
+               " of continuous load)\n",
                f1.b.median, f1.razao.median, f2.b.median, f2.razao.median,
                CONDICIONAR_MS);
         printf("  The two phases agree: the ratio does not depend on conditioning.\n");

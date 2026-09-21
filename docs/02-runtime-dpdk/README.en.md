@@ -130,23 +130,23 @@ requires a process**. The program does a `fork()` per sample; the child initiali
 times it and returns the result through a *pipe*; the parent only aggregates.
 
 ```
-== Cost of starting and shutting down the EAL ==
+== Cost of initialising and shutting down the EAL ==
 
   configuration measured: -l 0 --in-memory
   samples: 11 (one per process; rte_eal_init is not reentrant)
 
+  warning: "rte_eal_cleanup()" has disp 6.0% with 11 samples -- in that band the seal
+           does not decide. Raise it to 20+ before explaining the result.
   values in MILLISECONDS
 
-  measurement                          median   p25-p75 (IQR)   min-max range      disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  rte_eal_init()                         122.5  122.1-122.7     121.6-123.2         0.5%   0.4%
-  rte_eal_cleanup()                      0.118  0.097-0.135     0.093-0.144        32.2%  16.7% !
+  rte_eal_init()                         118.8  118.3-121.4     117.8-122.1         2.6%   1.4%  
+  rte_eal_cleanup()                      0.094  0.090-0.096     0.055-0.133         6.0%  20.1% ~
 
   Reading:
-    On 10 GbE with 64 B frames, one packet arrives every 67.2 ns.
-    The 123 ms startup window is worth 2 million packets
-    unserved. This is why a data-plane process starts once
-    and stays up: restarting it in production is not a cheap operation.
+    At 10 GbE with 64 B frames one packet arrives every 67.2 ns.
+    The 119 ms initialisation window is worth 2 million packets
 ```
 
 Bringing the EAL up costs **123 ms**; shutting it down costs **0.12 ms** — three

@@ -3,7 +3,7 @@ EAL: Detected NUMA nodes: 1
 EAL: Detected shared linkage of DPDK
 EAL: Selected IOVA mode 'VA'
 EAL: No free 1048576 kB hugepages reported on node 0
-  origin: estado-lcore @ v0.01.00-17-g99e4a64-dirty  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-20T20:30:17-0300
+  origin: estado-lcore @ v0.01.00-19-gf528659-dirty  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-20T21:53:43-0300
 
 
 == What the EAL decided ==
@@ -16,12 +16,12 @@ EAL: No free 1048576 kB hugepages reported on node 0
   main lcore ........... 0
   clock (TSC) .......... 4.392 GHz
 
-  lcore    real CPU(s)    role         index in node  no NUMA 
+  lcore    real CPU(s)    role         index in node  NUMA node
   -----    ------------   -----        ------------   ------- 
-  0        0              principal    0              0       
-  1        1              trabalhador  1              0       
-  2        2              trabalhador  2              0       
-  3        3              trabalhador  3              0       
+  0        0              main         0              0       
+  1        1              worker       1              0       
+  2        2              worker       2              0       
+  3        3              worker       3              0       
 
   Two columns that are often confused:
 

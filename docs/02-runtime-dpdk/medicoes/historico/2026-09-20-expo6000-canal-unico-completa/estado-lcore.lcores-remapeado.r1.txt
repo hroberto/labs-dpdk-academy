@@ -3,7 +3,7 @@ EAL: Detected NUMA nodes: 1
 EAL: Detected shared linkage of DPDK
 EAL: Selected IOVA mode 'VA'
 EAL: No free 1048576 kB hugepages reported on node 0
-  origin: estado-lcore @ v0.01.00-19-gf528659-dirty  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-20T21:53:42-0300
+  origin: estado-lcore @ v0.01.00-19-gf528659-dirty  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-20T21:53:41-0300
 
 
 == What the EAL decided ==
@@ -12,16 +12,15 @@ EAL: No free 1048576 kB hugepages reported on node 0
   process type ......... PRIMARIO
   IOVA mode ............ VA (virtual)
   arguments consumed     3  (rte_eal_init returns the COUNT, not 0/-1)
-  lcores in use ........ 4  (the machine has 24 logical CPUs)
+  lcores in use ........ 3  (the machine has 24 logical CPUs)
   main lcore ........... 0
   clock (TSC) .......... 4.392 GHz
 
   lcore    real CPU(s)    role         index in node  NUMA node
   -----    ------------   -----        ------------   ------- 
-  0        0              main         0              0       
-  1        1              worker       1              0       
-  2        2              worker       2              0       
-  3        3              worker       3              0       
+  0        6              main         0              0       
+  1        7              worker       1              0       
+  2        18             worker       2              0       
 
   Two columns that are often confused:
 
@@ -41,16 +40,15 @@ EAL: No free 1048576 kB hugepages reported on node 0
   Until DPDK 20.11 there was a third, FINISHED, still described in
   most of the material available on the web.
 
-  apos rte_eal_init:     lcore 1: WAIT     lcore 2: WAIT     lcore 3: WAIT    
-  apos remote_launch:    lcore 1: RUNNING  lcore 2: RUNNING  lcore 3: RUNNING 
-  durante o trabalho:    lcore 1: RUNNING  lcore 2: RUNNING  lcore 3: RUNNING 
+  apos rte_eal_init:     lcore 1: WAIT     lcore 2: WAIT    
+  apos remote_launch:    lcore 1: RUNNING  lcore 2: RUNNING 
+  durante o trabalho:    lcore 1: RUNNING  lcore 2: RUNNING 
 
   values returned by the workers:
     lcore 1 -> 107
     lcore 2 -> 207
-    lcore 3 -> 307
 
-  apos wait_lcore:       lcore 1: WAIT     lcore 2: WAIT     lcore 3: WAIT    
+  apos wait_lcore:       lcore 1: WAIT     lcore 2: WAIT    
 
   Note that the state returns to WAIT on its own: there is no FINISHED to
   observe. rte_eal_wait_lcore() is what delivers the return value,

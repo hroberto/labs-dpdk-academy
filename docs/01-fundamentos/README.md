@@ -621,13 +621,12 @@ Fixando a região em 512 MB, o mesmo programa publica a diferença com o
 desenho pareado ([`custo-traducao.c`](medicoes/custo-traducao.c)):
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  paginas de 4 KB                        105.7  105.5-105.9     104.4-106.5         0.4%   0.4%
-  hugepages de 2 MB                      95.29  94.94-95.55     93.85-96.09         0.6%   0.6%
+  4 KB pages                             89.05  88.97-89.18     88.82-89.90         0.2%   0.3%  
+  2 MB hugepages                         77.98  77.85-78.28     77.45-79.06         0.6%   0.6%  
 
-  DIFERENCA atribuivel a traducao        10.40  IQR 10.16 a 10.84
-                                                amplitude 8.87 a 11.85   21/21 pares
+  DIFFERENCE attributable to translation     11.09  IQR 10.90 to 11.17   range 9.95 to 11.60   21/21 pairs
 ```
 
 Os ~95 ns comuns às duas medições são a latência da RAM, que hugepage nenhuma
@@ -711,10 +710,10 @@ Um acerto de L3 custa ~11 ns nesta máquina. Numa execução de `custo-traducao`
 com a máquina ociosa, a diferença medida entre 4 KB e 2 MB foi **11,65 ns**:
 
 ```
-  paginas de 4 KB                        106.1  105.8-106.9     105.6-108.0         1.0%   0.8%
-  hugepages de 2 MB                      94.48  94.20-94.89     93.89-95.47         0.7%   0.6%
+  4 KB pages                             89.05  88.97-89.18     88.82-89.90         0.2%   0.3%  
+  2 MB hugepages                         77.98  77.85-78.28     77.45-79.06         0.6%   0.6%  
 
-  diferenca (o custo do page walk): 11.65 ns  (11.0%)
+  page walk cost: 11.09 ns  (12.5% of the 4 KB access)
 ```
 
 Os números são **compatíveis** com a explicação: neste conjunto de trabalho o
@@ -930,13 +929,13 @@ físicos, cada um com 16 cadeias próprias sobre a mesma região, sem compartilh
 uma única linha entre threads:
 
 ```
-   nucleos   ns/acesso   M acessos/s      agregado   escala ideal
+     cores   ns/access   M accesses/s     aggregate   ideal scaling
   --------   ---------   -----------   -----------   ------------
-         1        7.27       137.6         137.6          100%
-         2        8.35       119.8         239.5           87%
-         4       16.91        59.1         236.5           43%
-         8       25.82        38.7         309.8           28%
-        12       36.56        27.4         328.2           20%
+         1        6.18       161.9         161.9          100%
+         2        6.77       147.6         295.2           91%
+         4        8.61       116.2         464.8           72%
+         8       14.35        69.7         557.6           43%
+        12       21.29        47.0         563.7           29%
 ```
 
 <picture>
@@ -1384,11 +1383,11 @@ E a diferença é enorme ([`custo-comunicacao.c`](medicoes/custo-comunicacao.c))
 medindo o tempo de uma linha de cache viajar de um núcleo para outro:
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  dentro do dominio 0 (cpu 0 <-> 2)      22.89  22.32-23.81     22.09-25.64         6.5%   4.5% ~
-  ENTRE dominios (cpu 0 <-> 6)           91.75  90.71-92.75     90.30-95.03         2.2%   1.3%
-  RAZAO entre/dentro (pareada)            4.03  3.88-4.09       3.58-4.21           5.1%   4.1% ~
+  within domain 0 (cpu 0 <-> 2)          20.13  19.42-21.27     17.86-39.18         9.2%  20.5% ~
+  BETWEEN domains (cpu 0 <-> 6)          82.24  82.01-84.34     81.93-128.14        2.8%  11.8%  
+  RATIO between/within (paired)           4.09  3.91-4.32       2.32-6.71           9.9%  18.0% ~
 ```
 
 **Atravessar a interconexão custa cerca de 4,0 vezes mais — e são 137% do
@@ -1569,12 +1568,12 @@ custo dessa competição com trabalho de ALU de alto paralelismo de instruções
 ([`custo-comunicacao.c`](medicoes/custo-comunicacao.c)):
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  laco sozinho no nucleo                 0.537  0.536-0.538     0.535-0.658         0.5%   4.9%
-  vizinho no irmao SMT (cpu 12)           1.23  1.23-1.23       1.22-1.24           0.2%   0.2%
-  RAZAO com/sem irmao SMT (pareada)       2.29  2.29-2.29       2.27-2.30           0.2%   0.2%
-  vizinho em nucleo fisico (cpu 2)       0.551  0.548-0.552     0.536-0.558         0.7%   0.9%
+  loop alone on the core                 0.536  0.536-0.537     0.536-0.537         0.1%   0.1%  
+  neighbour on SMT sibling (cpu 12)       1.23  1.23-1.23       1.23-1.24           0.1%   0.1%  
+  RATIO with/without SMT sibling (paired)      2.29  2.29-2.29       2.29-2.30           0.1%   0.1%  
+  neighbour on physical core (cpu 2)     0.550  0.549-0.553     0.537-0.567         0.6%   1.3%  
 ```
 
 **Compartilhar o núcleo custa 129% de tempo por operação** — o laço fica 2,29
@@ -1634,14 +1633,14 @@ preciso medir as duas ao mesmo tempo. Três threads idênticas, barreira de
 largada, cronômetro parando na última a terminar:
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  1 thread  em 1 nucleo fisico (cpu 0)     1860  1857-1862       1855-1945           0.3%   1.0%
-  2 threads em 2 nucleos fisicos (0,2)     3711  3708-3714       3340-3723           0.1%   2.2%
-  2 threads em 2 irmaos SMT (cpu 0,12)     1928  1926-1928       1922-1929           0.1%   0.1%
+  1 thread  on 1 physical core (cpu 0)    1861.9  1859.3-1862.8   1857.0-2038.0       0.2%   2.1%  
+  2 threads on 2 physical cores (cpu 0,2)    3712.8  3708.5-3717.0   3689.1-3722.1       0.2%   0.2%  
+  2 threads on 2 SMT siblings (cpu 0,12)    1926.9  1923.6-1927.2   1921.7-1927.8       0.2%   0.1%  
 
-  dois nucleos fisicos rendem 1.99x um nucleo
-  dois irmaos SMT     rendem 1.04x um nucleo
+  two physical cores yield 1.99x one core
+  two SMT siblings    yield 1.03x one core
 ```
 
 **Dois núcleos físicos rendem 1,99×. Dois irmãos SMT rendem 1,04×.** O par de
@@ -1762,13 +1761,13 @@ fique visível em vez de precisar ser suposta.
 **1. Sem disputa — ninguém mais quer o mesmo primitivo:**
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  atomica relaxed (store+load)           0.205  0.205-0.206     0.204-0.218         0.5%   1.4%
-  atomica seq_cst (store+load)            3.69  3.69-3.70       3.68-3.96           0.4%   1.5%
-  mutex lock+unlock                       8.51  8.50-8.55       8.49-8.57           0.6%   0.3%
-  spinlock lock+unlock                    4.44  4.43-4.45       4.43-4.62           0.4%   1.1%
-  semaforo post+wait                      8.32  8.31-8.32       8.30-8.41           0.2%   0.4%
+  atomic relaxed (store+load)            0.410  0.321-0.411     0.205-0.412        21.9%  17.6% !
+  atomic seq_cst (store+load)             3.69  3.69-3.87       3.68-3.99           5.0%   3.2% ~
+  mutex lock+unlock                       8.48  8.48-8.49       8.48-8.73           0.1%   0.8%  
+  spinlock lock+unlock                    4.43  4.43-4.49       4.42-4.73           1.5%   1.7%  
+  semaphore post+wait                     8.30  8.30-8.30       8.30-8.55           0.0%   0.8%  
 ```
 
 As duas últimas colunas medem a confiança do número: `disp` diz se o valor
@@ -1846,13 +1845,17 @@ a garantia que ele precisa, e a diferença sai do orçamento por pacote.
 diferentes:**
 
 ```
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  atomica + espera ativa (nao dorme)     17.62  17.60-17.71     17.59-18.84         0.6%   1.6%
-  mutex + espera ativa (nao dorme)       92.37  90.96-93.80     89.56-95.43         3.1%   1.9% ~
-  mutex + condvar (DORME)               1355.6  1342.3-1368.1   1325.4-1403.0       1.9%   1.5%
-  semaforo POSIX (DORME)                1310.5  1281.5-1345.6   1225.3-1387.2       4.9%   3.3% ~
+  atomic + busy wait (does not sleep)     17.51  17.50-17.53     17.48-18.58         0.1%   2.0%  
+  mutex + busy wait (does not sleep)     95.68  95.25-96.41     94.10-97.55         1.2%   0.9%  
+  mutex + condvar (SLEEPS)              1316.0  1301.0-1331.9   1265.8-1397.8       2.3%   2.3%  
+  POSIX semaphore (SLEEPS)              1281.2  1267.7-1283.5   1224.6-1315.4       1.2%   1.5%  
 ```
+<!-- cita-retratado: 17,50 17.50 — NAO e citacao do valor retratado. O `17.50`
+     acima e o limite inferior do IQR de `atomic + busy wait`, medicao sem
+     relacao com o custo entre CCDs que foi retratado. Colisao de digitos:
+     o verificador casa a sequencia, nao a afirmacao. -->
 
 **A comparação decisiva são as duas linhas do meio: é o mesmo mutex.** A única
 diferença é que na segunda a thread realmente dorme, esperando ser acordada por

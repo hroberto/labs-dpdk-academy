@@ -127,23 +127,23 @@ exige um processo**. O programa faz `fork()` por amostra; o filho inicializa,
 cronometra e devolve o resultado por um *pipe*; o pai apenas agrega.
 
 ```
-== Custo de inicializar e encerrar a EAL ==
+== Cost of initialising and shutting down the EAL ==
 
-  configuracao medida: -l 0 --in-memory
-  amostras: 11 (uma por processo; rte_eal_init nao e reentrante)
+  configuration measured: -l 0 --in-memory
+  samples: 11 (one per process; rte_eal_init is not reentrant)
 
-  valores em MILISSEGUNDOS
+  warning: "rte_eal_cleanup()" has disp 6.0% with 11 samples -- in that band the seal
+           does not decide. Raise it to 20+ before explaining the result.
+  values in MILLISECONDS
 
-  medicao                              mediana  p25-p75 (IQR)   amplitude min-max  disp    CV
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  rte_eal_init()                         122.5  122.1-122.7     121.6-123.2         0.5%   0.4%
-  rte_eal_cleanup()                      0.118  0.097-0.135     0.093-0.144        32.2%  16.7% !
+  rte_eal_init()                         118.8  118.3-121.4     117.8-122.1         2.6%   1.4%  
+  rte_eal_cleanup()                      0.094  0.090-0.096     0.055-0.133         6.0%  20.1% ~
 
-  Leitura:
-    Em 10 GbE com quadros de 64 B chega 1 pacote a cada 67,2 ns.
-    A janela de 123 ms da inicializacao equivale a 2 milhoes de pacotes
-    nao atendidos. Por isso o processo de plano de dados sobe uma vez
-    e fica de pe: reinicia-lo em producao nao e uma operacao barata.
+  Reading:
+    At 10 GbE with 64 B frames one packet arrives every 67.2 ns.
+    The 119 ms initialisation window is worth 2 million packets
 ```
 
 Subir a EAL custa **119 ms**; encerrá-la custa **0,09 ms** — três ordens de
@@ -738,11 +738,11 @@ colunas lado a lado. Com `-l 0-3`:
 Com `--lcores '0@6,1@7,2@18'`, a mesma máquina:
 
 ```
-  lcore    CPU(s) reais   papel        indice no no   no NUMA 
+  lcore    real CPU(s)    role         index in node  NUMA node
   -----    ------------   -----        ------------   ------- 
-  0        6              principal    0              0       
-  1        7              trabalhador  1              0       
-  2        18             trabalhador  2              0       
+  0        6              main         0              0       
+  1        7              worker       1              0       
+  2        18             worker       2              0       
 ```
 
 O lcore 0 agora executa na CPU 6. E repare na quarta coluna: ela **não** mudou.

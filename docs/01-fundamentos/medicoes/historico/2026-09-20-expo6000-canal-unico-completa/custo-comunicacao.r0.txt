@@ -1,4 +1,4 @@
-  origin: custo-comunicacao @ v0.01.00-17-g99e4a64-dirty  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-20T20:03:23-0300
+  origin: custo-comunicacao @ v0.01.00-19-gf528659-dirty  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-20T21:46:12-0300
 
 Cost of two cores exchanging a cache line
 
@@ -8,22 +8,22 @@ Cost of two cores exchanging a cache line
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  within domain 0 (cpu 0 <-> 2)          19.61  18.46-21.62     17.49-24.25        16.1%  10.1% !
-  BETWEEN domains (cpu 0 <-> 6)          84.18  82.41-84.51     81.56-86.12         2.5%   1.6%  
-  RATIO between/within (paired)           4.25  3.92-4.52       3.52-4.80          14.2%   9.4% !
+  within domain 0 (cpu 0 <-> 2)          20.30  19.46-21.79     17.81-24.14        11.5%   8.4% !
+  BETWEEN domains (cpu 0 <-> 6)          82.35  81.99-84.03     81.92-104.03        2.5%   6.5%  
+  RATIO between/within (paired)           4.10  3.84-4.22       3.40-5.33           9.3%  11.1% ~
 
   Contention between SMT threads (same physical core)
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  loop alone on the core                 0.537  0.537-0.537     0.537-0.540         0.1%   0.1%  
-  neighbour on SMT sibling (cpu 12)       1.23  1.23-1.23       1.23-1.24           0.1%   0.2%  
-  RATIO with/without SMT sibling (paired)      2.29  2.29-2.29       2.29-2.30           0.1%   0.1%  
+  loop alone on the core                 0.537  0.536-0.538     0.536-0.610         0.3%   4.9%  
+  neighbour on SMT sibling (cpu 12)       1.23  1.23-1.23       1.23-1.23           0.1%   0.1%  
+  RATIO with/without SMT sibling (paired)      2.29  2.29-2.29       2.28-2.30           0.1%   0.2%  
 
-  regime control  phase 1: base 0.538  ratio 2.29
-                      fase 2: base 0.538  razao 2.29   (apos 400 ms de carga continua)
+  regime control  phase 1: base 0.537  ratio 2.29
+                      phase 2: base 0.537  ratio 2.29   (after 400 ms of continuous load)
   The two phases agree: the ratio does not depend on conditioning.
-  neighbour on physical core (cpu 2)     0.550  0.550-0.553     0.548-0.576         0.7%   1.4%  
+  neighbour on physical core (cpu 2)     0.549  0.549-0.552     0.537-0.558         0.7%   1.0%  
 
   Sharing the core costs 130% of performance; using distinct
   physical cores costs 2%. Two logical CPUs are not two
@@ -34,15 +34,15 @@ Cost of two cores exchanging a cache line
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  1 thread  on 1 physical core (cpu 0)    1861.0  1860.8-1861.5   1857.2-2018.9       0.0%   1.8%  
-  2 threads on 2 physical cores (cpu 0,2)    3709.7  3707.0-3711.3   3488.4-3713.1       0.1%   2.1%  
-  2 threads on 2 SMT siblings (cpu 0,12)    1926.8  1925.6-1927.1   1921.3-1927.6       0.1%   0.1%  
+  1 thread  on 1 physical core (cpu 0)    1861.6  1859.3-1862.9   1615.6-2007.7       0.2%   3.4%  
+  2 threads on 2 physical cores (cpu 0,2)    3713.2  3707.4-3714.5   3689.4-3722.7       0.2%   0.2%  
+  2 threads on 2 SMT siblings (cpu 0,12)    1926.9  1926.2-1927.3   1923.1-1928.0       0.1%   0.1%  
 
   two physical cores yield 1.99x one core
   two SMT siblings    yield 1.04x one core
   The 2.29x degradation of the observed thread does NOT predict this:
   applied symmetrically, it would give 0.87x.
 
-  Crossing the interconnect costs 4.3x more.
-  That is 125% of the 67.2 ns budget of a 64 B packet at 10 GbE:
+  Crossing the interconnect costs 4.1x more.
+  That is 123% of the 67.2 ns budget of a 64 B packet at 10 GbE:
   a single handoff between badly placed cores already blows it.
