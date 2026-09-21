@@ -60,7 +60,7 @@ import unicodedata
 import sys
 
 IGNORAR = {".git", "build", "builddir", "build-precommit", "subprojects",
-           "temp", "__pycache__", "alternativas"}
+           "temp", "__pycache__"}
 FONTES = (".c", ".h", ".cpp", ".hpp")
 
 # `secao 4.3 "Titulo"` -- o titulo e opcional, e e ele que torna a deriva

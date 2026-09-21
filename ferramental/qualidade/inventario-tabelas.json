@@ -8,7 +8,7 @@
     "trilha/04-projeto-final/README.md"
   ],
   "limites": "Tabelas Markdown e blocos numericos nas oito paginas listadas. Nao abrange todos os numeros em prosa nem verifica automaticamente sua origem.",
-  "total": 111,
+  "total": 112,
   "entradas": [
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -750,14 +750,21 @@
       "linha": 364,
       "secao": "5. Implementação e validação",
       "tipo": "tabela_markdown",
-      "sha256": "87fd8f01987d348ad69eab30f6c9e963f152177f7167f945586d2c13d26b2216"
+      "sha256": "9590d3ca6535e4a61290532ff1f1191054fcbbfa98ffab9e37082fde0f92d150"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 373,
+      "linha": 375,
       "secao": "5. Implementação e validação",
       "tipo": "bloco_numerico",
       "sha256": "1aa6f01b72a2a778b0faabe18dc6ac8ce31abbb6eca50928e926dd2236a6d78c"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
+      "linha": 412,
+      "secao": "5.1 O controle, e o que ele impede de concluir",
+      "tipo": "tabela_markdown",
+      "sha256": "5dc6a2c52a7440906a779ebc54c32edff4345a98dfae3ea0b296ad4383d80b1a"
     },
     {
       "arquivo": "trilha/04-projeto-final/README.md",

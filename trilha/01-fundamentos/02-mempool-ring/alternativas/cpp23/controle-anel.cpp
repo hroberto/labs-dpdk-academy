@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
-// Mesmo SPSC e payload: varia publicação por objeto/lote e uma/duas CPUs.
+// Controle da comparacao de nivel 2: mesmo SPSC e mesmo payload, varia
+// publicacao por objeto/lote e uma/duas CPUs, de forma cruzada.
+// Ver README.md secao 5.1 "O controle, e o que ele impede de concluir".
 #include "packet.hpp"
 #include <array>
 #include <chrono>
