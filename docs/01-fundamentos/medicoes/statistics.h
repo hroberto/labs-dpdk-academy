@@ -10,43 +10,19 @@
  * dispersão de 6,0 sustentam conclusões muito diferentes, e o leitor não tem
  * como distinguir se só lhe damos a média.
  *
- * O QUE REPORTAMOS, E POR QUÊ
+ * O QUE REPORTAMOS
  *
- *   mediana  - tendência central robusta. Diferente da média, não é arrastada
- *              por uma única amostra ruim (uma interrupção do sistema no meio
- *              da coleta).
+ *   mediana  - tendencia central robusta; estima o custo observado na pratica.
+ *   minimo   - estima o custo real da operacao; o ruido e unilateral.
+ *   p25-p75  - intervalo interquartil, de onde sai o selo.
+ *   amplitude- min-max, a faixa completa observada.
+ *   CV       - desvio padrao / media; DETECTOR de excursao, nao medida de
+ *              confianca.
  *
- *   mínimo   - em microbenchmark de operação determinística, o ruído é
- *              UNILATERAL: interferência só faz a medição demorar mais, nunca
- *              menos. Por isso o mínimo é a melhor estimativa do custo real da
- *              operação, e a mediana estima o que se observa na prática. Quando
- *              os dois quase coincidem, a medição está limpa.
- *
- *   p25-p75  - intervalo interquartil: onde caem as 50% amostras centrais.
- *
- *   amplitude- min-max, a faixa completa observada. Vale reportá-la mesmo sendo
- *              sensível a um único outlier: em trabalho acadêmico, esconder a
- *              extensão do que se observou é pior que exibi-la. Quando a
- *              amplitude é muito maior que o intervalo interquartil, há
- *              interferência esporádica que o leitor precisa conhecer.
- *
- *   CV       - coeficiente de variação (desvio padrão / média, em %).
- *              Reportado, mas NÃO usado para julgar a medição, porque é
- *              sensível a um único outlier: uma amostra ruim entre 25 pode
- *              levá-lo de 2% a 27% sem que a mediana se mova. Serve como
- *              DETECTOR DE OUTLIER, não como medida de confiança.
- *
- * COMO LER disp E CV JUNTOS
- *
- * O selo (~ ou !) sai de `disp`, e só dela: é o indicador de CONFIANÇA, robusto
- * por não olhar as caudas. Diz se o valor típico é reprodutível.
- *
- * O CV entra como segunda leitura, pela RELAÇÃO com disp:
- *
- *   CV parecido com disp   -> distribuição bem comportada.
- *   CV muito maior que disp -> o miolo é firme, mas houve amostras isoladas
- *                              destoantes: interferência esporádica, não
- *                              instabilidade do valor.
+ * A justificativa de cada escolha -- por que o minimo estima o custo real, por
+ * que a media nao entra, por que a amplitude e publicada apesar de fragil, e
+ * por que nao ha marcador binario de excursao -- esta no README.md secao 9.2
+ * "Por que estes estimadores, e o que eles nao sao".
  *
  * QUANTAS AMOSTRAS O SELO EXIGE PARA SIGNIFICAR ALGO
  *
@@ -102,13 +78,11 @@
  * uma diferença de 1,4%. Exibir os dois números e ensinar a lê-los juntos é
  * mais honesto que esconder a continuidade atrás de um limiar.
  *
- * O QUE ISTO NÃO É
+ * O QUE ISTO NAO E
  *
- * Não é análise estatística rigorosa: não há intervalo de confiança formal nem
- * teste de hipótese, porque as amostras de um microbenchmark não são
- * independentes nem normalmente distribuídas (há autocorrelação por estado de
- * cache e por frequência da CPU). O objetivo é honestidade sobre a dispersão,
- * não inferência.
+ * Nao e analise estatistica rigorosa: nao ha intervalo de confianca formal nem
+ * teste de hipotese, e a omissao e deliberada. Ver README.md secao 9.2 "Por que
+ * estes estimadores, e o que eles nao sao".
  */
 #ifndef DPDK_ACADEMY_STATISTICS_H
 #define DPDK_ACADEMY_STATISTICS_H

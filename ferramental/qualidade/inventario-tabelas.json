@@ -8,7 +8,7 @@
     "trilha/04-projeto-final/README.md"
   ],
   "limites": "Tabelas Markdown e blocos numericos nas oito paginas listadas. Nao abrange todos os numeros em prosa nem verifica automaticamente sua origem.",
-  "total": 108,
+  "total": 109,
   "entradas": [
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -327,35 +327,42 @@
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3038,
+      "linha": 3003,
+      "secao": "O ruído de um microbenchmark é unilateral",
+      "tipo": "tabela_markdown",
+      "sha256": "54eea35977e1d4384041a48300b93e5c682190e957a7dd254d44d9b2e60a099d"
+    },
+    {
+      "arquivo": "docs/01-fundamentos/README.md",
+      "linha": 3120,
       "secao": "10. Confronto com a literatura",
       "tipo": "tabela_markdown",
       "sha256": "e8f03e426187cbfe9c9d2066def2b14d5a593d209253b9330156c2d417c172d8"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3065,
+      "linha": 3147,
       "secao": "Sincronização: confronto com a referência canônica",
       "tipo": "tabela_markdown",
       "sha256": "24b2328b38e3e43d71a09cb63ae7014f3260b554f378f4b6a61d289f449c8c14"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3076,
+      "linha": 3158,
       "secao": "Sincronização: confronto com a referência canônica",
       "tipo": "tabela_markdown",
       "sha256": "18623a7657be2a8b2745e3687b73bd0bd4a8cc7fdc23d084fd477037282ba425"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3295,
+      "linha": 3377,
       "secao": "11.1 A travessia, medida",
       "tipo": "tabela_markdown",
       "sha256": "e86f0631b44b8671c5e622540f75d6b5b327e176f9663f0a95f069e85eb9c423"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3409,
+      "linha": 3516,
       "secao": "13. Referências externas",
       "tipo": "tabela_markdown",
       "sha256": "a89da528537fb8b8265e00a4a17829269f45353e171ab76444543db94a3858ff"

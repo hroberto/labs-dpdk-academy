@@ -93,10 +93,17 @@ def _secoes(md):
 
 
 def _comentarios(texto):
-    """So o que esta dentro de comentario -- um ponteiro em string nao conta."""
+    """So o que esta dentro de comentario -- um ponteiro em string nao conta.
+
+    As quebras de linha do bloco sao desfeitas antes de casar: um ponteiro
+    longo quebra naturalmente entre o numero e o titulo, e sem isto ele seria
+    lido como ponteiro SEM titulo -- um enfraquecimento silencioso, que e o
+    modo de falha que este verificador existe para evitar.
+    """
     blocos = re.findall(r"/\*.*?\*/", texto, re.S)
     blocos += re.findall(r"//[^\n]*", texto)
-    return "\n".join(blocos)
+    junto = "\n".join(blocos)
+    return re.sub(r"\n\s*(?:\*|//)?\s*", " ", junto)
 
 
 def verificar(raiz):
@@ -195,6 +202,25 @@ def autoteste():
         (r / "a.c").write_text('/* Ver README.md secao 9.9 "Nada". */\n')
         if not verificar(r):
             print("  AUTOTESTE FALHOU: secao inexistente passou despercebida")
+            return True
+
+        # Ponteiro quebrado em duas linhas continua sendo COM titulo.
+        (r / "a.c").write_text(
+            '/* Ver README.md secao 4.1\n'
+            ' * "Contabilizacao do cache". */\n')
+        if verificar(r):
+            print("  AUTOTESTE FALHOU: ponteiro quebrado em duas linhas"
+                  " foi acusado")
+            return True
+        import io as _io
+        _saida = _io.StringIO()
+        _ant = sys.stdout
+        sys.stdout = _saida
+        verificar(r)
+        sys.stdout = _ant
+        if "1 com titulo" not in _saida.getvalue():
+            print("  AUTOTESTE FALHOU: ponteiro quebrado foi contado"
+                  " como sem titulo")
             return True
 
         # Ponteiro SEM titulo: aceito, e contado a parte.

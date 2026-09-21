@@ -24,15 +24,10 @@
  * uma exponencial. Entre os dois estados a taxa instantânea muda por duas
  * ordens de grandeza, embora a MÉDIA DE LONGO PRAZO seja a mesma.
  *
- * O MECANISMO DA PERDA AQUI NAO E O DE KINGMAN. Durante a rajada rho passa de
- * 1, e o que governa e o acumulo: dQ/dt = lambda_rajada - mu, cujo integral e
- * (lambda_rajada - mu) x T_rajada. Kingman e aproximacao de trafego pesado
- * para fila ESTAVEL e INFINITA, e supoe chegada de RENOVACAO -- um processo de
- * dois estados tem intervalos correlacionados, entao `ca2` sozinho nao captura
- * a dependencia temporal que o estado modulador introduz.
- *
- * `ca2` continua sendo medido, e vale como EVIDENCIA da diferenca de
- * variabilidade entre os dois cenarios. Nao como fundamento da perda.
+ * O MECANISMO DA PERDA AQUI NAO E O DE KINGMAN: durante a rajada rho passa de
+ * 1 e o que governa e o acumulo. `ca2` e medido como EVIDENCIA da diferenca de
+ * variabilidade entre os dois cenarios, nao como fundamento da perda. Ver
+ * README.md secao 11.2 "Tres leituras".
  *
  * DE ONDE VÊM AS TAXAS, E O QUE A FONTE NÃO DIZ
  *
