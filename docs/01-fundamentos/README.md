@@ -774,10 +774,10 @@ Medindo o efeito ([`efeito-cache.c`](medicoes/efeito-cache.c)):
 ```
   cabe em    tamanho   sequencial    aleatorio    dependente   acessos   disp do
                        (amortizado)  (amortizado) (LATENCIA)   em voo    dependente
-  L1d          16 KB    0.206 ns !    0.260 ns      0.892 ns     ~3        0.0%
-  L2          256 KB     0.186 ns     0.331 ns       2.68 ns     ~8        0.3%
-  L3         8192 KB     0.188 ns     0.744 ns       9.70 ns    ~13        4.0%
-  RAM      262144 KB     0.194 ns      7.21 ns      101.5 ns    ~14        0.4%
+  L1d          16 KB     0.187 ns      0.260 ns      0.895 ns     ~3        0.6%
+  L2          256 KB     0.186 ns      0.332 ns       2.68 ns     ~8        0.0%
+  L3         8192 KB     0.188 ns      0.742 ns       9.74 ns    ~13        1.1%
+  RAM      262144 KB     0.195 ns      6.44 ns       88.61 ns    ~14        1.3%
 ```
 
 > **Amortizado não é latência, e a distinção precisa de instrumento.** A coluna

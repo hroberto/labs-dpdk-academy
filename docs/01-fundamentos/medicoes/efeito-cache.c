@@ -188,7 +188,7 @@ int main(void)
         print_row(rot, dep);
 
         printf("  -> penalty for losing locality: %.1fx"
-               "   |  acessos em voo: ~%.0f\n\n",
+               "   |  accesses in flight: ~%.0f\n\n",
                ale.median / seq.median, dep.median / ale.median);
         fflush(stdout);
     }

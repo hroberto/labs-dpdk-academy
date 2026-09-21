@@ -1,6 +1,6 @@
   warning: "  random       (amortised)" has disp 3.1% with 9 samples -- in that band the seal
            does not decide. Raise it to 20+ before explaining the result.
-  origin: efeito-cache @ v0.01.00-17-g99e4a64-dirty  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-20T20:26:05-0300
+  origin: efeito-cache @ v0.01.00-21-g9402bfa-dirty  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-21T10:03:29-0300
 
 Mean latency per access, growing working set
 (cache line = 64 B; each uint32_t = 4 B, so 16 per line)
@@ -10,36 +10,36 @@ Mean latency per access, growing working set
   L1d (16 KB)
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-    sequential   (amortised)             0.196  0.195-0.196     0.195-0.202         0.3%   1.1%  
-    random       (amortised)             0.271  0.263-0.272     0.256-0.272         3.1%   2.1% ~
-    dependent    (LATENCY)               0.896  0.894-0.899     0.893-0.906         0.6%   0.5%  
-  -> penalty for losing locality: 1.4x   |  acessos em voo: ~3
+    sequential   (amortised)             0.187  0.187-0.187     0.186-0.187         0.1%   0.2%  
+    random       (amortised)             0.263  0.260-0.268     0.259-0.299         3.1%   4.7% ~
+    dependent    (LATENCY)               0.892  0.892-0.892     0.891-0.898         0.0%   0.2%  
+  -> penalty for losing locality: 1.4x   |  accesses in flight: ~3
 
   L2 (256 KB)
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-    sequential   (amortised)             0.189  0.188-0.189     0.188-0.189         0.2%   0.2%  
-    random       (amortised)             0.336  0.336-0.336     0.336-0.343         0.2%   0.7%  
-    dependent    (LATENCY)                2.68  2.68-2.69       2.68-2.72           0.5%   0.5%  
-  -> penalty for losing locality: 1.8x   |  acessos em voo: ~8
+    sequential   (amortised)             0.186  0.186-0.187     0.186-0.187         0.1%   0.2%  
+    random       (amortised)             0.331  0.331-0.332     0.331-0.332         0.1%   0.1%  
+    dependent    (LATENCY)                2.69  2.68-2.69       2.67-2.69           0.5%   0.3%  
+  -> penalty for losing locality: 1.8x   |  accesses in flight: ~8
 
-  warning: "  random       (amortised)" has disp 3.8% with 9 samples -- in that band the seal
+  warning: "  random       (amortised)" has disp 3.5% with 9 samples -- in that band the seal
            does not decide. Raise it to 20+ before explaining the result.
   L3 (8192 KB)
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-    sequential   (amortised)             0.191  0.190-0.194     0.186-0.200         2.3%   2.1%  
-    random       (amortised)             0.743  0.717-0.745     0.695-0.749         3.8%   2.6% ~
-    dependent    (LATENCY)                9.71  9.70-9.72       9.70-9.72           0.2%   0.1%  
-  -> penalty for losing locality: 3.9x   |  acessos em voo: ~13
+    sequential   (amortised)             0.188  0.188-0.188     0.187-0.189         0.4%   0.3%  
+    random       (amortised)             0.745  0.721-0.747     0.696-0.754         3.5%   3.0% ~
+    dependent    (LATENCY)                9.77  9.73-9.78       9.71-11.13          0.5%   4.6%  
+  -> penalty for losing locality: 4.0x   |  accesses in flight: ~13
 
   RAM (262144 KB)
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-    sequential   (amortised)             0.190  0.190-0.190     0.190-0.191         0.1%   0.1%  
-    random       (amortised)              6.17  6.16-6.17       6.16-6.17           0.2%   0.1%  
-    dependent    (LATENCY)               86.64  86.08-87.63     84.49-90.04         1.8%   2.0%  
-  -> penalty for losing locality: 32.5x   |  acessos em voo: ~14
+    sequential   (amortised)             0.191  0.191-0.191     0.190-0.194         0.3%   0.5%  
+    random       (amortised)              6.44  6.43-6.45       6.41-6.59           0.3%   0.8%  
+    dependent    (LATENCY)               88.00  87.36-88.62     86.11-91.96         1.4%   1.9%  
+  -> penalty for losing locality: 33.8x   |  accesses in flight: ~14
 
 
   The first two columns are AMORTISED time; the third is
