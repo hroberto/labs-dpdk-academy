@@ -47,14 +47,19 @@
 0,30	MEDIDO	rte_eal_cleanup no modulo 02
 7,7	MEDIDO	linha da tabela de dimensionamento do modulo 03
 15	ILUSTRATIVO	parametro de um exercicio ("depois de 15 s"), nao afirmacao de medicao
+83	MEDIDO	tempo de conclusao do lote de K=4 em custo-paralelismo; o 82,99 retratado era custo ENTRE dominios L3, outra grandeza
 #
-# 17,5 NAO ESTA CLASSIFICADO, E E DE PROPOSITO.
+# 17,5 FOI RESOLVIDO EM 20/09/2026, E A SUSPEITA ESTAVA CERTA.
 #
-# O modulo 02 afirma "83 a 123 ns contra 17,5 ns" para latencia dentro do mesmo
-# CCD -- e `17,50` esta na lista de valores RETRATADOS do `custo-comunicacao`.
-# E a MESMA grandeza fisica.
+# A nota anterior dizia que o caso ficaria pendente ate alguem confrontar as
+# duas coletas. A campanha completa daquele dia fez o confronto: dentro do
+# mesmo CCD o custo mede 19,9 a 22,0 ns nas cinco repeticoes arquivadas, nao
+# 17,5. O numero do modulo 02 ERA o valor retratado sobrevivendo em outro
+# documento -- exatamente o caso que o verificador existe para achar.
 #
-# Classifica-lo como MEDIDO o tiraria do aviso e silenciaria exatamente o caso
-# que este verificador existe para achar: valor retratado sobrevivendo em outro
-# documento. Fica pendente ate alguem confrontar as duas coletas e decidir se o
-# numero do modulo 02 e anterior a retratacao ou independente dela.
+# A frase passou a publicar "82 a 99 ns contra 20 a 22 ns", com a faixa vinda
+# das repeticoes. Nao ha nada a classificar: o numero saiu do texto.
+#
+# A licao de metodo: deixar o caso EM ABERTO, em vez de classifica-lo como
+# MEDIDO para silenciar o aviso, foi o que permitiu resolve-lo quando a
+# evidencia apareceu. Um aviso que incomoda e barato; um falso verde nao.

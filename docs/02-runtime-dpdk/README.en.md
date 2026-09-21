@@ -750,7 +750,8 @@ delivers the set of CPUs the lcore is pinned to — the table's third column.
 The syntax of [`--lcores`][optlcore] matters on a machine with relevant topology. The
 one in
 [§4.3 of the fundamentals](../01-fundamentos/README.en.md#43-numa-when-memory-stops-being-one-thing)
-has two CCDs, and communication between them cost 83 to 123 ns against 17.5 ns within
+has two CCDs, and communication between them cost 82 to 99 ns against 20 to
+22 ns within the same CCD, across the five archived repetitions.5 ns within
 the same CCD. With [`-l`][optlcore], lcores fall wherever the numbers dictate; with
 `--lcores`, the mapping is chosen — and that is how you guarantee that the producer and
 consumer of the same ring stay in the same cache domain.
