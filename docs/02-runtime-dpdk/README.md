@@ -1101,6 +1101,81 @@ Nenhuma dessas opções é sobre desempenho de código. Todas são sobre **o
 ambiente** — que é precisamente a definição da EAL: *Environment Abstraction
 Layer*.
 
+### 8.1 O dado que atravessa a fronteira de processo
+
+O modelo multiprocesso da §4 impõe restrições sobre a **forma** dos dados, não
+apenas sobre onde eles são alocados.
+[`medicoes/order_book.h`](medicoes/order_book.h) define a estrutura que o
+primário escreve e o secundário lê, e cada decisão de leiaute responde a uma
+dessas restrições.
+
+```c
+struct tick {
+    uint64_t sequence;   /* numeração do FLUXO, contígua e crescente */
+    uint64_t tsc;        /* carimbo de publicação, em ciclos (rte_rdtsc) */
+    uint32_t instrument; /* identificador do papel */
+    int32_t  price;      /* em centavos */
+    uint32_t quantity;   /* zero significa cancelamento deste lado */
+    uint8_t  lado;
+    uint8_t  _reservado[3];
+};
+```
+
+**Não há ponteiro.** A estrutura reside em memória compartilhada da EAL, mapeada
+por dois processos. Um ponteiro armazenado aqui seria válido apenas no espaço de
+endereçamento que o gravou. O mecanismo que torna o mapeamento possível é o
+mesmo da §4.2 — o endereço-base idêntico nos dois processos —, mas depender dele
+para dados de aplicação transfere ao leiaute uma garantia que pertence ao
+alocador.
+
+**O preço é inteiro, em centavos.** Ponto flutuante binário não representa
+0,1 exatamente, e `0,1 + 0,2 ≠ 0,3`. Um centavo de erro em comparação de preço é
+uma ordem executada no nível errado. Bolsas publicam preço como inteiro com
+expoente declarado pela mesma razão.
+
+**O padding é explícito.** Os três bytes de `_reservado` completam o alinhamento
+que o compilador inseriria de todo modo. Declará-los torna o leiaute o mesmo sob
+compiladores diferentes — relevante porque os dois processos são binários
+distintos, e nada obriga que tenham sido compilados juntos.
+
+#### Duas estruturas, porque são duas grandezas
+
+A separação entre `struct fluxo` e `struct order_book` é o conceito central do
+arquivo, e agrupá-las seria o erro natural:
+
+| Estrutura | Escopo | O que um salto significa |
+|---|---|---|
+| `struct fluxo` | o **transporte** | um datagrama se perdeu; a assinatura inteira está incompleta |
+| `struct order_book` | o **instrumento** | não se aplica: cada papel tem seu próprio topo de livro |
+
+A numeração de sequência pertence ao fluxo, não ao papel: o feed numera os
+datagramas que envia, e a perda de um deles afeta a assinatura como um todo. O
+preço pertence ao instrumento. Misturar papéis em um livro único produz um
+"melhor compra" de um papel confrontado com um "melhor venda" de outro — e um
+*spread* negativo, que não existe.
+
+Protocolos reais fazem a mesma separação: o MoldUDP64 numera a **sessão**, e as
+mensagens contidas carregam o identificador do papel.
+
+#### Qual modelo de livro, e por que a distinção não é acadêmica
+
+O arquivo implementa um livro de **nível 1** (*top of book*): cada atualização
+**substitui** o valor vigente daquele lado. Um livro de **profundidade** (níveis
+2 e 3) é outra estrutura — mantém todas as ofertas vivas, e o melhor preço é o
+máximo das compras e o mínimo das vendas, com remoção ao cancelar ou executar.
+
+A distinção importa por um motivo operacional: aplicar semântica de substituição
+a um feed de profundidade, ou o inverso, produz um livro **errado que continua
+funcionando**. Não há exceção, não há erro de tipo, e as estruturas têm a mesma
+aparência em memória. O que denuncia é o indicador de livro cruzado.
+
+> **O livro cruzado é anomalia publicada, não invariante assumido.**
+> `order_book_crossed()` é verdadeiro quando a melhor compra é maior ou igual à
+> melhor venda — alguém pagaria mais do que outro aceita receber, e a negociação
+> deveria ter ocorrido. Em produção isso decorre de perda de mensagem, atraso ou
+> erro de aplicação: exatamente as três falhas que este módulo ensina a
+> detectar. Publicar o indicador é preferível a confiar que ele nunca ocorre.
+
 ---
 
 ## 9. Validação: reproduza na sua máquina
@@ -1163,6 +1238,83 @@ mesmo endereço virtual dos dois lados.
 > teste jamais verificou coisa alguma e sempre apareceu verde. Um teste que
 > passa sem testar é pior que um teste ausente: ele consome a confiança que
 > deveria construir.
+
+### 9.1 O critério de validade da assinatura, e como o limiar foi calibrado
+
+Toda coleta do feed é publicada com um veredito de validade. O veredito é
+computado por `feed_assinatura_valida()`, em
+[`medicoes/order_book.h`](medicoes/order_book.h), a partir de duas condições
+independentes:
+
+```c
+static inline int feed_assinatura_valida(int cruzados,
+                                         unsigned long long degenerados)
+{
+    return cruzados == 0 && feed_degenerados_toleraveis(degenerados);
+}
+```
+
+As duas condições invalidam coisas diferentes, e reuni-las sob um selo único
+exige que ambas estejam satisfeitas:
+
+| Condição | O que invalida | Tolerância |
+|---|---|---|
+| `cruzados` | o **livro** — compra acima da venda é impossível | zero |
+| `degenerados` | a **medição** publicada junto dele — latências impossíveis por TSC desalinhado entre núcleos | `FEED_DEGENERADOS_MAX` |
+
+#### A função recebe os números em vez de apurá-los
+
+A assinatura recebe `cruzados` e `degenerados` como parâmetros, em vez de lê-los
+do estado. A razão foi medida, não estimada: enquanto a decisão vivia embutida no
+final de `feed-secundario.c`, um mutante que a substituísse por *"sempre
+válido"* **sobrevivia** à suíte — porque nesta máquina o livro é de fato válido,
+e *"sempre sim"* é indistinguível de *"sim porque apurei"* quando a resposta é
+sim.
+
+É o mesmo padrão de `modelo_de_driver()` em `lib-nic.sh` e de
+`hugepages_veredito()` em `lib-hugepages.sh`: **uma decisão que lê o ambiente
+por conta própria só pode ser testada no ambiente em que se está.** Recebendo os
+números, o limiar passa a ser exercitável nas bordas, sem livro e sem EAL.
+
+#### A calibração do limiar, e por que a unidade é contagem
+
+O limiar separa um evento transitório de uma sessão degradada. O valor foi
+obtido de vinte sessões arquivadas em
+[`medicoes/historico/`](medicoes/historico/) — dez de 200 000 ticks e dez de
+1 000 000 —, coletadas com a máquina dedicada.
+
+**A distribuição é bimodal.** Uma sessão tem no máximo **uma** amostra
+degenerada, ou tem **82**. Não há observação alguma entre 2 e 81.
+
+**A contagem não escala com o tamanho da coleta.** As sessões de 1 000 000 de
+ticks apresentam as mesmas zero ou uma degenerada das sessões de 200 000. O
+defeito é **por evento**, não por amostra — e daí decorre a escolha da unidade:
+contagem absoluta, não fração. Uma fração produziria vereditos diferentes para o
+mesmo evento conforme a coleta fosse curta ou longa, que é precisamente o
+contrário do que um critério de validade deve fazer.
+
+**A sessão das 82 não é transitória.** Nela o mínimo publicado foi 0,00 ns —
+travessia impossível — e a resolução do instrumento dobrou, de cerca de 11,9
+para 23,5 ns. É uma sessão sob pressão de escalonamento, e é exatamente o que o
+selo precisa recusar.
+
+O limite fica no **pé do intervalo vazio**: duas amostras impossíveis já sugerem
+condição que persistiu, em vez de evento isolado. Qualquer valor entre 2 e 81
+separaria as duas populações nestes dados; o pé é a escolha conservadora, por
+recusar mais cedo.
+
+> **A contagem continua impressa ao lado do resultado.** O limiar decide o selo;
+> não esconde o número. Um critério que substitui o dado pelo veredito impede
+> que o leitor discorde da calibração.
+
+> **O que transfere para fora do DPDK.** A calibração de um limiar exige
+> observar a **forma da distribuição** antes de escolher o valor. Aqui a forma
+> era bimodal com um vazio largo, e isso é o caso favorável: o limiar pode cair
+> em qualquer ponto do vazio sem mudar de veredito. Quando a distribuição é
+> contínua, qualquer limiar produz um penhasco arbitrário — e a resposta certa
+> passa a ser publicar a grandeza em vez de binarizá-la, como faz a §9.2 do
+> [módulo 01](../01-fundamentos/README.md#92-por-que-estes-estimadores-e-o-que-eles-não-são)
+> ao recusar um marcador binário de excursão.
 
 ### Exercícios
 

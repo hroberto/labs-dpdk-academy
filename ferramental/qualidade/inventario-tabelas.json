@@ -8,7 +8,7 @@
     "trilha/04-projeto-final/README.md"
   ],
   "limites": "Tabelas Markdown e blocos numericos nas oito paginas listadas. Nao abrange todos os numeros em prosa nem verifica automaticamente sua origem.",
-  "total": 109,
+  "total": 111,
   "entradas": [
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -467,14 +467,28 @@
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 1279,
+      "linha": 1146,
+      "secao": "Duas estruturas, porque são duas grandezas",
+      "tipo": "tabela_markdown",
+      "sha256": "2a7cb0e750e100f98abaa3f8447bc189d79ba6af9c17ebc415fb63eca6d1797f"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 1260,
+      "secao": "9.1 O critério de validade da assinatura, e como o limiar foi calibrado",
+      "tipo": "tabela_markdown",
+      "sha256": "7f8e12757331e3ec150b24a305493c527a7af3ab33d5ad142be1b968097865d4"
+    },
+    {
+      "arquivo": "docs/02-runtime-dpdk/README.md",
+      "linha": 1431,
       "secao": "10.4 Detectar que o produtor parou é duas perguntas, não uma",
       "tipo": "tabela_markdown",
       "sha256": "ce5c41cc0db5af460b00fee0ceba6f0429673ef454873ca5735f9477fd1c1b45"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 1396,
+      "linha": 1548,
       "secao": "13. Navegação",
       "tipo": "tabela_markdown",
       "sha256": "2c47e08d3cf4b3373b2b8065df1c9d443b49dc846cb694de9d816960eeb375d1"

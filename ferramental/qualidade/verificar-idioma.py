@@ -77,6 +77,12 @@ MANTER = {
     "quando", "errado", "esqueletos", "documentos",
     # chaves da saida de `ambiente-medicao.sh`, que o leitor vai ver iguais
     "carga",
+    # campos e funcoes de `order_book.h`, citados no bloco de codigo da §8.1 e
+    # da §9.1 do modulo 02. Traduzi-los faria o documento em ingles mostrar uma
+    # estrutura que nao existe no fonte -- e o bloco esta la justamente para
+    # que o leitor confira contra o cabecalho.
+    "lado", "reservado", "cruzados", "degenerados", "assinatura", "valida",
+    "fluxo", "livro", "toleraveis",
 }
 
 

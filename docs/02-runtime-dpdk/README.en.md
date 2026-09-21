@@ -1089,6 +1089,82 @@ justified choices:
 None of those options is about code performance. All are about **the environment** —
 which is precisely the definition of the EAL: *Environment Abstraction Layer*.
 
+### 8.1 The data that crosses the process boundary
+
+The multi-process model of §4 imposes constraints on the **shape** of the data,
+not only on where it is allocated.
+[`medicoes/order_book.h`](medicoes/order_book.h) defines the structure the
+primary writes and the secondary reads, and every layout decision answers to one
+of those constraints.
+
+```c
+struct tick {
+    uint64_t sequence;   /* STREAM numbering, contiguous and increasing */
+    uint64_t tsc;        /* publication stamp, in cycles (rte_rdtsc) */
+    uint32_t instrument; /* instrument identifier */
+    int32_t  price;      /* in cents */
+    uint32_t quantity;   /* zero means this side is cancelled */
+    uint8_t  lado;
+    uint8_t  _reservado[3];
+};
+```
+
+**There is no pointer.** The structure resides in EAL shared memory, mapped by
+two processes. A pointer stored here would be valid only in the address space
+that wrote it. The mechanism that makes the mapping possible is the one from
+§4.2 — the identical base address in both processes — but depending on it for
+application data transfers to the layout a guarantee that belongs to the
+allocator.
+
+**The price is an integer, in cents.** Binary floating point does not represent
+0.1 exactly, and `0.1 + 0.2 ≠ 0.3`. One cent of error in a price comparison is
+an order executed at the wrong level. Exchanges publish prices as integers with
+a declared exponent for the same reason.
+
+**The padding is explicit.** The three bytes of `_reservado` complete the
+alignment the compiler would insert anyway. Declaring them makes the layout the
+same under different compilers — relevant because the two processes are distinct
+binaries, and nothing requires that they were compiled together.
+
+#### Two structures, because they are two quantities
+
+The separation between `struct fluxo` and `struct order_book` is the central
+concept of the file, and grouping them would be the natural error:
+
+| Structure | Scope | What a jump means |
+|---|---|---|
+| `struct fluxo` | the **transport** | a datagram was lost; the whole subscription is incomplete |
+| `struct order_book` | the **instrument** | does not apply: each instrument has its own top of book |
+
+Sequence numbering belongs to the stream, not to the instrument: the feed
+numbers the datagrams it sends, and losing one affects the subscription as a
+whole. Price belongs to the instrument. Mixing instruments into a single book
+produces a "best bid" of one instrument set against a "best ask" of another —
+and a negative spread, which does not exist.
+
+Real protocols make the same separation: MoldUDP64 numbers the **session**, and
+the messages it carries hold the instrument identifier.
+
+#### Which book model, and why the distinction is not academic
+
+The file implements a **level 1** book (*top of book*): each update **replaces**
+the current value on that side. A **depth** book (levels 2 and 3) is a different
+structure — it keeps every live order, and the best price is the maximum of the
+bids and the minimum of the asks, with removal on cancel or execution.
+
+The distinction matters for an operational reason: applying replacement
+semantics to a depth feed, or the reverse, produces a book that is **wrong and
+keeps working**. There is no exception, no type error, and the structures look
+the same in memory. What gives it away is the crossed-book indicator.
+
+> **A crossed book is a published anomaly, not an assumed invariant.**
+> `order_book_crossed()` is true when the best bid is greater than or equal to
+> the best ask — someone would pay more than another accepts to receive, and the
+> trade should have happened. In production this follows from message loss,
+> delay or an application error: exactly the three failures this module teaches
+> how to detect. Publishing the indicator is preferable to trusting that it
+> never occurs.
+
 ---
 
 ## 9. Validation: reproduce it on your machine
@@ -1150,6 +1226,84 @@ same virtual address on both sides.
 > **not evaluated**. On the CI runner the requirement never exists, so this test never
 > verified anything and always appeared green. A test that passes without testing is
 > worse than an absent test: it consumes the confidence it should build.
+
+### 9.1 The subscription validity criterion, and how the threshold was calibrated
+
+Every feed collection is published with a validity verdict. The verdict is
+computed by `feed_assinatura_valida()`, in
+[`medicoes/order_book.h`](medicoes/order_book.h), from two independent
+conditions:
+
+```c
+static inline int feed_assinatura_valida(int cruzados,
+                                         unsigned long long degenerados)
+{
+    return cruzados == 0 && feed_degenerados_toleraveis(degenerados);
+}
+```
+
+The two conditions invalidate different things, and bringing them under a single
+seal requires both to hold:
+
+| Condition | What it invalidates | Tolerance |
+|---|---|---|
+| `cruzados` | the **book** — a bid above an ask is impossible | zero |
+| `degenerados` | the **measurement** published beside it — impossible latencies from TSC misaligned across cores | `FEED_DEGENERADOS_MAX` |
+
+#### The function receives the numbers instead of computing them
+
+The signature takes `cruzados` and `degenerados` as parameters rather than
+reading them from state. The reason was measured, not estimated: while the
+decision lived embedded at the end of `feed-secundario.c`, a mutant replacing it
+with *"always valid"* **survived** the suite — because on this machine the book
+really is valid, and *"always yes"* is indistinguishable from *"yes because I
+checked"* when the answer is yes.
+
+It is the same pattern as `modelo_de_driver()` in `lib-nic.sh` and
+`hugepages_veredito()` in `lib-hugepages.sh`: **a decision that reads the
+environment on its own can only be tested in the environment one is in.** Taking
+the numbers as arguments makes the threshold exercisable at its edges, with no
+book and no EAL.
+
+#### Calibrating the threshold, and why the unit is a count
+
+The threshold separates a transient event from a degraded session. The value
+came from twenty archived sessions in [`medicoes/historico/`](medicoes/historico/)
+— ten of 200,000 ticks and ten of 1,000,000 — collected with the machine
+dedicated.
+
+**The distribution is bimodal.** A session has at most **one** degenerate
+sample, or it has **82**. There is no observation at all between 2 and 81.
+
+**The count does not scale with collection size.** The 1,000,000-tick sessions
+show the same zero or one degenerate as the 200,000-tick ones. The defect is
+**per event**, not per sample — and the choice of unit follows: an absolute
+count, not a fraction. A fraction would produce different verdicts for the same
+event depending on whether the collection was short or long, which is precisely
+the opposite of what a validity criterion should do.
+
+**The 82-sample session is not transient.** In it the published minimum was
+0.00 ns — an impossible traversal — and the instrument's resolution doubled,
+from about 11.9 to 23.5 ns. It is a session under scheduling pressure, and it is
+exactly what the seal needs to refuse.
+
+The limit sits at the **foot of the empty interval**: two impossible samples
+already suggest a condition that persisted rather than an isolated event. Any
+value between 2 and 81 would separate the two populations in this data; the foot
+is the conservative choice, because it refuses earlier.
+
+> **The count stays printed beside the result.** The threshold decides the seal;
+> it does not hide the number. A criterion that replaces the data with the
+> verdict prevents the reader from disagreeing with the calibration.
+
+> **What transfers beyond DPDK.** Calibrating a threshold requires observing the
+> **shape of the distribution** before choosing the value. Here the shape was
+> bimodal with a wide gap, and that is the favourable case: the threshold can
+> fall anywhere in the gap without changing a verdict. When the distribution is
+> continuous, any threshold produces an arbitrary cliff — and the right answer
+> becomes publishing the quantity instead of binarizing it, as §9.2 of
+> [module 01](../01-fundamentos/README.en.md#92-why-these-estimators-and-what-they-are-not)
+> does when it refuses a binary excursion marker.
 
 ### Exercises
 
