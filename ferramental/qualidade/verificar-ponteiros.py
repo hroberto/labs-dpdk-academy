@@ -19,18 +19,26 @@ aparencia de rastreabilidade.
 O QUE ELE CONFERE
 
 1. A secao apontada EXISTE no README.md vizinho, e tambem no par `.en.md`.
-2. Para o ponteiro LOCAL -- aquele cujo README esta no mesmo diretorio do fonte
-   -- a secao apontada tem de CITAR pelo menos um identificador que existe
-   nesse fonte. E o teste de bidirecionalidade, e e ele que pega a renumeracao:
-   uma secao 4.3 que virou outra coisa nao fala mais de `relatar_mempool`.
+2. Se o ponteiro nomeia a secao -- `secao 4.3 "Contabilizacao do cache do
+   mempool"` --, o titulo tem de bater com o titulo real. E isso que pega a
+   renumeracao, que e a deriva provavel: a secao 4.3 passa a ser outra e o
+   ponteiro continua sintaticamente valido.
 
-   O ponteiro CONCEITUAL -- o que sobe para o documento do modulo, como o
-   `custo-paralelismo.c` apontando para a secao de SMT -- so e conferido quanto
-   a existencia. A primeira versao deste verificador exigia identificador
-   tambem nesse caso e acusou dois ponteiros corretos: secoes que explicam
-   orcamento por pacote e SMT nao citam identificador nenhum porque nao
-   descrevem codigo. Exigir bidirecionalidade delas seria pedir que o documento
-   conceitual falasse de implementacao para satisfazer o portao.
+COMO ESTE VERIFICADOR CHEGOU A ESTE FORMATO, que vale registrar
+
+Tres versoes anteriores tentaram inferir do TEXTO se a secao apontada descrevia
+codigo, para so entao exigir bidirecionalidade -- se a secao cita algum
+identificador do fonte, o ponteiro esta vivo. As tres erraram na mesma secao: a
+5.1.1 do modulo 01 explica SMT, nao descreve codigo, e cita `nice` e
+`scaling_cur_freq` em crase. Inferir por diretorio desligava a verificacao em
+`docs/*/medicoes/`; inferir por presenca de crase acusava a secao de SMT;
+inferir por presenca do simbolo na arvore nao separava, porque os dois nomes
+aparecem em fonte.
+
+O defeito nao estava na heuristica, estava no FORMATO DO PONTEIRO: um numero
+sozinho nao carrega informacao suficiente para que a deriva seja detectavel.
+Nomear a secao resolve exatamente, sem heuristica e sem falso positivo. O custo
+e o ponteiro ficar mais longo; continua cabendo em uma linha.
 
 O QUE ELE DELIBERADAMENTE NAO FAZ, e vale declarar
 
@@ -48,16 +56,26 @@ cuida dos ponteiros que existem, nao da decisao de cria-los.
 """
 import pathlib
 import re
+import unicodedata
 import sys
 
 IGNORAR = {".git", "build", "builddir", "build-precommit", "subprojects",
            "temp", "__pycache__", "alternativas"}
 FONTES = (".c", ".h", ".cpp", ".hpp")
 
-# "README.md secao 4.3", "ver secao 6.5", "secao 5.1"
-PONTEIRO = re.compile(r"(?:se[cç][aã]o|section)\s+(\d+(?:\.\d+)*)", re.I)
-TITULO = re.compile(r"^#{2,6}\s+(\d+(?:\.\d+)*)[.\s]")
-IDENT = re.compile(r"`([A-Za-z_][A-Za-z0-9_]{2,}(?:\(\))?)`")
+# `secao 4.3 "Titulo"` -- o titulo e opcional, e e ele que torna a deriva
+# detectavel; sem ele so a existencia da secao e conferida.
+PONTEIRO = re.compile(
+    r"(?:se[cç][aã]o|section)\s+(\d+(?:\.\d+)*)\s*(?:\"([^\"\n]+)\")?", re.I)
+TITULO = re.compile(r"^#{2,6}\s+(\d+(?:\.\d+)*)[.\s]+(.*)$")
+
+
+def _norm(t):
+    """Compara titulos sem acento, caixa nem pontuacao -- o comentario do fonte
+    e escrito sem acento por convencao do repositorio."""
+    t = unicodedata.normalize("NFKD", t.strip().lower())
+    t = "".join(c for c in t if not unicodedata.combining(c))
+    return re.sub(r"[^a-z0-9 ]+", "", t).strip()
 
 
 def _raiz():
@@ -65,18 +83,12 @@ def _raiz():
 
 
 def _secoes(md):
-    """Mapeia prefixo numerico -> corpo da secao, ate o proximo titulo."""
-    out, atual, corpo = {}, None, []
+    """Mapeia prefixo numerico -> titulo da secao."""
+    out = {}
     for linha in md.splitlines():
         m = TITULO.match(linha)
         if m:
-            if atual:
-                out[atual] = "\n".join(corpo)
-            atual, corpo = m.group(1), []
-        elif atual:
-            corpo.append(linha)
-    if atual:
-        out[atual] = "\n".join(corpo)
+            out[m.group(1)] = m.group(2)
     return out
 
 
@@ -89,7 +101,7 @@ def _comentarios(texto):
 
 def verificar(raiz):
     raiz = pathlib.Path(raiz)
-    falhas, conferidos = [], 0
+    falhas, conferidos, sem_titulo = [], 0, 0
     for src in sorted(raiz.rglob("*")):
         if src.suffix not in FONTES or not src.is_file():
             continue
@@ -110,13 +122,14 @@ def verificar(raiz):
                 break
         rel = src.relative_to(raiz)
         if readme is None:
-            falhas.append(f"{rel}: aponta para secao {', '.join(alvos)}"
+            falhas.append(f"{rel}: aponta para secao"
+                          f" {', '.join(a for a, _ in alvos)}"
                           " e nao ha README.md no diretorio nem acima")
             continue
         secoes = _secoes(readme.read_text(encoding="utf-8"))
         en = readme.parent / "README.en.md"
         secoes_en = _secoes(en.read_text(encoding="utf-8")) if en.exists() else None
-        for alvo in alvos:
+        for alvo, titulo in alvos:
             conferidos += 1
             if alvo not in secoes:
                 falhas.append(f"{rel}: aponta para a secao {alvo},"
@@ -124,17 +137,17 @@ def verificar(raiz):
                 continue
             if secoes_en is not None and alvo not in secoes_en:
                 falhas.append(f"{rel}: secao {alvo} existe no pt e nao no en")
-            if readme.parent != src.parent:
-                continue  # ponteiro conceitual: so existencia
-            idents = set(IDENT.findall(secoes[alvo]))
-            if not any(i.rstrip("()") in texto for i in idents):
+            if not titulo:
+                sem_titulo += 1
+                continue
+            if _norm(titulo) != _norm(secoes[alvo]):
                 falhas.append(
-                    f"{rel}: a secao {alvo} nao cita nenhum identificador"
-                    f" deste fonte -- ponteiro provavelmente pendurado")
+                    f'{rel}: aponta para a secao {alvo} "{titulo}",'
+                    f' e a secao {alvo} chama-se "{secoes[alvo]}"')
     for f in falhas:
         print(f"  {f}")
-    print(f"  {conferidos} ponteiro(s) de fonte para secao conferido(s);"
-          f" {len(falhas)} pendurado(s)")
+    print(f"  {conferidos} ponteiro(s) de fonte para secao conferido(s),"
+          f" {conferidos - sem_titulo} com titulo; {len(falhas)} pendurado(s)")
     return bool(falhas)
 
 
@@ -142,46 +155,53 @@ def autoteste():
     import tempfile
     with tempfile.TemporaryDirectory() as d:
         r = pathlib.Path(d)
-        (r / "README.md").write_text(
-            "# T\n## 4. Impl\n### 4.1 Campos\n"
-            "A funcao `relatar_pool()` delimita o indice.\n")
-        (r / "README.en.md").write_text(
-            "# T\n## 4. Impl\n### 4.1 Fields\n"
-            "The `relatar_pool()` function bounds the index.\n")
+        pt = ("# T\n## 4. Impl\n### 4.1 Contabilizacao do cache\n"
+              "A funcao `relatar_pool()` delimita o indice.\n"
+              "### 4.2 Conceito\nSo prosa, com `nice` em crase.\n")
+        en = ("# T\n## 4. Impl\n### 4.1 Cache accounting\n"
+              "The `relatar_pool()` function bounds the index.\n"
+              "### 4.2 Concept\nJust prose.\n")
+        (r / "README.md").write_text(pt)
+        (r / "README.en.md").write_text(en)
         (r / "a.c").write_text(
-            "/* Ver README.md secao 4.1. */\nvoid relatar_pool(void) {}\n")
+            '/* Ver README.md secao 4.1 "Contabilizacao do cache". */\n')
         if verificar(r):
-            print("  AUTOTESTE FALHOU: ponteiro correto foi acusado")
+            print("  AUTOTESTE FALHOU: ponteiro com titulo correto foi acusado")
             return True
 
-        # Renumeracao: a secao existe, e passou a falar de outra coisa.
-        (r / "README.md").write_text(
-            "# T\n## 4. Impl\n### 4.1 Outra coisa\n"
-            "Nada a ver, fala de `outra_funcao()`.\n")
+        # RENUMERACAO: a secao 4.1 existe e passou a ser outra.
+        (r / "README.md").write_text(pt.replace(
+            "### 4.1 Contabilizacao do cache", "### 4.1 Outra coisa"))
         if not verificar(r):
             print("  AUTOTESTE FALHOU: secao renumerada passou despercebida")
             return True
+        (r / "README.md").write_text(pt)
+
+        # Acento e caixa nao contam: o comentario do fonte nao usa acento.
+        (r / "README.md").write_text(pt.replace(
+            "### 4.1 Contabilizacao do cache", "### 4.1 Contabilização do Cache"))
+        if verificar(r):
+            print("  AUTOTESTE FALHOU: diferenca de acento foi tratada como deriva")
+            return True
+        (r / "README.md").write_text(pt)
+
+        # Secao conceitual apontada COM titulo: conferida igual, sem heuristica.
+        (r / "a.c").write_text('/* Ver secao 4.2 "Conceito". */\n')
+        if verificar(r):
+            print("  AUTOTESTE FALHOU: secao sem identificador foi acusada")
+            return True
 
         # Secao inexistente.
-        (r / "a.c").write_text("/* Ver README.md secao 9.9. */\n")
+        (r / "a.c").write_text('/* Ver README.md secao 9.9 "Nada". */\n')
         if not verificar(r):
             print("  AUTOTESTE FALHOU: secao inexistente passou despercebida")
             return True
 
-        # Ponteiro conceitual (README acima do fonte): so existencia.
-        # O `a.c` volta ao estado bom para que a falha, se houver, seja do b.c.
-        (r / "a.c").write_text(
-            "/* Ver README.md secao 4.1. */\nvoid relatar_pool(void) {}\n")
-        (r / "README.md").write_text(
-            "# T\n## 4. Impl\n### 4.1 Campos\n"
-            "A funcao `relatar_pool()` delimita o indice.\n")
-        (r / "sub").mkdir()
-        (r / "sub" / "b.c").write_text("/* Ver secao 4.1 do modulo. */\n")
+        # Ponteiro SEM titulo: aceito, e contado a parte.
+        (r / "a.c").write_text("/* Ver README.md secao 4.1. */\n")
         if verificar(r):
-            print("  AUTOTESTE FALHOU: ponteiro conceitual exigiu identificador")
+            print("  AUTOTESTE FALHOU: ponteiro sem titulo foi acusado")
             return True
-        (r / "sub" / "b.c").unlink()
-        (r / "sub").rmdir()
 
         # Ponteiro em string, nao em comentario: nao e ponteiro.
         (r / "a.c").write_text('const char *s = "secao 9.9";\n')
@@ -189,8 +209,8 @@ def autoteste():
             print("  AUTOTESTE FALHOU: texto fora de comentario foi lido"
                   " como ponteiro")
             return True
-    print("  autoteste ok: acusa secao inexistente e renumerada, aceita"
-          " ponteiro correto e conceitual, ignora texto fora de comentario")
+    print("  autoteste ok: acusa secao inexistente e renumerada, tolera acento"
+          " e caixa, aceita ponteiro sem titulo e texto fora de comentario")
     return False
 
 

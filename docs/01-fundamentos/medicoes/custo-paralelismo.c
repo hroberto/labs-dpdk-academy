@@ -90,7 +90,7 @@
 #define AMOSTRAS_NUCLEOS samples(AMOSTRAS_NUCLEOS_FIXO)
 #define ACESSOS_POR_NUCLEO (2u * 1024u * 1024u)
 #define NUCLEOS_MAX 32
-#define PPS_10GBE_64B 14.880952  /* milhões de pacotes/s — ver secao 1 do modulo */
+#define PPS_10GBE_64B 14.880952  /* milhões de pacotes/s — ver secao 1 "O orcamento: quanto tempo existe por pacote" do modulo */
 
 static volatile size_t sumidouro;
 static size_t *regiao;
@@ -179,7 +179,7 @@ static int n_cpus_fisicas;
 
 /* Uma CPU logica por nucleo FISICO. Numa CPU com SMT, dois irmaos dividem as
  * unidades de execucao e o L1: usa-los como "dois nucleos" mediria contencao de
- * SMT (ver secao 5.1.1), nao a banda de memoria. */
+ * SMT (ver secao 5.1.1 "SMT: duas CPUs logicas nao sao dois nucleos"), nao a banda de memoria. */
 static void descobrir_cpus_fisicas(void)
 {
     int vistos[NUCLEOS_MAX];

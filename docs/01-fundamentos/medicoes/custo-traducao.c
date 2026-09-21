@@ -44,7 +44,7 @@
 
 /* Regiao percorrida, em MB, como parametro de execucao: a varredura por
  * tamanho e o que confronta a previsao de cobertura de TLB com a medicao.
- * O padrao de 512 MB e o que a tabela pareada da secao 4.1 usa. */
+ * O padrao de 512 MB e o que a tabela pareada da secao 4.1 "Memoria virtual: o que significa traduzir um endereco" usa. */
 #define REGIAO_MB_PADRAO 512u
 #define REGIAO_MB_MAX    16384u
 

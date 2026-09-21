@@ -46,13 +46,13 @@
 struct config {
     uint64_t num_packets;
     unsigned burst;
-    /* Cache por lcore do mempool. Ver README.md secao 4.2. */
+    /* Cache por lcore do mempool. Ver README.md secao 4.2 "Parametros de execucao e a impossibilidade de medir constantes". */
     unsigned cache_size;
     /* Prazo SEM PROGRESSO em milissegundos; 0 desliga. Nao e prazo total de
-     * execucao. Ver README.md secao 4.2. */
+     * execucao. Ver README.md secao 4.2 "Parametros de execucao e a impossibilidade de medir constantes". */
     uint64_t progresso_ms;
     /* Profundidade da fila, em objetos. Potencia de dois; capacidade util e
-     * profundidade-1. Ver README.md secao 4.1. */
+     * profundidade-1. Ver README.md secao 4.1 "A estrutura de configuracao e seus invariantes". */
     unsigned profundidade;
 };
 
@@ -63,7 +63,7 @@ static int potencia_de_dois(unsigned n)
     return n != 0 && (n & (n - 1)) == 0;
 }
 
-/* Taxa de acerto do cache do mempool, por lcore. Ver README.md secao 4.3. */
+/* Taxa de acerto do cache do mempool, por lcore. Ver README.md secao 4.3 "Contabilizacao do cache do mempool". */
 static void relatar_mempool(const struct rte_mempool *mp)
 {
 #ifdef RTE_LIBRTE_MEMPOOL_STATS
@@ -74,13 +74,14 @@ static void relatar_mempool(const struct rte_mempool *mp)
     printf("  lcore  %10s %10s %7s  %10s %10s %7s\n",
            "get_bulk", "get_common", "miss%", "put_bulk", "put_common", "flush%");
     for (id = 0; id <= RTE_MAX_LCORE; id++) {
-        /* Os contadores vivem em dois lugares. Ver README.md secao 4.3. */
+        /* Os contadores vivem em dois lugares. Ver README.md secao 4.3 "Contabilizacao do cache do mempool". */
         uint64_t g, pu;
         const uint64_t gc = mp->stats[id].get_common_pool_bulk;
         const uint64_t pc = mp->stats[id].put_common_pool_bulk;
 
         /* `stats[]` tem RTE_MAX_LCORE + 1 entradas; `local_cache[]` tem
-         * RTE_MAX_LCORE. Delimitar o indice e obrigatorio. Ver secao 4.3. */
+         * RTE_MAX_LCORE. Delimitar o indice e obrigatorio. Ver README.md
+         * secao 4.3 "Contabilizacao do cache do mempool". */
         if (mp->cache_size != 0 && mp->local_cache != NULL && id < RTE_MAX_LCORE) {
             g = mp->local_cache[id].stats.get_success_bulk;
             pu = mp->local_cache[id].stats.put_bulk;
@@ -138,7 +139,7 @@ static int parse_config(int argc, char **argv, struct config *cfg)
                         " (rte_ring requirement); got %u\n", cfg->profundidade);
         return -1;
     }
-    /* Invariante 2 do README.md secao 4.1: a fila precisa caber um lote
+    /* Invariante 2 do README.md secao 4.1 "A estrutura de configuracao e seus invariantes": a fila precisa caber um lote
      * inteiro. Capacidade util e profundidade-1, dai o `<=`. */
     if (cfg->profundidade <= cfg->burst) {
         fprintf(stderr, "Invalid parameters: -q %u cannot hold a batch of %u"
@@ -159,10 +160,10 @@ struct consumer_context {
     uint64_t target;
     struct summary r;
     /* Pedido de parada, escrito pelo produtor e lido pelo consumidor. A
-     * terminacao e pedida, nao imposta. Ver README.md secao 6.5. */
+     * terminacao e pedida, nao imposta. Ver README.md secao 6.5 "Terminacao sob falha". */
     volatile int parar;
     /* Maior lote REALMENTE desenfileirado de uma vez. O parametro ecoado nao
-     * e evidencia de uso. Ver README.md secao 5.2. */
+     * e evidencia de uso. Ver README.md secao 5.2 "O contrato e o codigo de saida, nao a mensagem". */
     unsigned maior_deq;
 } __rte_cache_aligned;
 
@@ -289,7 +290,7 @@ int main(int argc, char **argv)
 
     /* Pool de objetos fixos, alocado no no NUMA do lcore principal. O 4095 e
      * recomendacao de uso de memoria, nao exigencia da API. Ver README.md
-     * secao 4.1. */
+     * secao 4.1 "A estrutura de configuracao e seus invariantes". */
     const unsigned pool_objs = 4095;
     struct rte_mempool *pool = rte_mempool_create(
         "pool_pacotes", pool_objs, sizeof(struct packet),
@@ -317,10 +318,11 @@ int main(int argc, char **argv)
 #endif
     struct summary r = {0, 0};
     uint64_t produced = 0, did_not_fit = 0;
-    /* Maiores lotes REALMENTE movidos, produtor e consumidor. Ver secao 5.2. */
+    /* Maiores lotes REALMENTE movidos, produtor e consumidor. Ver README.md
+     * secao 5.2 "O contrato e o codigo de saida, nao a mensagem". */
     unsigned maior_enq = 0, maior_deq_local = 0;
     /* Espera limitada: tempo aceito SEM PROGRESSO. O relogio so anda quando
-     * nada avanca. Ver README.md secao 4.2. */
+     * nada avanca. Ver README.md secao 4.2 "Parametros de execucao e a impossibilidade de medir constantes". */
     const uint64_t prazo_ciclos = cfg.progresso_ms
                                       ? cfg.progresso_ms * (rte_get_tsc_hz() / 1000ULL)
                                       : 0;
@@ -388,7 +390,7 @@ int main(int argc, char **argv)
                 rte_mempool_put_bulk(pool, (void *const *)&burst_prod[enq], n - enq);
 #else
                 /* VAZAMENTO DELIBERADO, compilado so na variante de teste.
-                 * Injecao de defeito; ver README.md secao 5.1. */
+                 * Injecao de defeito; ver README.md secao 5.1 "Injecao de defeito: verificar que a verificacao dispara". */
 #endif
                 did_not_fit += n - enq;
             }
@@ -405,7 +407,7 @@ int main(int argc, char **argv)
             }
 #else
             /* CONSUMIDOR PARADO DE PROPOSITO, compilado so na variante de
-             * teste. Injecao de defeito; ver README.md secao 5.1. */
+             * teste. Injecao de defeito; ver README.md secao 5.1 "Injecao de defeito: verificar que a verificacao dispara". */
 #endif
         }
 
@@ -428,7 +430,7 @@ int main(int argc, char **argv)
     if (two_cores) {
         /* O prazo vale tambem para a espera: com dois lcores quem pode
          * bloquear e `rte_eal_wait_lcore`, nao o laco do produtor.
-         * Ver README.md secao 6.5. */
+         * Ver README.md secao 6.5 "Terminacao sob falha". */
         if (prazo_ciclos && !sem_progresso) {
             uint64_t visto = ctx.r.packets, desde = rte_rdtsc();
             while (ctx.r.packets < cfg.num_packets) {
@@ -442,7 +444,7 @@ int main(int argc, char **argv)
                 rte_pause();
             }
         }
-        /* Pede a parada ANTES de esperar. Ver README.md secao 6.5. */
+        /* Pede a parada ANTES de esperar. Ver README.md secao 6.5 "Terminacao sob falha". */
         if (sem_progresso)
             ctx.parar = 1;
         rte_eal_wait_lcore(lcore_consumer);
@@ -470,7 +472,7 @@ int main(int argc, char **argv)
     else
         printf("Mode: 1 lcore (%u), producer and consumer interleaved\n", rte_lcore_id());
     /* DRENAGEM: o que ficou no anel volta ao pool antes de qualquer relato.
-     * Ver README.md secao 6.5. */
+     * Ver README.md secao 6.5 "Terminacao sob falha". */
     uint64_t descartados = 0;
     if (sem_progresso) {
         void *sobra[BURST_MAX];
@@ -501,7 +503,7 @@ int main(int argc, char **argv)
 
     /* O INVARIANTE DO TOPICO, verificado aqui, onde o dado esta. O contrato
      * com a suite e o codigo de saida, nao a mensagem. Ver README.md
-     * secao 5.2. */
+     * secao 5.2 "O contrato e o codigo de saida, nao a mensagem". */
     const unsigned free_objs = rte_mempool_avail_count(pool);
     const int intact = (free_objs == pool_objs);
     if (!intact)
@@ -514,7 +516,7 @@ int main(int argc, char **argv)
     rte_mempool_free(pool);
     rte_eal_cleanup();
     /* Tres desfechos distintos: 0 integro, 1 invariante violado, 3 sem
-     * progresso. Ver README.md secao 6.5. */
+     * progresso. Ver README.md secao 6.5 "Terminacao sob falha". */
     if (!intact)
         return EXIT_FAILURE;
     return sem_progresso ? 3 : EXIT_SUCCESS;
