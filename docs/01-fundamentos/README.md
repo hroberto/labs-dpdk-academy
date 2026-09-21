@@ -605,17 +605,41 @@ Aplicando com as 4 096 entradas medidas acima e páginas de 4 KB:
 
 **E a tabela é uma previsão, não uma descrição.** Ela diz que o ganho das
 hugepages deve ser irrelevante até ~16 MB e nascer entre 16 e 64 MB. Medindo o
-mesmo percurso disperso com os dois tamanhos de página, nesta máquina:
+mesmo percurso disperso com os dois tamanhos de página, uma execução por região
+(`custo-traducao <MB>`), mediana de cinco repetições:
 
 ```
-  região     4 KB     2 MB     ganho
-     8 MB    12.69    10.94    1.75 ns   <- coberto: como previsto, quase nada
-    64 MB    86.09    79.45    6.64 ns   <- 25% coberto: o ganho aparece
-   512 MB   104.20    93.40   10.80 ns   <- 3% coberto: ganho cheio
+   região     4 KB     2 MB    ganho
+     8 MB    11.78    10.16     1.54 ns   <- coberto: como previsto, quase nada
+    16 MB    10.78     8.62     1.98 ns   <- ainda coberto: idem
+    32 MB    46.57    25.43    18.62 ns   <- FRONTEIRA DO L3: fora do modelo
+    64 MB    72.16    65.01     6.92 ns   <- 25% coberto: o ganho aparece
+   512 MB    89.56    78.55    10.94 ns   <- 3% coberto: ganho cheio
 ```
 
-A previsão se sustenta. É o tipo de confirmação que vale mais que o número
-isolado: o modelo não só descreve o resultado, ele o **antecipou**.
+**A previsão se sustenta nos quatro pontos que ela cobre** — 8 e 16 MB quase
+sem ganho, 64 MB com o ganho nascendo, 512 MB com ganho cheio. É o tipo de
+confirmação que vale mais que o número isolado: o modelo não só descreve o
+resultado, ele o **antecipou**.
+
+**E a varredura achou um ponto que o modelo NÃO prevê.** Em 32 MB o ganho salta
+para 18,62 ns — maior que em 512 MB — e depois *cai* para 6,92 ns em 64 MB. Não
+é ruído: as cinco repetições arquivadas dão de 17,24 a 20,11 ns. O modelo de
+cobertura de TLB é monotônico por construção — quanto menos a TLB cobre, maior
+o ganho — e não tem como produzir um pico no meio.
+
+O que 32 MB tem de especial é ser exatamente o tamanho do L3 desta máquina
+([§4.2](#42-cache-e-localidade)). Uma explicação compatível com o modelo da
+§4.1 é que, com páginas de 4 KB, os 64 kB de PTEs de uma região de 32 MB
+disputam o L3 com os próprios dados, na fronteira em que eles mal cabem; com
+hugepages de 2 MB os PTEs são 128 B e não disputam nada. **Isto é hipótese, não
+resultado**: confirmá-la exigiria medir a ocupação de L3 com contadores de
+desempenho, que este material não usa. O que está medido é o pico e a sua
+reprodutibilidade.
+
+A lição de método é a mesma do resto do módulo: o modelo foi confirmado onde
+previa, e a varredura mostrou onde ele para de valer. Publicar só os três
+pontos que confirmam teria escondido o quarto.
 
 Fixando a região em 512 MB, o mesmo programa publica a diferença com o
 desenho pareado ([`custo-traducao.c`](medicoes/custo-traducao.c)):
@@ -699,15 +723,15 @@ conta:
 
 ```
   região      ns/acesso (cadeia dependente, hugepages de 2 MB)
-    8 MB        11.04     <- L3
-   16 MB        11.18     <- L3
-   32 MB        21.54     <- fronteira do L3
-   64 MB        79.80     <- RAM
-  512 MB        94.95     <- RAM
+    8 MB        10.16     <- L3
+   16 MB         8.62     <- L3
+   32 MB        25.43     <- fronteira do L3
+   64 MB        65.01     <- RAM
+  512 MB        78.55     <- RAM
 ```
 
-Um acerto de L3 custa ~11 ns nesta máquina. Numa execução de `custo-traducao`
-com a máquina ociosa, a diferença medida entre 4 KB e 2 MB foi **11,65 ns**:
+Um acerto de L3 custa de 9 a 10 ns nesta máquina. Na campanha arquivada, com a
+máquina ociosa, a diferença medida entre 4 KB e 2 MB foi **11,09 ns**:
 
 ```
   4 KB pages                             89.05  88.97-89.18     88.82-89.90         0.2%   0.3%  
@@ -2905,7 +2929,8 @@ juntos é mais honesto que esconder a continuidade atrás de um limiar.**
 ./build/docs/01-fundamentos/medicoes/tlb-real          # TLB real, via CPUID
 ./build/docs/01-fundamentos/medicoes/custo-syscall
 ./build/docs/01-fundamentos/medicoes/efeito-cache
-./build/docs/01-fundamentos/medicoes/custo-traducao   # requer hugepages
+./build/docs/01-fundamentos/medicoes/custo-traducao        # requer hugepages; 512 MB
+./build/docs/01-fundamentos/medicoes/custo-traducao 32     # outra regiao, em MB
 ./build/docs/01-fundamentos/medicoes/custo-paralelismo  # requer hugepages
 ./build/docs/01-fundamentos/medicoes/custo-comunicacao
 ./build/docs/01-fundamentos/medicoes/custo-espera

@@ -598,18 +598,41 @@ Applying it with the 4,096 entries measured above and 4 KB pages:
 
 **And the table is a prediction, not a description.** It says the hugepage gain
 should be irrelevant up to ~16 MB and be born between 16 and 64 MB. Measuring the
-same scattered walk with both page sizes, on this machine:
+same scattered walk with both page sizes, one run per region
+(`custo-traducao <MB>`), median of five repetitions:
 
 ```
-  region     4 KB     2 MB     gain
-     8 MB    12.69    10.94    1.75 ns   <- covered: as predicted, almost nothing
-    64 MB    86.09    79.45    6.64 ns   <- 25% covered: the gain appears
-   512 MB   104.20    93.40   10.80 ns   <- 3% covered: full gain
+   region     4 KB     2 MB     gain
+     8 MB    11.78    10.16     1.54 ns   <- covered: as predicted, almost nothing
+    16 MB    10.78     8.62     1.98 ns   <- still covered: likewise
+    32 MB    46.57    25.43    18.62 ns   <- L3 BOUNDARY: outside the model
+    64 MB    72.16    65.01     6.92 ns   <- 25% covered: the gain appears
+   512 MB    89.56    78.55    10.94 ns   <- 3% covered: full gain
 ```
 
-The prediction holds. That is the kind of confirmation worth more than the
-isolated number: the model does not merely describe the result, it **anticipated**
-it.
+**The prediction holds at the four points it covers** — 8 and 16 MB with almost
+no gain, 64 MB with the gain being born, 512 MB with the full gain. That is the
+kind of confirmation worth more than the isolated number: the model does not
+merely describe the result, it **anticipated** it.
+
+**And the sweep found a point the model does NOT predict.** At 32 MB the gain
+jumps to 18.62 ns — higher than at 512 MB — and then *falls* to 6.92 ns at
+64 MB. It is not noise: the five archived repetitions give 17.24 to 20.11 ns.
+The TLB-coverage model is monotonic by construction — the less the TLB covers,
+the larger the gain — and cannot produce a peak in the middle.
+
+What is special about 32 MB is that it is exactly the L3 size of this machine
+([§4.2](#42-cache-and-locality)). An explanation compatible with the §4.1 model
+is that, with 4 KB pages, the 64 kB of PTEs for a 32 MB region compete for L3
+with the data itself, right at the boundary where the data barely fits; with
+2 MB hugepages the PTEs are 128 B and compete for nothing. **This is a
+hypothesis, not a result**: confirming it would require measuring L3 occupancy
+with performance counters, which this material does not use. What is measured is
+the peak and its reproducibility.
+
+The methodological lesson is the same as the rest of the module: the model was
+confirmed where it predicted, and the sweep showed where it stops holding.
+Publishing only the three points that confirm would have hidden the fourth.
 
 Fixing the region at 512 MB, the same program publishes the difference with the
 paired design ([`custo-traducao.c`](medicoes/custo-traducao.c)):
@@ -692,16 +715,16 @@ region size — the same chain the program uses, always on hugepages so the TLB 
 out of the picture:
 
 ```
-  region      ns/access (dependent chain, 2 MB hugepages)
-    8 MB        11.04     <- L3
-   16 MB        11.18     <- L3
-   32 MB        21.54     <- L3 boundary
-   64 MB        79.80     <- RAM
-  512 MB        94.95     <- RAM
+  region       ns/access (dependent chain, 2 MB hugepages)
+    8 MB        10.16     <- L3
+   16 MB         8.62     <- L3
+   32 MB        25.43     <- L3 boundary
+   64 MB        65.01     <- RAM
+  512 MB        78.55     <- RAM
 ```
 
-An L3 hit costs ~11 ns on this machine. On a run of `custo-traducao` with the
-machine idle, the measured difference between 4 KB and 2 MB was **11.65 ns**:
+An L3 hit costs 9 to 10 ns on this machine. In the archived campaign, with the
+machine idle, the measured difference between 4 KB and 2 MB was **11.09 ns**:
 
 ```
   4 KB pages                             89.05  88.97-89.18     88.82-89.90         0.2%   0.3%  
@@ -2845,7 +2868,8 @@ continuity behind a threshold.**
 ./build/docs/01-fundamentos/medicoes/tlb-real          # real TLB, via CPUID
 ./build/docs/01-fundamentos/medicoes/custo-syscall
 ./build/docs/01-fundamentos/medicoes/efeito-cache
-./build/docs/01-fundamentos/medicoes/custo-traducao   # needs hugepages
+./build/docs/01-fundamentos/medicoes/custo-traducao        # needs hugepages; 512 MB
+./build/docs/01-fundamentos/medicoes/custo-traducao 32     # another region, in MB
 ./build/docs/01-fundamentos/medicoes/custo-paralelismo  # needs hugepages
 ./build/docs/01-fundamentos/medicoes/custo-comunicacao
 ./build/docs/01-fundamentos/medicoes/custo-espera

@@ -123,6 +123,11 @@ for r in 0 1 2 3 4 5; do
     [ $r -eq 0 ] && rot="aquecimento(descartado)" || rot="rodada$r"
     echo "[$rot] $(date +%H:%M:%S) carga $(cut -d' ' -f1 /proc/loadavg)" >> "$D/diario.txt"
     for p in $PROGS; do ./$B/$p > "$D/${p}.r${r}.txt" 2>&1; done
+    # Varredura por regiao: o que confronta a previsao de cobertura de TLB com
+    # a medicao. 512 MB e o padrao e ja saiu no laco acima.
+    for mb in 8 16 32 64; do
+        ./$B/custo-traducao "$mb" > "$D/custo-traducao.regiao${mb}mb.r${r}.txt" 2>&1
+    done
     corre2 "$r"
     corre3 "$r"
     corre_feed "$r"

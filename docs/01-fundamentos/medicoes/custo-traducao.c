@@ -42,9 +42,15 @@
 #include "clock_ns.h"
 #include "statistics.h"
 
-#define REGIAO_BYTES (512ull * 1024 * 1024)
-/* Cada amostra aloca 512 MB e percorre milhões de linhas: poucas amostras,
- * senão o programa leva minutos. */
+/* Regiao percorrida, em MB, como parametro de execucao: a varredura por
+ * tamanho e o que confronta a previsao de cobertura de TLB com a medicao.
+ * O padrao de 512 MB e o que a tabela pareada da secao 4.1 usa. */
+#define REGIAO_MB_PADRAO 512u
+#define REGIAO_MB_MAX    16384u
+
+static size_t regiao_bytes = (size_t)REGIAO_MB_PADRAO * 1024 * 1024;
+/* Cada amostra aloca a região inteira e percorre milhões de linhas: poucas
+ * amostras, senão o programa leva minutos. */
 /* VINTE E UMA, e a escolha nao e de orcamento de tempo.
  *
  * Com 7 amostras estas linhas saiam com dispersao entre 3% e 15%, que e
@@ -101,13 +107,13 @@ static double medir(void *mem, size_t bytes)
 static double amostra(int com_hugepages)
 {
     const int extra = com_hugepages ? MAP_HUGETLB : 0;
-    void *m = mmap(NULL, REGIAO_BYTES, PROT_READ | PROT_WRITE,
+    void *m = mmap(NULL, regiao_bytes, PROT_READ | PROT_WRITE,
                    MAP_PRIVATE | MAP_ANONYMOUS | extra, -1, 0);
     if (m == MAP_FAILED)
         return -1.0;
-    memset(m, 0, REGIAO_BYTES);
-    const double r = medir(m, REGIAO_BYTES);
-    munmap(m, REGIAO_BYTES);
+    memset(m, 0, regiao_bytes);
+    const double r = medir(m, regiao_bytes);
+    munmap(m, regiao_bytes);
     return r;
 }
 
@@ -121,11 +127,23 @@ static double amostra_2m(void)
     return amostra(1);
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
+    /* Recusa valor invalido em vez de silenciar: regiao de 0 MB mediria nada
+     * e ainda assim publicaria um numero. */
+    if (argc > 1) {
+        char *fim = NULL;
+        const unsigned long mb = strtoul(argv[1], &fim, 10);
+        if (fim == argv[1] || *fim != '\0' || mb == 0 || mb > REGIAO_MB_MAX) {
+            fprintf(stderr, "uso: %s [regiao_em_MB]   (1 a %u; padrao %u)\n",
+                    argv[0], REGIAO_MB_MAX, REGIAO_MB_PADRAO);
+            return 2;
+        }
+        regiao_bytes = (size_t)mb * 1024 * 1024;
+    }
     print_provenance("custo-traducao");
-    printf("Address translation cost (scattered walk over %llu MB)\n",
-           REGIAO_BYTES / (1024 * 1024));
+    printf("Address translation cost (scattered walk over %zu MB)\n",
+           regiao_bytes / (1024 * 1024));
     printf("(%d samples per measurement; times in ns)\n\n", AMOSTRAS_PAGINA);
 
     if (amostra_2m() < 0) {
