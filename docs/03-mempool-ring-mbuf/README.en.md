@@ -185,6 +185,165 @@ the regime where the difference is smallest.
 
 ---
 
+### 1.4 When the execution model changes the sizing
+
+DPDK 26.07 changed the mempool cache's refill and flush algorithm. The release
+note states two things: the `flushthresh` field became obsolete, and the
+**effective** cache size now matches the requested one — it used to be about 50%
+larger. The guidance accompanying the change is that, in applications where one
+lcore only gets and another only puts, it is worth **doubling** the configured
+cache.
+
+The question this experiment asks is not "did 26.07 get faster". It is:
+
+> Does the change alter the relationship between `cache_size` and performance
+> **differently** depending on the execution model?
+
+#### The design
+
+[`pipeline_ring`](../../trilha/01-fundamentos/02-mempool-ring/pipeline_ring.c)
+already implements both topologies unchanged: with `-l 0`, producer and consumer
+alternate on the same lcore and both operations hit the same cache; with
+`-l 0,2`, one lcore only does `get` and the other only `put`.
+
+| Element | Value |
+|---|---|
+| factorial | 2 versions × 2 topologies |
+| inner sweep | `cache_size` ∈ {16, 24, 32, 48, 64, 96, 128, 256, 512} |
+| control | `cache_size` = 0, which **disables** the cache rather than sizing it |
+| repetitions | 6 per cell, 240 runs |
+| metric | cache miss rate, a library counter |
+
+**The collection is interleaved**, and that is a validity condition, not style:
+the two versions of a given cell run adjacent to each other, and the cell order
+is permuted on every repetition. Arms in blocks confound the effect with machine
+state drift — that is how, in an earlier campaign of this same study, a
+difference of 0.70 ns per packet became 0.15 ns when reproduced interleaved.
+
+**The metric is a library counter**, not a hardware event: it does not depend on
+the PMU, which is blocked on this machine. It counts the times the per-lcore
+cache had no objects and the common ring had to be used.
+
+#### Symmetric topology: the effect is invisible, except at one point
+
+| `cache_size` | 25.11 | 26.07 |
+|---:|---:|---:|
+| 0 (control) | 100.00% | 100.00% |
+| 16 | 100.00% | 100.00% |
+| **24** | **0.00%** | **100.00%** |
+| 32 to 512 | 0.00% | 0.00% |
+
+In nine of the ten rows the two versions are indistinguishable. In the tenth the
+difference is total — and it is that row which exposes the mechanism.
+
+This experiment's batch is **32 objects**. A cache unable to serve a whole batch
+falls through to the common ring on **every** operation, which gives 100% miss:
+that is what `cache_size` = 16 shows in both versions. At `cache_size` = 32 and
+above both serve, and the miss rate goes to zero.
+
+`cache_size` = 24 is the only point in the range where the two versions
+disagree, and the disagreement follows exactly what the release note states:
+with the effective size about 50% larger, 24 requested gave roughly 36 usable in
+25.11 — above the batch of 32, therefore enough. In 26.07, 24 requested are 24,
+below the batch, and the cache stops serving.
+
+> **The boundary is bracketed, not pinned.** The sweep has 16 and 24, and
+> 25.11's turning point falls between them — `32 / 1.5 ≈ 21.3`. Pinning it would
+> take a finer step, which this experiment does not have. What is demonstrated
+> is that the boundary exists and which side each version is on.
+
+#### Asymmetric topology: the difference exists across the whole range
+
+| `cache_size` | 25.11 | 26.07 | difference |
+|---:|---:|---:|---:|
+| 0 (control) | 100.00% | 100.00% | — |
+| 16 | 100.00% | 100.00% | — |
+| 24 | 61.25% | 100.00% | +38.75 |
+| 32 | 34.57% | 60.03% | +25.46 |
+| 48 | 26.11% | 60.83% | +34.73 |
+| 64 | 16.36% | 61.88% | +45.52 |
+| 96 | 14.06% | 36.80% | +22.74 |
+| 128 | 10.59% | 30.80% | +20.22 |
+| 256 | 6.38% | 15.29% | +8.91 |
+| 512 | 3.32% | 8.32% | +5.00 |
+
+Here there is no isolated point: 26.07 has a higher miss rate at **every** size,
+and the gap only closes once the cache grows enough for both regimes to be
+comfortable.
+
+#### The three hypotheses, and what became of each
+
+The hypotheses were recorded **before** the collection. Reporting only the
+confirmed ones would defeat the purpose of recording them.
+
+| Hypothesis | Statement | Outcome |
+|---|---|---|
+| 1 | in an asymmetric workload, `cache_size = N` on 26.07 will miss more than on 25.11 | **confirmed**, across the range |
+| 2 | `cache_size = 2N` on 26.07 recovers 25.11's behaviour | **refuted** |
+| 3 | in a symmetric workload the effect will be smaller or absent | **refuted by the detail** |
+
+**The second is the one that contradicts the upstream guidance.** Doubling the
+cache on 26.07 and comparing with 25.11 at the original value:
+
+| 25.11 | 26.07 at twice the size | recovers? |
+|---|---|---|
+| `c=32` → 34.57% | `c=64` → 61.88% | no |
+| `c=48` → 26.11% | `c=96` → 36.80% | no |
+| `c=64` → 16.36% | `c=128` → 30.80% | no |
+| `c=256` → 6.38% | `c=512` → 8.32% | no |
+
+Doubling helps — `c=64` on 26.07 beats `c=32` on 26.07 — but it does **not
+reach** 25.11 at the original value, in any pair. The guidance is not false; it
+is insufficient for this workload.
+
+**The third was refuted in a more interesting way than confirmation would have
+been.** The effect in the symmetric case is not "smaller": it is **absent across
+the range and total at one point**. A conclusion that "nothing changes in the
+symmetric case" would be true in nine measurements out of ten and would lead the
+reader to pick `cache_size` = 24 without knowing a boundary had been crossed.
+
+#### The asymmetric case is also less stable on 26.07
+
+Dispersion across the six repetitions, in the asymmetric case, separates the
+versions:
+
+| `cache_size` | 25.11 range | 26.07 range |
+|---:|---:|---:|
+| 32 | 0.95 | 6.42 |
+| 48 | 0.78 | 4.68 |
+| 64 | 0.94 | 17.51 |
+| 96 | 0.66 | 17.12 |
+| 128 | 2.30 | 4.00 |
+| 512 | 0.62 | 0.67 |
+
+25.11 stays below one percentage point across almost the whole range. 26.07
+reaches 17 points of range at `c=64` and `c=96` — the same cells where the curve
+forms a plateau instead of descending. **This is a reading, not a result:** the
+cause was not investigated, and attributing it to the new algorithm without
+measuring would be exactly the kind of conclusion this material refuses.
+
+#### What this experiment does not authorize
+
+- **There is no timing measurement.** Both DPDKs were built with
+  `RTE_LIBRTE_MEMPOOL_STATS`, whose counter is updated on the hot path: the
+  program measured is not the program in production. The upstream claim is about
+  miss rate, and that is what this experiment answers — no more, no less. The
+  link between miss rate and time remains unmeasured.
+- **The workload is a two-stage pipeline with one ring.** Real applications have
+  more stages and more rings, and the upstream guidance may well be sufficient
+  in topologies this program does not represent.
+- **The 25.11 arm is a fresh build**, made by
+  [`scripts/preparar-dpdk.sh`](../../scripts/preparar-dpdk.sh), not the
+  distribution package used in the earlier history. This is a new campaign, not
+  a continuation.
+
+The collection is in
+[`medicoes/historico/2026-09-21-mempool-cache-intercalada/`](medicoes/historico/2026-09-21-mempool-cache-intercalada/),
+with the raw output of each of the 240 runs and the provenance the program
+prints — DPDK version, commit, host, compiler and date.
+
+---
+
 ## 2. The mbuf: four numbers that look redundant
 
 The [`rte_mbuf`][guiambuf] is the structure that carries a packet. It was promised by

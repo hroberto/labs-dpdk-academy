@@ -187,6 +187,164 @@ em que a diferença é menor.
 
 ---
 
+### 1.4 Quando o modelo de execução muda o dimensionamento
+
+O DPDK 26.07 alterou o algoritmo de recarga e descarga do cache do mempool. A
+nota de versão declara duas coisas: o campo `flushthresh` ficou obsoleto, e o
+tamanho **efetivo** do cache passou a corresponder ao solicitado — antes era
+cerca de 50% maior. A orientação que acompanha a mudança é que, em aplicações
+onde um lcore só obtém e outro só devolve, convém **dobrar** o cache
+configurado.
+
+A pergunta que este experimento faz não é "o 26.07 ficou mais rápido". É:
+
+> A mudança altera a relação entre `cache_size` e desempenho de forma
+> **diferente** conforme o modelo de execução?
+
+#### O desenho
+
+O [`pipeline_ring`](../../trilha/01-fundamentos/02-mempool-ring/pipeline_ring.c)
+já implementa as duas topologias sem alteração: com `-l 0`, produtor e consumidor
+se alternam no mesmo lcore e as duas operações incidem sobre o mesmo cache; com
+`-l 0,2`, um lcore só faz `get` e o outro só faz `put`.
+
+| Elemento | Valor |
+|---|---|
+| fatorial | 2 versões × 2 topologias |
+| varredura interna | `cache_size` ∈ {16, 24, 32, 48, 64, 96, 128, 256, 512} |
+| controle | `cache_size` = 0, que **desliga** o cache em vez de dimensioná-lo |
+| repetições | 6 por célula, 240 execuções |
+| métrica | taxa de miss do cache, contador da biblioteca |
+
+**A coleta é intercalada**, e isso é condição de validade, não estilo: as duas
+versões de uma mesma célula correm adjacentes e a ordem das células é permutada
+a cada repetição. Braços em blocos confundem o efeito com deriva de estado da
+máquina — foi assim que, numa campanha anterior deste mesmo estudo, uma
+diferença de 0,70 ns por pacote virou 0,15 ns ao ser reproduzida intercalada.
+
+**A métrica é contador da biblioteca**, não evento de hardware: não depende do
+PMU, que nesta máquina está bloqueado. Ela conta as vezes em que o cache por
+lcore não tinha objetos e foi preciso ir ao anel comum.
+
+#### Topologia simétrica: o efeito é invisível, menos em um ponto
+
+| `cache_size` | 25.11 | 26.07 |
+|---:|---:|---:|
+| 0 (controle) | 100,00% | 100,00% |
+| 16 | 100,00% | 100,00% |
+| **24** | **0,00%** | **100,00%** |
+| 32 a 512 | 0,00% | 0,00% |
+
+Em nove das dez linhas as duas versões são indistinguíveis. Na décima, a
+diferença é total — e é ela que expõe o mecanismo.
+
+O lote deste experimento é de **32 objetos**. Um cache incapaz de servir um
+lote inteiro cai no anel comum **em toda** operação, o que dá 100% de miss:
+é o que se vê em `cache_size` = 16 nas duas versões. Em `cache_size` = 32 e
+acima, ambas servem, e o miss vai a zero.
+
+O `cache_size` = 24 é o único ponto do intervalo em que as duas versões
+discordam, e a discordância segue exatamente o que a nota de versão declara: com
+o tamanho efetivo cerca de 50% maior, 24 solicitados davam algo em torno de 36
+utilizáveis no 25.11 — acima do lote de 32, portanto suficiente. No 26.07, 24
+solicitados são 24, abaixo do lote, e o cache deixa de servir.
+
+> **A fronteira está delimitada, não fixada.** A varredura tem 16 e 24, e o
+> ponto de virada do 25.11 cai entre eles — `32 / 1,5 ≈ 21,3`. Fixá-lo exigiria
+> passo mais fino, que este experimento não tem. O que está demonstrado é a
+> existência da fronteira e o lado de cada versão.
+
+#### Topologia assimétrica: a diferença existe em toda a faixa
+
+| `cache_size` | 25.11 | 26.07 | diferença |
+|---:|---:|---:|---:|
+| 0 (controle) | 100,00% | 100,00% | — |
+| 16 | 100,00% | 100,00% | — |
+| 24 | 61,25% | 100,00% | +38,75 |
+| 32 | 34,57% | 60,03% | +25,46 |
+| 48 | 26,11% | 60,83% | +34,73 |
+| 64 | 16,36% | 61,88% | +45,52 |
+| 96 | 14,06% | 36,80% | +22,74 |
+| 128 | 10,59% | 30,80% | +20,22 |
+| 256 | 6,38% | 15,29% | +8,91 |
+| 512 | 3,32% | 8,32% | +5,00 |
+
+Aqui não há ponto isolado: o 26.07 tem taxa de miss maior em **todos** os
+tamanhos, e a diferença só se fecha quando o cache cresce o bastante para que os
+dois regimes fiquem folgados.
+
+#### As três hipóteses, e o que aconteceu com cada uma
+
+As hipóteses foram registradas **antes** da coleta. Reportar apenas as
+confirmadas anularia a razão de registrá-las.
+
+| Hipótese | Enunciado | Desfecho |
+|---|---|---|
+| 1 | em workload assimétrico, `cache_size = N` no 26.07 terá miss maior que no 25.11 | **confirmada**, em toda a faixa |
+| 2 | `cache_size = 2N` no 26.07 recupera o comportamento do 25.11 | **refutada** |
+| 3 | em workload simétrico o efeito será menor ou ausente | **refutada pelo detalhe** |
+
+**A segunda é a que contraria a orientação do upstream.** Dobrando o cache no
+26.07 e comparando com o 25.11 no valor original:
+
+| 25.11 | 26.07 com o dobro | recupera? |
+|---|---|---|
+| `c=32` → 34,57% | `c=64` → 61,88% | não |
+| `c=48` → 26,11% | `c=96` → 36,80% | não |
+| `c=64` → 16,36% | `c=128` → 30,80% | não |
+| `c=256` → 6,38% | `c=512` → 8,32% | não |
+
+Dobrar melhora — `c=64` no 26.07 é melhor que `c=32` no 26.07 — mas **não
+alcança** o 25.11 no valor original, em nenhum par. A orientação não é falsa;
+ela é insuficiente para este workload.
+
+**A terceira foi refutada de um jeito mais interessante do que se confirmada
+fosse.** O efeito no caso simétrico não é "menor": é **ausente em toda a faixa e
+total num ponto**. Uma conclusão de que "no simétrico não muda nada" seria
+verdadeira em nove medições de dez e faria o leitor escolher `cache_size` = 24
+sem saber que atravessou uma fronteira.
+
+#### O caso assimétrico também é menos estável no 26.07
+
+A dispersão entre as seis repetições, no assimétrico, separa as versões:
+
+| `cache_size` | amplitude 25.11 | amplitude 26.07 |
+|---:|---:|---:|
+| 32 | 0,95 | 6,42 |
+| 48 | 0,78 | 4,68 |
+| 64 | 0,94 | 17,51 |
+| 96 | 0,66 | 17,12 |
+| 128 | 2,30 | 4,00 |
+| 512 | 0,62 | 0,67 |
+
+O 25.11 fica abaixo de um ponto percentual em quase toda a faixa. O 26.07 chega
+a 17 pontos de amplitude em `c=64` e `c=96` — as mesmas células onde a curva
+forma um patamar em vez de descer. **Isto é leitura, não resultado:** a causa
+não foi investigada, e atribuí-la ao algoritmo novo sem medir seria exatamente o
+tipo de conclusão que este material recusa.
+
+#### O que este experimento não autoriza
+
+- **Não há medida de tempo.** Os dois DPDK foram construídos com
+  `RTE_LIBRTE_MEMPOOL_STATS`, cujo contador é atualizado no caminho quente: o
+  programa medido não é o programa de produção. A afirmação do upstream é sobre
+  taxa de miss, e é a ela que este experimento responde — nem mais, nem menos. O
+  elo entre miss e tempo fica por medir.
+- **O workload é um pipeline de dois estágios com um anel.** Aplicações reais
+  têm mais estágios e mais anéis, e a orientação do upstream pode ser suficiente
+  em topologias que este programa não representa.
+- **O braço do 25.11 é um build novo**, feito por
+  [`scripts/preparar-dpdk.sh`](../../scripts/preparar-dpdk.sh), e não o pacote da
+  distribuição usado no histórico anterior. Esta é campanha nova, não
+  continuação.
+
+A coleta está em
+[`medicoes/historico/2026-09-21-mempool-cache-intercalada/`](medicoes/historico/2026-09-21-mempool-cache-intercalada/),
+com a saída bruta de cada uma das 240 execuções e a procedência que o programa
+imprime — versão do DPDK, commit, host, compilador e data.
+
+---
+
 ## 2. O mbuf: quatro números que parecem redundantes
 
 O [`rte_mbuf`][guiambuf] é a estrutura que carrega um pacote. Ela foi prometida

@@ -91,6 +91,11 @@ uma_execucao() { # <versao> <topologia> <cache> <repeticao> <ordem>
         sed 's/^/    | /' "$tmp"; rm -f "$tmp"; exit 1
     fi
     echo "$rep,$ordem,$v,$topo,$c,$dados" >> "$CSV"
+    # A SAIDA BRUTA E ARQUIVADA, nao so o CSV. O verificador de blocos confere
+    # numero publicado contra coleta arquivada, e uma linha de CSV nao carrega a
+    # procedencia que o programa imprime -- versao do DPDK, commit, host, gcc e
+    # data. Sem o bruto, a tabela publicada seria um numero sem rastro.
+    cp "$tmp" "$SAIDA/$v.$topo.c$c.r$rep.txt"
     rm -rf "${XDG_RUNTIME_DIR:-/var/run}/dpdk/$pref"
     rm -f "$tmp"
 }
