@@ -149,10 +149,44 @@ int order_book_crossed(const struct order_book *l);
  *   degenerados  amostras de latência impossíveis (TSC desalinhado entre os
  *                núcleos). Não invalidam o LIVRO, invalidam a MEDIÇÃO que se
  *                publica junto dele -- e publicar as duas coisas sob um único
- *                selo de "válido" exige que as duas estejam boas. */
+ *                selo de "válido" exige que as duas estejam boas.
+ *
+ * O LIMIAR SEPARA TRANSITÓRIO DE SESSÃO DEGRADADA, E A UNIDADE É CONTAGEM.
+ *
+ * Medido nesta máquina, com a máquina dedicada, em vinte sessões arquivadas em
+ * `historico/.../calibracao-degenerados.*`: dez de 200 000 ticks e dez de
+ * 1 000 000. A distribuição é BIMODAL -- ou a sessão tem no máximo UMA amostra
+ * degenerada, ou tem 82. Não há nada entre 2 e 81.
+ *
+ * A contagem NÃO escala com o tamanho da coleta: as sessões de 1 000 000
+ * mostram as mesmas 0 ou 1 das de 200 000. O defeito é por evento, não por
+ * amostra -- e por isso a unidade é contagem absoluta, não fração. Uma fração
+ * daria vereditos diferentes para o mesmo evento conforme a coleta fosse curta
+ * ou longa.
+ *
+ * A sessão das 82 não é transitória: nela o mínimo publicado foi 0,00 ns --
+ * travessia impossível -- e a resolução do instrumento dobrou, de ~11,9 para
+ * 23,5 ns. É uma sessão sob pressão de escalonamento, e é precisamente o que o
+ * selo precisa recusar.
+ *
+ * O limite fica no pé do intervalo vazio: duas amostras impossíveis já sugerem
+ * condição que persistiu, em vez de evento isolado. Qualquer valor entre 2 e 81
+ * separaria as duas populações nestes dados; o pé é a escolha conservadora.
+ *
+ * A CONTAGEM CONTINUA IMPRESSA ao lado do resultado. O limiar decide o selo,
+ * não esconde o número. */
+#define FEED_DEGENERADOS_MAX 2ULL
+
+/* Separada de `feed_assinatura_valida` porque o limiar é a parte que se quer
+ * exercitar sozinha, nas bordas e sem depender de livro nenhum. */
+static inline int feed_degenerados_toleraveis(unsigned long long degenerados)
+{
+    return degenerados <= FEED_DEGENERADOS_MAX;
+}
+
 static inline int feed_assinatura_valida(int cruzados, unsigned long long degenerados)
 {
-    return cruzados == 0 && degenerados == 0;
+    return cruzados == 0 && feed_degenerados_toleraveis(degenerados);
 }
 
 #ifdef __cplusplus

@@ -221,9 +221,15 @@ int main(int argc, char **argv)
     print_header_tail();
     print_row_tail("publication -> observation", lat);
     printf("\n    instrument resolution: %.1f ns (one consumer poll).\n", passo_ns);
+    /* Tres estados, porque sao tres situacoes diferentes: nenhuma degenerada,
+     * transitoria sob o limiar, e dessincronia. O criterio de validade usa a
+     * mesma funcao, entao texto e selo nao podem divergir. */
     printf("    degenerate samples: %" PRIu64 " of %" PRIu64 " %s\n", degenerados, total,
-           degenerados == 0 ? "(TSC aligned across the two cores)"
-                            : "<- TSC MISALIGNED: measurement not trustworthy");
+           degenerados == 0
+               ? "(TSC aligned across the two cores)"
+               : (feed_degenerados_toleraveis(degenerados)
+                      ? "(isolated transient, within tolerance)"
+                      : "<- DEGRADED SESSION: measurement not trustworthy"));
     printf("    The values above are an UPPER BOUND: between two polls the\n");
     printf("    consumer is blind, so the real traversal fits inside the\n");
     printf("    last step. Differences smaller than %.1f ns are not measurable here.\n",

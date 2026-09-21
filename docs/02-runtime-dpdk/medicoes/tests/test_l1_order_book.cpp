@@ -278,20 +278,41 @@ TEST(AssinaturaValida, LimpoEmAmbasAsCondicoes)
 
 TEST(AssinaturaValida, LivroCruzadoInvalida)
 {
-    // Compra acima da venda e impossivel num livro consistente.
+    // Compra acima da venda e impossivel num livro consistente: qualquer valor
+    // invalida, e o limiar de degeneradas nao se aplica aqui.
     EXPECT_FALSE(feed_assinatura_valida(1, 0));
     EXPECT_FALSE(feed_assinatura_valida(42, 0));
 }
 
-TEST(AssinaturaValida, AmostraDegeneradaInvalida)
+TEST(AssinaturaValida, TransitoriaIsoladaNaoInvalida)
 {
-    // O livro pode estar certo e a MEDICAO publicada junto dele nao: TSC
-    // desalinhado entre nucleos produz travessias impossiveis. Um selo unico de
-    // "valido" cobre as duas coisas, entao exige as duas boas.
-    EXPECT_FALSE(feed_assinatura_valida(0, 1));
+    // O caso medido com a maquina dedicada: sessao limpa tem no maximo UMA
+    // amostra impossivel. Recusar a publicacao inteira por ela confundia
+    // evento isolado com sessao degradada.
+    EXPECT_TRUE(feed_assinatura_valida(0, 1));
+}
+
+TEST(AssinaturaValida, SessaoDegradadaInvalida)
+{
+    // A sessao atipica da calibragem: 82 amostras impossiveis, minimo de
+    // 0,00 ns publicado e resolucao do instrumento dobrada.
+    EXPECT_FALSE(feed_assinatura_valida(0, 82));
 }
 
 TEST(AssinaturaValida, AsDuasQuebradasTambemInvalida)
 {
-    EXPECT_FALSE(feed_assinatura_valida(3, 7));
+    EXPECT_FALSE(feed_assinatura_valida(3, 82));
+}
+
+// O limiar sozinho, nas bordas -- sem livro no caminho.
+TEST(DegeneradosToleraveis, Bordas)
+{
+    EXPECT_TRUE(feed_degenerados_toleraveis(0));
+    EXPECT_TRUE(feed_degenerados_toleraveis(1));
+    EXPECT_TRUE(feed_degenerados_toleraveis(2));   // limiar inclusivo
+    EXPECT_FALSE(feed_degenerados_toleraveis(3));  // primeiro valor recusado
+
+    // O intervalo vazio da calibragem, dos dois lados.
+    EXPECT_FALSE(feed_degenerados_toleraveis(81));
+    EXPECT_FALSE(feed_degenerados_toleraveis(82));
 }
