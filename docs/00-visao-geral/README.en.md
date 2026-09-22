@@ -192,10 +192,19 @@ becomes a variable — with two practical consequences.
 its own prefix, without touching the system:
 
 ```bash
-./scripts/preparar-dpdk.sh 25.11          # installs into ~/opt/dpdk-25.11
-./scripts/preparar-dpdk.sh 26.07
+./scripts/preparar-dpdk.sh 25.11            # full driver set
+./scripts/preparar-dpdk.sh --minimo 25.11   # only what the cache study uses
 ./scripts/preparar-dpdk.sh --conferir 25.11
 ```
+
+> **The two forms produce different prefixes, and the distinction matters.**
+> Without `--minimo` the script installs 154 drivers, 61 of them network PMDs —
+> that is what serves NIC work. With `--minimo` it installs three, `bus_pci`,
+> `bus_vdev` and `mempool_ring`, which is the configuration of the prefixes that
+> produced the table in
+> [§1.4 of module 03](../03-mempool-ring-mbuf/README.en.md#14-when-the-execution-model-changes-the-sizing).
+> Offering one as a reproduction of the other would promise reproducibility and
+> deliver something else.
 
 The project builds against one of them by pointing `PKG_CONFIG_PATH` at that
 prefix's `pkgconfig`; the `meson.build` only requires `>= 23.11` and needs no

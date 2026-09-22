@@ -193,10 +193,19 @@ ser variável — com duas consequências práticas.
 num prefixo próprio, sem tocar no sistema:
 
 ```bash
-./scripts/preparar-dpdk.sh 25.11          # instala em ~/opt/dpdk-25.11
-./scripts/preparar-dpdk.sh 26.07
+./scripts/preparar-dpdk.sh 25.11            # conjunto completo de drivers
+./scripts/preparar-dpdk.sh --minimo 25.11   # só os que o estudo do cache usa
 ./scripts/preparar-dpdk.sh --conferir 25.11
 ```
+
+> **As duas formas produzem prefixos diferentes, e a distinção importa.** Sem
+> `--minimo` o script instala 154 drivers, dos quais 61 são PMDs de rede — é o
+> que serve para trabalho com NIC. Com `--minimo` ele instala três,
+> `bus_pci`, `bus_vdev` e `mempool_ring`, que é a configuração dos prefixos que
+> produziram a tabela da
+> [§1.4 do módulo 03](../03-mempool-ring-mbuf/README.md#14-quando-o-modelo-de-execução-muda-o-dimensionamento).
+> Oferecer um chamando-o de reprodução do outro seria prometer
+> reprodutibilidade e entregar outra coisa.
 
 O projeto compila contra um deles apontando `PKG_CONFIG_PATH` para o `pkgconfig`
 do prefixo; o `meson.build` exige apenas `>= 23.11` e não precisa mudar.
