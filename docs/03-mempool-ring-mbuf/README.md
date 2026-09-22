@@ -273,6 +273,16 @@ Aqui não há ponto isolado: o 26.07 tem taxa de miss maior em **todos** os
 tamanhos, e a diferença só se fecha quando o cache cresce o bastante para que os
 dois regimes fiquem folgados.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/1-dispersao-escuro.svg">
+  <img alt="Tiras de pontos com a taxa de miss do cache do mempool por tamanho de cache, seis execuções por célula, comparando DPDK 25.11 e 26.07 na topologia assimétrica. O 26.07 fica acima em toda a faixa. Em cache 24 ele satura em 100% enquanto o 25.11 fica em 60,85%. Em cache 64 as seis execuções do 26.07 se espalham de 38,41% a 70,90%, enquanto as do 25.11 ficam agrupadas perto de 14,54%." src="imagens/1-dispersao-claro.svg">
+</picture>
+
+O gráfico mostra o que a tabela de medianas esconde: **a diferença entre as
+versões não é só de nível, é de comportamento.** Os pontos do 25.11 ficam
+agrupados em quase toda a faixa; os do 26.07 se abrem, e em `cache = 64` eles
+varrem mais de trinta pontos percentuais.
+
 #### As três hipóteses, e o que aconteceu com cada uma
 
 As hipóteses foram registradas **antes** da coleta. Reportar apenas as
@@ -350,9 +360,56 @@ A dispersão entre as seis repetições, no assimétrico, separa as versões:
 As duas versões dispersam, e não é só o 26.07 que se mexe — o 25.11 chega a
 7,45 pontos em `c=32`. O que separa as duas é o **extremo**: a pior célula do
 26.07, `c=64`, tem 32,49 pontos de amplitude, mais de quatro vezes a pior do
-25.11. E é a mesma célula em que a curva forma patamar em vez de descer. **Isto é leitura, não resultado:** a causa
-não foi investigada, e atribuí-la ao algoritmo novo sem medir seria exatamente o
-tipo de conclusão que este material recusa.
+25.11. E é a mesma célula em que a curva forma patamar em vez de descer.
+
+#### A dispersão é herdada, não gerada
+
+A saída de cada execução traz um segundo número: quantos objetos **não couberam
+na fila** e voltaram ao pool. Ele varia entre repetições, e a variação dele não
+é uniforme pela faixa:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/1-amplitude-escuro.svg">
+  <img alt="Intervalos entre o mínimo e o máximo do número de eventos de fila cheia por tamanho de cache no DPDK 26.07, em seis execuções. O intervalo de cache 64 vai de 0,8 a 3,2 milhões, uma amplitude de 3,9 vezes, enquanto as células vizinhas ficam em torno de 1,3 vezes." src="imagens/1-amplitude-claro.svg">
+</picture>
+
+Em `cache = 64` o próprio evento de fila cheia varia **3,9×** entre execuções,
+contra cerca de 1,3× nas vizinhas. A dispersão da taxa de miss ali é
+**herdada** dessa variação, não gerada no caminho do cache.
+
+> **O que não se deve concluir daqui.** A taxa de miss e a frequência de fila
+> cheia variam em sentidos opostos em quase toda a faixa e nas **duas** versões
+> — não é assinatura do `cache = 64`. Foi o que eu supus primeiro, e os dados
+> desmentiram: o que é exclusivo dali é a amplitude, não a correlação.
+
+#### Por que `cache = 2 × lote` é o ponto sensível
+
+A aritmética do 26.07 explica o extremo. A recarga busca `size/2`, serve
+`remaining = n − len` e deixa `size/2 − remaining` no cache:
+
+| `cache` | `size/2` | o que sobra após a recarga | piso |
+|---:|---:|---|---:|
+| 64 | 32 | `32 − (32 − len)` = **`len`** | **0** |
+| 96 | 48 | `48 − (32 − len)` = `16 + len` | 16 |
+| 128 | 64 | `64 − (32 − len)` = `32 + len` | 32 |
+
+Com o lote em 32, `cache = 64` é o único ponto em que a recarga **devolve
+exatamente o que havia** — não ganha nem perde. É um ponto fixo sem força
+restauradora: o único suprimento do cache do produtor é o caminho de fila
+cheia, e com piso zero o estado do cache passa a ser inteiramente determinado
+por quanto a fila encheu. A execução vira amplificadora da própria flutuação de
+temporização entre os dois lcores. Em `cache ≥ 96` existe piso, a recarga
+regenera o cache sozinha, e o efeito é amortecido.
+
+**O que este argumento não cobre.** Pelo piso, `c=128` (piso 32) deveria ser
+mais amortecido que `c=96` (piso 16), e mede o contrário — 9,90 contra 3,26
+pontos. Há outro fator atuando ali, e nomeá-lo sem medir seria o tipo de
+conclusão que este material recusa.
+
+**O teste que fecharia a questão** é barato e está registrado como pendência:
+varrer `cache` fino em torno de `2 × lote` e depois mover o lote. Se o pico de
+amplitude acompanhar a razão, o argumento do piso se confirma; se ficar preso
+em 64, ele cai.
 
 #### O que este experimento não autoriza
 

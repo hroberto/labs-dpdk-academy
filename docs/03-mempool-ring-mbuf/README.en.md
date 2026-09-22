@@ -350,9 +350,57 @@ versions:
 Both versions disperse, and it is not only 26.07 that moves — 25.11 reaches 7.45
 points at `c=32`. What separates them is the **extreme**: 26.07's worst cell,
 `c=64`, has 32.49 points of range, more than four times 25.11's worst. And it is
-the same cell where the curve forms a plateau instead of descending. **This is a reading, not a result:** the
-cause was not investigated, and attributing it to the new algorithm without
-measuring would be exactly the kind of conclusion this material refuses.
+the same cell where the curve forms a plateau instead of descending.
+
+#### The dispersion is inherited, not generated
+
+Each run's output carries a second number: how many objects **did not fit in the
+queue** and went back to the pool. It varies between repetitions, and that
+variation is not uniform across the range:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/1-amplitude-escuro.en.svg">
+  <img alt="Intervals between the minimum and maximum ring-full event counts per cache size on DPDK 26.07, over six runs. The cache-64 interval runs from 0.8 to 3.2 million, a range of 3.9 times, while neighbouring cells stay around 1.3 times." src="imagens/1-amplitude-claro.en.svg">
+</picture>
+
+At `cache = 64` the ring-full event itself varies **3.9×** between runs, against
+roughly 1.3× in the neighbouring cells. The miss-rate dispersion there is
+**inherited** from that variation, not generated on the cache path.
+
+> **What must not be concluded from this.** Miss rate and ring-full frequency
+> move in opposite directions across almost the whole range and in **both**
+> versions — it is not a signature of `cache = 64`. That is what I assumed
+> first, and the data said otherwise: what is exclusive there is the amplitude,
+> not the correlation.
+
+#### Why `cache = 2 × batch` is the sensitive point
+
+26.07's arithmetic explains the extreme. The refill fetches `size/2`, serves
+`remaining = n − len` and leaves `size/2 − remaining` in the cache:
+
+| `cache` | `size/2` | what remains after the refill | floor |
+|---:|---:|---|---:|
+| 64 | 32 | `32 − (32 − len)` = **`len`** | **0** |
+| 96 | 48 | `48 − (32 − len)` = `16 + len` | 16 |
+| 128 | 64 | `64 − (32 − len)` = `32 + len` | 32 |
+
+With the batch at 32, `cache = 64` is the only point where the refill **gives
+back exactly what was there** — it neither gains nor loses. It is a fixed point
+with no restoring force: the producer's cache is supplied only by the ring-full
+path, and with a floor of zero the cache state becomes entirely determined by
+how much the queue filled. The run turns into an amplifier of the timing
+fluctuation between the two lcores. At `cache ≥ 96` there is a floor, the refill
+regenerates the cache on its own, and the effect is damped.
+
+**What this argument does not cover.** By the floor, `c=128` (floor 32) should
+be more damped than `c=96` (floor 16), and it measures the opposite — 9.90
+against 3.26 points. Another factor is at work there, and naming it without
+measuring would be the kind of conclusion this material refuses.
+
+**The test that would settle it** is cheap and is recorded as pending: sweep
+`cache` finely around `2 × batch` and then move the batch. If the amplitude peak
+tracks the ratio, the floor argument is confirmed; if it stays pinned at 64, it
+falls.
 
 #### What this experiment does not authorize
 
