@@ -260,14 +260,14 @@ solicitados são 24, abaixo do lote, e o cache deixa de servir.
 |---:|---:|---:|---:|
 | 0 (controle) | 100,00% | 100,00% | — |
 | 16 | 100,00% | 100,00% | — |
-| 24 | 61,25% | 100,00% | +38,75 |
-| 32 | 34,57% | 60,03% | +25,46 |
-| 48 | 26,11% | 60,83% | +34,73 |
-| 64 | 16,36% | 61,88% | +45,52 |
-| 96 | 14,06% | 36,80% | +22,74 |
-| 128 | 10,59% | 30,80% | +20,22 |
-| 256 | 6,38% | 15,29% | +8,91 |
-| 512 | 3,32% | 8,32% | +5,00 |
+| 24 | 60,85% | 100,00% | +39,15 |
+| 32 | 34,22% | 60,09% | +25,86 |
+| 48 | 26,22% | 61,14% | +34,92 |
+| 64 | 14,54% | 57,08% | +42,54 |
+| 96 | 13,64% | 36,59% | +22,95 |
+| 128 | 11,07% | 29,52% | +18,45 |
+| 256 | 6,29% | 15,09% | +8,80 |
+| 512 | 3,33% | 7,40% | +4,07 |
 
 Aqui não há ponto isolado: o 26.07 tem taxa de miss maior em **todos** os
 tamanhos, e a diferença só se fecha quando o cache cresce o bastante para que os
@@ -289,10 +289,10 @@ confirmadas anularia a razão de registrá-las.
 
 | 25.11 | 26.07 com o dobro | recupera? |
 |---|---|---|
-| `c=32` → 34,57% | `c=64` → 61,88% | não |
-| `c=48` → 26,11% | `c=96` → 36,80% | não |
-| `c=64` → 16,36% | `c=128` → 30,80% | não |
-| `c=256` → 6,38% | `c=512` → 8,32% | não |
+| `c=32` → 34,22% | `c=64` → 57,08% | não |
+| `c=48` → 26,22% | `c=96` → 36,59% | não |
+| `c=64` → 14,54% | `c=128` → 29,52% | não |
+| `c=256` → 6,29% | `c=512` → 7,40% | não |
 
 Dobrar melhora — `c=64` no 26.07 é melhor que `c=32` no 26.07 — mas **não
 alcança** o 25.11 no valor original, em nenhum par. A orientação não é falsa;
@@ -340,16 +340,17 @@ A dispersão entre as seis repetições, no assimétrico, separa as versões:
 
 | `cache_size` | amplitude 25.11 | amplitude 26.07 |
 |---:|---:|---:|
-| 32 | 0,95 | 6,42 |
-| 48 | 0,78 | 4,68 |
-| 64 | 0,94 | 17,51 |
-| 96 | 0,66 | 17,12 |
-| 128 | 2,30 | 4,00 |
-| 512 | 0,62 | 0,67 |
+| 32 | 7,45 | 6,84 |
+| 48 | 0,82 | 6,21 |
+| 64 | 4,67 | **32,49** |
+| 96 | 5,38 | 3,26 |
+| 128 | 1,21 | 9,90 |
+| 512 | 0,99 | 2,61 |
 
-O 25.11 fica abaixo de um ponto percentual em quase toda a faixa. O 26.07 chega
-a 17 pontos de amplitude em `c=64` e `c=96` — as mesmas células onde a curva
-forma um patamar em vez de descer. **Isto é leitura, não resultado:** a causa
+As duas versões dispersam, e não é só o 26.07 que se mexe — o 25.11 chega a
+7,45 pontos em `c=32`. O que separa as duas é o **extremo**: a pior célula do
+26.07, `c=64`, tem 32,49 pontos de amplitude, mais de quatro vezes a pior do
+25.11. E é a mesma célula em que a curva forma patamar em vez de descer. **Isto é leitura, não resultado:** a causa
 não foi investigada, e atribuí-la ao algoritmo novo sem medir seria exatamente o
 tipo de conclusão que este material recusa.
 
