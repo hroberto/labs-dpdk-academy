@@ -78,8 +78,8 @@ authors:
 repository-code: "https://github.com/hroberto/labs-dpdk-academy"
 url: "https://github.com/hroberto/labs-dpdk-academy"
 license: MIT
-version: 0.04.01
-date-released: "2026-09-21"
+version: 0.05.00
+date-released: "2026-09-22"
 
 keywords:
   - dpdk
