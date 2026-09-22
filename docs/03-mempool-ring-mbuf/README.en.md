@@ -378,10 +378,47 @@ they carry does not.
 > of the mempool. The quantity the cache governs — net objects drawn from the
 > ring — stays invariant.
 
-**What remains unexplained, and it is little:** why the retry count itself
-varies so much between runs (from 25 thousand to 139 thousand in the same cell).
-That is inter-lcore timing, outside the reach of this experiment and of the
-mempool.
+#### Why the retry count varies so much
+
+It varies a lot — from 25 thousand to 139 thousand in the same cell — and the
+reason is structural, not accidental.
+
+**The system has no middle ground.** The ring fills when the producer outruns
+the consumer. If it is marginally faster, the ring saturates and **every**
+enqueue becomes partial; if it is marginally slower, the ring drains and there
+are no retries at all. A small speed difference between the two lcores produces
+a large difference in the count, and that is what is observed.
+
+Increasing the ring depth does not fix it: with a faster producer, any depth
+saturates — it just takes longer.
+
+**What turns that race into mempool traffic is the application's pattern.** On a
+partial enqueue the producer returns to the pool what did not fit, and on the
+next pass of the loop it asks for all of it again. Without that, the race would
+still exist and would not touch the pool.
+
+> **This is a design choice, not a defect — and probably the right one.** A data
+> plane that cannot transmit normally frees the buffer back to the pool; holding
+> it would require state across iterations and a policy for the object that
+> never fits. The program here does what §6 teaches: give ownership back when
+> you cannot publish.
+>
+> Changing the pattern would make the count deterministic and would measure a
+> **different program**, one less like what gets written in production. So it
+> stays as it is, declared rather than corrected.
+
+**What the pattern costs, measured.** Each retry redoes `packet_fill` for the
+whole batch. In the run with 139,044 retries, that is **4.45 million** fills on
+top of the 2 million real ones — more than three times the useful work. Whoever
+sizes a pipeline this way pays it in CPU without it showing up in any miss rate.
+
+**What could not be decided.** Frequency was the obvious environmental
+candidate, and the available instrument does not settle it: the program reports
+**one** sample, from **one** lcore, at the end of the run, when what matters is
+the relative speed of the two throughout it. In the cell with the widest spread
+the direction matches expectation — faster producer, more retries — but in the
+others there is no order, and a final sample does not represent a run in which
+the governor moves.
 
 #### What this experiment does not authorize
 

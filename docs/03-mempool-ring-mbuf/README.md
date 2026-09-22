@@ -376,10 +376,48 @@ carregam, não.
 > mempool. A grandeza que o cache governa — objetos líquidos retirados do anel —
 > permanece invariante.
 
-**O que continua sem explicação, e é pouco:** por que a contagem de
-retentativas varia tanto entre execuções (de 25 mil a 139 mil na mesma célula).
-Isso é temporização entre lcores, fora do alcance deste experimento e do
-mempool.
+#### Por que a contagem de retentativas varia tanto
+
+Ela varia muito — de 25 mil a 139 mil na mesma célula — e a razão é estrutural,
+não acidental.
+
+**O sistema não tem meio-termo.** O anel enche quando o produtor supera o
+consumidor. Se ele for marginalmente mais rápido, o anel satura e **todo**
+enfileiramento passa a ser parcial; se for marginalmente mais lento, o anel
+drena e não há retentativa alguma. Uma diferença pequena de velocidade entre os
+dois lcores produz uma diferença enorme na contagem, e é isso que se observa.
+
+Aumentar a profundidade do anel não resolve: com o produtor mais rápido,
+qualquer profundidade satura — só demora mais.
+
+**O que converte essa corrida em tráfego de mempool é o padrão da aplicação.**
+No enfileiramento parcial o produtor devolve ao pool o que não coube, e na volta
+do laço pede tudo de novo. Sem isso, a corrida continuaria existindo e não
+tocaria o pool.
+
+> **Isso é escolha de projeto, não defeito — e provavelmente a escolha certa.**
+> Um plano de dados que não consegue transmitir normalmente libera o buffer de
+> volta ao pool; segurar exigiria estado entre iterações e uma política para o
+> objeto que nunca couber. O programa aqui faz o que a §6 ensina: devolver a
+> posse quando não se pode publicar.
+>
+> Trocar o padrão deixaria a contagem determinística e mediria **outro
+> programa**, com menos semelhança com o que se escreve em produção. Por isso
+> fica como está, declarado em vez de corrigido.
+
+**O que o padrão custa, medido.** Cada retentativa refaz o `packet_fill` do lote
+inteiro. Na execução de 139 044 retentativas, isso são **4,45 milhões** de
+preenchimentos além dos 2 milhões verdadeiros — mais que o triplo do trabalho
+útil. Quem dimensiona um pipeline assim paga isso em CPU sem que apareça em
+nenhuma taxa de miss.
+
+**O que não foi possível decidir.** Frequência era o candidato ambiental óbvio,
+e o instrumento disponível não a decide: o programa reporta **uma** amostra, de
+**um** lcore, ao final da execução, quando o que importa é a velocidade relativa
+dos dois ao longo dela. Na célula de maior espalhamento a direção bate com a
+expectativa — produtor mais rápido, mais retentativas —, mas nas outras não há
+ordem, e uma amostra final não representa uma execução em que o governor se
+move.
 
 #### O que este experimento não autoriza
 
