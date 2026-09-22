@@ -88,9 +88,9 @@ MANTER = {
     # em /var/run, e traduzi-lo faria os dois documentos criarem instancias
     # diferentes a partir do mesmo passo.
     "esgotado",
-    # opcao de linha de comando do scripts/preparar-dpdk.sh, citada igual nos
-    # dois idiomas porque e o nome real da flag.
-    "conferir",
+    # opcoes de linha de comando do scripts/preparar-dpdk.sh, citadas iguais nos
+    # dois idiomas porque sao os nomes reais das flags.
+    "conferir", "minimo",
 }
 
 

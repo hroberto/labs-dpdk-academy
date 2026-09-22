@@ -32,6 +32,15 @@
 #   scripts/preparar-dpdk.sh 25.11            # constroi e instala em ~/opt
 #   scripts/preparar-dpdk.sh 26.07 /caminho   # prefixo alternativo
 #   scripts/preparar-dpdk.sh --conferir 25.11 # so confere um prefixo existente
+#   scripts/preparar-dpdk.sh --minimo 25.11   # so os drivers que o estudo usa
+#
+# O MODO --minimo EXISTE PARA REPRODUZIR O QUE FOI PUBLICADO
+#
+# Sem ele o script instala o conjunto completo -- 154 drivers, 61 PMDs de rede
+# --, que e o que serve para RX/TX. Os prefixos que produziram a tabela da §1.4
+# do modulo 03 tem tres: bus_pci, bus_vdev e mempool_ring. Sao builds
+# diferentes, e oferecer um chamando-o de reproducao do outro seria oferecer
+# reprodutibilidade e entregar outra coisa.
 set -euo pipefail
 
 ESPELHO=${DPDK_ESPELHO:-https://fast.dpdk.org/rel}
@@ -68,10 +77,15 @@ conferir_prefixo() { # <prefixo> <versao-esperada>
 }
 
 modo=construir
-case "${1:-}" in
-    -h|--help) uso 0 ;;
-    --conferir) modo=conferir; shift ;;
-esac
+MINIMO=0
+while true; do
+    case "${1:-}" in
+        -h|--help) uso 0 ;;
+        --conferir) modo=conferir; shift ;;
+        --minimo) MINIMO=1; shift ;;
+        *) break ;;
+    esac
+done
 VERSAO=${1:-}
 [ -n "$VERSAO" ] || uso
 PREFIXO=${2:-$HOME/opt/dpdk-$VERSAO}
@@ -133,8 +147,14 @@ echo "==> configurando (prefixo $PREFIXO)"
 # sem ele `rte_mempool_create` nao tem como alocar, e o prefixo sai inutil para
 # justamente o estudo que motivou este script. Os prefixos ja em uso foram
 # construidos com os drivers, e mudar isso tornaria os bracos incomparaveis.
-meson setup "$FONTE/build" "$FONTE" \
-    --prefix="$PREFIXO" --buildtype=release -Dtests=false >/dev/null
+OPCOES=(--prefix="$PREFIXO" --buildtype=release -Dtests=false)
+if [ "$MINIMO" -eq 1 ]; then
+    # `mempool/ring` e obrigatorio: e o handler padrao (`ring_mp_mc`), e sem ele
+    # `rte_mempool_create` nao aloca. `bus/pci` e `bus/vdev` entram porque a EAL
+    # os exige para enumerar.
+    OPCOES+=(-Denable_drivers='bus/pci,bus/vdev,mempool/ring')
+fi
+meson setup "$FONTE/build" "$FONTE" "${OPCOES[@]}" >/dev/null
 
 echo "==> compilando"
 ninja -C "$FONTE/build" >/dev/null

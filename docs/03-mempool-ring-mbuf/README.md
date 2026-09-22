@@ -298,6 +298,36 @@ Dobrar melhora — `c=64` no 26.07 é melhor que `c=32` no 26.07 — mas **não
 alcança** o 25.11 no valor original, em nenhum par. A orientação não é falsa;
 ela é insuficiente para este workload.
 
+#### Por que dobrar é o mínimo, e não uma folga
+
+A razão está no fonte, e pode ser conferida sem medir. Em
+`lib/mempool/rte_mempool.h`, as duas versões decidem de forma diferente quando
+abandonar o cache e quanto recarregar:
+
+| | 25.11 | 26.07 |
+|---|---|---|
+| `get` desvia do cache quando | `remaining > RTE_MEMPOOL_CACHE_MAX_SIZE` (512, **absoluto**) | `remaining > cache->size / 2` (**relativo**) |
+| `get` recarrega | `cache->size + remaining` | `cache->size / 2` |
+| estado após servir | `len = cache->size` (cheio) | `len = size/2 − remaining` |
+| limite do *bounce buffer* no `put` | `flushthresh`, 1,5 × `size` | `cache->size / 2` |
+
+O `size / 2` aparece como limiar nos **dois** caminhos. Para um lote de `n`
+objetos, um cache com `size < 2n` é **inteiramente desviado**, em `get` e em
+`put` — e é por isso que `cache_size` = 16 e 24 dão 100% de miss com o lote de
+32 deste experimento.
+
+Daí sai a resposta para a hipótese 2. Com `size = 2n` exatamente, a recarga traz
+`size/2 = n` objetos e o pedido consome **todos**: o cache fica em zero e o
+`get` seguinte recarrega de novo. **Dobrar leva o dimensionamento para cima do
+limiar, não para além dele** — é a fronteira entre "o cache não é usado" e "o
+cache é usado uma vez por recarga", não uma margem confortável.
+
+> **O que isso prevê, e o que falta medir.** Se o limiar for o que governa, a
+> não-monotonicidade deve acompanhar a razão `cache / lote`, e não um valor
+> absoluto de cache. Uma sondagem variando o lote aponta nessa direção, mas foi
+> feita com uma repetição por célula e **não é resultado**: confirmar exige o
+> fatorial `cache × lote` com repetições, que fica registrado como pendência.
+
 **A terceira foi refutada de um jeito mais interessante do que se confirmada
 fosse.** O efeito no caso simétrico não é "menor": é **ausente em toda a faixa e
 total num ponto**. Uma conclusão de que "no simétrico não muda nada" seria
@@ -325,18 +355,37 @@ tipo de conclusão que este material recusa.
 
 #### O que este experimento não autoriza
 
-- **Não há medida de tempo.** Os dois DPDK foram construídos com
-  `RTE_LIBRTE_MEMPOOL_STATS`, cujo contador é atualizado no caminho quente: o
-  programa medido não é o programa de produção. A afirmação do upstream é sobre
-  taxa de miss, e é a ela que este experimento responde — nem mais, nem menos. O
-  elo entre miss e tempo fica por medir.
+- **Não há medida de tempo**, por dois motivos independentes. O primeiro: os
+  dois DPDK foram construídos com `RTE_LIBRTE_MEMPOOL_STATS`, cujo contador é
+  atualizado no caminho quente, então o programa medido não é o de produção. O
+  segundo é do instrumento — o `pipeline_ring` imprime o tempo com `%.1f`, o que
+  sobre ~5 ns por pacote quantiza em 2%, ordem de grandeza das diferenças que
+  haveria para detectar. Medir esse elo exige as duas correções, não uma. A
+  afirmação do upstream é sobre taxa de miss, e é a ela que este experimento
+  responde — nem mais, nem menos.
 - **O workload é um pipeline de dois estágios com um anel.** Aplicações reais
   têm mais estágios e mais anéis, e a orientação do upstream pode ser suficiente
   em topologias que este programa não representa.
-- **O braço do 25.11 é um build novo**, feito por
-  [`scripts/preparar-dpdk.sh`](../../scripts/preparar-dpdk.sh), e não o pacote da
+- **Os dois braços são builds próprios**, com os drivers restritos ao mínimo
+  do estudo (`bus_pci`, `bus_vdev`, `mempool_ring`), e não o pacote da
   distribuição usado no histórico anterior. Esta é campanha nova, não
-  continuação.
+  continuação. O [`scripts/preparar-dpdk.sh`](../../scripts/preparar-dpdk.sh)
+  reproduz essa configuração com `--minimo`; sem a opção ele constrói o
+  conjunto completo de drivers, que serve para outros estudos e **não** é o
+  prefixo que gerou esta tabela.
+
+> **A equivalência entre os dois braços foi conferida, não presumida.**
+> `RTE_MEMPOOL_CACHE_MAX_SIZE` (512) e `RTE_MBUF_DEFAULT_MEMPOOL_OPS`
+> (`ring_mp_mc`) são iguais nos dois; o conjunto de drivers é idêntico; e o
+> `pipeline_ring` foi compilado com as mesmas flags (`-O2 -march=native`) contra
+> os dois prefixos.
+>
+> Há um argumento mais forte que a conferência: o contador do miss é
+> incrementado em `rte_mempool_ops_dequeue_bulk`, que é `static inline` no
+> cabeçalho — ele não tem símbolo na `librte_mempool.so` e é compilado **dentro
+> do programa**, com as flags do projeto. **O tipo de build da biblioteca não
+> pode afetar a contagem.** Ele afetaria o custo do caminho de falta, ou seja
+> tempo — que é mais uma razão para a coluna de tempo estar fora.
 
 A coleta está em
 [`medicoes/historico/2026-09-21-mempool-cache-intercalada/`](medicoes/historico/2026-09-21-mempool-cache-intercalada/),

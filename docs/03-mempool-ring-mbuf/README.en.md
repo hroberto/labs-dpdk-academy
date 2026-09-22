@@ -296,6 +296,37 @@ Doubling helps — `c=64` on 26.07 beats `c=32` on 26.07 — but it does **not
 reach** 25.11 at the original value, in any pair. The guidance is not false; it
 is insufficient for this workload.
 
+#### Why doubling is the minimum, not a margin
+
+The reason is in the source, and can be checked without measuring. In
+`lib/mempool/rte_mempool.h` the two versions decide differently when to abandon
+the cache and how much to refill:
+
+| | 25.11 | 26.07 |
+|---|---|---|
+| `get` bypasses the cache when | `remaining > RTE_MEMPOOL_CACHE_MAX_SIZE` (512, **absolute**) | `remaining > cache->size / 2` (**relative**) |
+| `get` refills | `cache->size + remaining` | `cache->size / 2` |
+| state after serving | `len = cache->size` (full) | `len = size/2 − remaining` |
+| bounce buffer limit on `put` | `flushthresh`, 1.5 × `size` | `cache->size / 2` |
+
+`size / 2` appears as the threshold on **both** paths. For a batch of `n`
+objects, a cache with `size < 2n` is **bypassed entirely**, on `get` and on
+`put` — which is why `cache_size` = 16 and 24 give 100% miss with this
+experiment's batch of 32.
+
+From that follows the answer to hypothesis 2. With `size = 2n` exactly, the
+refill brings `size/2 = n` objects and the request consumes **all** of them: the
+cache is left empty and the next `get` refills again. **Doubling takes the
+sizing onto the threshold, not past it** — it is the boundary between "the cache
+is not used" and "the cache is used once per refill", not a comfortable margin.
+
+> **What this predicts, and what remains to be measured.** If the threshold is
+> what governs, the non-monotonicity should track the ratio `cache / batch`
+> rather than an absolute cache value. A probe varying the batch points that
+> way, but it was made with one repetition per cell and **is not a result**:
+> confirming it requires the `cache × batch` factorial with repetitions, which
+> is recorded as pending.
+
 **The third was refuted in a more interesting way than confirmation would have
 been.** The effect in the symmetric case is not "smaller": it is **absent across
 the range and total at one point**. A conclusion that "nothing changes in the
@@ -324,18 +355,37 @@ measuring would be exactly the kind of conclusion this material refuses.
 
 #### What this experiment does not authorize
 
-- **There is no timing measurement.** Both DPDKs were built with
-  `RTE_LIBRTE_MEMPOOL_STATS`, whose counter is updated on the hot path: the
-  program measured is not the program in production. The upstream claim is about
-  miss rate, and that is what this experiment answers — no more, no less. The
-  link between miss rate and time remains unmeasured.
+- **There is no timing measurement**, for two independent reasons. First, both
+  DPDKs were built with `RTE_LIBRTE_MEMPOOL_STATS`, whose counter is updated on
+  the hot path, so the program measured is not the one in production. Second is
+  the instrument — `pipeline_ring` prints the time with `%.1f`, which over
+  ~5 ns per packet quantizes at 2%, the same order as the differences there
+  would be to detect. Measuring that link takes both fixes, not one. The
+  upstream claim is about miss rate, and that is what this experiment answers —
+  no more, no less.
 - **The workload is a two-stage pipeline with one ring.** Real applications have
   more stages and more rings, and the upstream guidance may well be sufficient
   in topologies this program does not represent.
-- **The 25.11 arm is a fresh build**, made by
-  [`scripts/preparar-dpdk.sh`](../../scripts/preparar-dpdk.sh), not the
-  distribution package used in the earlier history. This is a new campaign, not
-  a continuation.
+- **Both arms are local builds**, with drivers restricted to the study's
+  minimum (`bus_pci`, `bus_vdev`, `mempool_ring`), not the distribution package
+  used in the earlier history. This is a new campaign, not a continuation.
+  [`scripts/preparar-dpdk.sh`](../../scripts/preparar-dpdk.sh) reproduces that
+  configuration with `--minimo`; without the option it builds the full driver
+  set, which serves other studies and is **not** the prefix that produced this
+  table.
+
+> **Equivalence between the two arms was checked, not assumed.**
+> `RTE_MEMPOOL_CACHE_MAX_SIZE` (512) and `RTE_MBUF_DEFAULT_MEMPOOL_OPS`
+> (`ring_mp_mc`) are the same in both; the driver set is identical; and
+> `pipeline_ring` was compiled with the same flags (`-O2 -march=native`) against
+> both prefixes.
+>
+> There is a stronger argument than the check: the miss counter is incremented
+> in `rte_mempool_ops_dequeue_bulk`, which is `static inline` in the header — it
+> has no symbol in `librte_mempool.so` and is compiled **inside the program**,
+> with the project's flags. **The library's build type cannot affect the
+> count.** It would affect the cost of the miss path, that is, time — one more
+> reason the timing column is out.
 
 The collection is in
 [`medicoes/historico/2026-09-21-mempool-cache-intercalada/`](medicoes/historico/2026-09-21-mempool-cache-intercalada/),
