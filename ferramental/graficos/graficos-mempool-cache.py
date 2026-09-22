@@ -19,11 +19,12 @@ POR QUE ESTAS DUAS FORMAS
    com n=6 afirmaria sobre a forma da distribuicao mais do que seis pontos
    sustentam. Mostrar os seis pontos nao afirma nada alem do que foi medido.
 
-2. AMPLITUDE DO EVENTO, nao correlacao. A relacao inversa entre miss e fila
-   cheia vale em quase toda a faixa e nas duas versoes -- plota-la sugeriria
-   que e assinatura do `cache=64`, e nao e. O que E exclusivo dali e a
-   amplitude do proprio evento: 3,9x entre repeticoes, contra ~1,3x nas
-   vizinhas. O segundo grafico mostra isso e so isso.
+2. MEDIDO CONTRA PREVISTO, nao dispersao. A primeira versao destes graficos
+   mostrava a dispersao da taxa de miss, e a dispersao era artefato: o
+   denominador daquela taxa conta RETENTATIVAS do produtor quando a fila
+   enche, que medem a corrida entre os lcores e nao o cache. O numerador --
+   idas ao anel comum -- e deterministico. O segundo grafico mostra
+   exatamente isso: a contagem que nao varia ao lado da que varia.
 
 O QUE ESTES GRAFICOS DELIBERADAMENTE NAO TEM
 
@@ -39,16 +40,17 @@ import statistics
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from svg import documento, linha, ponto, texto  # noqa: E402
+from svg import documento, linha, poli, ponto, texto  # noqa: E402
 
 RAIZ = pathlib.Path(__file__).resolve().parents[2]
 COLETA = RAIZ / "docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-21-mempool-cache-intercalada"
 SAIDA = RAIZ / "docs/03-mempool-ring-mbuf/imagens"
 LARGURA = 880
 
-# `0` e `16` ficam de fora: as duas versoes saturam em 100% e as tiras seriam
-# doze pontos empilhados sem informacao. A prosa da secao cobre o caso.
-CACHES = [24, 32, 48, 64, 96, 128, 256, 512]
+# Abaixo de 64 o 25.11 entra no regime misto e a contagem deixa de ser exata;
+# esses pontos ficam fora do grafico da lei e sao tratados na prosa.
+CACHES = [64, 96, 128, 256, 512]
+CONTAMINA = 96      # celula usada para mostrar a contaminacao do denominador
 VERSOES = ["25.11", "26.07"]
 
 TEMAS = {
@@ -63,44 +65,46 @@ TEMAS = {
 TEXTOS = {
     "pt": dict(
         sufixo="", dec=",", mil=" ",
-        d_titulo="A dispersao separa as versoes mais que a mediana",
-        d_sub="taxa de miss do cache do mempool, seis repeticoes por celula — topologia assimetrica",
-        d_y="miss do cache (%)", d_x="cache por lcore (objetos)",
-        d_nota="Cada ponto e uma execucao. O traco e a mediana.",
-        d_marca="em cache = 64 o 26.07 varre 32 pontos",
-        d_desc="Tiras de pontos comparando a taxa de miss do cache do mempool "
-               "entre DPDK 25.11 e 26.07 para varios tamanhos de cache. O 26.07 "
-               "fica acima em toda a faixa, e em cache 64 suas repeticoes se "
-               "espalham muito mais que as das celulas vizinhas.",
-        a_titulo="O que varia em cache = 64 e a propria frequencia de fila cheia",
-        a_sub="eventos de fila cheia por execucao, DPDK 26.07 — minimo, mediana e maximo de seis repeticoes",
-        a_y="cache por lcore (objetos)", a_x="objetos que nao couberam na fila (milhoes)",
-        a_nota="A barra e o intervalo entre a menor e a maior das seis execucoes.",
-        a_marca="amplitude de {0}x",
-        a_vizinha="vizinhas: ~{0}x",
-        a_desc="Intervalos entre minimo e maximo do numero de eventos de fila "
-               "cheia por tamanho de cache no DPDK 26.07. O intervalo de cache "
-               "64 e varias vezes mais largo que o das celulas vizinhas."),
+        l_titulo="O custo nao e medido: e aritmetica, e a medicao confirma",
+        l_sub="idas ao anel comum por milhao de pacotes — topologia assimetrica, seis execucoes por celula",
+        l_y="idas ao anel comum (por milhao de pacotes)",
+        l_x="cache por lcore (objetos)",
+        l_previsto="previsto pelo tamanho da recarga",
+        l_nota="As seis execucoes de cada celula dao o MESMO valor; cada ponto e as seis sobrepostas.",
+        l_desc="Idas ao anel comum por milhao de pacotes, por tamanho de cache, "
+               "para DPDK 25.11 e 26.07. Os pontos medidos caem sobre as curvas "
+               "previstas pelo tamanho da recarga de cada versao, e as seis "
+               "execucoes de cada celula coincidem.",
+        c_titulo="Por que a taxa de miss dispersava: o denominador",
+        c_sub="cache = {0}, DPDK 26.07 — a mesma celula, seis execucoes",
+        c_x="execucao",
+        c_gets="chamadas de get",
+        c_backend="idas ao anel comum",
+        c_nota="A diferenca entre as duas linhas sao retentativas do produtor quando a fila enche.",
+        c_desc="Comparacao, ao longo de seis execucoes da mesma celula, entre o "
+               "numero de chamadas de get e o numero de idas ao anel comum. O "
+               "segundo e identico nas seis; o primeiro varia."),
     "en": dict(
         sufixo=".en", dec=".", mil=",",
-        d_titulo="Dispersion separates the versions more than the median does",
-        d_sub="mempool cache miss rate, six repetitions per cell — asymmetric topology",
-        d_y="cache miss (%)", d_x="per-lcore cache (objects)",
-        d_nota="Each dot is one run. The tick is the median.",
-        d_marca="at cache = 64, 26.07 spans 32 points",
-        d_desc="Dot strips comparing the mempool cache miss rate between DPDK "
-               "25.11 and 26.07 across cache sizes. 26.07 sits higher across the "
-               "range, and at cache 64 its repetitions scatter far more than "
-               "those of neighbouring cells.",
-        a_titulo="What varies at cache = 64 is the ring-full frequency itself",
-        a_sub="ring-full events per run, DPDK 26.07 — minimum, median and maximum of six repetitions",
-        a_y="per-lcore cache (objects)", a_x="objects that did not fit in the queue (millions)",
-        a_nota="The bar is the interval between the lowest and highest of the six runs.",
-        a_marca="{0}x range",
-        a_vizinha="neighbours: ~{0}x",
-        a_desc="Intervals between minimum and maximum ring-full event counts per "
-               "cache size on DPDK 26.07. The cache-64 interval is several times "
-               "wider than those of neighbouring cells."),
+        l_titulo="The cost is not measured: it is arithmetic, and measurement confirms it",
+        l_sub="common-ring trips per million packets — asymmetric topology, six runs per cell",
+        l_y="common-ring trips (per million packets)",
+        l_x="per-lcore cache (objects)",
+        l_previsto="predicted by the refill size",
+        l_nota="All six runs of each cell give the SAME value; each dot is six points superimposed.",
+        l_desc="Common-ring trips per million packets, by cache size, for DPDK "
+               "25.11 and 26.07. The measured dots land on the curves predicted "
+               "by each version's refill size, and the six runs of each cell "
+               "coincide.",
+        c_titulo="Why the miss rate dispersed: the denominator",
+        c_sub="cache = {0}, DPDK 26.07 — the same cell, six runs",
+        c_x="run",
+        c_gets="get calls",
+        c_backend="common-ring trips",
+        c_nota="The gap between the two lines is producer retries when the queue fills.",
+        c_desc="Comparison, across six runs of the same cell, between the number "
+               "of get calls and the number of common-ring trips. The latter is "
+               "identical in all six; the former varies."),
 }
 
 
@@ -109,20 +113,20 @@ def num(v, L, casas=2):
 
 
 def ler():
-    """miss% do CSV; eventos de fila cheia da saida bruta de cada execucao."""
-    miss = {}
-    with open(COLETA / "mempool-cache.csv", encoding="utf-8") as fh:
-        for r in csv.DictReader(fh):
-            if r["topologia"] != "assimetrico":
-                continue
-            miss.setdefault((r["versao"], int(r["cache"])), []).append(float(r["miss_pct"]))
-    fila = {}
-    for f in COLETA.glob("*.assimetrico.*.txt"):
-        v, _, c, rep = f.name.split(".")[0] + "." + f.name.split(".")[1], *f.name.split(".")[2:5]
-        m = re.search(r"did not fit in the queue: (\d+)", f.read_text(encoding="utf-8"))
+    """Por celula: idas ao anel comum e chamadas de get, das seis execucoes.
+
+    As duas saem da saida bruta arquivada. A primeira e o numerador da taxa de
+    miss e e deterministica; a segunda e o denominador e nao e.
+    """
+    backend, gets = {}, {}
+    for f in COLETA.glob("*.assimetrico.c*.txt"):
+        v = ".".join(f.name.split(".")[:2])
+        c = int(f.name.split(".")[3][1:])
+        m = re.search(r"^  total +(\d+) +(\d+) ", f.read_text(encoding="utf-8"), re.M)
         if m:
-            fila.setdefault((v, int(c[1:])), []).append(int(m.group(1)))
-    return miss, fila
+            gets.setdefault((v, c), []).append(int(m.group(1)))
+            backend.setdefault((v, c), []).append(int(m.group(2)))
+    return backend, gets
 
 
 def cabecalho(t, titulo, subtitulo):
@@ -130,97 +134,92 @@ def cabecalho(t, titulo, subtitulo):
             texto(28, 55, subtitulo, t["tinta2"], 13)]
 
 
-def dispersao(t, L, miss, _fila):
-    E, D, TOPO, ALT = 96, 150, 116, 300
+def lei(t, L, backend, _gets):
+    """Medido contra previsto: idas ao anel comum por milhao de pacotes."""
+    E, D, TOPO, ALT = 104, 178, 116, 286
     larg = LARGURA - E - D
-    passo = larg / len(CACHES)
-    c = cabecalho(t, L["d_titulo"], L["d_sub"])
+    topo_v = 34000.0
+    c = cabecalho(t, L["l_titulo"], L["l_sub"])
+
+    def x(i):
+        return E + larg * i / (len(CACHES) - 1)
 
     def y(v):
-        return TOPO + ALT - ALT * v / 100.0
+        return TOPO + ALT - ALT * v / topo_v
 
-    for i in range(6):
-        v = 20 * i
+    for i in range(5):
+        v = topo_v * i / 4
         c.append(linha(E, y(v), E + larg, y(v), t["grade"]))
-        c.append(texto(E - 12, y(v) + 4, v, t["suave"], 11, ancora="end", tabular=True))
-    c.append(texto(28, TOPO - 20, L["d_y"], t["suave"], 11))
+        c.append(texto(E - 12, y(v) + 4, f"{round(v):,}".replace(",", L["mil"]),
+                       t["suave"], 11, ancora="end", tabular=True))
+    c.append(texto(28, TOPO - 20, L["l_y"], t["suave"], 11))
 
-    for i, cache in enumerate(CACHES):
-        cx = E + passo * (i + 0.5)
-        for j, v in enumerate(VERSOES):
-            cor = t["serie1"] if j == 0 else t["serie2"]
-            ox = -11 if j == 0 else 11
-            vals = miss[(v, cache)]
-            for p in vals:
-                c.append(ponto(cx + ox, y(p), cor, t["superficie"], 4))
-            md = statistics.median(vals)
-            c.append(linha(cx + ox - 13, y(md), cx + ox + 13, y(md), t["tinta"], 2))
-        c.append(texto(cx, TOPO + ALT + 22, cache, t["suave"], 12,
-                       ancora="middle", tabular=True))
-    c.append(texto(E + larg / 2, TOPO + ALT + 42, L["d_x"], t["suave"], 12, ancora="middle"))
+    # PREVISTO primeiro, em tinta suave: e referencia, nao serie.
+    for j, v in enumerate(VERSOES):
+        prev = [(x(i), y(1e6 / (ca + 32 if j == 0 else ca / 2)))
+                for i, ca in enumerate(CACHES)]
+        c.append(poli(prev, t["suave"], 2))
+    # Ancorado a direita e ACIMA da curva: a legenda da referencia nao pode
+    # transbordar a margem, e o verificador de geometria acusa se transbordar.
+    c.append(texto(x(len(CACHES) - 1) - 8, y(1e6 / (CACHES[-1] / 2)) - 16,
+                   L["l_previsto"], t["suave"], 12, 600, ancora="end"))
 
-    # Legenda: duas series exigem legenda, e ela nao pode ser so a cor.
-    lx = E + larg + 22
     for j, v in enumerate(VERSOES):
         cor = t["serie1"] if j == 0 else t["serie2"]
-        c.append(ponto(lx + 6, TOPO + 6 + j * 24, cor, t["superficie"], 4))
-        c.append(texto(lx + 18, TOPO + 10 + j * 24, f"DPDK {v}", t["tinta"], 12, 600))
+        pts = [(x(i), y(backend[(v, ca)][0] / 2.0)) for i, ca in enumerate(CACHES)]
+        for px_, py_ in pts:
+            c.append(ponto(px_, py_, cor, t["superficie"], 5))
+        c.append(texto(pts[0][0] + 14, pts[0][1] + 5, f"DPDK {v}", t["tinta"], 12, 600))
 
-    # Rotulo direto, seletivo: so na celula que a secao discute.
-    i64 = CACHES.index(64)
-    c.append(texto(E + passo * (i64 + 0.5) + 26, y(max(miss[("26.07", 64)])) - 12,
-                   L["d_marca"], t["tinta"], 12, 600))
-    c.append(texto(28, TOPO + ALT + 66, L["d_nota"], t["tinta2"], 12))
+    for i, ca in enumerate(CACHES):
+        c.append(texto(x(i), TOPO + ALT + 22, ca, t["suave"], 12,
+                       ancora="middle", tabular=True))
+    c.append(texto(E + larg / 2, TOPO + ALT + 42, L["l_x"], t["suave"], 12, ancora="middle"))
+    c.append(texto(28, TOPO + ALT + 66, L["l_nota"], t["tinta2"], 12))
     return documento(LARGURA, TOPO + ALT + 92, t["superficie"],
-                     L["d_titulo"], L["d_desc"], c)
+                     L["l_titulo"], L["l_desc"], c)
 
 
-def amplitude(t, L, _miss, fila):
-    E, D, TOPO, PASSO = 96, 210, 116, 34
+def contaminacao(t, L, backend, gets):
+    """Uma celula, seis execucoes: o que nao varia ao lado do que varia."""
+    E, D, TOPO, ALT = 104, 178, 116, 214
     larg = LARGURA - E - D
-    caches = [c for c in CACHES if c >= 32]
-    topo_v = 3.5e6
-    c = cabecalho(t, L["a_titulo"], L["a_sub"])
+    topo_v = 130000.0
+    c = cabecalho(t, L["c_titulo"].format(CONTAMINA), L["c_sub"])
+    passo = larg / 6
 
-    def x(v):
-        return E + larg * v / topo_v
+    def y(v):
+        return TOPO + ALT - ALT * v / topo_v
 
-    for i in range(8):
-        v = topo_v * i / 7
-        c.append(linha(x(v), TOPO - 12, x(v), TOPO + PASSO * len(caches), t["grade"]))
-        c.append(texto(x(v), TOPO + PASSO * len(caches) + 20, num(v / 1e6, L, 1),
-                       t["suave"], 11, ancora="middle", tabular=True))
-    c.append(texto(E + larg / 2, TOPO + PASSO * len(caches) + 40, L["a_x"],
-                   t["suave"], 12, ancora="middle"))
-    c.append(texto(28, TOPO - 26, L["a_y"], t["suave"], 11))
+    for i in range(5):
+        v = topo_v * i / 4
+        c.append(linha(E, y(v), E + larg, y(v), t["grade"]))
+        c.append(texto(E - 12, y(v) + 4, f"{round(v):,}".replace(",", L["mil"]),
+                       t["suave"], 11, ancora="end", tabular=True))
 
-    razoes = {}
-    for i, cache in enumerate(caches):
-        vals = fila[("26.07", cache)]
-        lo, hi, md = min(vals), max(vals), statistics.median(vals)
-        razoes[cache] = hi / lo
-        yy = TOPO + PASSO * i + 10
-        c.append(texto(E - 14, yy + 4, cache, t["suave"], 12, ancora="end", tabular=True))
-        c.append(linha(x(lo), yy, x(hi), yy, t["serie1"], 3))
-        c.append(ponto(x(md), yy, t["serie1"], t["superficie"], 4.5))
+    g = gets[("26.07", CONTAMINA)]
+    b = backend[("26.07", CONTAMINA)]
+    for i in range(6):
+        cx = E + passo * (i + 0.5)
+        c.append(ponto(cx, y(g[i]), t["serie2"], t["superficie"], 5))
+        c.append(ponto(cx, y(b[i]), t["serie1"], t["superficie"], 5))
+        c.append(texto(cx, TOPO + ALT + 22, i + 1, t["suave"], 12,
+                       ancora="middle", tabular=True))
+    c.append(texto(E + larg / 2, TOPO + ALT + 42, L["c_x"], t["suave"], 12, ancora="middle"))
 
-    i64 = caches.index(64)
-    c.append(texto(x(max(fila[("26.07", 64)])) + 16, TOPO + PASSO * i64 + 14,
-                   L["a_marca"].format(num(razoes[64], L, 1)), t["tinta"], 12, 600))
-    vizinhas = statistics.median([razoes[k] for k in caches if k != 64])
-    c.append(texto(x(max(fila[("26.07", 96)])) + 16, TOPO + PASSO * caches.index(96) + 14,
-                   L["a_vizinha"].format(num(vizinhas, L, 1)), t["tinta2"], 12))
-    c.append(texto(28, TOPO + PASSO * len(caches) + 64, L["a_nota"], t["tinta2"], 12))
-    return documento(LARGURA, TOPO + PASSO * len(caches) + 90, t["superficie"],
-                     L["a_titulo"], L["a_desc"], c)
+    c.append(texto(E + larg + 14, y(g[-1]) + 5, L["c_gets"], t["tinta"], 12, 600))
+    c.append(texto(E + larg + 14, y(b[-1]) + 5, L["c_backend"], t["tinta"], 12, 600))
+    c.append(texto(28, TOPO + ALT + 66, L["c_nota"], t["tinta2"], 12))
+    return documento(LARGURA, TOPO + ALT + 92, t["superficie"],
+                     L["c_titulo"].format(CONTAMINA), L["c_desc"], c)
 
 
 if __name__ == "__main__":
-    miss, fila = ler()
+    backend, gets = ler()
     SAIDA.mkdir(parents=True, exist_ok=True)
-    for nome, fn in (("dispersao", dispersao), ("amplitude", amplitude)):
+    for nome, fn in (("lei", lei), ("contaminacao", contaminacao)):
         for _idioma, L in TEXTOS.items():
             for tema, t in TEMAS.items():
                 alvo = SAIDA / f"1-{nome}-{tema}{L['sufixo']}.svg"
-                alvo.write_text(fn(t, L, miss, fila), encoding="utf-8")
+                alvo.write_text(fn(t, L, backend, gets), encoding="utf-8")
                 print(f"  {alvo.relative_to(RAIZ)}  ({alvo.stat().st_size} B)")

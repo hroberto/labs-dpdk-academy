@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 494" width="880" height="494" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+<title id="t">The cost is not measured: it is arithmetic, and measurement confirms it</title>
+<desc id="d">Common-ring trips per million packets, by cache size, for DPDK 25.11 and 26.07. The measured dots land on the curves predicted by each version's refill size, and the six runs of each cell coincide.</desc>
+<rect width="880" height="494" fill="#fcfcfb"/>
+<text x="28.0" y="34.0" fill="#0b0b0b" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">The cost is not measured: it is arithmetic, and measurement confirms it</text>
+<text x="28.0" y="55.0" fill="#52514e" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">common-ring trips per million packets — asymmetric topology, six runs per cell</text>
+<line x1="104.0" y1="402.0" x2="702.0" y2="402.0" stroke="#e1e0d9" stroke-width="1"/>
+<text x="92.0" y="406.0" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">0</text>
+<line x1="104.0" y1="330.5" x2="702.0" y2="330.5" stroke="#e1e0d9" stroke-width="1"/>
+<text x="92.0" y="334.5" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">8,500</text>
+<line x1="104.0" y1="259.0" x2="702.0" y2="259.0" stroke="#e1e0d9" stroke-width="1"/>
+<text x="92.0" y="263.0" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">17,000</text>
+<line x1="104.0" y1="187.5" x2="702.0" y2="187.5" stroke="#e1e0d9" stroke-width="1"/>
+<text x="92.0" y="191.5" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">25,500</text>
+<line x1="104.0" y1="116.0" x2="702.0" y2="116.0" stroke="#e1e0d9" stroke-width="1"/>
+<text x="92.0" y="120.0" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">34,000</text>
+<text x="28.0" y="96.0" fill="#898781" font-size="11" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">common-ring trips (per million packets)</text>
+<polyline points="104.0,314.4 253.5,336.3 403.0,349.4 552.5,372.8 702.0,386.5" fill="none" stroke="#898781" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="104.0,139.1 253.5,226.8 403.0,270.6 552.5,336.3 702.0,369.1" fill="none" stroke="#898781" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="694.0" y="353.1" fill="#898781" font-size="12" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">predicted by the refill size</text>
+<circle cx="104.0" cy="314.4" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="253.5" cy="336.3" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="403.0" cy="349.4" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="552.5" cy="372.8" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="702.0" cy="386.5" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<text x="118.0" y="319.4" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">DPDK 25.11</text>
+<circle cx="104.0" cy="139.1" r="5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="253.5" cy="226.8" r="5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="403.0" cy="270.6" r="5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="552.5" cy="336.3" r="5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="702.0" cy="369.1" r="5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<text x="118.0" y="144.1" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">DPDK 26.07</text>
+<text x="104.0" y="424.0" fill="#898781" font-size="12" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">64</text>
+<text x="253.5" y="424.0" fill="#898781" font-size="12" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">96</text>
+<text x="403.0" y="424.0" fill="#898781" font-size="12" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">128</text>
+<text x="552.5" y="424.0" fill="#898781" font-size="12" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">256</text>
+<text x="702.0" y="424.0" fill="#898781" font-size="12" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">512</text>
+<text x="403.0" y="444.0" fill="#898781" font-size="12" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">per-lcore cache (objects)</text>
+<text x="28.0" y="468.0" fill="#52514e" font-size="12" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">All six runs of each cell give the SAME value; each dot is six points superimposed.</text>
+</svg>

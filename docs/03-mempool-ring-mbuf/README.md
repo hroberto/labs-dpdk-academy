@@ -226,62 +226,87 @@ diferença de 0,70 ns por pacote virou 0,15 ns ao ser reproduzida intercalada.
 PMU, que nesta máquina está bloqueado. Ela conta as vezes em que o cache por
 lcore não tinha objetos e foi preciso ir ao anel comum.
 
-#### Topologia simétrica: o efeito é invisível, menos em um ponto
+#### A métrica: por que não é "taxa de miss"
+
+A grandeza natural seria a fração de chamadas de `get` que foram ao anel comum.
+Ela é instável, e a instabilidade **não vem do cache**.
+
+O produtor, quando a fila enche, devolve ao pool os objetos que não couberam e
+**tenta de novo** — cada retentativa é mais uma chamada de `get`. Em
+`cache_size` = 96, das 111 523 chamadas de uma execução, **49 023 são
+retentativas** (o contador de `put` do produtor marca exatamente esse número).
+O denominador, portanto, mede a corrida entre os dois lcores.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/1-contaminacao-escuro.svg">
+  <img alt="Comparação ao longo de seis execuções da mesma célula, com cache 96 no DPDK 26.07, entre o número de chamadas de get e o número de idas ao anel comum. As idas ao anel comum são idênticas nas seis execuções; as chamadas de get variam entre 109 mil e 119 mil." src="imagens/1-contaminacao-claro.svg">
+</picture>
+
+O numerador não varia. A grandeza publicada aqui é, por isso, **idas ao anel
+comum por milhão de pacotes entregues** — que é o que o cache decide, e nada
+mais.
+
+#### Topologia simétrica: o cache serve tudo, ou não serve nada
+
+Com `-l 0` o mesmo lcore obtém e devolve, e os `put` reabastecem o cache que os
+`get` drenam. O resultado não tem meio-termo:
 
 | `cache_size` | 25.11 | 26.07 |
 |---:|---:|---:|
-| 0 (controle) | 100,00% | 100,00% |
-| 16 | 100,00% | 100,00% |
-| **24** | **0,00%** | **100,00%** |
-| 32 a 512 | 0,00% | 0,00% |
+| 0 e 16 | 31 314 | 31 314 |
+| **24** | **0,5** | **31 314** |
+| 32 a 512 | 0,5 | 0,5 |
 
-Em nove das dez linhas as duas versões são indistinguíveis. Na décima, a
-diferença é total — e é ela que expõe o mecanismo.
+O valor 0,5 por milhão significa **uma** ida ao anel comum em toda a execução: a
+do preenchimento inicial. O 31 314 significa que toda operação foi ao anel.
 
-O lote deste experimento é de **32 objetos**. Um cache incapaz de servir um
-lote inteiro cai no anel comum **em toda** operação, o que dá 100% de miss:
-é o que se vê em `cache_size` = 16 nas duas versões. Em `cache_size` = 32 e
-acima, ambas servem, e o miss vai a zero.
+O lote é de 32 objetos. No 26.07 o cache precisa **caber o lote** para que o
+`put` o deposite ali — com 24, `len + 32 > 24` e os objetos vão direto ao anel,
+e o `get` seguinte encontra o cache vazio. No 25.11 o limite do `put` não é o
+tamanho, é o `flushthresh`, que vale **1,5 × tamanho**: com 24 configurados, 36
+utilizáveis, e o lote de 32 cabe.
 
-O `cache_size` = 24 é o único ponto do intervalo em que as duas versões
-discordam, e a discordância segue exatamente o que a nota de versão declara: com
-o tamanho efetivo cerca de 50% maior, 24 solicitados davam algo em torno de 36
-utilizáveis no 25.11 — acima do lote de 32, portanto suficiente. No 26.07, 24
-solicitados são 24, abaixo do lote, e o cache deixa de servir.
+É a mesma diferença de 50% que a nota de versão declara, agora localizada no
+ponto em que ela muda o desfecho.
 
 > **A fronteira está delimitada, não fixada.** A varredura tem 16 e 24, e o
 > ponto de virada do 25.11 cai entre eles — `32 / 1,5 ≈ 21,3`. Fixá-lo exigiria
-> passo mais fino, que este experimento não tem. O que está demonstrado é a
-> existência da fronteira e o lado de cada versão.
+> passo mais fino, que este experimento não tem.
 
-#### Topologia assimétrica: a diferença existe em toda a faixa
+#### Topologia assimétrica: o custo é aritmética
 
-| `cache_size` | 25.11 | 26.07 | diferença |
-|---:|---:|---:|---:|
-| 0 (controle) | 100,00% | 100,00% | — |
-| 16 | 100,00% | 100,00% | — |
-| 24 | 60,85% | 100,00% | +39,15 |
-| 32 | 34,22% | 60,09% | +25,86 |
-| 48 | 26,22% | 61,14% | +34,92 |
-| 64 | 14,54% | 57,08% | +42,54 |
-| 96 | 13,64% | 36,59% | +22,95 |
-| 128 | 11,07% | 29,52% | +18,45 |
-| 256 | 6,29% | 15,09% | +8,80 |
-| 512 | 3,33% | 7,40% | +4,07 |
+Com `-l 0,2` o produtor só obtém e o consumidor só devolve; o cache do produtor
+não é reabastecido pelos `put` dele. Aqui a contagem obedece ao tamanho da
+recarga, e nada mais:
 
-Aqui não há ponto isolado: o 26.07 tem taxa de miss maior em **todos** os
-tamanhos, e a diferença só se fecha quando o cache cresce o bastante para que os
-dois regimes fiquem folgados.
+| `cache_size` | 25.11 | 26.07 | razão medida | razão prevista |
+|---:|---:|---:|---:|---:|
+| 64 | 10 417 | 31 250 | 3,000 | 3,000 |
+| 96 | 7 813 | 20 834 | 2,667 | 2,667 |
+| 128 | 6 250 | 15 625 | 2,500 | 2,500 |
+| 256 | 3 472 | 7 813 | 2,250 | 2,250 |
+| 512 | 1 838 | 3 906 | 2,125 | 2,125 |
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="imagens/1-dispersao-escuro.svg">
-  <img alt="Tiras de pontos com a taxa de miss do cache do mempool por tamanho de cache, seis execuções por célula, comparando DPDK 25.11 e 26.07 na topologia assimétrica. O 26.07 fica acima em toda a faixa. Em cache 24 ele satura em 100% enquanto o 25.11 fica em 60,85%. Em cache 64 as seis execuções do 26.07 se espalham de 38,41% a 70,90%, enquanto as do 25.11 ficam agrupadas perto de 14,54%." src="imagens/1-dispersao-claro.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/1-lei-escuro.svg">
+  <img alt="Idas ao anel comum por milhão de pacotes, por tamanho de cache, para DPDK 25.11 e 26.07 na topologia assimétrica. Os pontos medidos caem sobre as curvas previstas pelo tamanho da recarga de cada versão, e as seis execuções de cada célula coincidem num único ponto." src="imagens/1-lei-claro.svg">
 </picture>
 
-O gráfico mostra o que a tabela de medianas esconde: **a diferença entre as
-versões não é só de nível, é de comportamento.** Os pontos do 25.11 ficam
-agrupados em quase toda a faixa; os do 26.07 se abrem, e em `cache = 64` eles
-varrem mais de trinta pontos percentuais.
+**As seis execuções de cada célula dão o mesmo valor** — os pontos do gráfico
+são seis medições sobrepostas. Isso não é medição precisa; é medição de algo
+determinístico.
+
+E a previsão não vem de ajuste: vem do fonte. Cada ida ao anel traz uma recarga,
+e o tamanho dela difere entre as versões:
+
+```
+25.11:  recarga = cache_size + lote     ->  idas = pacotes / (cache_size + 32)
+26.07:  recarga = cache_size / 2        ->  idas = pacotes / (cache_size / 2)
+
+razao 26.07 / 25.11 = 2 x (cache_size + 32) / cache_size
+```
+
+Medido contra previsto, as cinco razões batem na terceira casa decimal.
 
 #### As três hipóteses, e o que aconteceu com cada uma
 
@@ -290,53 +315,15 @@ confirmadas anularia a razão de registrá-las.
 
 | Hipótese | Enunciado | Desfecho |
 |---|---|---|
-| 1 | em workload assimétrico, `cache_size = N` no 26.07 terá miss maior que no 25.11 | **confirmada**, em toda a faixa |
-| 2 | `cache_size = 2N` no 26.07 recupera o comportamento do 25.11 | **refutada** |
+| 1 | em workload assimétrico, `cache_size = N` no 26.07 custará mais que no 25.11 | **confirmada**, e a razão é calculável |
+| 2 | `cache_size = 2N` no 26.07 recupera o comportamento do 25.11 | **refutada**, e o resíduo é calculável |
 | 3 | em workload simétrico o efeito será menor ou ausente | **refutada pelo detalhe** |
 
-**A segunda é a que contraria a orientação do upstream.** Dobrando o cache no
-26.07 e comparando com o 25.11 no valor original:
-
-| 25.11 | 26.07 com o dobro | recupera? |
-|---|---|---|
-| `c=32` → 34,22% | `c=64` → 57,08% | não |
-| `c=48` → 26,22% | `c=96` → 36,59% | não |
-| `c=64` → 14,54% | `c=128` → 29,52% | não |
-| `c=256` → 6,29% | `c=512` → 7,40% | não |
-
-Dobrar melhora — `c=64` no 26.07 é melhor que `c=32` no 26.07 — mas **não
-alcança** o 25.11 no valor original, em nenhum par. A orientação não é falsa;
-ela é insuficiente para este workload.
-
-#### Por que dobrar é o mínimo, e não uma folga
-
-A razão está no fonte, e pode ser conferida sem medir. Em
-`lib/mempool/rte_mempool.h`, as duas versões decidem de forma diferente quando
-abandonar o cache e quanto recarregar:
-
-| | 25.11 | 26.07 |
-|---|---|---|
-| `get` desvia do cache quando | `remaining > RTE_MEMPOOL_CACHE_MAX_SIZE` (512, **absoluto**) | `remaining > cache->size / 2` (**relativo**) |
-| `get` recarrega | `cache->size + remaining` | `cache->size / 2` |
-| estado após servir | `len = cache->size` (cheio) | `len = size/2 − remaining` |
-| limite do *bounce buffer* no `put` | `flushthresh`, 1,5 × `size` | `cache->size / 2` |
-
-O `size / 2` aparece como limiar nos **dois** caminhos. Para um lote de `n`
-objetos, um cache com `size < 2n` é **inteiramente desviado**, em `get` e em
-`put` — e é por isso que `cache_size` = 16 e 24 dão 100% de miss com o lote de
-32 deste experimento.
-
-Daí sai a resposta para a hipótese 2. Com `size = 2n` exatamente, a recarga traz
-`size/2 = n` objetos e o pedido consome **todos**: o cache fica em zero e o
-`get` seguinte recarrega de novo. **Dobrar leva o dimensionamento para cima do
-limiar, não para além dele** — é a fronteira entre "o cache não é usado" e "o
-cache é usado uma vez por recarga", não uma margem confortável.
-
-> **O que isso prevê, e o que falta medir.** Se o limiar for o que governa, a
-> não-monotonicidade deve acompanhar a razão `cache / lote`, e não um valor
-> absoluto de cache. Uma sondagem variando o lote aponta nessa direção, mas foi
-> feita com uma repetição por célula e **não é resultado**: confirmar exige o
-> fatorial `cache × lote` com repetições, que fica registrado como pendência.
+**A segunda é a que contraria a orientação do upstream**, e agora sem recorrer a
+medição: dobrar o cache leva a recarga do 26.07 de `N/2` para `N`, contra
+`N + 32` do 25.11 no valor original. A razão remanescente é `(N + 32) / N` —
+**nunca 1**. Para `N = 32`, exatamente o dobro de idas ao anel. A orientação não
+é falsa; ela é insuficiente, e dá para dizer por quanto.
 
 **A terceira foi refutada de um jeito mais interessante do que se confirmada
 fosse.** O efeito no caso simétrico não é "menor": é **ausente em toda a faixa e
@@ -344,72 +331,93 @@ total num ponto**. Uma conclusão de que "no simétrico não muda nada" seria
 verdadeira em nove medições de dez e faria o leitor escolher `cache_size` = 24
 sem saber que atravessou uma fronteira.
 
-#### O caso assimétrico também é menos estável no 26.07
+#### Onde a contagem varia, e por quê
 
-A dispersão entre as seis repetições, no assimétrico, separa as versões:
+Três células fogem da lei: `26.07` com `cache_size` = 24, e `25.11` com 32 e 48.
+Nelas a contagem de idas ao anel muda entre execuções. A causa é identificável
+sem medição nova, e ela **não é ruído**.
 
-| `cache_size` | amplitude 25.11 | amplitude 26.07 |
-|---:|---:|---:|
-| 32 | 7,45 | 6,84 |
-| 48 | 0,82 | 6,21 |
-| 64 | 4,67 | **32,49** |
-| 96 | 5,38 | 3,26 |
-| 128 | 1,21 | 9,90 |
-| 512 | 0,99 | 2,61 |
+**A condição.** O produtor devolve ao pool o que não coube na fila. Se o cache
+dele absorver essa devolução, nada disso chega ao anel comum. Se não absorver, a
+devolução vira tráfego. O fonte diz quando cada versão absorve:
 
-As duas versões dispersam, e não é só o 26.07 que se mexe — o 25.11 chega a
-7,45 pontos em `c=32`. O que separa as duas é o **extremo**: a pior célula do
-26.07, `c=64`, tem 32,49 pontos de amplitude, mais de quatro vezes a pior do
-25.11. E é a mesma célula em que a curva forma patamar em vez de descer.
+| | regra do `put` | absorve a devolução se |
+|---|---|---|
+| 25.11 | `len + n ≤ flushthresh`, com `flushthresh = 1,5 × size` e `len = size` após a recarga | `size + n ≤ 1,5 size`, ou seja **`size ≥ 2n`** |
+| 26.07 | `len + n ≤ size` | **`size ≥ n`** |
 
-#### A dispersão é herdada, não gerada
+Com o lote em 32, a previsão é que o 25.11 absorva a partir de 64 e o 26.07 a
+partir de 32. **Confere nas dezesseis células**, incluindo as que a lei da seção
+anterior descreve: onde a previsão diz "absorve", o contador de devoluções ao
+anel é literalmente constante nas seis execuções; onde diz que não, ele varia.
 
-A saída de cada execução traz um segundo número: quantos objetos **não couberam
-na fila** e voltaram ao pool. Ele varia entre repetições, e a variação dele não
-é uniforme pela faixa:
+**O que varia é volume de vaivém, não trabalho.** Cada retentativa empurra
+objetos ao anel e puxa a mesma quantidade de volta. Os dois contadores sobem
+juntos, sob uma restrição linear cujos coeficientes são os tamanhos de recarga e
+de descarga lidos do fonte:
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="imagens/1-amplitude-escuro.svg">
-  <img alt="Intervalos entre o mínimo e o máximo do número de eventos de fila cheia por tamanho de cache no DPDK 26.07, em seis execuções. O intervalo de cache 64 vai de 0,8 a 3,2 milhões, uma amplitude de 3,9 vezes, enquanto as células vizinhas ficam em torno de 1,3 vezes." src="imagens/1-amplitude-claro.svg">
-</picture>
+```
+tamanho_recarga x idas  -  tamanho_descarga x voltas  =  constante
+```
 
-Em `cache = 64` o próprio evento de fila cheia varia **3,9×** entre execuções,
-contra cerca de 1,3× nas vizinhas. A dispersão da taxa de miss ali é
-**herdada** dessa variação, não gerada no caminho do cache.
+| célula | recarga | descarga | objetos líquidos, seis execuções |
+|---|---:|---:|---|
+| `25.11`, `c=48` | 80 | 40 | **2 336 200** nas seis |
+| `26.07`, `c=24` | 32 | 32 | **700 872** nas seis |
+| `25.11`, `c=32` | 64 | 32 | 1 869 024, com uma execução em 1 868 992 |
 
-> **O que não se deve concluir daqui.** A taxa de miss e a frequência de fila
-> cheia variam em sentidos opostos em quase toda a faixa e nas **duas** versões
-> — não é assinatura do `cache = 64`. Foi o que eu supus primeiro, e os dados
-> desmentiram: o que é exclusivo dali é a amplitude, não a correlação.
+A variação do líquido é **zero** em duas células e **32 objetos em 1,87 milhão**
+— uma única operação — na terceira. As idas variam em até 50%; o que elas
+carregam, não.
 
-#### Por que `cache = 2 × lote` é o ponto sensível
+> **A leitura que isso permite.** Nessas células o cache não deixa de funcionar:
+> ele deixa de **isolar**. O anel comum passa a ver o vaivém entre produtor e
+> consumidor, que é uma propriedade da corrida entre os dois lcores e não do
+> mempool. A grandeza que o cache governa — objetos líquidos retirados do anel —
+> permanece invariante.
 
-A aritmética do 26.07 explica o extremo. A recarga busca `size/2`, serve
-`remaining = n − len` e deixa `size/2 − remaining` no cache:
+#### Por que a contagem de retentativas varia tanto
 
-| `cache` | `size/2` | o que sobra após a recarga | piso |
-|---:|---:|---|---:|
-| 64 | 32 | `32 − (32 − len)` = **`len`** | **0** |
-| 96 | 48 | `48 − (32 − len)` = `16 + len` | 16 |
-| 128 | 64 | `64 − (32 − len)` = `32 + len` | 32 |
+Ela varia muito — de 25 mil a 139 mil na mesma célula — e a razão é estrutural,
+não acidental.
 
-Com o lote em 32, `cache = 64` é o único ponto em que a recarga **devolve
-exatamente o que havia** — não ganha nem perde. É um ponto fixo sem força
-restauradora: o único suprimento do cache do produtor é o caminho de fila
-cheia, e com piso zero o estado do cache passa a ser inteiramente determinado
-por quanto a fila encheu. A execução vira amplificadora da própria flutuação de
-temporização entre os dois lcores. Em `cache ≥ 96` existe piso, a recarga
-regenera o cache sozinha, e o efeito é amortecido.
+**O sistema não tem meio-termo.** O anel enche quando o produtor supera o
+consumidor. Se ele for marginalmente mais rápido, o anel satura e **todo**
+enfileiramento passa a ser parcial; se for marginalmente mais lento, o anel
+drena e não há retentativa alguma. Uma diferença pequena de velocidade entre os
+dois lcores produz uma diferença enorme na contagem, e é isso que se observa.
 
-**O que este argumento não cobre.** Pelo piso, `c=128` (piso 32) deveria ser
-mais amortecido que `c=96` (piso 16), e mede o contrário — 9,90 contra 3,26
-pontos. Há outro fator atuando ali, e nomeá-lo sem medir seria o tipo de
-conclusão que este material recusa.
+Aumentar a profundidade do anel não resolve: com o produtor mais rápido,
+qualquer profundidade satura — só demora mais.
 
-**O teste que fecharia a questão** é barato e está registrado como pendência:
-varrer `cache` fino em torno de `2 × lote` e depois mover o lote. Se o pico de
-amplitude acompanhar a razão, o argumento do piso se confirma; se ficar preso
-em 64, ele cai.
+**O que converte essa corrida em tráfego de mempool é o padrão da aplicação.**
+No enfileiramento parcial o produtor devolve ao pool o que não coube, e na volta
+do laço pede tudo de novo. Sem isso, a corrida continuaria existindo e não
+tocaria o pool.
+
+> **Isso é escolha de projeto, não defeito — e provavelmente a escolha certa.**
+> Um plano de dados que não consegue transmitir normalmente libera o buffer de
+> volta ao pool; segurar exigiria estado entre iterações e uma política para o
+> objeto que nunca couber. O programa aqui faz o que a §6 ensina: devolver a
+> posse quando não se pode publicar.
+>
+> Trocar o padrão deixaria a contagem determinística e mediria **outro
+> programa**, com menos semelhança com o que se escreve em produção. Por isso
+> fica como está, declarado em vez de corrigido.
+
+**O que o padrão custa, medido.** Cada retentativa refaz o `packet_fill` do lote
+inteiro. Na execução de 139 044 retentativas, isso são **4,45 milhões** de
+preenchimentos além dos 2 milhões verdadeiros — mais que o triplo do trabalho
+útil. Quem dimensiona um pipeline assim paga isso em CPU sem que apareça em
+nenhuma taxa de miss.
+
+**O que não foi possível decidir.** Frequência era o candidato ambiental óbvio,
+e o instrumento disponível não a decide: o programa reporta **uma** amostra, de
+**um** lcore, ao final da execução, quando o que importa é a velocidade relativa
+dos dois ao longo dela. Na célula de maior espalhamento a direção bate com a
+expectativa — produtor mais rápido, mais retentativas —, mas nas outras não há
+ordem, e uma amostra final não representa uma execução em que o governor se
+move.
 
 #### O que este experimento não autoriza
 
