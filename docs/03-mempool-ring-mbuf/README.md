@@ -331,16 +331,55 @@ total num ponto**. Uma conclusão de que "no simétrico não muda nada" seria
 verdadeira em nove medições de dez e faria o leitor escolher `cache_size` = 24
 sem saber que atravessou uma fronteira.
 
-#### Onde a contagem deixa de ser exata
+#### Onde a contagem varia, e por quê
 
-Três células fogem da lei, e é honesto dizer quais: `26.07` com `cache_size` = 24
-e `25.11` com 32 e 48. Nelas o cache fica **abaixo do limiar de desvio** da
-própria versão, o caminho tomado alterna entre recarga e acesso direto conforme
-o que as retentativas tenham deixado no cache, e a contagem varia entre
-execuções.
+Três células fogem da lei: `26.07` com `cache_size` = 24, e `25.11` com 32 e 48.
+Nelas a contagem de idas ao anel muda entre execuções. A causa é identificável
+sem medição nova, e ela **não é ruído**.
 
-São o único lugar deste experimento com variação real, e a causa não foi
-investigada. Abaixo do limiar, a aritmética acima não se aplica.
+**A condição.** O produtor devolve ao pool o que não coube na fila. Se o cache
+dele absorver essa devolução, nada disso chega ao anel comum. Se não absorver, a
+devolução vira tráfego. O fonte diz quando cada versão absorve:
+
+| | regra do `put` | absorve a devolução se |
+|---|---|---|
+| 25.11 | `len + n ≤ flushthresh`, com `flushthresh = 1,5 × size` e `len = size` após a recarga | `size + n ≤ 1,5 size`, ou seja **`size ≥ 2n`** |
+| 26.07 | `len + n ≤ size` | **`size ≥ n`** |
+
+Com o lote em 32, a previsão é que o 25.11 absorva a partir de 64 e o 26.07 a
+partir de 32. **Confere nas dezesseis células**, incluindo as que a lei da seção
+anterior descreve: onde a previsão diz "absorve", o contador de devoluções ao
+anel é literalmente constante nas seis execuções; onde diz que não, ele varia.
+
+**O que varia é volume de vaivém, não trabalho.** Cada retentativa empurra
+objetos ao anel e puxa a mesma quantidade de volta. Os dois contadores sobem
+juntos, sob uma restrição linear cujos coeficientes são os tamanhos de recarga e
+de descarga lidos do fonte:
+
+```
+tamanho_recarga x idas  -  tamanho_descarga x voltas  =  constante
+```
+
+| célula | recarga | descarga | objetos líquidos, seis execuções |
+|---|---:|---:|---|
+| `25.11`, `c=48` | 80 | 40 | **2 336 200** nas seis |
+| `26.07`, `c=24` | 32 | 32 | **700 872** nas seis |
+| `25.11`, `c=32` | 64 | 32 | 1 869 024, com uma execução em 1 868 992 |
+
+A variação do líquido é **zero** em duas células e **32 objetos em 1,87 milhão**
+— uma única operação — na terceira. As idas variam em até 50%; o que elas
+carregam, não.
+
+> **A leitura que isso permite.** Nessas células o cache não deixa de funcionar:
+> ele deixa de **isolar**. O anel comum passa a ver o vaivém entre produtor e
+> consumidor, que é uma propriedade da corrida entre os dois lcores e não do
+> mempool. A grandeza que o cache governa — objetos líquidos retirados do anel —
+> permanece invariante.
+
+**O que continua sem explicação, e é pouco:** por que a contagem de
+retentativas varia tanto entre execuções (de 25 mil a 139 mil na mesma célula).
+Isso é temporização entre lcores, fora do alcance deste experimento e do
+mempool.
 
 #### O que este experimento não autoriza
 

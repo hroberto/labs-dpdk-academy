@@ -331,16 +331,57 @@ the range and total at one point**. A conclusion that "nothing changes in the
 symmetric case" would be true in nine measurements out of ten and would lead the
 reader to pick `cache_size` = 24 without knowing a boundary had been crossed.
 
-#### Where the count stops being exact
+#### Where the count varies, and why
 
-Three cells escape the law, and it is honest to name them: `26.07` at
-`cache_size` = 24, and `25.11` at 32 and 48. In those the cache sits **below its
-own version's bypass threshold**, the path taken alternates between refill and
-direct access depending on what the retries happened to leave in the cache, and
-the count varies between runs.
+Three cells escape the law: `26.07` at `cache_size` = 24, and `25.11` at 32 and
+48. In those the ring-trip count changes between runs. The cause is identifiable
+without new measurement, and it is **not noise**.
 
-They are the only place in this experiment with real variation, and the cause
-was not investigated. Below the threshold, the arithmetic above does not apply.
+**The condition.** The producer returns to the pool what did not fit in the
+queue. If its cache absorbs that return, none of it reaches the common ring. If
+it does not, the return becomes traffic. The source says when each version
+absorbs:
+
+| | `put` rule | absorbs the return if |
+|---|---|---|
+| 25.11 | `len + n ≤ flushthresh`, with `flushthresh = 1.5 × size` and `len = size` after the refill | `size + n ≤ 1.5 size`, that is **`size ≥ 2n`** |
+| 26.07 | `len + n ≤ size` | **`size ≥ n`** |
+
+With the batch at 32, the prediction is that 25.11 absorbs from 64 up and 26.07
+from 32 up. **It holds in all sixteen cells**, including those the previous
+section's law describes: where the prediction says "absorbs", the ring-return
+counter is literally constant across the six runs; where it says it does not, it
+varies.
+
+**What varies is churn volume, not work.** Each retry pushes objects out to the
+ring and pulls the same amount back. The two counters rise together, under a
+linear constraint whose coefficients are the refill and flush sizes read from
+the source:
+
+```
+refill_size x trips_out  -  flush_size x trips_back  =  constant
+```
+
+| cell | refill | flush | net objects, six runs |
+|---|---:|---:|---|
+| `25.11`, `c=48` | 80 | 40 | **2,336,200** in all six |
+| `26.07`, `c=24` | 32 | 32 | **700,872** in all six |
+| `25.11`, `c=32` | 64 | 32 | 1,869,024, with one run at 1,868,992 |
+
+The variation of the net is **zero** in two cells and **32 objects out of 1.87
+million** — a single operation — in the third. The trips vary by up to 50%; what
+they carry does not.
+
+> **What this licenses.** In those cells the cache does not stop working: it
+> stops **isolating**. The common ring starts to see the churn between producer
+> and consumer, which is a property of the race between the two lcores and not
+> of the mempool. The quantity the cache governs — net objects drawn from the
+> ring — stays invariant.
+
+**What remains unexplained, and it is little:** why the retry count itself
+varies so much between runs (from 25 thousand to 139 thousand in the same cell).
+That is inter-lcore timing, outside the reach of this experiment and of the
+mempool.
 
 #### What this experiment does not authorize
 
