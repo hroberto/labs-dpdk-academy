@@ -224,52 +224,88 @@ difference of 0.70 ns per packet became 0.15 ns when reproduced interleaved.
 the PMU, which is blocked on this machine. It counts the times the per-lcore
 cache had no objects and the common ring had to be used.
 
-#### Symmetric topology: the effect is invisible, except at one point
+#### The metric: why it is not "miss rate"
+
+The natural quantity would be the fraction of `get` calls that went to the
+common ring. It is unstable, and the instability **does not come from the
+cache**.
+
+When the queue fills, the producer returns the objects that did not fit and
+**tries again** — each retry is one more `get` call. At `cache_size` = 96, of
+the 111,523 calls in one run, **49,023 are retries** (the producer's `put`
+counter marks exactly that number). The denominator therefore measures the race
+between the two lcores.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/1-contaminacao-escuro.en.svg">
+  <img alt="Comparison across six runs of the same cell, with cache 96 on DPDK 26.07, between the number of get calls and the number of common-ring trips. The common-ring trips are identical in all six runs; the get calls vary between 109 thousand and 119 thousand." src="imagens/1-contaminacao-claro.en.svg">
+</picture>
+
+The numerator does not vary. The quantity published here is therefore
+**common-ring trips per million packets delivered** — which is what the cache
+decides, and nothing else.
+
+#### Symmetric topology: the cache serves everything, or nothing
+
+With `-l 0` the same lcore gets and puts, and the `put`s replenish the cache the
+`get`s drain. The result has no middle ground:
 
 | `cache_size` | 25.11 | 26.07 |
 |---:|---:|---:|
-| 0 (control) | 100.00% | 100.00% |
-| 16 | 100.00% | 100.00% |
-| **24** | **0.00%** | **100.00%** |
-| 32 to 512 | 0.00% | 0.00% |
+| 0 and 16 | 31,314 | 31,314 |
+| **24** | **0.5** | **31,314** |
+| 32 to 512 | 0.5 | 0.5 |
 
-In nine of the ten rows the two versions are indistinguishable. In the tenth the
-difference is total — and it is that row which exposes the mechanism.
+The value 0.5 per million means **one** common-ring trip in the whole run: the
+initial fill. The 31,314 means every operation went to the ring.
 
-This experiment's batch is **32 objects**. A cache unable to serve a whole batch
-falls through to the common ring on **every** operation, which gives 100% miss:
-that is what `cache_size` = 16 shows in both versions. At `cache_size` = 32 and
-above both serve, and the miss rate goes to zero.
+The batch is 32 objects. On 26.07 the cache must **hold the batch** for the
+`put` to deposit it there — with 24, `len + 32 > 24` and the objects go straight
+to the ring, so the next `get` finds the cache empty. On 25.11 the `put` limit
+is not the size but `flushthresh`, which is **1.5 × size**: with 24 configured,
+36 usable, and the batch of 32 fits.
 
-`cache_size` = 24 is the only point in the range where the two versions
-disagree, and the disagreement follows exactly what the release note states:
-with the effective size about 50% larger, 24 requested gave roughly 36 usable in
-25.11 — above the batch of 32, therefore enough. In 26.07, 24 requested are 24,
-below the batch, and the cache stops serving.
+It is the same 50% difference the release note states, now located at the point
+where it changes the outcome.
 
 > **The boundary is bracketed, not pinned.** The sweep has 16 and 24, and
 > 25.11's turning point falls between them — `32 / 1.5 ≈ 21.3`. Pinning it would
-> take a finer step, which this experiment does not have. What is demonstrated
-> is that the boundary exists and which side each version is on.
+> take a finer step, which this experiment does not have.
 
-#### Asymmetric topology: the difference exists across the whole range
+#### Asymmetric topology: the cost is arithmetic
 
-| `cache_size` | 25.11 | 26.07 | difference |
-|---:|---:|---:|---:|
-| 0 (control) | 100.00% | 100.00% | — |
-| 16 | 100.00% | 100.00% | — |
-| 24 | 60.85% | 100.00% | +39.15 |
-| 32 | 34.22% | 60.09% | +25.86 |
-| 48 | 26.22% | 61.14% | +34.92 |
-| 64 | 14.54% | 57.08% | +42.54 |
-| 96 | 13.64% | 36.59% | +22.95 |
-| 128 | 11.07% | 29.52% | +18.45 |
-| 256 | 6.29% | 15.09% | +8.80 |
-| 512 | 3.33% | 7.40% | +4.07 |
+With `-l 0,2` the producer only gets and the consumer only puts; the producer's
+cache is not replenished by its own `put`s. Here the count obeys the refill
+size, and nothing else:
 
-Here there is no isolated point: 26.07 has a higher miss rate at **every** size,
-and the gap only closes once the cache grows enough for both regimes to be
-comfortable.
+| `cache_size` | 25.11 | 26.07 | measured ratio | predicted ratio |
+|---:|---:|---:|---:|---:|
+| 64 | 10,417 | 31,250 | 3.000 | 3.000 |
+| 96 | 7,813 | 20,834 | 2.667 | 2.667 |
+| 128 | 6,250 | 15,625 | 2.500 | 2.500 |
+| 256 | 3,472 | 7,813 | 2.250 | 2.250 |
+| 512 | 1,838 | 3,906 | 2.125 | 2.125 |
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="imagens/1-lei-escuro.en.svg">
+  <img alt="Common-ring trips per million packets, by cache size, for DPDK 25.11 and 26.07 on the asymmetric topology. The measured dots land on the curves predicted by each version's refill size, and the six runs of each cell coincide in a single dot." src="imagens/1-lei-claro.en.svg">
+</picture>
+
+**All six runs of each cell give the same value** — the dots on the chart are
+six superimposed measurements. That is not precise measurement; it is
+measurement of something deterministic.
+
+And the prediction is not a fit: it comes from the source. Each ring trip brings
+one refill, and the refill size differs between versions:
+
+```
+25.11:  refill = cache_size + batch   ->  trips = packets / (cache_size + 32)
+26.07:  refill = cache_size / 2       ->  trips = packets / (cache_size / 2)
+
+ratio 26.07 / 25.11 = 2 x (cache_size + 32) / cache_size
+```
+
+Measured against predicted, the five ratios agree to the third decimal.
 
 #### The three hypotheses, and what became of each
 
@@ -278,54 +314,16 @@ confirmed ones would defeat the purpose of recording them.
 
 | Hypothesis | Statement | Outcome |
 |---|---|---|
-| 1 | in an asymmetric workload, `cache_size = N` on 26.07 will miss more than on 25.11 | **confirmed**, across the range |
-| 2 | `cache_size = 2N` on 26.07 recovers 25.11's behaviour | **refuted** |
+| 1 | in an asymmetric workload, `cache_size = N` costs more on 26.07 than on 25.11 | **confirmed**, and the ratio is computable |
+| 2 | `cache_size = 2N` on 26.07 recovers 25.11's behaviour | **refuted**, and the residue is computable |
 | 3 | in a symmetric workload the effect will be smaller or absent | **refuted by the detail** |
 
-**The second is the one that contradicts the upstream guidance.** Doubling the
-cache on 26.07 and comparing with 25.11 at the original value:
-
-| 25.11 | 26.07 at twice the size | recovers? |
-|---|---|---|
-| `c=32` → 34.22% | `c=64` → 57.08% | no |
-| `c=48` → 26.22% | `c=96` → 36.59% | no |
-| `c=64` → 14.54% | `c=128` → 29.52% | no |
-| `c=256` → 6.29% | `c=512` → 7.40% | no |
-
-Doubling helps — `c=64` on 26.07 beats `c=32` on 26.07 — but it does **not
-reach** 25.11 at the original value, in any pair. The guidance is not false; it
-is insufficient for this workload.
-
-#### Why doubling is the minimum, not a margin
-
-The reason is in the source, and can be checked without measuring. In
-`lib/mempool/rte_mempool.h` the two versions decide differently when to abandon
-the cache and how much to refill:
-
-| | 25.11 | 26.07 |
-|---|---|---|
-| `get` bypasses the cache when | `remaining > RTE_MEMPOOL_CACHE_MAX_SIZE` (512, **absolute**) | `remaining > cache->size / 2` (**relative**) |
-| `get` refills | `cache->size + remaining` | `cache->size / 2` |
-| state after serving | `len = cache->size` (full) | `len = size/2 − remaining` |
-| bounce buffer limit on `put` | `flushthresh`, 1.5 × `size` | `cache->size / 2` |
-
-`size / 2` appears as the threshold on **both** paths. For a batch of `n`
-objects, a cache with `size < 2n` is **bypassed entirely**, on `get` and on
-`put` — which is why `cache_size` = 16 and 24 give 100% miss with this
-experiment's batch of 32.
-
-From that follows the answer to hypothesis 2. With `size = 2n` exactly, the
-refill brings `size/2 = n` objects and the request consumes **all** of them: the
-cache is left empty and the next `get` refills again. **Doubling takes the
-sizing onto the threshold, not past it** — it is the boundary between "the cache
-is not used" and "the cache is used once per refill", not a comfortable margin.
-
-> **What this predicts, and what remains to be measured.** If the threshold is
-> what governs, the non-monotonicity should track the ratio `cache / batch`
-> rather than an absolute cache value. A probe varying the batch points that
-> way, but it was made with one repetition per cell and **is not a result**:
-> confirming it requires the `cache × batch` factorial with repetitions, which
-> is recorded as pending.
+**The second is the one that contradicts the upstream guidance**, and now
+without resorting to measurement: doubling the cache takes 26.07's refill from
+`N/2` to `N`, against 25.11's `N + 32` at the original value. The remaining
+ratio is `(N + 32) / N` — **never 1**. For `N = 32`, exactly twice the ring
+trips. The guidance is not false; it is insufficient, and by how much can be
+stated.
 
 **The third was refuted in a more interesting way than confirmation would have
 been.** The effect in the symmetric case is not "smaller": it is **absent across
@@ -333,74 +331,16 @@ the range and total at one point**. A conclusion that "nothing changes in the
 symmetric case" would be true in nine measurements out of ten and would lead the
 reader to pick `cache_size` = 24 without knowing a boundary had been crossed.
 
-#### The asymmetric case is also less stable on 26.07
+#### Where the count stops being exact
 
-Dispersion across the six repetitions, in the asymmetric case, separates the
-versions:
+Three cells escape the law, and it is honest to name them: `26.07` at
+`cache_size` = 24, and `25.11` at 32 and 48. In those the cache sits **below its
+own version's bypass threshold**, the path taken alternates between refill and
+direct access depending on what the retries happened to leave in the cache, and
+the count varies between runs.
 
-| `cache_size` | 25.11 range | 26.07 range |
-|---:|---:|---:|
-| 32 | 7.45 | 6.84 |
-| 48 | 0.82 | 6.21 |
-| 64 | 4.67 | **32.49** |
-| 96 | 5.38 | 3.26 |
-| 128 | 1.21 | 9.90 |
-| 512 | 0.99 | 2.61 |
-
-Both versions disperse, and it is not only 26.07 that moves — 25.11 reaches 7.45
-points at `c=32`. What separates them is the **extreme**: 26.07's worst cell,
-`c=64`, has 32.49 points of range, more than four times 25.11's worst. And it is
-the same cell where the curve forms a plateau instead of descending.
-
-#### The dispersion is inherited, not generated
-
-Each run's output carries a second number: how many objects **did not fit in the
-queue** and went back to the pool. It varies between repetitions, and that
-variation is not uniform across the range:
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="imagens/1-amplitude-escuro.en.svg">
-  <img alt="Intervals between the minimum and maximum ring-full event counts per cache size on DPDK 26.07, over six runs. The cache-64 interval runs from 0.8 to 3.2 million, a range of 3.9 times, while neighbouring cells stay around 1.3 times." src="imagens/1-amplitude-claro.en.svg">
-</picture>
-
-At `cache = 64` the ring-full event itself varies **3.9×** between runs, against
-roughly 1.3× in the neighbouring cells. The miss-rate dispersion there is
-**inherited** from that variation, not generated on the cache path.
-
-> **What must not be concluded from this.** Miss rate and ring-full frequency
-> move in opposite directions across almost the whole range and in **both**
-> versions — it is not a signature of `cache = 64`. That is what I assumed
-> first, and the data said otherwise: what is exclusive there is the amplitude,
-> not the correlation.
-
-#### Why `cache = 2 × batch` is the sensitive point
-
-26.07's arithmetic explains the extreme. The refill fetches `size/2`, serves
-`remaining = n − len` and leaves `size/2 − remaining` in the cache:
-
-| `cache` | `size/2` | what remains after the refill | floor |
-|---:|---:|---|---:|
-| 64 | 32 | `32 − (32 − len)` = **`len`** | **0** |
-| 96 | 48 | `48 − (32 − len)` = `16 + len` | 16 |
-| 128 | 64 | `64 − (32 − len)` = `32 + len` | 32 |
-
-With the batch at 32, `cache = 64` is the only point where the refill **gives
-back exactly what was there** — it neither gains nor loses. It is a fixed point
-with no restoring force: the producer's cache is supplied only by the ring-full
-path, and with a floor of zero the cache state becomes entirely determined by
-how much the queue filled. The run turns into an amplifier of the timing
-fluctuation between the two lcores. At `cache ≥ 96` there is a floor, the refill
-regenerates the cache on its own, and the effect is damped.
-
-**What this argument does not cover.** By the floor, `c=128` (floor 32) should
-be more damped than `c=96` (floor 16), and it measures the opposite — 9.90
-against 3.26 points. Another factor is at work there, and naming it without
-measuring would be the kind of conclusion this material refuses.
-
-**The test that would settle it** is cheap and is recorded as pending: sweep
-`cache` finely around `2 × batch` and then move the batch. If the amplitude peak
-tracks the ratio, the floor argument is confirmed; if it stays pinned at 64, it
-falls.
+They are the only place in this experiment with real variation, and the cause
+was not investigated. Below the threshold, the arithmetic above does not apply.
 
 #### What this experiment does not authorize
 
