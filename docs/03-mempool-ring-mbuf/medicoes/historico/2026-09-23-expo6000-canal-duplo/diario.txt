@@ -1,0 +1,39 @@
+inicio: 2026-09-23T11:38:43-03:00  carga: 1.62 1.64 1.38  uptime: up 1 hour, 7 minutes
+[aquecimento(descartado)] 11:38:43 carga 1.62
+[rodada1] 11:43:31 carga 0.93
+[rodada2] 11:48:18 carga 1.27
+[rodada3] 11:53:06 carga 1.04
+[rodada4] 11:57:53 carga 0.85
+[rodada5] 12:02:41 carga 0.94
+fim: 2026-09-23T12:07:29-03:00  carga: 1.11 1.13 1.14
+feed: recoletado apos corrigir corre_feed (--output exigia caminho inexistente)
+  feed r0: session-1
+  feed r1: session-1
+  feed r2: session-1
+  feed r3: session-1
+  feed r4: session-1
+  feed r5: session-1
+
+PROCEDENCIA "-dirty": o que estava sujo, e por que nao contamina
+---------------------------------------------------------------
+Os programas gravaram `v0.05.00-2-geb54750-dirty`. A arvore tinha, no momento
+da coleta, estes arquivos modificados ou nao versionados:
+
+  ROADMAP.md, ROADMAP.en.md
+  ferramental/qualidade/verificar-promessa.py
+  ferramental/qualidade/campanha-isolamento.sh          (novo)
+  meson.build                                           (+1 subdir)
+  trilha/01-fundamentos/02-mempool-ring/pipeline_ring.c
+  trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/meson.build
+  trilha/03-performance/03-isolamento-cpu/              (novo)
+
+NENHUM deles e fonte compilada dos programas desta campanha. Conferido por
+intersecao do conjunto acima com as 28 fontes que o compile_commands.json de
+build-precommit lista para docs/01-fundamentos/medicoes, docs/02-runtime-dpdk/
+medicoes e docs/03-mempool-ring-mbuf/medicoes: intersecao VAZIA.
+
+O marcador existe para responder "da para reconstruir este binario a partir do
+repositorio?". Aqui a resposta e sim, e a verificacao esta acima em vez de
+ficar por conta de quem le. Uma campanha anterior deste projeto foi descartada
+e recoletada por sujeira que ATINGIA as fontes medidas; a distincao entre os
+dois casos e o que este registro preserva.
