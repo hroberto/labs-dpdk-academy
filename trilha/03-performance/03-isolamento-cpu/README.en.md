@@ -150,11 +150,19 @@ whether the window was exceeded — and for that one no approximation is accepte
 
 ### 3.2 Why `CLOCK_MONOTONIC` and not the raw TSC
 
-The TSC is cheaper to read, and would be the obvious choice in a tight loop. Two
-reasons weighed more: it requires knowing the frequency to convert, and that
-frequency moves with the governor — the same trap
+The TSC is cheaper to read, and would be the obvious choice in a tight loop.
+The reason that weighed more is **conversion**: the counter counts ticks, and
+turning ticks into nanoseconds requires knowing the rate it runs at.
+
+On this CPU the TSC does **not** vary with the governor — `/proc/cpuinfo`
+carries `constant_tsc` and `nonstop_tsc`, and
 [§2.2 of module 02](../../../docs/02-runtime-dpdk/README.en.md#22-why-that-wait-exists-and-when-it-does-not-happen)
-documents in the EAL's calibration.
+records both. The problem is a different one: `tsc_known_freq` is absent, so
+**nobody publishes the rate** and anyone wanting to convert has to calibrate
+it. That is why the EAL spends 100 ms doing exactly that at startup.
+
+A probe calibrating on its own would inherit the calibration's error, and that
+error lands precisely on the tail, which is what this topic measures.
 
 `clock_gettime(CLOCK_MONOTONIC)` costs tens of nanoseconds through the vDSO —
 an order of magnitude **below** the stalls being looked for. If the read cost as

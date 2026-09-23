@@ -249,10 +249,10 @@ if (arch_hz && is_tsc_known_freq())
     return arch_hz;
 ```
 
-`is_tsc_known_freq()` looks for the `tsc_known_freq` flag in `/proc/cpuinfo`. When the
-kernel already knows the TSC's frequency — because it read it from the hardware, and
-not by estimation — DPDK trusts it and **skips the 100 ms**. On this machine the flag
-does not exist:
+The condition has **two** parts, and the first one decides on its own here.
+
+`is_tsc_known_freq()` looks for the `tsc_known_freq` flag in `/proc/cpuinfo`; on this
+machine it does not exist:
 
 ```console
 $ grep -o 'constant_tsc\|nonstop_tsc\|tsc_known_freq' /proc/cpuinfo | sort -u
@@ -261,13 +261,30 @@ nonstop_tsc
 ```
 
 There is `constant_tsc` and `nonstop_tsc` — the TSC is dependable — but no
-`tsc_known_freq`. That is why the calibration runs.
+`tsc_known_freq`. That alone would be enough for the calibration to run.
 
-The practical consequence is that **the number 123 ms is not a property of DPDK**: it
-is a property of this combination of CPU and kernel. On a machine that exposes
-`tsc_known_freq`, the same `rte_eal_init()` would cost something close to 23 ms.
-Measuring on your machine is part of the exercise, and the program accepts the EAL's
-options directly for that.
+**But `arch_hz` is zero too, for a reason no flag changes.** It comes from
+`get_tsc_freq_arch()`, and the x86 version starts like this:
+
+```c
+/* lib/eal/x86/rte_cycles.c */
+if (x86_vendor_amd(b, c, d))
+    return 0;
+```
+
+On an AMD processor the function returns **before** consulting CPUID leaf 0x15. With
+`arch_hz` zeroed, `arch_hz && is_tsc_known_freq()` is false whatever the flag says —
+and the 100 ms `nanosleep` runs **always**.
+
+> **The most obvious counterfactual is false on this machine, and it is worth saying
+> which one.** "On a machine exposing `tsc_known_freq` this would cost ~23 ms" only
+> holds where `get_tsc_freq_arch()` returns a value — that is, on **Intel** with leaf
+> 0x15 available. On an AMD with `tsc_known_freq` the wait still happens. Changing CPU
+> within the same vendor does not move this number.
+
+The practical consequence is that **the 123 ms are not a property of DPDK**: they are a
+property of this combination of CPU, vendor and kernel. Measuring on your machine is
+part of the exercise, and the program accepts the EAL's options directly for that.
 
 ### 2.3 What this decides in the architecture
 

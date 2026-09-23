@@ -404,91 +404,91 @@
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 386,
+      "linha": 404,
       "secao": "3.3 Os três graus de \"não deixar rastro\"",
       "tipo": "tabela_markdown",
       "sha256": "1a1a37d9987486322c0e98da9d52051cef4d09cf4aff426f43d881a16a8d01f8"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 460,
+      "linha": 478,
       "secao": "4.2 Como o secundário encontra a memória",
       "tipo": "tabela_markdown",
       "sha256": "71f89e6a5b0591bd6bce591ffe5eead26aade38c38843f55d9e92d9d0458b351"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 605,
+      "linha": 623,
       "secao": "4.5 O que desliga o modelo multiprocesso sem avisar",
       "tipo": "tabela_markdown",
       "sha256": "1979e73621dd57ccf8d1b2b0a6fe0c0317993511871d8a440e744487856e6c6e"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 652,
+      "linha": 670,
       "secao": "4.6 Quanto custa atravessar a fronteira",
       "tipo": "bloco_numerico",
       "sha256": "50ae972affcc6f14351a957687a3bf22979f2784b712fbd4997568e98afae7ae"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 817,
+      "linha": 835,
       "secao": "O custo de ler o identificador",
       "tipo": "bloco_numerico",
       "sha256": "afc9690c9fb9bc79c19bcb7553653951d4e5778dba4867e7139fc9a739c2b3e8"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 824,
+      "linha": 842,
       "secao": "O custo de ler o identificador",
       "tipo": "bloco_numerico",
       "sha256": "cf2161c41be0d6bbb820f053dd14477afe3a0809c402d87592b6629014db152a"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 964,
+      "linha": 982,
       "secao": "6. IOVA: o endereço que o dispositivo enxerga",
       "tipo": "tabela_markdown",
       "sha256": "a1a0e8b8e3d4b131b52a00172ccac4671717dbda6121bf6c79b51ace106d18ad"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 1055,
+      "linha": 1073,
       "secao": "7. Encerramento: o que fica para trás",
       "tipo": "tabela_markdown",
       "sha256": "bb6fb0dc428941067c1458318de553d76e818d9860fb47125b92a6796013014e"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 1091,
+      "linha": 1109,
       "secao": "8. Síntese: o runtime do feed handler",
       "tipo": "tabela_markdown",
       "sha256": "91e330f640c163713fdcbf59d785dfc40dd319a48731182ec49900509a6cc055"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 1146,
+      "linha": 1164,
       "secao": "Duas estruturas, porque são duas grandezas",
       "tipo": "tabela_markdown",
       "sha256": "2a7cb0e750e100f98abaa3f8447bc189d79ba6af9c17ebc415fb63eca6d1797f"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 1260,
+      "linha": 1278,
       "secao": "9.1 O critério de validade da assinatura, e como o limiar foi calibrado",
       "tipo": "tabela_markdown",
       "sha256": "7f8e12757331e3ec150b24a305493c527a7af3ab33d5ad142be1b968097865d4"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 1431,
+      "linha": 1449,
       "secao": "10.4 Detectar que o produtor parou é duas perguntas, não uma",
       "tipo": "tabela_markdown",
       "sha256": "ce5c41cc0db5af460b00fee0ceba6f0429673ef454873ca5735f9477fd1c1b45"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
-      "linha": 1548,
+      "linha": 1566,
       "secao": "13. Navegação",
       "tipo": "tabela_markdown",
       "sha256": "2c47e08d3cf4b3373b2b8065df1c9d443b49dc846cb694de9d816960eeb375d1"

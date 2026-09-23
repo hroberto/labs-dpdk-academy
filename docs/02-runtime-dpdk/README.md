@@ -253,10 +253,10 @@ if (arch_hz && is_tsc_known_freq())
     return arch_hz;
 ```
 
-`is_tsc_known_freq()` procura o sinalizador `tsc_known_freq` em `/proc/cpuinfo`.
-Quando o kernel já sabe a frequência do TSC — porque a leu do hardware, e não
-por estimativa —, o DPDK confia nela e **pula os 100 ms**. Nesta máquina o
-sinalizador não existe:
+A condição tem **duas** partes, e a primeira decide sozinha nesta máquina.
+
+`is_tsc_known_freq()` procura o sinalizador `tsc_known_freq` em `/proc/cpuinfo`;
+aqui ele não existe:
 
 ```console
 $ grep -o 'constant_tsc\|nonstop_tsc\|tsc_known_freq' /proc/cpuinfo | sort -u
@@ -265,13 +265,31 @@ nonstop_tsc
 ```
 
 Há `constant_tsc` e `nonstop_tsc` — o TSC é confiável —, mas não
-`tsc_known_freq`. Por isso a calibração roda.
+`tsc_known_freq`. Bastaria isso para a calibração rodar.
 
-A consequência prática é que **o número 123 ms não é uma propriedade do DPDK**:
-é uma propriedade desta combinação de CPU e kernel. Em uma máquina que exponha
-`tsc_known_freq`, o mesmo `rte_eal_init()` custaria algo perto de 23 ms. Medir na
-sua máquina é parte do exercício, e o programa aceita as opções da EAL
-diretamente para isso.
+**Só que `arch_hz` também é zero, e por um motivo que nenhum sinalizador muda.**
+Ele vem de `get_tsc_freq_arch()`, e a versão x86 começa assim:
+
+```c
+/* lib/eal/x86/rte_cycles.c */
+if (x86_vendor_amd(b, c, d))
+    return 0;
+```
+
+Em processador AMD a função sai **antes** de consultar a folha 0x15 do CPUID.
+Com `arch_hz` zerado, `arch_hz && is_tsc_known_freq()` é falso qualquer que seja
+o sinalizador — e o `nanosleep` de 100 ms roda **sempre**.
+
+> **O contrafactual mais óbvio é falso nesta máquina, e vale dizer qual é.**
+> "Numa máquina que exponha `tsc_known_freq` isto custaria ~23 ms" só vale onde
+> `get_tsc_freq_arch()` devolve valor — ou seja, em **Intel** com a folha 0x15
+> disponível. Numa AMD com `tsc_known_freq` a espera continua acontecendo.
+> Trocar de CPU dentro do mesmo fabricante não move este número.
+
+A consequência prática é que **os 123 ms não são propriedade do DPDK**: são
+propriedade desta combinação de CPU, fabricante e kernel. Medir na sua máquina
+é parte do exercício, e o programa aceita as opções da EAL diretamente para
+isso.
 
 ### 2.3 O que isso decide na arquitetura
 

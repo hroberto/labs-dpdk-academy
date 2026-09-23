@@ -149,11 +149,18 @@ foi excedida — e para esse não se aceita aproximação.
 
 ### 3.2 Por que `CLOCK_MONOTONIC` e não o TSC bruto
 
-O TSC é mais barato de ler, e seria a escolha óbvia num laço apertado. Duas
-razões pesaram mais: ele exige conhecer a frequência para converter, e essa
-frequência muda com o governor — a mesma armadilha que a
-[§2.2 do módulo 02](../../../docs/02-runtime-dpdk/README.md#22-por-que-essa-espera-existe-e-quando-ela-não-acontece)
-documenta na calibração da EAL.
+O TSC é mais barato de ler, e seria a escolha óbvia num laço apertado. A razão
+que pesou mais é a **conversão**: o contador conta ticks, e transformar ticks
+em nanossegundos exige saber a que taxa ele anda.
+
+Nesta CPU o TSC **não** varia com o governor — `/proc/cpuinfo` traz
+`constant_tsc` e `nonstop_tsc`, e a [§2.2 do módulo 02](../../../docs/02-runtime-dpdk/README.md#22-por-que-essa-espera-existe-e-quando-ela-não-acontece)
+registra os dois. O problema é outro: falta `tsc_known_freq`, então **ninguém
+publica a taxa** e quem quiser converter precisa calibrá-la. É por isso que a
+EAL gasta 100 ms fazendo exatamente isso na inicialização.
+
+Uma sonda que calibrasse por conta própria herdaria o erro da calibração, e o
+erro entra na conta justamente na cauda, que é o que este tópico mede.
 
 `clock_gettime(CLOCK_MONOTONIC)` custa dezenas de nanossegundos pelo vDSO —
 ordem de grandeza **abaixo** das paradas que se procura. Se a leitura custasse
