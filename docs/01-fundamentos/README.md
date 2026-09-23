@@ -1798,12 +1798,12 @@ largada, cronômetro parando na última a terminar:
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  1 thread  on 1 physical core (cpu 0)    1861.9  1859.3-1862.8   1857.0-2038.0       0.2%   2.1%  
-  2 threads on 2 physical cores (cpu 0,2)    3712.8  3708.5-3717.0   3689.1-3722.1       0.2%   0.2%  
-  2 threads on 2 SMT siblings (cpu 0,12)    1926.9  1923.6-1927.2   1921.7-1927.8       0.2%   0.1%  
+  1 thread  on 1 physical core (cpu 0)    1864.1  1863.8-1864.3   1861.0-1966.1       0.0%   1.2%  
+  2 threads on 2 physical cores (cpu 0,2)    3718.9  3716.5-3719.6   3690.6-3721.7       0.1%   0.2%  
+  2 threads on 2 SMT siblings (cpu 0,12)    1929.8  1929.2-1930.0   1926.4-1930.5       0.0%   0.1%  
 
   two physical cores yield 1.99x one core
-  two SMT siblings    yield 1.03x one core
+  two SMT siblings    yield 1.04x one core
 ```
 
 **Dois núcleos físicos rendem 1,99×. Dois irmãos SMT rendem 1,04×.** O par de
@@ -1926,11 +1926,11 @@ fique visível em vez de precisar ser suposta.
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  atomic relaxed (store+load)            0.410  0.321-0.411     0.205-0.412        21.9%  17.6% !
-  atomic seq_cst (store+load)             3.69  3.69-3.87       3.68-3.99           5.0%   3.2% ~
-  mutex lock+unlock                       8.48  8.48-8.49       8.48-8.73           0.1%   0.8%  
-  spinlock lock+unlock                    4.43  4.43-4.49       4.42-4.73           1.5%   1.7%  
-  semaphore post+wait                     8.30  8.30-8.30       8.30-8.55           0.0%   0.8%  
+  atomic relaxed (store+load)            0.205  0.204-0.260     0.204-0.410        27.5%  31.1% !
+  atomic seq_cst (store+load)             3.68  3.67-3.95       3.67-3.99           7.4%   3.6% ~
+  mutex lock+unlock                       8.59  8.53-8.68       8.45-8.81           1.8%   1.3%  
+  spinlock lock+unlock                    4.49  4.42-4.51       4.41-4.66           2.1%   1.6%  
+  semaphore post+wait                     8.46  8.39-8.48       8.27-8.54           1.1%   0.9%  
 ```
 
 As duas últimas colunas medem a confiança do número: `disp` diz se o valor
@@ -1955,13 +1955,13 @@ juntas está na [§9](#9-validação-reproduza-na-sua-máquina).
 > a divisão de trabalho entre as duas colunas.
 
 **Nenhum desses primitivos é caro — e a forma honesta de mostrar isso é pelo
-pior deles.** Pela mediana, o mutex é o mais lento dos cinco: 8,51 ns, contra
-8,32 ns do semáforo, 4,44 ns do spinlock e 0,205 ns da atômica `relaxed`. E é
+pior deles.** Pela mediana, o mutex é o mais lento dos cinco: 8,59 ns, contra
+8,46 ns do semáforo, 4,49 ns do spinlock e 0,205 ns da atômica `relaxed`. E é
 também o réu habitual, aquele a quem o custo de sincronizar costuma ser
 atribuído. Se **o mais caro da tabela, e justamente o acusado, custa 8,5 ns**,
 os outros quatro não precisam de defesa separada — o argumento os cobre. Para
-dar escala a esse número: são **8,5 dos 67,2 ns do orçamento de um pacote —
-12,6%**, no qual o mutex cabe quase oito vezes.
+dar escala a esse número: são **8,6 dos 67,2 ns do orçamento de um pacote —
+12,8%**, no qual o mutex cabe quase oito vezes.
 
 O que compra esse preço é o caminho rápido do futex: o mutex sem disputa resolve
 tudo em espaço de usuário, sem chamada de sistema. Isso não é sorte da
@@ -1992,17 +1992,29 @@ Todas as medições rodam **com outra thread presente no processo**, que
 
 Dois detalhes da tabela merecem nota.
 
-**O mutex custa 2,3 vezes uma atômica `seq_cst`** (8,51 contra 3,69 ns), e a
+**O mutex custa 2,3 vezes uma atômica `seq_cst`** (8,59 contra 3,68 ns), e a
 razão é aritmética: travar executa uma operação atômica de leitura-modificação-
 escrita, destravar executa outra, mais a verificação de que ninguém espera. São
 duas operações travadas contra uma. O mutex não é caro por ser mutex; é caro por
 fazer mais.
 
 **A ordenação de memória tem preço próprio.** A atômica `seq_cst`, com barreira
-completa, custa 3,69 ns contra 0,21 ns da `relaxed` — dezoito vezes mais, sem
-que nenhuma delas envolva outra thread. É por isso que o `rte_ring` usa
-`acquire`/`release` em vez de `seq_cst`: a barreira mais fraca é suficiente para
-a garantia que ele precisa, e a diferença sai do orçamento por pacote.
+completa, custa **3,68 ns** contra **0,205 ns** da `relaxed`, sem que nenhuma
+delas envolva outra thread. A barreira mais fraca é suficiente para muitas
+garantias, e a diferença sai do orçamento por pacote.
+
+> **A razão entre as duas não é um número estável, e o selo já dizia isso.** A
+> linha da `relaxed` sai marcada `!` nas duas coletas arquivadas — dispersão de
+> 21,9% numa, 27,5% na outra. A mediana dela pulou de **0,410** para **0,205**
+> entre as coletas, e com ela a razão pulou de **9×** para **18×**. A amplitude
+> de cada coleta contém as duas medianas: o valor é bimodal, não ruidoso.
+>
+> Publicar "dezoito vezes" ou "nove vezes" como se fosse propriedade da máquina
+> seria ler um número que o próprio programa marca como não confiável. O que a
+> tabela sustenta é a **ordem de grandeza**: uma atômica ordenada custa **uma
+> dezena de vezes** uma relaxada, e as duas continuam abaixo de um décimo do
+> orçamento por pacote. Fixar o fator exigiria descobrir o que alterna entre os
+> dois modos — que é medição nova, não redação.
 
 **2. No repasse — os mesmos primitivos coordenando duas threads em núcleos
 diferentes:**
@@ -2110,9 +2122,10 @@ do DPDK, isso vale. Numa thread comum, o escalonador pode tirá-la do núcleo
 segurando a trava, e todos os que giram queimam CPU esperando alguém que não
 está executando — trocando 4 ns por milissegundos.
 
-**Ordenação forte raramente é necessária.** `seq_cst` custa dezoito vezes a
-`relaxed` e é o padrão da linguagem, não a escolha certa por omissão. Prefira
-`acquire`/`release`.
+**Ordenação forte raramente é necessária.** `seq_cst` custa **uma dezena de
+vezes** a `relaxed` — o fator exato não é estável entre coletas, e a §5.2
+explica por quê — e é o padrão da linguagem, não a escolha certa por omissão.
+Prefira `acquire`/`release`.
 
 > **O `rte_ring` seria o exemplo óbvio aqui, e nesta máquina ele não é.** A
 > biblioteca tem duas implementações do movimento de cabeça, escolhidas por
