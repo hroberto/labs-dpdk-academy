@@ -253,11 +253,26 @@ meson setup build-asan -Db_sanitize=address,undefined
 meson test -C build-asan
 ```
 
-Cuidado ao aplicar sanitizers a código DPDK: o [ASan][asan] intercepta o alocador
-do sistema, mas os objetos do [`rte_mempool`][mempool] vêm de hugepages geridas
-pela [EAL][eal] e
-ficam fora do alcance dele. O ASan pega erros na sua lógica; **não** substitui a
-verificação de integridade do pool feita no L2.
+Cuidado ao aplicar sanitizers a código DPDK, e o cuidado **não** é o que parece.
+
+**Hugepage não é o obstáculo.** A [documentação do DPDK][asandpdk] diz que
+*"ASan is aware of DPDK memory allocations, thanks to added instrumentation"*: o
+alocador da [EAL][eal] é instrumentado por `RTE_MALLOC_ASAN`, e `rte_malloc`,
+`rte_zmalloc` e as memzones entram no radar do [ASan][asan] como qualquer
+alocação.
+
+Os dois cuidados reais são outros:
+
+- **O DPDK precisa ser compilado com o sanitizer.** `-Db_sanitize=address` na
+  build da *aplicação* não instrumenta memória nenhuma do DPDK — a
+  instrumentação vive dentro da biblioteca, e sem recompilá-la não há cobertura.
+- **Objeto dentro de um mempool fica de fora.** Não há marcação por objeto em
+  `lib/mempool` nem em `lib/mbuf`: um `get`/`put` não envenena nem libera a
+  região, então uso depois do `put` ou escrita além do `data_len` não disparam.
+  O pool inteiro é uma alocação para o ASan; os objetos dentro dele, não.
+
+É por isso que o ASan pega erros na sua lógica e **não** substitui a verificação
+de integridade do pool feita no L2 — que é justamente por objeto.
 
 Estilo e análise estática são governados por [`.clang-format`][clangformat] e
 [`.clang-tidy`][clangtidy] na raiz do repositório.
@@ -441,6 +456,7 @@ Documentação oficial de cada ferramenta e conceito citado acima.
 [clangformat]: https://clang.llvm.org/docs/ClangFormat.html
 [clangtidy]: https://clang.llvm.org/extra/clang-tidy/
 [asan]: https://clang.llvm.org/docs/AddressSanitizer.html
+[asandpdk]: https://doc.dpdk.org/guides/prog_guide/asan.html
 [ubsan]: https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
 [tsan]: https://clang.llvm.org/docs/ThreadSanitizer.html
 

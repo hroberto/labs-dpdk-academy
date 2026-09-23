@@ -574,16 +574,38 @@ raramente aparece antes de a memória acabar.
     buf_len            54  0
     pool               56  0
     next               64  1
+    tx_offload         72  1
+    shinfo             80  1
+    priv_size          88  1
+    timesync           90  1
+    dynfield1          92  1
 ```
 
-Todos os campos, menos um, cabem na primeira linha. O que sobrou para a segunda
-foi `next` — que só tem valor em pacote segmentado, o caso menos comum. O próprio
-cabeçalho do DPDK se refere a ele como *"next pointer in the second cache line"*.
+A primeira linha guarda o que o caminho quente lê em **todo** pacote: buffer,
+deslocamentos, comprimentos, contador de referência e pool. A segunda guarda
+**seis** campos — `next`, `tx_offload`, `shinfo`, `priv_size`, `timesync` e
+`dynfield1`.
+
+O `next` é o que o cabeçalho do DPDK nomeia explicitamente, *"next pointer in the
+second cache line"*, porque é aquele cuja **ausência** da primeira linha foi
+escolha de projeto: ele só tem valor em pacote segmentado, o caso menos comum.
+
+> **E um pacote de um segmento ainda assim toca a segunda linha.** O caminho
+> genérico de liberação a lê:
+>
+> ```c
+> /* rte_mbuf.h, rte_pktmbuf_prefree_seg() */
+> if (m->next != NULL)
+>         m->next = NULL;
+> ```
+>
+> Isso roda em **todo** segmento liberado, segmentado ou não. A economia da
+> divisão é no caminho quente de RX/TX, **não** ao longo da vida inteira do
+> mbuf: alocação e liberação alcançam a segunda linha de qualquer forma.
 
 A consequência liga direto à [§4.2 dos fundamentos](../01-fundamentos/README.md#42-cache-e-localidade):
-um pacote de um segmento toca **uma** linha de cache por mbuf. A 14,88 milhões de
-pacotes por segundo, uma linha a mais por pacote é largura de banda de cache que
-não sobra para o pacote em si.
+a 14,88 milhões de pacotes por segundo, uma linha a mais **no caminho quente** é
+largura de banda de cache que não sobra para o pacote em si.
 
 ### 2.2 O headroom, e por que ele existe
 

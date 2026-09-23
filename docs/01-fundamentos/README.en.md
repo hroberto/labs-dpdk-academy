@@ -235,12 +235,22 @@ throughput = concurrency ÷ latency
 ```
 
 > **Why a queueing-theory law applies to memory accesses.** The question is fair:
-> a DRAM access is not a bank queue. Little answers it in the retrospective he
-> wrote fifty years later — the law *"holds under remarkably general conditions,
-> and requires no assumptions about interarrival times, service times, number of
-> servers, or queue discipline"* ([Little, 2011][little11]). That generality is
-> what licenses the use here: this is not an analogy, it is the law inside its
-> own domain.
+> a DRAM access is not a bank queue. The retrospective
+> [Little wrote fifty years later][little11] is precisely about the law's
+> generality: it does not depend on the distribution of interarrival times, of
+> service times, on the number of servers, or on the queue discipline. That
+> generality is what licenses the use here: this is not an analogy, it is the law
+> inside its own domain.
+>
+> **What it does require, and this material has to declare:** steady state and
+> conservation of items — nothing enters without leaving, and the averages exist.
+> In a memory-access loop in steady state both conditions hold; in a transient, or
+> with the queue growing without bound, they do not, and the law does not apply.
+>
+> *(Paraphrased. An earlier version of this note carried the generality in
+> quotation marks as though it were a single sentence from the paper; it is a
+> synthesis of distinct passages, and presenting it as a literal quotation
+> attributed to the author a wording that is not his.)*
 
 With latency fixed, the only way to raise throughput is to raise
 **concurrency** — how many accesses are in flight at the same time. And
@@ -256,7 +266,7 @@ this box exists to prevent.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escada-escuro.en.svg">
-  <img alt="Horizontal bar chart of the latency of one dependent access per level of the hierarchy: 0.89 ns in L1d, 2.68 ns in L2, 9.75 ns in L3 and 103 ns in RAM. A dashed line marks the 67.2 ns per-packet budget; the RAM bar alone already exceeds it, by 36 ns." src="imagens/4-escada-claro.en.svg">
+  <img alt="Horizontal bar chart of the latency of one dependent access per level of the hierarchy: 0.89 ns in L1d, 2.68 ns in L2, 9.67 ns in L3 and 86.6 ns in RAM. A dashed line marks the 67.2 ns per-packet budget; the RAM bar alone already exceeds it, by 19.4 ns." src="imagens/4-escada-claro.en.svg">
 </picture>
 
 The RAM bar is this whole module's problem in one image: **a single access to
@@ -293,7 +303,7 @@ and the one that decides most.
 
 And none of them touches DRAM's physical latency. **A hugepage does not make
 memory faster** — it stops the access from paying translation on top. That is a
-distinction the rest of this chapter measures: the ~95 ns common to both rows of
+distinction the rest of this chapter measures: the ~80 ns common to both rows of
 [§4.1](#41-virtual-memory-what-translating-an-address-means) are the RAM, and
 they do not move.
 
@@ -691,15 +701,15 @@ paired design ([`custo-traducao.c`](medicoes/custo-traducao.c)):
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  4 KB pages                             89.05  88.97-89.18     88.82-89.90         0.2%   0.3%  
-  2 MB hugepages                         77.98  77.85-78.28     77.45-79.06         0.6%   0.6%  
+  4 KB pages                             89.83  89.34-90.13     88.82-92.39         0.9%   1.0%  
+  2 MB hugepages                         79.63  79.31-79.92     78.95-83.29         0.8%   1.1%  
 
-  DIFFERENCE attributable to translation     11.09  IQR 10.90 to 11.17   range 9.95 to 11.60   21/21 pairs
+  DIFFERENCE attributable to translation     10.01  IQR 9.80 to 10.35   range 9.06 to 12.47   21/21 pairs
 ```
 
-The ~95 ns common to both measurements are RAM latency, which no hugepage eliminates.
-**The difference — 10.40 ns — is the extra cost of translation** that 4 KB pages charge on
-this walk, that is **15.5% of the budget** of a 64 B packet on 10 GbE, spent before any
+The ~80 ns common to both measurements are RAM latency, which no hugepage eliminates.
+**The difference — 10.01 ns — is the extra cost of translation** that 4 KB pages charge on
+this walk, that is **14.9% of the budget** of a 64 B packet on 10 GbE, spent before any
 useful work.
 
 > **Why the label does not say "the page walk".** `t_4KB − t_2MB` is not a direct
@@ -729,7 +739,7 @@ useful work.
 #### Why the difference is ~11 ns, and not three trips to RAM
 
 The *page walk* diagram shows four memory accesses, and RAM on this machine
-answers in ~95 ns. If every TLB miss really cost four trips to RAM, the difference
+answers in ~80 ns. If every TLB miss really cost four trips to RAM, the difference
 between the two rows of the table would be **hundreds** of nanoseconds — and it is
 12 to 18. The diagram describes the **worst case**; the table measures the **real
 case**. The distance between the two is what tells you when the worst case comes
@@ -924,7 +934,7 @@ chains** over the same region, with K growing:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-conflito-escuro.en.svg">
-  <img alt="Two stacked charts sharing the same horizontal axis K on a logarithmic scale, from 1 to 64 accesses in flight. On top, throughput rises from 10.6 to 291 million accesses per second and saturates; a dashed line marks the 10 GbE line rate, which throughput only passes from K equals 2 onward. Below, on logarithmic scales on both axes, the amortized cost per access falls from 94 to 3.44 nanoseconds while the time until the batch is ready stays flat around 100 nanoseconds up to K equals 16 and rises to 220 at K equals 64. Both curves are in the same unit; the second is the first multiplied by K." src="imagens/4-conflito-claro.en.svg">
+  <img alt="Two stacked charts sharing the same horizontal axis K on a logarithmic scale, from 1 to 64 accesses in flight. In the first, throughput rises from 13.0 to 411 M accesses/s and saturates; a dashed line marks the 10 GbE line rate. In the second, on log scales on both axes, the amortized cost per access falls from 77 to 2.43 ns while the time until the batch is ready stays flat around 80 ns up to K = 16 and rises to 156 ns at K = 64. Both curves are in nanoseconds; the second is the first multiplied by K." src="imagens/4-conflito-claro.en.svg">
 </picture>
 
 The two panels are the same table, and together they are the decision:
@@ -1425,27 +1435,61 @@ cat /sys/bus/pci/devices/0000:08:00.0/numa_node
 usually reports on single-socket machines, where the question makes no sense. DPDK treats
 that case as `SOCKET_ID_ANY`.
 
-The mistake to avoid is passing that value directly as the allocation node. Chaining
-[`rte_eth_dev_socket_id()`][apidevsocket] inside
-[`rte_pktmbuf_pool_create()`][apipoolcreate] without checking the return value may fail or
-allocate in the wrong place:
+Chaining [`rte_eth_dev_socket_id()`][apidevsocket] straight into
+[`rte_pktmbuf_pool_create()`][apipoolcreate] **is not a mistake**, and it is what DPDK's
+own examples do — `packet_ordering`, `ipv4_multicast` and `server_node_efd`, among
+others:
 
 ```c
-/* WRONG: -1 becomes socket_id and the allocation may land on no node */
 mp = rte_pktmbuf_pool_create(nome, n, cache, priv, tam,
                              rte_eth_dev_socket_id(port));
+```
 
-/* RIGHT: a negative value means "any node will do" */
+The source accepts the `-1` deliberately. In `eal_common_memzone.c` the guard rejects
+negatives **except** `SOCKET_ID_ANY`:
+
+```c
+if ((socket_id != SOCKET_ID_ANY) && socket_id < 0) {
+    rte_errno = EINVAL;
+    return NULL;
+}
+```
+
+**The trap is a different one, and it is ambiguity.** `rte_eth_dev_socket_id()` returns
+`-1` in three distinct situations, and two of them are errors:
+
+| situation | return | `rte_errno` |
+|---|---:|---|
+| device declares no affinity | `-1` | **cleared deliberately** |
+| `port_id` out of range | `-1` | `EINVAL` |
+| port not allocated | `-1` | `EINVAL` |
+
+The source clears `rte_errno` in the first case precisely to separate it from the other
+two:
+
+```c
+socket_id = rte_eth_devices[port_id].data->numa_node;
+if (socket_id == SOCKET_ID_ANY)
+        rte_errno = 0;
+```
+
+Whoever treats the `-1` as "any node will do" without looking at `rte_errno` silently
+accepts a non-existent port. What **decides** between the two is not the sign of the
+return, it is `rte_errno`:
+
+```c
+rte_errno = 0;
 int no = rte_eth_dev_socket_id(port);
-if (no < 0)
-    no = (int)rte_socket_id();          /* node of the current lcore */
+if (no == SOCKET_ID_ANY && rte_errno != 0)
+    return -1;                          /* invalid port, not "no affinity" */
 mp = rte_pktmbuf_pool_create(nome, n, cache, priv, tam, no);
 ```
 
-DPDK's `SOCKET_ID_ANY` is `-1` precisely for that case; what you cannot do is use it as an
-index without first recognising it. Note that [`rte_socket_id()`][apisocketid] returns the
-node of the lcore currently executing, which is the reasonable choice when the device
-declares no affinity.
+**On a multi-socket machine there is also a performance choice**, which is different from
+correctness: with `-1` the EAL allocates wherever it fits, and what you want is the NIC's
+node. When the device does not declare one, [`rte_socket_id()`][apisocketid] — the current
+lcore's node — is the reasonable approximation. On this machine, single-socket, the
+distinction changes nothing.
 
 #### Inspecting your machine
 
@@ -1539,7 +1583,7 @@ cost.
 
 | Technique | What it attacks | Gain measured here | What it costs | When **not** to use it |
 |---|---|---|---|---|
-| **hugepages** | the extra cost of translation | **10.40 ns** in the published collection, and the gain **grows with the working set**: 1.75 ns at 8 MB, 6.64 at 64 MB, 10.80 at 512 MB ([§4.1](#41-virtual-memory-what-translating-an-address-means)) | reserved memory that vanishes from the system; boot configuration; no swap | a working set small enough to fit in the TLB |
+| **hugepages** | the extra cost of translation | **10.01 ns** in the current collection, and the gain **tracks the working set without being monotonic**: 1.21 ns at 8 MB, 18.03 at 32 MB, 8.13 at 64 MB, 10.01 at 512 MB — the peak at 32 MB is discussed in [§4.1](#41-virtual-memory-what-translating-an-address-means) | reserved memory that vanishes from the system; boot configuration; no swap | a working set small enough to fit in the TLB |
 | **contiguous layout** | lost locality | up to 33× of bandwidth ([§4.2](#42-cache-and-locality)) | refactoring; structures that are less natural to write | genuinely scattered access, with no order to exploit |
 | **batching and prefetch** | lack of concurrency | 94 → 7.3 ns amortized, 13× throughput ([§4.2](#42-cache-and-locality)) | **latency**: waiting for the batch to fill (+23% up to K = 16, +133% at K = 64) | when the latency tail is the contract, not throughput |
 | **`__rte_cache_aligned`** | false sharing | 53 → 8 ns ([§4.2.1](#421-false-sharing-the-most-common-mistake-of-data-plane-programmers)) | up to 63 bytes wasted per object | a read-only structure, or one touched by a single lcore |
@@ -1568,9 +1612,9 @@ chapter has already measured all three:
 | Lever | Ceiling | Where it was measured |
 |---|---|---|
 | locality | the size of the cache | [§4.2](#42-cache-and-locality): above 8 MB the random column takes off |
-| hugepages | TLB reach | [§4.1](#41-virtual-memory-what-translating-an-address-means): 256 entries cover 512 MB, not 512 GB |
+| hugepages | TLB reach | [§4.1](#41-virtual-memory-what-translating-an-address-means): 4,096 entries of 2 MB cover 8 GB, against 16 MB with 4 KB pages |
 | concurrency (one core) | memory bandwidth | [§4.2](#42-cache-and-locality): from K = 32 to K = 64 throughput grows only 1.33× |
-| concurrency (the system) | the same bandwidth, **divided** | [§4.2](#42-cache-and-locality): with 12 cores, each one does 20% of what it did alone |
+| concurrency (the system) | the same bandwidth, **divided** | [§4.2](#42-cache-and-locality): with 12 cores, each one does 46% of what it did alone |
 
 > **This chapter does not close the subject, and it is good that it does not.**
 > The conflict between throughput and latency comes back at two larger scales,
@@ -2048,7 +2092,22 @@ lock, and everyone spinning burns CPU waiting for someone who is not executing �
 
 **Strong ordering is rarely necessary.** `seq_cst` costs eighteen times the `relaxed` one
 and is the language's default, not the right choice by omission. Prefer
-`acquire`/`release`, which is what [`rte_ring`][guiaring] uses.
+`acquire`/`release`.
+
+> **`rte_ring` would be the obvious example here, and on this machine it is not.** The
+> library has two implementations of the head move, selected by
+> `RTE_USE_C11_MEM_MODEL` — and `config/meson.build` only sets that flag for MSVC, arm64
+> and riscv. **On x86 with GCC, which is this build, 25.11 compiles
+> `rte_ring_generic_pvt.h`**: `rte_smp_rmb()`/`rte_smp_wmb()`, which on x86 are
+> `rte_compiler_barrier()`, plus `rte_atomic32_cmpset` on the MP/MC reserve — which
+> becomes `lock cmpxchg`, a **full** barrier. This campaign's binary has 24 of them.
+>
+> 26.07 swaps the generic one for `rte_ring_gcc_pvt.h` and leaves the reason in the
+> source: *"The C11 is preferred but on x86 GCC has 10% performance drop"*.
+>
+> So: preferring `acquire`/`release` still holds as a **principle**, and `rte_ring` on
+> x86/GCC chose the opposite as a performance measure. Citing it as the example of the
+> principle was citing the case that contradicts it.
 
 > **The best lock is the one that does not exist.** DPDK's model — one lcore per core, each
 > with its own state — is not an aesthetic preference: it is the way to make this section's
@@ -2695,15 +2754,25 @@ requests to touch that value: the probability of escaping it in all ten is 0.99�
 Two rules that avoid most measurement errors:
 
 **Latency is reported by percentiles**, not by the mean. Take telephony as a yardstick:
-[ITU-T G.114][g114] recommends **up to 150 ms** of one-way end-to-end delay, and jitter
-**below 40 ms** to be imperceptible. That budget is split among the codec, the *jitter*
-buffer, propagation and **each network element** on the path.
+[ITU-T G.114][g114] states that below **150 ms** of one-way delay interactivity is
+*"essentially transparent"* for most applications, and that above **400 ms** the delay is
+unacceptable for general network planning. That budget is split among the codec, the
+*jitter* buffer, propagation and **each network element** on the path.
+
+<!-- retratado: 40 ms 12% -->
+> **G.114 sets no numeric jitter budget, and this section once attributed one to it.**
+> The recommendation treats delay variation qualitatively — it must be removed by a
+> de-jitter buffer before playback, and the ear is intolerant of short-term variation.
+> Jitter figures such as 40 ms come from secondary literature, not from G.114. What the
+> recommendation **does** fix is the one-way delay, and it is against that the
+> calculation below is made.
 
 Now consider the system in the chart above, described as "a mean of 10 µs". It seems to
 consume 0.007% of the budget — negligible. But its p99.9 is 5 ms, which is **500 times the
-mean** and alone takes **12% of the jitter budget**, in 1 of every 1000 packets. It does not
-make the call unfeasible on its own; it compromises the slack every other element also
-needs. And the mean shows none of that.
+mean**. Five milliseconds are **3.3% of the 150 ms budget**, consumed by 1 in every 1000
+packets — and, arriving as variation, they must be absorbed by the de-jitter buffer, which
+in turn **adds to the same budget**. It does not make the call unfeasible on its own; it
+compromises the slack every other element also needs. And the mean shows none of that.
 
 **Throughput only means something with the loss declared.** "14 Mpps" with 3% dropped is not
 14 Mpps. The industry's honest metric is the no-loss rate ([RFC 2544][rfc2544]).
@@ -3133,7 +3202,7 @@ internal statistic would detect.
 |---|---:|---:|---|
 | Core-to-core latency, same CCD | ~23 ns | < 25 ns ([Tom's Hardware][th]) | **agrees** |
 | Core-to-core latency, distinct CCDs | 83–102 ns across runs | 180–200 ns before; 75–95 ns after AGESA 1.2.0.2 ([Tom's][th], [TechSpot][ts]) | **intermediate — see below** |
-| TLB miss / *page walk* | 10.40 ns (512 MB, paired) | 8.80 ns on a Core Duo T2600; 18.17 ns on an Athlon 64 ([Gorman][lwntlb]) | **between the two — agrees** |
+| TLB miss / *page walk* | 10.01 ns (512 MB, paired) | 8.80 ns on a Core Duo T2600; 18.17 ns on an Athlon 64 ([Gorman][lwntlb]) | **between the two — agrees** |
 | Cost of a syscall | ~33 ns | hundreds of ns; < 100 ns in the best cases ([Gregg][gregg], [Stoll][syscalls]) | **below — explained** |
 | Memory latency (scattered access) | ~100 ns | ~70 ns on a 9950X ([ChipsAndCheese][cc]); 139,5 ns on an Opteron 844 ([McKenney][perfbook]) | **between the two — explained** |
 | Waking a blocked thread | ~1300 ns | on the order of µs; a slow path by design ([futex][futex]) | agrees |

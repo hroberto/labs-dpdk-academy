@@ -745,8 +745,8 @@ O programa [`medicoes/estado-lcore.c`](medicoes/estado-lcore.c) mostra as duas
 colunas lado a lado. Com `-l 0-3`:
 
 ```
-  lcore    real CPU(s)    role         index in node  NUMA node
-  -----    ------------   -----        ------------   ------- 
+  lcore    real CPU(s)    role         core id        NUMA node
+  -----    ------------   -----        -------        ------- 
   0        0              main         0              0       
   1        1              worker       1              0       
   2        2              worker       2              0       
@@ -756,8 +756,8 @@ colunas lado a lado. Com `-l 0-3`:
 Com `--lcores '0@6,1@7,2@18'`, a mesma máquina:
 
 ```
-  lcore    real CPU(s)    role         index in node  NUMA node
-  -----    ------------   -----        ------------   ------- 
+  lcore    real CPU(s)    role         core id        NUMA node
+  -----    ------------   -----        -------        ------- 
   0        6              main         0              0       
   1        7              worker       1              0       
   2        18             worker       2              0       
@@ -765,12 +765,46 @@ Com `--lcores '0@6,1@7,2@18'`, a mesma máquina:
 
 O lcore 0 agora executa na CPU 6. E repare na quarta coluna: ela **não** mudou.
 
-Essa quarta coluna vem de [`rte_lcore_to_cpu_id()`][apitocpuid], e o nome da
-função engana. A documentação da própria API diz o que ela devolve: *"Return the
-id of the lcore on a socket starting from zero"* — um **índice relativo ao nó
-NUMA**, não o número da CPU. Quem usa esse valor para fixar uma thread, escolher
-onde direcionar uma IRQ ou decidir afinidade acaba com o trabalho no núcleo
-errado, e o único sintoma é o desempenho.
+Essa quarta coluna vem de [`rte_lcore_to_cpu_id()`][apitocpuid], e aqui o nome
+**e a documentação** enganam — o cabeçalho promete *"Return the id of the lcore
+on a socket starting from zero"*, um índice relativo ao nó. O fonte devolve
+outra coisa:
+
+```c
+/* lib/eal/common/eal_common_lcore.c */
+return lcore_config[lcore_id].core_id;
+/* preenchido uma vez, na inicializacao: */
+lcore_config[lcore_id].core_id = eal_cpu_core_id(lcore_id);
+```
+
+E `eal_cpu_core_id(lcore_id)` lê
+`/sys/devices/system/cpu/cpu<lcore_id>/topology/core_id`. O que sai é o **ID
+físico do núcleo da CPU cujo número é igual ao do lcore**.
+
+**Três consequências, e cada uma quebra uma suposição diferente:**
+
+- não é o número da CPU, e **não é índice nenhum**;
+- **irmãos SMT compartilham o valor**, então dois lcores habilitados podem
+  reportar o mesmo — coisa que um índice "começando de zero" jamais faria;
+- o `--lcores` **não o atualiza**: ele é indexado pelo id do lcore, não pela CPU
+  em que o lcore foi fixado.
+
+A segunda consequência é a prova, e cabe num comando. Nesta máquina os lcores
+0 e 12 são irmãos SMT:
+
+```console
+$ estado-lcore --lcores '0@3,12@4'
+  lcore    real CPU(s)    role         core id        NUMA node
+  0        3              main         0              0
+  12       4              worker       0              0
+```
+
+Dois lcores distintos, em CPUs distintas, **mesmo valor**. O `core_id` de `cpu0`
+e de `cpu12` é 0 nos dois casos, e é isso que a função devolve.
+
+Quem usa esse valor para fixar uma thread, escolher onde direcionar uma IRQ ou
+decidir afinidade acaba com o trabalho no núcleo errado, e o único sintoma é o
+desempenho.
 
 A função que devolve a CPU real é [`rte_lcore_cpuset()`][apicpuset], que entrega
 o conjunto de CPUs ao qual o lcore está fixado — a terceira coluna da tabela.

@@ -576,17 +576,38 @@ decides sizing and rarely appears before memory runs out.
     buf_len            54  0
     pool               56  0
     next               64  1
+    tx_offload         72  1
+    shinfo             80  1
+    priv_size          88  1
+    timesync           90  1
+    dynfield1          92  1
 ```
 
-All the fields but one fit in the first line. What was left over for the second was
-`next` — which only has value in a segmented packet, the less common case. DPDK's own
-header refers to it as *"next pointer in the second cache line"*.
+The first line holds what the hot path reads on **every** packet: buffer, offsets,
+lengths, refcount and pool. The second holds **six** fields — `next`, `tx_offload`,
+`shinfo`, `priv_size`, `timesync` and `dynfield1`.
+
+`next` is the one DPDK's header names explicitly, *"next pointer in the second cache
+line"*, because it is the one whose **absence** from the first line was a design choice:
+it only has value in a segmented packet, the less common case.
+
+> **And a single-segment packet still touches the second line.** The generic free path
+> reads it:
+>
+> ```c
+> /* rte_mbuf.h, rte_pktmbuf_prefree_seg() */
+> if (m->next != NULL)
+>         m->next = NULL;
+> ```
+>
+> That runs on **every** segment released, segmented or not. The split's saving is on
+> the RX/TX hot path, **not** over the mbuf's whole life: allocation and release reach
+> the second line regardless.
 
 The consequence connects directly to
-[§4.2 of the fundamentals](../01-fundamentos/README.en.md#42-cache-and-locality): a
-single-segment packet touches **one** cache line per mbuf. At 14.88 million packets
-per second, one extra line per packet is cache bandwidth that is not left for the
-packet itself.
+[§4.2 of the fundamentals](../01-fundamentos/README.en.md#42-cache-and-locality): at
+14.88 million packets per second, one extra line **on the hot path** is cache bandwidth
+that is not left for the packet itself.
 
 ### 2.2 The headroom, and why it exists
 

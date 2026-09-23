@@ -754,12 +754,45 @@ With `--lcores '0@6,1@7,2@18'`, the same machine:
 
 Lcore 0 now executes on CPU 6. And note the fourth column: it did **not** change.
 
-That fourth column comes from [`rte_lcore_to_cpu_id()`][apitocpuid], and the function's
-name misleads. The API's own documentation says what it returns: *"Return the id of the
-lcore on a socket starting from zero"* — an **index relative to the NUMA node**, not
-the CPU number. Anyone using that value to pin a thread, choose where to steer an IRQ or
-decide affinity ends up with the work on the wrong core, and the only symptom is
-performance.
+That fourth column comes from [`rte_lcore_to_cpu_id()`][apitocpuid], and here the name
+**and the documentation** mislead — the header promises *"Return the id of the lcore on a
+socket starting from zero"*, an index relative to the node. The source returns something
+else:
+
+```c
+/* lib/eal/common/eal_common_lcore.c */
+return lcore_config[lcore_id].core_id;
+/* filled once, at init: */
+lcore_config[lcore_id].core_id = eal_cpu_core_id(lcore_id);
+```
+
+And `eal_cpu_core_id(lcore_id)` reads
+`/sys/devices/system/cpu/cpu<lcore_id>/topology/core_id`. What comes out is the
+**physical core id of the CPU whose number equals the lcore id**.
+
+**Three consequences, and each breaks a different assumption:**
+
+- it is not the CPU number, and **it is not an index at all**;
+- **SMT siblings share the value**, so two enabled lcores can report the same one —
+  something an index "starting from zero" could never do;
+- `--lcores` **does not update it**: it is indexed by the lcore id, not by the CPU the
+  lcore was pinned to.
+
+The second consequence is the proof, and it fits in one command. On this machine lcores
+0 and 12 are SMT siblings:
+
+```console
+$ estado-lcore --lcores '0@3,12@4'
+  lcore    real CPU(s)    role         core id        NUMA node
+  0        3              main         0              0
+  12       4              worker       0              0
+```
+
+Two distinct lcores, on distinct CPUs, **the same value**. The `core_id` of `cpu0` and of
+`cpu12` is 0 in both cases, and that is what the function returns.
+
+Anyone using that value to pin a thread, choose where to steer an IRQ or decide affinity
+ends up with the work on the wrong core, and the only symptom is performance.
 
 The function that returns the real CPU is [`rte_lcore_cpuset()`][apicpuset], which
 delivers the set of CPUs the lcore is pinned to — the table's third column.

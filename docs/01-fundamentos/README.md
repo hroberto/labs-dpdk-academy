@@ -236,12 +236,22 @@ vazão = concorrência ÷ latência
 ```
 
 > **Por que uma lei de teoria de filas se aplica a acessos de memória.** A
-> pergunta é legítima: um acesso à DRAM não é uma fila de banco. Little responde
-> no retrospecto que escreveu cinquenta anos depois — a lei *"vale sob condições
-> notavelmente gerais, e não exige suposições sobre tempos entre chegadas, tempos
-> de serviço, número de servidores ou disciplina da fila"* ([Little, 2011][little11],
-> tradução nossa). É essa generalidade que autoriza o uso aqui: não é analogia,
-> é a lei dentro do domínio dela.
+> pergunta é legítima: um acesso à DRAM não é uma fila de banco. O retrospecto
+> que [Little escreveu cinquenta anos depois][little11] trata exatamente da
+> generalidade da lei: ela não depende da distribuição dos tempos entre
+> chegadas, dos tempos de serviço, do número de servidores nem da disciplina da
+> fila. É essa generalidade que autoriza o uso aqui: não é analogia, é a lei
+> dentro do domínio dela.
+>
+> **O que ela exige, e este material precisa declarar:** regime estacionário e
+> conservação de itens — nada entra sem sair, e as médias existem. Num laço de
+> acesso à memória em regime as duas condições valem; num transiente, ou com a
+> fila crescendo sem limite, não valem, e a lei não se aplica.
+>
+> *(Parafraseado. Uma versão anterior desta nota trazia a generalidade entre
+> aspas como se fosse uma frase única do artigo; ela é uma síntese de passagens
+> distintas, e apresentá-la como citação literal era atribuir ao autor uma
+> formulação que não é dele.)*
 
 Fixada a latência, a única forma de aumentar a vazão é aumentar a
 **concorrência** — quantos acessos estão em voo ao mesmo tempo. E a concorrência
@@ -257,7 +267,7 @@ caixa existe para evitar.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escada-escuro.svg">
-  <img alt="Gráfico de barras horizontais com a latência de um acesso dependente por nível da hierarquia: 0,89 ns na L1d, 2,68 ns na L2, 9,75 ns na L3 e 103 ns na RAM. Uma linha tracejada marca o orçamento de 67,2 ns por pacote; só a barra da RAM já o ultrapassa, em 36 ns." src="imagens/4-escada-claro.svg">
+  <img alt="Gráfico de barras horizontais com a latência de um acesso dependente por nível da hierarquia: 0,89 ns na L1d, 2,68 ns na L2, 9,67 ns na L3 e 86,6 ns na RAM. Uma linha tracejada marca o orçamento de 67,2 ns por pacote; só a barra da RAM já o ultrapassa, em 19,4 ns." src="imagens/4-escada-claro.svg">
 </picture>
 
 A barra da RAM é o problema inteiro deste módulo em uma imagem: **um único
@@ -295,7 +305,7 @@ barato**. As outras três reduzem alguma parcela de `T_acesso`; o lote deixa
 
 E nenhuma delas toca a latência física da DRAM. **Hugepage não torna a memória
 mais rápida** — ela evita que o acesso pague tradução por cima. É uma distinção
-que o resto deste capítulo mede: os ~95 ns comuns às duas linhas da
+que o resto deste capítulo mede: os ~80 ns comuns às duas linhas da
 [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço) são a RAM, e
 eles não se mexem.
 
@@ -697,15 +707,15 @@ desenho pareado ([`custo-traducao.c`](medicoes/custo-traducao.c)):
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  4 KB pages                             89.05  88.97-89.18     88.82-89.90         0.2%   0.3%  
-  2 MB hugepages                         77.98  77.85-78.28     77.45-79.06         0.6%   0.6%  
+  4 KB pages                             89.83  89.34-90.13     88.82-92.39         0.9%   1.0%  
+  2 MB hugepages                         79.63  79.31-79.92     78.95-83.29         0.8%   1.1%  
 
-  DIFFERENCE attributable to translation     11.09  IQR 10.90 to 11.17   range 9.95 to 11.60   21/21 pairs
+  DIFFERENCE attributable to translation     10.01  IQR 9.80 to 10.35   range 9.06 to 12.47   21/21 pairs
 ```
 
-Os ~95 ns comuns às duas medições são a latência da RAM, que hugepage nenhuma
-elimina. **A diferença — 10,40 ns — é o custo adicional de tradução** que as
-páginas de 4 KB cobram neste percurso, ou seja **15,5% do orçamento** de um
+Os ~80 ns comuns às duas medições são a latência da RAM, que hugepage nenhuma
+elimina. **A diferença — 10,01 ns — é o custo adicional de tradução** que as
+páginas de 4 KB cobram neste percurso, ou seja **14,9% do orçamento** de um
 pacote de 64 B em 10 GbE, gastos antes de qualquer trabalho útil.
 
 > **Por que o rótulo não diz "o page walk".** `t_4KB − t_2MB` não é uma medição
@@ -736,9 +746,9 @@ pacote de 64 B em 10 GbE, gastos antes de qualquer trabalho útil.
 #### Por que a diferença é ~11 ns, e não três acessos à RAM
 
 O diagrama do *page walk* mostra quatro acessos à memória, e a RAM desta máquina
-responde em ~95 ns. Se cada falta de TLB custasse mesmo quatro idas à RAM, a
+responde em ~80 ns. Se cada falta de TLB custasse mesmo quatro idas à RAM, a
 diferença entre as duas linhas da tabela seria de **centenas** de nanossegundos —
-e ela é de ~11. O diagrama descreve o **pior caso**; a tabela mede o **caso
+e ela é de ~10. O diagrama descreve o **pior caso**; a tabela mede o **caso
 real**. A distância entre os dois é o que diz quando o pior caso volta a valer.
 
 **As tabelas de página são dados, e cabem em cache.** Elas ocupam memória como
@@ -927,7 +937,7 @@ percorre **K cadeias independentes** sobre a mesma região, com K crescente:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-conflito-escuro.svg">
-  <img alt="Dois gráficos empilhados com o mesmo eixo horizontal K em escala logarítmica, de 1 a 64 acessos em voo. No de cima, a vazão sobe de 10,6 para 291 milhões de acessos por segundo e satura; uma linha tracejada marca o line rate de 10 GbE, que a vazão só ultrapassa a partir de K igual a 2. No de baixo, em escala logarítmica nos dois eixos, o custo amortizado por acesso cai de 94 para 3,44 nanossegundos enquanto o tempo até o lote ficar pronto permanece plano em torno de 100 nanossegundos até K igual a 16 e sobe para 220 em K igual a 64. As duas curvas estão na mesma unidade; a segunda é a primeira multiplicada por K." src="imagens/4-conflito-claro.svg">
+  <img alt="Dois gráficos empilhados com o mesmo eixo horizontal K em escala logarítmica, de 1 a 64 acessos em voo. No primeiro, a vazão sobe de 13,0 para 411 M acessos/s e satura; uma linha tracejada marca o line rate de 10 GbE. No segundo, em escala log nos dois eixos, o custo amortizado por acesso cai de 77 para 2,43 ns enquanto o tempo até o lote ficar pronto permanece plano em torno de 80 ns até K = 16 e sobe para 156 ns em K = 64. As duas curvas estão em nanossegundos; a segunda é a primeira multiplicada por K." src="imagens/4-conflito-claro.svg">
 </picture>
 
 Os dois painéis são a mesma tabela, e juntos são a decisão:
@@ -1434,27 +1444,61 @@ cat /sys/bus/pci/devices/0000:08:00.0/numa_node
 firmware costuma reportar em máquinas de soquete único, onde a pergunta não faz
 sentido. O DPDK trata esse caso como `SOCKET_ID_ANY`.
 
-O erro a evitar é passar esse valor diretamente como nó de alocação. Encadear
-[`rte_eth_dev_socket_id()`][apidevsocket] dentro de
-[`rte_pktmbuf_pool_create()`][apipoolcreate] sem checar o retorno pode falhar ou
-alocar no lugar errado:
+Encadear [`rte_eth_dev_socket_id()`][apidevsocket] direto em
+[`rte_pktmbuf_pool_create()`][apipoolcreate] **não é erro**, e é o que fazem os
+exemplos oficiais do DPDK — `packet_ordering`, `ipv4_multicast` e
+`server_node_efd`, entre outros:
 
 ```c
-/* ERRADO: -1 vira socket_id e a alocação pode não ir para nó nenhum */
 mp = rte_pktmbuf_pool_create(nome, n, cache, priv, tam,
                              rte_eth_dev_socket_id(porta));
+```
 
-/* CERTO: valor negativo significa "qualquer nó serve" */
+O fonte aceita o `-1` de propósito. Em `eal_common_memzone.c` a guarda rejeita
+negativo **exceto** `SOCKET_ID_ANY`:
+
+```c
+if ((socket_id != SOCKET_ID_ANY) && socket_id < 0) {
+    rte_errno = EINVAL;
+    return NULL;
+}
+```
+
+**A armadilha é outra, e é de ambiguidade.** `rte_eth_dev_socket_id()` devolve
+`-1` em três situações distintas, e duas delas são erro:
+
+| situação | retorno | `rte_errno` |
+|---|---:|---|
+| dispositivo sem afinidade declarada | `-1` | **zerado de propósito** |
+| `port_id` fora da faixa | `-1` | `EINVAL` |
+| porta não alocada | `-1` | `EINVAL` |
+
+O fonte zera `rte_errno` no primeiro caso justamente para separá-lo dos outros
+dois:
+
+```c
+socket_id = rte_eth_devices[port_id].data->numa_node;
+if (socket_id == SOCKET_ID_ANY)
+        rte_errno = 0;
+```
+
+Quem trata o `-1` como "qualquer nó serve" sem olhar `rte_errno` aceita em
+silêncio uma porta inexistente. O que **decide** entre os dois não é o sinal do
+retorno, é o `rte_errno`:
+
+```c
+rte_errno = 0;
 int no = rte_eth_dev_socket_id(porta);
-if (no < 0)
-    no = (int)rte_socket_id();          /* nó do lcore corrente */
+if (no == SOCKET_ID_ANY && rte_errno != 0)
+    return -1;                          /* porta invalida, nao "sem afinidade" */
 mp = rte_pktmbuf_pool_create(nome, n, cache, priv, tam, no);
 ```
 
-O `SOCKET_ID_ANY` do DPDK vale `-1` justamente para esse caso; o que não se pode
-é usá-lo como índice sem antes reconhecê-lo. Note que
-[`rte_socket_id()`][apisocketid] devolve o nó do lcore que está executando, que é
-a escolha razoável quando o dispositivo não declara afinidade.
+**Numa máquina de vários soquetes há ainda uma escolha de desempenho**, que é
+diferente de correção: com `-1` a EAL aloca onde couber, e o que se quer é o nó
+da NIC. Quando o dispositivo não o declara,
+[`rte_socket_id()`][apisocketid] — o nó do lcore corrente — é a aproximação
+razoável. Nesta máquina, de soquete único, a distinção não muda nada.
 
 #### Inspecionando a sua máquina
 
@@ -1548,7 +1592,7 @@ As seções anteriores mediram mecanismos. Esta as põe lado a lado como
 
 | Técnica | O que ataca | Ganho medido aqui | O que cobra | Quando **não** usar |
 |---|---|---|---|---|
-| **hugepages** | o custo adicional de tradução | **10,40 ns** na coleta publicada, e o ganho **cresce com o conjunto de trabalho**: 1,75 ns em 8 MB, 6,64 em 64 MB, 10,80 em 512 MB ([§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço)) | memória reservada que some do sistema; configuração de boot; sem swap | conjunto de trabalho pequeno o bastante para caber na TLB |
+| **hugepages** | o custo adicional de tradução | **10,01 ns** na coleta vigente, e o ganho **acompanha o conjunto de trabalho sem ser monotônico**: 1,21 ns em 8 MB, 18,03 em 32 MB, 8,13 em 64 MB, 10,01 em 512 MB — o pico em 32 MB é discutido na [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço) | memória reservada que some do sistema; configuração de boot; sem swap | conjunto de trabalho pequeno o bastante para caber na TLB |
 | **layout contíguo** | a falta de localidade | até 33× de banda ([§4.2](#42-cache-e-localidade)) | refatoração; estruturas menos naturais de escrever | acesso genuinamente disperso, em que não há ordem a explorar |
 | **lote e *prefetch*** | a falta de concorrência | 94 → 7,3 ns amortizados, 13× de vazão ([§4.2](#42-cache-e-localidade)) | **latência**: esperar o lote encher (+23% até K = 16, +133% em K = 64) | quando a cauda de latência é o contrato, e não a vazão |
 | **`__rte_cache_aligned`** | o falso compartilhamento | 53 → 8 ns ([§4.2.1](#421-falso-compartilhamento-o-erro-mais-comum-de-quem-escreve-plano-de-dados)) | até 63 bytes desperdiçados por objeto | estrutura só de leitura, ou tocada por um lcore só |
@@ -1577,9 +1621,9 @@ três tetos deste capítulo já apareceram:
 | Alavanca | Teto | Onde ele foi medido |
 |---|---|---|
 | localidade | o tamanho do cache | [§4.2](#42-cache-e-localidade): acima de 8 MB a coluna aleatória dispara |
-| hugepages | o alcance da TLB | [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço): 256 entradas cobrem 512 MB, não 512 GB |
+| hugepages | o alcance da TLB | [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço): 4 096 entradas de 2 MB cobrem 8 GB, contra 16 MB com páginas de 4 KB |
 | concorrência (um núcleo) | a banda da memória | [§4.2](#42-cache-e-localidade): de K = 32 a K = 64 a vazão cresce só 1,33× |
-| concorrência (o sistema) | a mesma banda, **dividida** | [§4.2](#42-cache-e-localidade): com 12 núcleos, cada um faz 20% do que fazia sozinho |
+| concorrência (o sistema) | a mesma banda, **dividida** | [§4.2](#42-cache-e-localidade): com 12 núcleos, cada um faz 46% do que fazia sozinho |
 
 > **Este capítulo não fecha o assunto, e é bom que não feche.** O conflito entre
 > vazão e latência reaparece em duas escalas maiores, com a mesma matemática: no
@@ -2068,7 +2112,24 @@ está executando — trocando 4 ns por milissegundos.
 
 **Ordenação forte raramente é necessária.** `seq_cst` custa dezoito vezes a
 `relaxed` e é o padrão da linguagem, não a escolha certa por omissão. Prefira
-`acquire`/`release`, que é o que o [`rte_ring`][guiaring] usa.
+`acquire`/`release`.
+
+> **O `rte_ring` seria o exemplo óbvio aqui, e nesta máquina ele não é.** A
+> biblioteca tem duas implementações do movimento de cabeça, escolhidas por
+> `RTE_USE_C11_MEM_MODEL` — e o `config/meson.build` só liga esse sinalizador
+> para MSVC, arm64 e riscv. **Em x86 com GCC, que é este build, o 25.11 compila
+> `rte_ring_generic_pvt.h`**: `rte_smp_rmb()`/`rte_smp_wmb()`, que em x86 são
+> `rte_compiler_barrier()`, mais `rte_atomic32_cmpset` na reserva MP/MC — que
+> vira `lock cmpxchg`, barreira **completa**. O binário desta campanha tem 24
+> delas.
+>
+> O 26.07 troca o genérico por `rte_ring_gcc_pvt.h` e deixa o motivo no fonte:
+> *"The C11 is preferred but on x86 GCC has 10% performance drop"*.
+>
+> Ou seja: a recomendação de preferir `acquire`/`release` continua valendo como
+> **princípio**, e o `rte_ring` em x86/GCC escolheu o contrário por medida de
+> desempenho. Citá-lo como exemplo do princípio era citar o caso que o
+> contradiz.
 
 > **A melhor trava é a que não existe.** O modelo do DPDK — um lcore por núcleo,
 > cada um com seu estado — não é preferência estética: é a forma de tornar a
@@ -2745,16 +2806,27 @@ vira o caso comum do sistema.**
 Duas regras que evitam a maioria dos erros de medição:
 
 **Latência se reporta por percentis**, não por média. Tome telefonia como régua:
-a [ITU-T G.114][g114] recomenda **até 150 ms** de atraso fim a fim num sentido, e
-jitter **abaixo de 40 ms** para ser imperceptível. Esse orçamento é repartido
-entre codec, buffer de *jitter*, propagação e **cada elemento de rede** no
-caminho.
+a [ITU-T G.114][g114] diz que abaixo de **150 ms** de atraso num sentido a
+interatividade é *"essencialmente transparente"* para a maioria das aplicações,
+e que acima de **400 ms** o atraso é inaceitável para planejamento de rede.
+Esse orçamento é repartido entre codec, buffer de *jitter*, propagação e **cada
+elemento de rede** no caminho.
+
+<!-- retratado: 40 ms 12% -->
+> **A G.114 não fixa orçamento numérico de jitter, e esta seção já atribuiu um
+> a ela.** A recomendação trata variação de atraso de forma qualitativa — ela
+> precisa ser removida por um buffer de *de-jitter* antes da reprodução, e o
+> ouvido é intolerante a variação de curto prazo. Números de jitter como 40 ms
+> vêm de literatura secundária, não da G.114. O que a recomendação **fixa** é o
+> atraso de um sentido, e é contra ele que a conta abaixo é feita.
 
 Agora considere o sistema do gráfico acima, descrito como "média de 10 µs".
 Parece consumir 0,007% do orçamento — desprezível. Mas o p99,9 dele é 5 ms, que
-é **500 vezes a média** e sozinho leva **12% do orçamento de jitter**, em 1 de
-cada 1000 pacotes. Não inviabiliza a chamada sozinho; compromete a folga que
-todos os outros elementos também precisam. E a média não mostra nada disso.
+é **500 vezes a média**. Cinco milissegundos são **3,3% do orçamento de 150 ms**,
+consumidos por 1 em cada 1000 pacotes — e, por virem como variação, precisam ser
+absorvidos pelo buffer de *de-jitter*, que por sua vez **soma ao mesmo
+orçamento**. Não inviabiliza a chamada sozinho; compromete a folga que todos os
+outros elementos também precisam. E a média não mostra nada disso.
 
 **Vazão só significa algo com a perda declarada.** "14 Mpps" com 3% de descarte
 não é 14 Mpps. A métrica honesta da indústria é a taxa sem perda
@@ -3191,7 +3263,7 @@ revelou um viés que nenhuma estatística interna detectaria.
 |---|---:|---:|---|
 | Latência entre núcleos, mesmo CCD | ~23 ns | < 25 ns ([Tom's Hardware][th]) | **concorda** |
 | Latência entre núcleos, CCDs distintos | 83–102 ns entre execuções | 180–200 ns antes; 75–95 ns depois do AGESA 1.2.0.2 ([Tom's][th], [TechSpot][ts]) | **intermediário — ver abaixo** |
-| Falta de TLB / *page walk* | 10,40 ns (512 MB, pareado) | 8,80 ns em Core Duo T2600; 18,17 ns em Athlon 64 ([Gorman][lwntlb]) | **entre os dois — concorda** |
+| Falta de TLB / *page walk* | 10,01 ns (512 MB, pareado) | 8,80 ns em Core Duo T2600; 18,17 ns em Athlon 64 ([Gorman][lwntlb]) | **entre os dois — concorda** |
 | Custo de uma syscall | ~33 ns | centenas de ns; < 100 ns nos melhores casos ([Gregg][gregg], [Stoll][syscalls]) | **abaixo — explicado** |
 | Latência de memória (acesso disperso) | ~100 ns | ~70 ns em 9950X ([ChipsAndCheese][cc]); 139,5 ns em Opteron 844 ([McKenney][perfbook]) | **entre os dois — explicado** |
 | Acordar thread bloqueada | ~1300 ns | ordem de µs; caminho lento por projeto ([futex][futex]) | concorda |
