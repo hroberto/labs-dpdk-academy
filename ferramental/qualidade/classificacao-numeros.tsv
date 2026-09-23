@@ -38,7 +38,7 @@
 18	MEDIDO	o proprio texto declara "~18 ns (medido)" na tabela de polling
 25	CITADO	"< 25 ns ([Tom's Hardware][th])" na tabela de confronto da §10
 91	CALCULADO	subtracao do page walk: 101 menos 10 a 18 ns
-92	MEDIDO	ENTRE dominios, 91,75 arredondado na §4.2.1
+81	MEDIDO	ENTRE dominios, 81,49 arredondado na §4.3 e nas tabelas-sintese
 116	MEDIDO	linha K = 16 da tabela do custo-paralelismo
 120	CALCULADO	fila de 512 posicoes a 67,2 ns por pacote
 320	MEDIDO	linha de tabela do 6.3-aprofundamento

@@ -1146,15 +1146,15 @@ hardware enxerga.
 #### Quanto custa
 
 A ordem de grandeza é a da travessia medida na
-[§4.3](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só) — **23 ns** dentro do
-domínio, **92 ns** entre domínios —, só que paga **a cada acesso**, e sem que
+[§4.3](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só) — **18 ns** dentro do
+domínio, **81 ns** entre domínios —, só que paga **a cada acesso**, e sem que
 nada no código sugira que algo está sendo compartilhado.
 
 > **Ordem de grandeza, e não igualdade.** Aquela medição é um *ping-pong* entre
 > duas threads que se revezam de propósito; o falso compartilhamento é a mesma
 > linha migrando entre núcleos, mas com padrão de leitura e escrita próprio e
 > com a linha passando por estados de coerência que o ping-pong não percorre.
-> Os 23 e os 92 ns dizem **em que faixa** o problema cobra, não quanto custa
+> Os 18 e os 81 ns dizem **em que faixa** o problema cobra, não quanto custa
 > cada invalidação.
 
 Este documento tem uma demonstração involuntária. Durante a construção das
@@ -1548,12 +1548,12 @@ medindo o tempo de uma linha de cache viajar de um núcleo para outro:
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  within domain 0 (cpu 0 <-> 2)          20.13  19.42-21.27     17.86-39.18         9.2%  20.5% ~
-  BETWEEN domains (cpu 0 <-> 6)          82.24  82.01-84.34     81.93-128.14        2.8%  11.8%  
-  RATIO between/within (paired)           4.09  3.91-4.32       2.32-6.71           9.9%  18.0% ~
+  within domain 0 (cpu 0 <-> 2)          17.94  17.50-18.48     16.78-19.89         5.5%   4.9% ~
+  BETWEEN domains (cpu 0 <-> 6)          81.49  81.45-81.53     81.43-83.43         0.1%   0.5%  
+  RATIO between/within (paired)           4.54  4.41-4.66       4.10-4.92           5.4%   5.0% ~
 ```
 
-**Atravessar a interconexão custa cerca de 4,0 vezes mais — e são 137% do
+**Atravessar a interconexão custa cerca de 4,5 vezes mais — e são 121% do
 orçamento de um pacote de 64 B em 10 GbE.** Um único repasse entre núcleos mal
 posicionados já estoura o orçamento inteiro, antes de qualquer trabalho útil.
 
@@ -1568,7 +1568,7 @@ Esse resultado tem consequência direta e imediata no projeto: o
 [tópico 02](../../trilha/01-fundamentos/02-mempool-ring/) passa objetos entre
 produtor e consumidor por um [`rte_ring`][guiaring], e cada repasse faz exatamente essa
 viagem. Escolher `-l 0,2` ou `-l 0,6` na EAL não é detalhe de configuração — é a
-diferença entre 23 ns e 92 ns por travessia.
+diferença entre 18 ns e 81 ns por travessia.
 
 > **Respondendo à pergunta de forma direta:** não vale ativar a opção de BIOS. Ela
 > anunciaria uma assimetria de *memória* que não existe nesta máquina, enquanto a
@@ -1671,8 +1671,8 @@ Daí três migrações com custos diferentes:
 | A thread vai para… | Perde | Custo |
 |---|---|---|
 | o irmão SMT (cpu 0 → 12) | nada de cache | disputa as unidades de execução ([§5.1.1](#511-smt-duas-cpus-lógicas-não-são-dois-núcleos)) |
-| outro núcleo do mesmo bloco (0 → 3) | L1d e L2: **1 MB de estado quente** | a L3 ainda serve — travessia de **23 ns** |
-| um núcleo do outro bloco (0 → 6) | L1d, L2 **e** L3 | cada linha volta pela interconexão — **92 ns**, 4× |
+| outro núcleo do mesmo bloco (0 → 3) | L1d e L2: **1 MB de estado quente** | a L3 ainda serve — travessia de **18 ns** |
+| um núcleo do outro bloco (0 → 6) | L1d, L2 **e** L3 | cada linha volta pela interconexão — **81 ns**, 4,5× |
 
 Os dois tempos são os que a [§4.3](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só)
 já mediu. A migração cara não é qualquer uma: é a que **atravessa o bloco de L3**.
@@ -1986,7 +1986,7 @@ Todas as medições rodam **com outra thread presente no processo**, que
 > — mas ela não é o eixo desta seção. *Sem disputa* não é sinônimo de
 > *mono-thread*: um programa com dezenas de threads tem travas sem disputa o
 > tempo todo, e é assim que código concorrente bem feito se comporta. E o rótulo
-> "multi-thread" cobriria indistintamente **8,5 ns** (sem disputa), **92 ns**
+> "multi-thread" cobriria indistintamente **8,5 ns** (sem disputa), **81 ns**
 > (repasse entre núcleos) e **1356 ns** (repasse com sono) — exatamente as três
 > parcelas que esta seção existe para separar.
 
@@ -2067,7 +2067,7 @@ medições desta seção a sustentam, e cada uma isola uma variável diferente:
 |---|---|---|
 | Sem disputa × no repasse | o custo do primitivo sozinho contra o de coordenar de fato | o primitivo é barato; **dormir** é que custa 13× |
 | [Espelho em C e C++23](medicoes/custo-espera-cpp.cpp) | se a linguagem altera a conta | razão ~1,00× para atômica, mutex e condvar |
-| [Posicionamento entre núcleos](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só) | o mesmo código em núcleos diferentes | 23 ns no mesmo domínio, 92 ns entre domínios |
+| [Posicionamento entre núcleos](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só) | o mesmo código em núcleos diferentes | 18 ns no mesmo domínio, 81 ns entre domínios |
 
 O segundo importa especialmente aqui: como os números batem em **duas
 linguagens**, a orientação abaixo não é peculiaridade da glibc nem do libstdc++ —
@@ -2510,11 +2510,11 @@ Os três números, para este experimento:
 | Grandeza | Valor | De onde vem |
 |---|---:|---|
 | `λ_pico` | 3 881 988 pacotes/s | enlace de 10 Gb/s com datagrama de 322 B no fio |
-| `μ` | 1 365 326 pacotes/s | **medido nesta máquina**: 732 ns por pacote, 25 amostras |
+| `μ` | 1 365 969 pacotes/s | **medido nesta máquina**: 732 ns por pacote, 25 amostras |
 | `T` | 1 ms | ordem de grandeza de uma rajada de abertura |
 
 ```
-ΔQ = (3 881 988 − 1 365 326) × 1 ms  =  2 517 descritores
+ΔQ = (3 881 988 − 1 365 969) × 1 ms  =  2 516 descritores
 ```
 
 > **A previsão, antes de medir.** Anéis de 256, 512 e 1 024 devem ser
@@ -2557,7 +2557,7 @@ tempo**. A distribuição exata está no
 ```
 
 **A previsão se sustenta.** Com 512 descritores a perda é de 26,6%; o anel de
-4 096 — acima dos 2 517 que a conta pedia — derruba para 6,3%, e não a zero,
+4 096 — acima dos 2 516 que a conta pedia — derruba para 6,3%, e não a zero,
 porque as rajadas longas continuam existindo. E a linha cadenciada mostra que
 **o mesmo tráfego, distribuído por igual, não perde nada e nunca ocupa mais que
 um descritor**.
@@ -2592,13 +2592,13 @@ Submetendo o mesmo tráfego aos dois, com profundidade equivalente:
 ```
   caminho                          fila    perda    drenagem
   ------------------------------  -----  -------  ----------
-  anel de descritores              8192   1.084%   1 365 326 pacotes/s
-  socket UDP (recv um a um)        8738   1.765%     935 507 pacotes/s
-  socket UDP (recvmmsg em lote)    8738   1.596%   1 002 327 pacotes/s
+  anel de descritores              8192   1.083%   1 365 969 pacotes/s
+  socket UDP (recv um a um)        8738   1.618%     993 287 pacotes/s
+  socket UDP (recvmmsg em lote)    8738   1.538%   1 026 172 pacotes/s
 ```
 
 **Mesma fila, mesma rajada, e o socket perde mais** — a diferença inteira é a
-drenagem um terço menor, porque cada datagrama paga a travessia do kernel e a
+drenagem **27% menor**, porque cada datagrama paga a travessia do kernel e a
 cópia além do trabalho da aplicação. O lote via `recvmmsg` devolve parte disso,
 pelo mesmo mecanismo de amortização do
 [§6.2](#62-o-barramento-também-tem-orçamento).
@@ -3261,7 +3261,7 @@ revelou um viés que nenhuma estatística interna detectaria.
 
 | Medição | Aqui | Literatura | Veredito |
 |---|---:|---:|---|
-| Latência entre núcleos, mesmo CCD | ~23 ns | < 25 ns ([Tom's Hardware][th]) | **concorda** |
+| Latência entre núcleos, mesmo CCD | ~18 ns | < 25 ns ([Tom's Hardware][th]) | **concorda** |
 | Latência entre núcleos, CCDs distintos | 83–102 ns entre execuções | 180–200 ns antes; 75–95 ns depois do AGESA 1.2.0.2 ([Tom's][th], [TechSpot][ts]) | **intermediário — ver abaixo** |
 | Falta de TLB / *page walk* | 10,01 ns (512 MB, pareado) | 8,80 ns em Core Duo T2600; 18,17 ns em Athlon 64 ([Gorman][lwntlb]) | **entre os dois — concorda** |
 | Custo de uma syscall | ~33 ns | centenas de ns; < 100 ns nos melhores casos ([Gregg][gregg], [Stoll][syscalls]) | **abaixo — explicado** |
@@ -3289,10 +3289,10 @@ por isso que a tabela dele atravessa vinte anos e continua comparável
 | Operação | McKenney (Opteron 844, 4 soq., 1,8 GHz) | Aqui (Zen 5, 1 soq., ~5,6 GHz) |
 |---|---:|---:|
 | Período de clock | 0,6 ns | 0,180 ns |
-| CAS em melhor caso | 37,9 ns | 7,14 ns |
-| Trava em melhor caso | 65,6 ns | 2,04 ns |
-| Falta de cache | 139,5 ns | 20,96 ns (mesmo CCD) · 92,33 ns (outro) |
-| CAS com falta de cache | 306,0 ns | 19,31 ns (mesmo) · 91,55 ns (outro) |
+| CAS em melhor caso | 37,9 ns | 7,13 ns |
+| Trava em melhor caso | 65,6 ns | 2,06 ns |
+| Falta de cache | 139,5 ns | 20,86 ns (mesmo CCD) · 81,68 ns (outro) |
+| CAS com falta de cache | 306,0 ns | 20,08 ns (mesmo) · 81,50 ns (outro) |
 
 **Em ciclos de clock** — que é onde a comparação fica honesta, porque neutraliza
 a diferença de frequência entre as duas máquinas:
@@ -3301,8 +3301,8 @@ a diferença de frequência entre as duas máquinas:
 |---|---:|---:|---:|
 | CAS em melhor caso | 63 | 40 | — |
 | Trava em melhor caso | 109 | **11** | — |
-| Falta de cache | 232 | 116 | **513** |
-| CAS com falta de cache | 510 | 107 | **509** |
+| Falta de cache | 232 | 116 | **454** |
+| CAS com falta de cache | 510 | 112 | **453** |
 
 Duas leituras, e a segunda é o achado que justifica todo o exercício.
 
@@ -3311,10 +3311,11 @@ ciclos — dez vezes, e não por clock, já que a comparação está em ciclos. 
 efeito acumulado do caminho rápido do futex (§ abaixo) e de vinte anos de
 microarquitetura.
 
-**A travessia de fronteira de coerência não barateou nada.** Um CAS sobre linha
-detida por núcleo de outro domínio custa **509 ciclos aqui, contra 510 no
-Opteron de quatro soquetes de 2004**. Praticamente idêntico. A distância física
-e o protocolo de coerência não seguiram a lei de Moore.
+**A travessia de fronteira de coerência quase não barateou.** Um CAS sobre linha
+detida por núcleo de outro domínio custa **453 ciclos aqui, contra 510 no
+Opteron de quatro soquetes de 2004** — 11% em vinte anos, contra o fator de dez
+da trava local. A distância física e o protocolo de coerência não seguiram a lei
+de Moore.
 
 É essa assimetria que explica por que o gargalo se deslocou: quando a
 sincronização local fica dez vezes mais barata e atravessar um limite de
@@ -3333,7 +3334,7 @@ estudo mais exaustivo de sincronização até então, foi:
 
 É exatamente o que as medições da [§4.3](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só)
 mostram nesta máquina: **o mesmo código**, mudando apenas em quais núcleos as
-threads rodam, custa 23 ns ou 92 ns. Não há alteração de algoritmo, de
+threads rodam, custa 18 ns ou 81 ns. Não há alteração de algoritmo, de
 primitivo ou de linguagem — só de posicionamento.
 
 ### Por que o mutex sem disputa é tão barato: o projeto por trás
@@ -3581,13 +3582,13 @@ utilização. A observação do documento estava certa e sem nome.
 >
 > **E isso deixou de ser advertência.** A
 > [§6.3](#63-quantos-descritores-e-o-que-eles-não-compram) mede o mesmo tráfego
-> nas duas distribuições: cadenciado, perda zero; em rajada, **30,8 % de perda
-> com ρ médio de 0,022**. O `ca²` sai de 0,00 para 2,82.
+> nas duas distribuições: cadenciado, perda zero; em rajada, **26,6 % de perda
+> com ρ médio de 0,019**. O `ca²` sai de 0,00 para 2,99.
 
 > **Correção: esta seção atribuía essa perda ao termo de Kingman, e a
 > atribuição estava errada.** O texto dizia que o `ca²` medido era "o termo de
 > Kingman, medido em vez de suposto", o que sugere que a aproximação explica os
-> 30,8 %. Ela não explica, e a §6.3 sempre disse o contrário — *"com `ρ > 1` não
+> 26,6 %. Ela não explica, e a §6.3 sempre disse o contrário — *"com `ρ > 1` não
 > há estado estacionário para calcular; é aritmética de acúmulo"*. O documento
 > contradizia a si mesmo, e o lado errado era este.
 >
@@ -3597,7 +3598,7 @@ utilização. A observação do documento estava certa e sem nome.
 > de 1 e não há estado estacionário; o anel de descritores é finito; e um
 > processo de dois estados tem intervalos **correlacionados**, porque o estado
 > modulador persiste. A própria aritmética denuncia o problema — uma
-> aproximação avaliada em `ρ = 0,022` prevê espera desprezível, não 30,8 % de
+> aproximação avaliada em `ρ = 0,019` prevê espera desprezível, não 26,6 % de
 > perda.
 >
 > O que governa é o acúmulo, `dQ/dt = λ_rajada − μ`, integrado sobre a duração

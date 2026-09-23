@@ -148,7 +148,7 @@
       "linha": 1548,
       "secao": "E numa máquina de um soquete, dá para ver algum efeito de topologia?",
       "tipo": "bloco_numerico",
-      "sha256": "2a5c4155217ec8e896f08197db00ae5a7d4225c48a283d2de1f5317be6fd98ea"
+      "sha256": "7345751985ad4ee6b1e88706615a7e6b486c1dba5d843ba3ec33a3d282394acc"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -169,7 +169,7 @@
       "linha": 1671,
       "secao": "5.1 Afinidade de CPU",
       "tipo": "tabela_markdown",
-      "sha256": "0f235387d193fb61ba5443583a3c1118798f06bfe0d9b1845c9b14f10549c9a8"
+      "sha256": "c50cbb3439458732f95a6c74a5dca8aaab8694aab539d27982677ef7a28c9e23"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -211,7 +211,7 @@
       "linha": 2066,
       "secao": "Qual primitivo usar, afinal",
       "tipo": "tabela_markdown",
-      "sha256": "7407f27a6475e9e5de9ce7aca6273355627b0218377c2fd5393f7a542676a585"
+      "sha256": "05593fad0db3fb3c85baeb7fe42372df0ad754ae9edaa80d9e488d1d0a603ffd"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -260,14 +260,14 @@
       "linha": 2510,
       "secao": "A conta que responde",
       "tipo": "tabela_markdown",
-      "sha256": "9bdb2de516355beb138edea1aecad971fbba4348da9e1e6e7960fbe217266c88"
+      "sha256": "75e875b257f65157b2e8eb2d5241a02f6ad4e73d645a08a6a457d285ff46ffda"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
       "linha": 2516,
       "secao": "A conta que responde",
       "tipo": "bloco_numerico",
-      "sha256": "9f3602f51e3374295805c0a4a3806863963f33ea401c36046ddeb0bec1080f3b"
+      "sha256": "52629046c657a31071a5b521d52351f96b83d72e2e7a3712fde19c86076c46fc"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -281,7 +281,7 @@
       "linha": 2592,
       "secao": "E o caminho convencional de socket",
       "tipo": "bloco_numerico",
-      "sha256": "d5b78a78c7c13a635e2b6d8894e5ffcbba71ff4fb5c4fbf9811e332243601113"
+      "sha256": "25bde874f625c634275ee5a4d930c2b64f1fdd5ef954f09e1a74b9b31a7bd483"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -344,32 +344,32 @@
       "linha": 3262,
       "secao": "10. Confronto com a literatura",
       "tipo": "tabela_markdown",
-      "sha256": "2083b8bba49190dcf98f2d14a7d0ee4a3dbd9cca9f18f5473f1e3bbf0bca70f1"
+      "sha256": "6dec44b214f7710daf3a28b577008ed905641350256d6d0db903c2a3faa8ac45"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
       "linha": 3289,
       "secao": "Sincronização: confronto com a referência canônica",
       "tipo": "tabela_markdown",
-      "sha256": "24b2328b38e3e43d71a09cb63ae7014f3260b554f378f4b6a61d289f449c8c14"
+      "sha256": "287476ec4bee755ab953ea0aab40bee13d6601d5ccdb8a7b2743c93cb8081727"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
       "linha": 3300,
       "secao": "Sincronização: confronto com a referência canônica",
       "tipo": "tabela_markdown",
-      "sha256": "18623a7657be2a8b2745e3687b73bd0bd4a8cc7fdc23d084fd477037282ba425"
+      "sha256": "1acef406b83c7cc8bf2523c6cdacec9bf0c05d1e4c8f33c733407e32ca6202aa"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3519,
+      "linha": 3520,
       "secao": "11.1 A travessia, medida",
       "tipo": "tabela_markdown",
       "sha256": "e86f0631b44b8671c5e622540f75d6b5b327e176f9663f0a95f069e85eb9c423"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3658,
+      "linha": 3659,
       "secao": "13. Referências externas",
       "tipo": "tabela_markdown",
       "sha256": "a89da528537fb8b8265e00a4a17829269f45353e171ab76444543db94a3858ff"

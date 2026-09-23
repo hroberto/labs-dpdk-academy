@@ -1145,15 +1145,15 @@ The name misleads on purpose: there is no sharing of data. There is sharing of a
 #### How much it costs
 
 The order of magnitude is that of the crossing measured in
-[§4.3](#43-numa-when-memory-stops-being-one-thing) — **23 ns** within the domain,
-**92 ns** between domains — only paid **on every access**, and with nothing in the
+[§4.3](#43-numa-when-memory-stops-being-one-thing) — **18 ns** within the domain,
+**81 ns** between domains — only paid **on every access**, and with nothing in the
 code suggesting that anything is being shared.
 
 > **An order of magnitude, not an equality.** That measurement is a *ping-pong*
 > between two threads taking turns on purpose; false sharing is the same line
 > migrating between cores, but with its own read and write pattern and with the
-> line going through coherence states the ping-pong never visits. The 23 and
-> 92 ns say **what range** the problem charges in, not what each invalidation
+> line going through coherence states the ping-pong never visits. The 18 and
+> 81 ns say **what range** the problem charges in, not what each invalidation
 > costs.
 
 This document has an involuntary demonstration. While building this directory's
@@ -1538,12 +1538,12 @@ measuring the time for a cache line to travel from one core to another:
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  within domain 0 (cpu 0 <-> 2)          20.13  19.42-21.27     17.86-39.18         9.2%  20.5% ~
-  BETWEEN domains (cpu 0 <-> 6)          82.24  82.01-84.34     81.93-128.14        2.8%  11.8%  
-  RATIO between/within (paired)           4.09  3.91-4.32       2.32-6.71           9.9%  18.0% ~
+  within domain 0 (cpu 0 <-> 2)          17.94  17.50-18.48     16.78-19.89         5.5%   4.9% ~
+  BETWEEN domains (cpu 0 <-> 6)          81.49  81.45-81.53     81.43-83.43         0.1%   0.5%  
+  RATIO between/within (paired)           4.54  4.41-4.66       4.10-4.92           5.4%   5.0% ~
 ```
 
-**Crossing the interconnect costs about 4.0 times more — and that is 137% of the budget
+**Crossing the interconnect costs about 4.5 times more — and that is 121% of the budget
 of a 64 B packet on 10 GbE.** A single hand-off between badly placed cores already blows
 the entire budget, before any useful work.
 
@@ -1558,7 +1558,7 @@ That result has a direct and immediate consequence in the project: the
 [topic 02](../../trilha/01-fundamentos/02-mempool-ring/) passes objects between producer
 and consumer through an [`rte_ring`][guiaring], and each hand-off makes exactly that trip.
 Choosing `-l 0,2` or `-l 0,6` in the EAL is not a configuration detail — it is the
-difference between 23 ns and 92 ns per crossing.
+difference between 18 ns and 81 ns per crossing.
 
 > **Answering the question directly:** it is not worth enabling the BIOS option. It would
 > announce a *memory* asymmetry that does not exist on this machine, while the
@@ -1661,8 +1661,8 @@ Hence three migrations with different costs:
 | The thread goes to… | It loses | Cost |
 |---|---|---|
 | the SMT sibling (cpu 0 → 12) | no cache at all | competes for the execution units ([§5.1.1](#511-smt-two-logical-cpus-are-not-two-cores)) |
-| another core in the same block (0 → 3) | L1d and L2: **1 MB of warm state** | L3 still serves — a **23 ns** crossing |
-| a core in the other block (0 → 6) | L1d, L2 **and** L3 | every line comes back over the interconnect — **92 ns**, 4× |
+| another core in the same block (0 → 3) | L1d and L2: **1 MB of warm state** | L3 still serves — a **18 ns** crossing |
+| a core in the other block (0 → 6) | L1d, L2 **and** L3 | every line comes back over the interconnect — **81 ns**, 4.5× |
 
 Both figures are the ones [§4.3](#43-numa-when-memory-stops-being-one-thing) already
 measured. The expensive migration is not just any migration: it is the one that
@@ -1972,7 +1972,7 @@ any real concurrent program.
 > section's axis. *Uncontended* is not a synonym for *single-threaded*: a program with
 > dozens of threads has uncontended locks all the time, and that is how well-written
 > concurrent code behaves. And the "multi-threaded" label would cover indistinguishably
-> **8.5 ns** (uncontended), **92 ns** (hand-off between cores) and **1356 ns** (hand-off
+> **8.5 ns** (uncontended), **81 ns** (hand-off between cores) and **1356 ns** (hand-off
 > with sleeping) — exactly the three portions this section exists to separate.
 
 Two details of the table deserve a note.
@@ -2048,7 +2048,7 @@ Three of this section's measurements support it, and each isolates a different v
 |---|---|---|
 | Uncontended × in hand-off | the primitive's cost alone against that of actually coordinating | the primitive is cheap; **sleeping** is what costs 13× |
 | [Mirror in C and C++23](medicoes/custo-espera-cpp.cpp) | whether the language changes the account | ratio ~1,00× for atomic, mutex and condvar |
-| [Placement between cores](#43-numa-when-memory-stops-being-one-thing) | the same code on different cores | 23 ns in the same domain, 92 ns between domains |
+| [Placement between cores](#43-numa-when-memory-stops-being-one-thing) | the same code on different cores | 18 ns in the same domain, 81 ns between domains |
 
 The second matters especially here: since the numbers match in **two languages**, the
 guidance below is not a peculiarity of glibc nor of libstdc++ — it is a property of the
@@ -2467,11 +2467,11 @@ The three numbers, for this experiment:
 | Quantity | Value | Where it comes from |
 |---|---:|---|
 | `λ_peak` | 3,881,988 packets/s | a 10 Gb/s link with a 322 B on-wire datagram |
-| `μ` | 1,365,326 packets/s | **measured on this machine**: 732 ns per packet, 25 samples |
+| `μ` | 1,365,969 packets/s | **measured on this machine**: 732 ns per packet, 25 samples |
 | `T` | 1 ms | the order of magnitude of an opening burst |
 
 ```
-ΔQ = (3,881,988 − 1,365,326) × 1 ms  =  2,517 descriptors
+ΔQ = (3,881,988 − 1,365,969) × 1 ms  =  2,516 descriptors
 ```
 
 > **The prediction, before measuring.** Rings of 256, 512 and 1,024 should be
@@ -2514,7 +2514,7 @@ distribution is in the [code](medicoes/rajada-nasdaq.c).
 ```
 
 **The prediction holds.** With 512 descriptors the loss is 26.6%; the 4,096 ring
-— above the 2,517 the arithmetic asked for — brings it down to 6.3%, and not to
+— above the 2,516 the arithmetic asked for — brings it down to 6.3%, and not to
 zero, because long bursts keep happening. And the paced row shows that **the same
 traffic, spread evenly, loses nothing and never occupies more than one
 descriptor**.
@@ -2548,13 +2548,13 @@ Submitting the same traffic to both, at equivalent depth:
 ```
   path                             queue     loss       drain
   ------------------------------  ------  -------  ----------
-  descriptor ring                   8192   1.084%   1,365,326 packets/s
-  UDP socket (recv one at a time)   8738   1.765%     935,507 packets/s
-  UDP socket (recvmmsg batches)     8738   1.596%   1,002,327 packets/s
+  descriptor ring                   8192   1.083%   1,365,969 packets/s
+  UDP socket (recv one at a time)   8738   1.618%     993,287 packets/s
+  UDP socket (recvmmsg batches)     8738   1.538%   1,026,172 packets/s
 ```
 
 **Same queue, same burst, and the socket loses more** — the entire difference is
-the drain being a third lower, because each datagram pays the kernel crossing and
+the drain being **27% lower**, because each datagram pays the kernel crossing and
 the copy on top of the application's work. Batching through `recvmmsg` gives part
 of that back, by the same amortisation as [§6.2](#62-the-bus-has-a-budget-too).
 
@@ -3200,7 +3200,7 @@ internal statistic would detect.
 
 | Measurement | Here | Literature | Verdict |
 |---|---:|---:|---|
-| Core-to-core latency, same CCD | ~23 ns | < 25 ns ([Tom's Hardware][th]) | **agrees** |
+| Core-to-core latency, same CCD | ~18 ns | < 25 ns ([Tom's Hardware][th]) | **agrees** |
 | Core-to-core latency, distinct CCDs | 83–102 ns across runs | 180–200 ns before; 75–95 ns after AGESA 1.2.0.2 ([Tom's][th], [TechSpot][ts]) | **intermediate — see below** |
 | TLB miss / *page walk* | 10.01 ns (512 MB, paired) | 8.80 ns on a Core Duo T2600; 18.17 ns on an Athlon 64 ([Gorman][lwntlb]) | **between the two — agrees** |
 | Cost of a syscall | ~33 ns | hundreds of ns; < 100 ns in the best cases ([Gregg][gregg], [Stoll][syscalls]) | **below — explained** |
@@ -3227,10 +3227,10 @@ spans twenty years and remains comparable
 | Operation | McKenney (Opteron 844, 4 sockets, 1,8 GHz) | Here (Zen 5, 1 socket, ~5,6 GHz) |
 |---|---:|---:|
 | Clock period | 0,6 ns | 0,180 ns |
-| Best-case CAS | 37,9 ns | 7,14 ns |
-| Best-case lock | 65,6 ns | 2,04 ns |
-| Cache miss | 139,5 ns | 20,96 ns (same CCD) · 92,33 ns (other) |
-| CAS with a cache miss | 306,0 ns | 19,31 ns (same) · 91,55 ns (other) |
+| Best-case CAS | 37,9 ns | 7,13 ns |
+| Best-case lock | 65,6 ns | 2,06 ns |
+| Cache miss | 139,5 ns | 20,86 ns (same CCD) · 81,68 ns (other) |
+| CAS with a cache miss | 306,0 ns | 20,08 ns (same) · 81,50 ns (other) |
 
 **In clock cycles** — which is where the comparison becomes honest, because it neutralises
 the frequency difference between the two machines:
@@ -3239,8 +3239,8 @@ the frequency difference between the two machines:
 |---|---:|---:|---:|
 | Best-case CAS | 63 | 40 | — |
 | Best-case lock | 109 | **11** | — |
-| Cache miss | 232 | 116 | **513** |
-| CAS with a cache miss | 510 | 107 | **509** |
+| Cache miss | 232 | 116 | **454** |
+| CAS with a cache miss | 510 | 112 | **453** |
 
 Two readings, and the second is the finding that justifies the whole exercise.
 
@@ -3248,10 +3248,10 @@ Two readings, and the second is the finding that justifies the whole exercise.
 times, and not through clock, since the comparison is in cycles. It is the accumulated effect
 of the futex's fast path (§ below) and twenty years of microarchitecture.
 
-**Crossing a coherence boundary got no cheaper at all.** A CAS on a line held by a core in
-another domain costs **509 cycles here, against 510 on the four-socket Opteron from 2004**.
-Practically identical. Physical distance and the coherence protocol did not follow Moore's
-law.
+**Crossing a coherence boundary barely got cheaper.** A CAS on a line held by a core in
+another domain costs **453 cycles here, against 510 on the four-socket Opteron from 2004** —
+11% in twenty years, against the factor of ten for the local lock. Physical distance and the
+coherence protocol did not follow Moore's law.
 
 It is that asymmetry that explains why the bottleneck moved: when local synchronisation
 becomes ten times cheaper and crossing a coherence boundary still costs the same five hundred
@@ -3267,8 +3267,8 @@ study of synchronisation to date, was:
 > *"scalability of synchronization is mainly a property of the hardware"*
 
 It is exactly what [§4.3](#43-numa-when-memory-stops-being-one-thing)'s measurements show on
-this machine: **the same code**, changing only which cores the threads run on, costs 23 ns or
-92 ns. There is no change of algorithm, of primitive or of language — only of placement.
+this machine: **the same code**, changing only which cores the threads run on, costs 18 ns or
+81 ns. There is no change of algorithm, of primitive or of language — only of placement.
 
 ### Why an uncontended mutex is so cheap: the design behind it
 
@@ -3496,13 +3496,13 @@ The document's observation was right, and unnamed.
 >
 > **And that is no longer just a warning.**
 > [§6.3](#63-how-many-descriptors-and-what-they-do-not-buy) measures the same
-> traffic under both distributions: paced, zero loss; bursty, **30.8% loss at a
-> mean ρ of 0.022**. `ca²` goes from 0.00 to 2.82.
+> traffic under both distributions: paced, zero loss; bursty, **26.6% loss at a
+> mean ρ of 0.019**. `ca²` goes from 0.00 to 2.99.
 
 > **Correction: this section attributed that loss to Kingman's term, and the
 > attribution was wrong.** The text called the measured `ca²` "Kingman's term,
 > measured rather than assumed", which suggests the approximation explains the
-> 30.8%. It does not, and §6.3 always said the opposite — *"with `ρ > 1` there
+> 26.6%. It does not, and §6.3 always said the opposite — *"with `ρ > 1` there
 > is no steady state to compute; it is the arithmetic of accumulation"*. The
 > document contradicted itself, and this was the wrong side.
 >
@@ -3512,7 +3512,7 @@ The document's observation was right, and unnamed.
 > 1 and there is no steady state; the descriptor ring is finite; and a two-state
 > process has **correlated** intervals, because the modulating state persists.
 > The arithmetic gives the problem away on its own — an approximation evaluated
-> at `ρ = 0.022` predicts negligible waiting, not 30.8% loss.
+> at `ρ = 0.019` predicts negligible waiting, not 26.6% loss.
 >
 > What governs is accumulation, `dQ/dt = λ_burst − μ`, integrated over the
 > duration of the burst. `ca²` remains valid as **evidence** of the difference
