@@ -90,10 +90,10 @@ TEXTOS = {
         esc_sub="latência de um acesso dependente, por nível da hierarquia — efeito-cache.c",
         esc_eixo="nanossegundos", esc_orc="orçamento: 67,2 ns por pacote",
         esc_excede="excede o orçamento em {0:.0f} ns",
-        esc_desc=("Gráfico de barras horizontais. A latência de um acesso dependente é de "
-                  "0,89 ns na L1d, 2,68 ns na L2, 9,67 ns na L3 e 86,6 ns na RAM. O "
-                  "orçamento de um pacote de 64 B em 10 GbE é 67,2 ns: só o acesso à RAM "
-                  "já o excede."),
+        esc_desc=("Gráfico de barras horizontais com a latência de um acesso dependente por "
+                  "nível da hierarquia: 0,89 ns na L1d, 2,68 ns na L2, 9,67 ns na L3 e "
+                  "86,6 ns na RAM. Uma linha tracejada marca o orçamento de 67,2 ns por "
+                  "pacote; só a barra da RAM já o ultrapassa, em 19,4 ns."),
         con_titulo="Vazão se compra com concorrência — e se paga com latência",
         con_sub="K acessos independentes em voo sobre a mesma região — custo-paralelismo.c",
         con_p1="1 · quanto a máquina entrega", con_p2="2 · e o que isso custa em espera",
@@ -115,18 +115,21 @@ TEXTOS = {
         ban_rot=["aleatório, endereços independentes",
                  "aleatório, endereços encadeados"],
         ban_fecho="{0:.0f}× de diferença — mesma máquina, mesma memória, mesmo núcleo.",
-        ban_desc=("Gráfico de barras horizontais. Sobre a mesma RAM, um núcleo move 11,0 GB/s "
-                  "em acesso aleatório com endereços independentes e 0,74 GB/s quando cada "
-                  "endereço depende do anterior."),
+        ban_desc=("Gráfico de barras horizontais com a banda efetiva de um núcleo sobre a mesma "
+                  "RAM: 11,0 GB/s em acesso aleatório com endereços independentes e "
+                  "0,74 GB/s quando cada endereço depende do anterior — 15 vezes de "
+                  "diferença entre os dois padrões que a memória limita."),
         sca_titulo="A banda não se multiplica por núcleo — ela é dividida",
         sca_sub=("vazão agregada com N núcleos físicos empurrando a mesma região — "
                  "custo-paralelismo.c, fase 2"),
         sca_y="M acessos/s (soma de todos os núcleos)", sca_ideal="se escalasse por núcleo",
         sca_teto="{0:.0f} M/s — o teto", sca_ms="{0:.0f} M/s", sca_x="núcleos físicos ativos",
         sca_fecho="Com 12 ativos, cada núcleo faz 46% do que fazia sozinho.",
-        sca_desc=("Gráfico de linha. A vazão agregada sobe de 171 M acessos/s com um núcleo "
-                  "para 948 M com doze, e satura por volta de oito. A linha de referência "
-                  "mostra onde ela estaria se escalasse por núcleo: 2 051 M com doze."),
+        sca_desc=("Gráfico de linha da vazão agregada em função do número de núcleos físicos "
+                  "ativos. Ela sobe de 171 milhões de acessos por segundo com um núcleo "
+                  "para 948 milhões com doze, e a curva achata a partir de oito. Uma "
+                  "linha de referência cinza mostra onde estaria se escalasse por "
+                  "núcleo: 2 051 milhões com doze."),
     ),
     "en": dict(
         sufixo=".en", dec=".",
@@ -134,9 +137,10 @@ TEXTOS = {
         esc_sub="latency of one dependent access, per level of the hierarchy — efeito-cache.c",
         esc_eixo="nanoseconds", esc_orc="budget: 67.2 ns per packet",
         esc_excede="exceeds the budget by {0:.0f} ns",
-        esc_desc=("Horizontal bar chart. The latency of one dependent access is 0.89 ns in "
-                  "L1d, 2.68 ns in L2, 9.67 ns in L3 and 86.6 ns in RAM. The budget for a "
-                  "64 B packet on 10 GbE is 67.2 ns: the RAM access alone already exceeds it."),
+        esc_desc=("Horizontal bar chart of the latency of one dependent access per level of the "
+                  "hierarchy: 0.89 ns in L1d, 2.68 ns in L2, 9.67 ns in L3 and 86.6 ns in "
+                  "RAM. A dashed line marks the 67.2 ns per-packet budget; the RAM bar "
+                  "alone already exceeds it, by 19.4 ns."),
         con_titulo="Throughput is bought with concurrency — and paid for in latency",
         con_sub="K independent accesses in flight over the same region — custo-paralelismo.c",
         con_p1="1 · what the machine delivers", con_p2="2 · and what it costs in waiting",
@@ -158,18 +162,21 @@ TEXTOS = {
         ban_rot=["random, independent addresses",
                  "random, chained addresses"],
         ban_fecho="{0:.0f}× difference — same machine, same memory, same core.",
-        ban_desc=("Horizontal bar chart. Over the same RAM, one core moves 11.0 GB/s with "
-                  "random access using independent addresses and 0.74 GB/s when each "
-                  "address depends on the previous one."),
+        ban_desc=("Horizontal bar chart of the effective bandwidth of one core over the same "
+                  "RAM: 11.0 GB/s for random access with independent addresses and "
+                  "0.74 GB/s when each address depends on the previous one — a 15-fold "
+                  "difference between the two patterns memory actually limits."),
         sca_titulo="Bandwidth does not multiply per core — it is divided",
         sca_sub=("aggregate throughput with N physical cores pushing the same region — "
                  "custo-paralelismo.c, phase 2"),
         sca_y="M accesses/s (sum of all cores)", sca_ideal="if it scaled per core",
         sca_teto="{0:.0f} M/s — the ceiling", sca_ms="{0:.0f} M/s", sca_x="active physical cores",
         sca_fecho="With 12 active, each core does 46% of what it did alone.",
-        sca_desc=("Line chart. Aggregate throughput rises from 171 M accesses/s with one "
-                  "core to 948 M with twelve, and saturates around eight. The reference "
-                  "line shows where it would be if it scaled per core: 2,051 M with twelve."),
+        sca_desc=("Line chart of aggregate throughput against the number of active physical "
+                  "cores. It rises from 171 million accesses per second with one core to "
+                  "948 million with twelve, and the curve flattens from eight onwards. A "
+                  "grey reference line shows where it would be if it scaled per core: "
+                  "2,051 million with twelve."),
     ),
 }
 

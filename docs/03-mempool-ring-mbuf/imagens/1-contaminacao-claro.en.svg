@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 422" width="880" height="422" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">Why the miss rate dispersed: the denominator</title>
-<desc id="d">Comparison, across six runs of the same cell, between the number of get calls and the number of common-ring trips. The latter is identical in all six; the former varies.</desc>
+<desc id="d">Comparison across six runs of the same cell, with cache 96 on DPDK 26.07, between the number of get calls and the number of common-ring trips. The common-ring trips are identical in all six runs; the get calls vary between 109 thousand and 119 thousand.</desc>
 <rect width="880" height="422" fill="#fcfcfb"/>
 <text x="28.0" y="34.0" fill="#0b0b0b" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">Why the miss rate dispersed: the denominator</text>
 <text x="28.0" y="55.0" fill="#52514e" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">cache = {0}, DPDK 26.07 — the same cell, six runs</text>

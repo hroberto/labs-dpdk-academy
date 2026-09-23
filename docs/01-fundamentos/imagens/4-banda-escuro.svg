@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 250" width="880" height="250" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">A banda que você usa é a que o seu padrão de acesso permite</title>
-<desc id="d">Gráfico de barras horizontais. Sobre a mesma RAM, um núcleo move 11,0 GB/s em acesso aleatório com endereços independentes e 0,74 GB/s quando cada endereço depende do anterior.</desc>
+<desc id="d">Gráfico de barras horizontais com a banda efetiva de um núcleo sobre a mesma RAM: 11,0 GB/s em acesso aleatório com endereços independentes e 0,74 GB/s quando cada endereço depende do anterior — 15 vezes de diferença entre os dois padrões que a memória limita.</desc>
 <rect width="880" height="250" fill="#1a1a19"/>
 <text x="28.0" y="34.0" fill="#ffffff" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">A banda que você usa é a que o seu padrão de acesso permite</text>
 <text x="28.0" y="55.0" fill="#c3c2b7" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">um núcleo, a mesma região de 256 MB na mesma RAM — efeito-cache.c</text>

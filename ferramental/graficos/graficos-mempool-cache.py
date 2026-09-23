@@ -71,19 +71,20 @@ TEXTOS = {
         l_x="cache por lcore (objetos)",
         l_previsto="previsto pelo tamanho da recarga",
         l_nota="As seis execucoes de cada celula dao o MESMO valor; cada ponto e as seis sobrepostas.",
-        l_desc="Idas ao anel comum por milhao de pacotes, por tamanho de cache, "
-               "para DPDK 25.11 e 26.07. Os pontos medidos caem sobre as curvas "
-               "previstas pelo tamanho da recarga de cada versao, e as seis "
-               "execucoes de cada celula coincidem.",
+        l_desc="Idas ao anel comum por milhão de pacotes, por tamanho de cache, "
+               "para DPDK 25.11 e 26.07 na topologia assimétrica. Os pontos medidos "
+               "caem sobre as curvas previstas pelo tamanho da recarga de cada "
+               "versão, e as seis execuções de cada célula coincidem num único ponto.",
         c_titulo="Por que a taxa de miss dispersava: o denominador",
         c_sub="cache = {0}, DPDK 26.07 — a mesma celula, seis execucoes",
         c_x="execucao",
         c_gets="chamadas de get",
         c_backend="idas ao anel comum",
         c_nota="A diferenca entre as duas linhas sao retentativas do produtor quando a fila enche.",
-        c_desc="Comparacao, ao longo de seis execucoes da mesma celula, entre o "
-               "numero de chamadas de get e o numero de idas ao anel comum. O "
-               "segundo e identico nas seis; o primeiro varia."),
+        c_desc="Comparação ao longo de seis execuções da mesma célula, com cache 96 "
+               "no DPDK 26.07, entre o número de chamadas de get e o número de idas "
+               "ao anel comum. As idas ao anel comum são idênticas nas seis "
+               "execuções; as chamadas de get variam entre 109 mil e 119 mil."),
     "en": dict(
         sufixo=".en", dec=".", mil=",",
         l_titulo="The cost is not measured: it is arithmetic, and measurement confirms it",
@@ -93,18 +94,19 @@ TEXTOS = {
         l_previsto="predicted by the refill size",
         l_nota="All six runs of each cell give the SAME value; each dot is six points superimposed.",
         l_desc="Common-ring trips per million packets, by cache size, for DPDK "
-               "25.11 and 26.07. The measured dots land on the curves predicted "
-               "by each version's refill size, and the six runs of each cell "
-               "coincide.",
+               "25.11 and 26.07 on the asymmetric topology. The measured dots land "
+               "on the curves predicted by each version's refill size, and the six "
+               "runs of each cell coincide in a single dot.",
         c_titulo="Why the miss rate dispersed: the denominator",
         c_sub="cache = {0}, DPDK 26.07 — the same cell, six runs",
         c_x="run",
         c_gets="get calls",
         c_backend="common-ring trips",
         c_nota="The gap between the two lines is producer retries when the queue fills.",
-        c_desc="Comparison, across six runs of the same cell, between the number "
-               "of get calls and the number of common-ring trips. The latter is "
-               "identical in all six; the former varies."),
+        c_desc="Comparison across six runs of the same cell, with cache 96 on DPDK "
+               "26.07, between the number of get calls and the number of common-ring "
+               "trips. The common-ring trips are identical in all six runs; the get "
+               "calls vary between 109 thousand and 119 thousand."),
 }
 
 

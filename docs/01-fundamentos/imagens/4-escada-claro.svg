@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 368" width="880" height="368" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">Um acesso à memória contra o orçamento de um pacote</title>
-<desc id="d">Gráfico de barras horizontais. A latência de um acesso dependente é de 0,89 ns na L1d, 2,68 ns na L2, 9,67 ns na L3 e 86,6 ns na RAM. O orçamento de um pacote de 64 B em 10 GbE é 67,2 ns: só o acesso à RAM já o excede.</desc>
+<desc id="d">Gráfico de barras horizontais com a latência de um acesso dependente por nível da hierarquia: 0,89 ns na L1d, 2,68 ns na L2, 9,67 ns na L3 e 86,6 ns na RAM. Uma linha tracejada marca o orçamento de 67,2 ns por pacote; só a barra da RAM já o ultrapassa, em 19,4 ns.</desc>
 <rect width="880" height="368" fill="#fcfcfb"/>
 <text x="28.0" y="34.0" fill="#0b0b0b" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">Um acesso à memória contra o orçamento de um pacote</text>
 <text x="28.0" y="55.0" fill="#52514e" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">latência de um acesso dependente, por nível da hierarquia — efeito-cache.c</text>

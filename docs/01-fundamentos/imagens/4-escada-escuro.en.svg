@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 368" width="880" height="368" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">One memory access against a single packet's budget</title>
-<desc id="d">Horizontal bar chart. The latency of one dependent access is 0.89 ns in L1d, 2.68 ns in L2, 9.67 ns in L3 and 86.6 ns in RAM. The budget for a 64 B packet on 10 GbE is 67.2 ns: the RAM access alone already exceeds it.</desc>
+<desc id="d">Horizontal bar chart of the latency of one dependent access per level of the hierarchy: 0.89 ns in L1d, 2.68 ns in L2, 9.67 ns in L3 and 86.6 ns in RAM. A dashed line marks the 67.2 ns per-packet budget; the RAM bar alone already exceeds it, by 19.4 ns.</desc>
 <rect width="880" height="368" fill="#1a1a19"/>
 <text x="28.0" y="34.0" fill="#ffffff" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">One memory access against a single packet's budget</text>
 <text x="28.0" y="55.0" fill="#c3c2b7" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">latency of one dependent access, per level of the hierarchy — efeito-cache.c</text>

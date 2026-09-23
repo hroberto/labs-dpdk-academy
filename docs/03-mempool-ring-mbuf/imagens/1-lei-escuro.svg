@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 494" width="880" height="494" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">O custo nao e medido: e aritmetica, e a medicao confirma</title>
-<desc id="d">Idas ao anel comum por milhao de pacotes, por tamanho de cache, para DPDK 25.11 e 26.07. Os pontos medidos caem sobre as curvas previstas pelo tamanho da recarga de cada versao, e as seis execucoes de cada celula coincidem.</desc>
+<desc id="d">Idas ao anel comum por milhão de pacotes, por tamanho de cache, para DPDK 25.11 e 26.07 na topologia assimétrica. Os pontos medidos caem sobre as curvas previstas pelo tamanho da recarga de cada versão, e as seis execuções de cada célula coincidem num único ponto.</desc>
 <rect width="880" height="494" fill="#1a1a19"/>
 <text x="28.0" y="34.0" fill="#ffffff" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">O custo nao e medido: e aritmetica, e a medicao confirma</text>
 <text x="28.0" y="55.0" fill="#c3c2b7" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">idas ao anel comum por milhao de pacotes — topologia assimetrica, seis execucoes por celula</text>

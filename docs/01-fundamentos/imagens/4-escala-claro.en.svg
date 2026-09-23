@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 408" width="880" height="408" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">Bandwidth does not multiply per core — it is divided</title>
-<desc id="d">Line chart. Aggregate throughput rises from 171 M accesses/s with one core to 948 M with twelve, and saturates around eight. The reference line shows where it would be if it scaled per core: 2,051 M with twelve.</desc>
+<desc id="d">Line chart of aggregate throughput against the number of active physical cores. It rises from 171 million accesses per second with one core to 948 million with twelve, and the curve flattens from eight onwards. A grey reference line shows where it would be if it scaled per core: 2,051 million with twelve.</desc>
 <rect width="880" height="408" fill="#fcfcfb"/>
 <text x="28.0" y="34.0" fill="#0b0b0b" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">Bandwidth does not multiply per core — it is divided</text>
 <text x="28.0" y="55.0" fill="#52514e" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">aggregate throughput with N physical cores pushing the same region — custo-paralelismo.c, phase 2</text>

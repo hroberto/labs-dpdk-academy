@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 250" width="880" height="250" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">The bandwidth you get is the one your access pattern allows</title>
-<desc id="d">Horizontal bar chart. Over the same RAM, one core moves 11.0 GB/s with random access using independent addresses and 0.74 GB/s when each address depends on the previous one.</desc>
+<desc id="d">Horizontal bar chart of the effective bandwidth of one core over the same RAM: 11.0 GB/s for random access with independent addresses and 0.74 GB/s when each address depends on the previous one — a 15-fold difference between the two patterns memory actually limits.</desc>
 <rect width="880" height="250" fill="#fcfcfb"/>
 <text x="28.0" y="34.0" fill="#0b0b0b" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">The bandwidth you get is the one your access pattern allows</text>
 <text x="28.0" y="55.0" fill="#52514e" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">one core, the same 256 MB region in the same RAM — efeito-cache.c</text>
