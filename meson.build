@@ -392,6 +392,7 @@ subdir('docs/02-runtime-dpdk/medicoes')
 subdir('docs/03-mempool-ring-mbuf/medicoes')
 subdir('trilha/01-fundamentos/01-eal-hello')
 subdir('trilha/01-fundamentos/02-mempool-ring')
+subdir('trilha/03-performance/03-isolamento-cpu')
 
 summary({
   'DPDK'          : dpdk_dep.version(),

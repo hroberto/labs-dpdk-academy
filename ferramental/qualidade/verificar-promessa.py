@@ -96,6 +96,10 @@ EXTERNAS = {
     "net-tap", "af-packet", "uio-pci-generic",
     # utilitarios do sistema
     "ibv-devinfo", "xdp-sock", "bpf-tool", "numa-ctl",
+    # nomes de EVENTO do `perf stat`, citados na tabela de fontes de parada do
+    # topico de isolamento. Nao sao programas: sao contadores que o perf expoe,
+    # e a ausencia deles na arvore e a unica forma possivel.
+    "ctx-switches",
     # drivers de escalonamento de frequencia, citados pelo submodulo de
     # benchmarking: sao do kernel, nao da arvore
     "amd-pstate", "amd-pstate-epp", "intel-pstate", "acpi-cpufreq",
