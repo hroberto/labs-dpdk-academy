@@ -1,4 +1,4 @@
-![labs-dpdk-academy — study guide and hands-on lab for DPDK: high throughput, low latency, C/C++23, Linux, reproducible measurements. The illustration follows a packet: in through RX, processed by DPDK, across rings and mempool, spread over lcores, and into NUMA memory.](labs-dpdk-academy-preview.en.jpg)
+![labs-dpdk-academy — study guide and hands-on lab for DPDK: high throughput, low latency, C/C++23, Linux, reproducible measurements. The illustration follows a packet: in through RX, processed by DPDK, across rings and mempool, spread over lcores, and into NUMA memory.](docs/assets/banner.en.jpg)
 
 # DPDK Academy — a reproducible experimental study of data-plane performance
 
