@@ -419,16 +419,84 @@ expectativa — produtor mais rápido, mais retentativas —, mas nas outras nã
 ordem, e uma amostra final não representa uma execução em que o governor se
 move.
 
+#### A réplica em outro hardware, e a fronteira que ela revela
+
+A campanha foi repetida em 23/09/2026 com uma única diferença: a máquina passou
+de um pente de memória para dois, de canal único para canal duplo. Mesmo
+kernel, mesmos binários, mesmo protocolo de 240 execuções.
+
+Nada nessa troca tem relação com o mempool. É por isso que ela serve de teste.
+
+**Na topologia simétrica, as vinte células saem idênticas** — os mesmos 31 314
+e os mesmos 0,5 por milhão, inclusive a fronteira do `cache_size` = 24 que
+separa as duas versões.
+
+Na assimétrica, o resultado se divide, e não se divide em qualquer lugar:
+
+| | idênticas entre as duas máquinas | variam entre as duas máquinas |
+|---|---|---|
+| **25.11** | `cache_size` ≥ **64** | `cache_size` < 64 |
+| **26.07** | `cache_size` ≥ **32** | `cache_size` < 32 |
+
+Esses dois números não foram escolhidos para a tabela. São **exatamente** os
+limiares de absorção que a subseção anterior deriva do fonte: `size ≥ 2n` para
+o 25.11 e `size ≥ n` para o 26.07, com o lote `n` = 32.
+
+**A previsão que isso testou.** Se a lei está certa, uma célula que absorve a
+devolução do produtor não deixa o vaivém chegar ao anel comum — e então sua
+contagem depende só da aritmética da recarga, que é propriedade do código.
+Célula que não absorve expõe a corrida entre os dois lcores, e a corrida é
+propriedade da **máquina**. Logo: trocar a máquina deve mover as células de
+baixo e não tocar nas de cima.
+
+É o que se mediu. Acima do limiar as contagens são iguais **dígito a dígito**
+nas duas máquinas; abaixo dele, movem-se de 2% a 4%.
+
+**A réplica ainda corrigiu uma célula.** Na coleta de canal único, `25.11` com
+`cache_size` = 24 saiu constante nas seis execuções, e a lei prevê que ela
+**varie** — 24 está abaixo de 64. Na coleta de canal duplo ela varia, por uma
+única contagem em 62 500. A primeira campanha não errou; ela não tinha execuções
+suficientes para ver um evento raro. O que a lei previa e a primeira coleta não
+mostrou, a segunda mostrou.
+
+> **Por que este é um teste melhor do que repetir a campanha.** Repetir na mesma
+> máquina distingue medição estável de medição ruidosa, e nada mais. Mudar o
+> hardware separa duas coisas que a primeira campanha só podia **argumentar**
+> que eram distintas: o que o código determina e o que a corrida entre lcores
+> determina. A fronteira entre as duas aparece sozinha, no lugar previsto, a
+> partir de uma variável que ninguém escolheu por conveniência.
+
+A segunda coleta está em
+[`medicoes/historico/2026-09-23-mempool-cache-canal-duplo/`](medicoes/historico/2026-09-23-mempool-cache-canal-duplo/),
+com as 240 saídas brutas.
+
 #### O que este experimento não autoriza
 
-- **Não há medida de tempo**, por dois motivos independentes. O primeiro: os
-  dois DPDK foram construídos com `RTE_LIBRTE_MEMPOOL_STATS`, cujo contador é
-  atualizado no caminho quente, então o programa medido não é o de produção. O
-  segundo é do instrumento — o `pipeline_ring` imprime o tempo com `%.1f`, o que
-  sobre ~5 ns por pacote quantiza em 2%, ordem de grandeza das diferenças que
-  haveria para detectar. Medir esse elo exige as duas correções, não uma. A
-  afirmação do upstream é sobre taxa de miss, e é a ela que este experimento
-  responde — nem mais, nem menos.
+- **Não há medida de tempo**, e o bloqueio era duplo. O primeiro motivo é do
+  build: os dois DPDK foram construídos com `RTE_LIBRTE_MEMPOOL_STATS`, cujo
+  contador é atualizado no caminho quente, então o programa medido não é o de
+  produção. **Este continua de pé.**
+
+  O segundo era do instrumento — o `pipeline_ring` imprimia o tempo com `%.1f`,
+  o que sobre ~5 ns por pacote quantiza em 2%, ordem de grandeza das diferenças
+  que haveria para detectar. **Este já caiu:** com a variável de ambiente
+  `DPDK_ACADEMY_BRUTO` o programa emite os três inteiros de onde a média sai,
+  sem arredondamento nenhum.
+
+  ```
+  raw timing: cycles=1590116 tsc_hz=4391800000 packets=200000
+  ```
+
+  A casa decimal continua sendo **uma** na linha publicada, e de propósito:
+  sobre ~5 ns, mais casas afirmariam uma precisão que uma execução não sustenta.
+  Emitir os ingredientes em vez de mais dígitos resolve os dois lados — quem
+  analisa deriva a precisão que os dados sustentarem, e nenhuma é afirmada pelo
+  programa. Sem a variável a saída não muda um byte, e os blocos publicados que
+  a reproduzem continuam valendo.
+
+  O que falta para medir o elo é, portanto, **só** o par de prefixos sem
+  `RTE_LIBRTE_MEMPOOL_STATS`. A afirmação do upstream é sobre taxa de miss, e é
+  a ela que este experimento responde — nem mais, nem menos.
 - **O workload é um pipeline de dois estágios com um anel.** Aplicações reais
   têm mais estágios e mais anéis, e a orientação do upstream pode ser suficiente
   em topologias que este programa não representa.

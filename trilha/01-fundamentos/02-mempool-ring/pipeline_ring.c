@@ -452,6 +452,8 @@ int main(int argc, char **argv)
     }
 
     const uint64_t cycles = rte_rdtsc() - t0;
+    /* Lido aqui, fora dos lacos: o portao recusa getenv() por iteracao. */
+    const int relatar_bruto = getenv("DPDK_ACADEMY_BRUTO") != NULL;
     const double ns_per_packet = (double)cycles * 1e9 / (double)rte_get_tsc_hz() / (double)r.packets;
 
     print_provenance("pipeline_ring");
@@ -489,6 +491,25 @@ int main(int argc, char **argv)
     relatar_mempool(pool);
     if (r.packets >= MIN_TO_MEASURE) {
         printf("Mean time: %.1f ns/packet\n", ns_per_packet);
+        /* INGREDIENTES BRUTOS, so quando pedidos.
+         *
+         * A media acima sai com UMA casa decimal, e isso e deliberado: sobre
+         * ~5 ns por pacote, publicar mais casas afirmaria uma precisao que uma
+         * execucao nao sustenta -- o mesmo argumento que o README faz contra o
+         * numero de `-n 10`.
+         *
+         * Mas uma casa quantiza em 2%, e o estudo que quer ligar taxa de miss a
+         * TEMPO precisa comparar diferencas dessa mesma ordem. Emitir os tres
+         * inteiros de onde a media sai resolve os dois lados: nao ha
+         * arredondamento nenhum, e nenhuma precisao e afirmada -- quem analisa
+         * deriva a que os dados sustentarem.
+         *
+         * Fora da variavel, a saida nao muda um byte, e os blocos publicados
+         * que reproduzem esta saida continuam valendo. */
+        if (relatar_bruto)
+            printf("raw timing: cycles=%" PRIu64 " tsc_hz=%" PRIu64
+                   " packets=%" PRIu64 "\n",
+                   cycles, rte_get_tsc_hz(), r.packets);
         const double f = freq_ghz(rte_lcore_id());
         if (f > 0.0)
             printf("Frequency of lcore %u: %.2f GHz (the time above varies with it)\n",

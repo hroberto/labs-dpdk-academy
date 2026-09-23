@@ -420,16 +420,85 @@ the direction matches expectation — faster producer, more retries — but in t
 others there is no order, and a final sample does not represent a run in which
 the governor moves.
 
+#### The replication on other hardware, and the boundary it reveals
+
+The campaign was repeated on 2026-09-23 with a single difference: the machine
+went from one memory stick to two, from single to dual channel. Same kernel,
+same binaries, same 240-run protocol.
+
+Nothing about that change has anything to do with the mempool. That is why it
+works as a test.
+
+**In the symmetric topology the twenty cells come out identical** — the same
+31,314 and the same 0.5 per million, including the `cache_size` = 24 boundary
+that separates the two versions.
+
+In the asymmetric one the result splits, and it does not split just anywhere:
+
+| | identical across the two machines | varying across the two machines |
+|---|---|---|
+| **25.11** | `cache_size` ≥ **64** | `cache_size` < 64 |
+| **26.07** | `cache_size` ≥ **32** | `cache_size` < 32 |
+
+Those two numbers were not chosen for the table. They are **exactly** the
+absorption thresholds the previous subsection derives from the source:
+`size ≥ 2n` for 25.11 and `size ≥ n` for 26.07, with the batch `n` = 32.
+
+**The prediction this tested.** If the law is right, a cell that absorbs the
+producer's return does not let the back-and-forth reach the common ring — and
+then its count depends only on the arithmetic of the refill, which is a property
+of the code. A cell that does not absorb exposes the race between the two
+lcores, and the race is a property of the **machine**. Therefore: changing the
+machine should move the cells below and leave the ones above untouched.
+
+That is what was measured. Above the threshold the counts are equal **digit for
+digit** on both machines; below it, they move by 2% to 4%.
+
+**The replication also corrected one cell.** In the single-channel collection,
+`25.11` with `cache_size` = 24 came out constant across the six runs, and the
+law predicts that it should **vary** — 24 is below 64. In the dual-channel
+collection it does vary, by a single count out of 62,500. The first campaign was
+not wrong; it did not have enough runs to see a rare event. What the law
+predicted and the first collection did not show, the second showed.
+
+> **Why this is a better test than repeating the campaign.** Repeating on the
+> same machine distinguishes a stable measurement from a noisy one, and nothing
+> more. Changing the hardware separates two things the first campaign could only
+> **argue** were distinct: what the code determines and what the race between
+> lcores determines. The boundary between them appears on its own, in the
+> predicted place, out of a variable nobody chose for convenience.
+
+The second collection is in
+[`medicoes/historico/2026-09-23-mempool-cache-canal-duplo/`](medicoes/historico/2026-09-23-mempool-cache-canal-duplo/),
+with all 240 raw outputs.
+
 #### What this experiment does not authorize
 
-- **There is no timing measurement**, for two independent reasons. First, both
-  DPDKs were built with `RTE_LIBRTE_MEMPOOL_STATS`, whose counter is updated on
-  the hot path, so the program measured is not the one in production. Second is
-  the instrument — `pipeline_ring` prints the time with `%.1f`, which over
-  ~5 ns per packet quantizes at 2%, the same order as the differences there
-  would be to detect. Measuring that link takes both fixes, not one. The
-  upstream claim is about miss rate, and that is what this experiment answers —
-  no more, no less.
+- **There is no timing measurement**, and the blocker was twofold. The first
+  reason belongs to the build: both DPDKs were built with
+  `RTE_LIBRTE_MEMPOOL_STATS`, whose counter is updated on the hot path, so the
+  program measured is not the one in production. **This one still stands.**
+
+  The second belonged to the instrument — `pipeline_ring` printed the time with
+  `%.1f`, which over ~5 ns per packet quantizes at 2%, the same order as the
+  differences there would be to detect. **This one has fallen:** with the
+  `DPDK_ACADEMY_BRUTO` environment variable the program emits the three
+  integers the mean comes from, with no rounding at all.
+
+  ```
+  raw timing: cycles=1590116 tsc_hz=4391800000 packets=200000
+  ```
+
+  The published line still carries **one** decimal place, deliberately: over
+  ~5 ns, more digits would assert a precision one run does not sustain. Emitting
+  the ingredients instead of more digits settles both sides — whoever analyses
+  derives the precision the data sustains, and the program asserts none. Without
+  the variable the output does not change by a byte, and the published blocks
+  that reproduce it remain valid.
+
+  What is still missing to measure the link is therefore **only** the pair of
+  prefixes without `RTE_LIBRTE_MEMPOOL_STATS`. The upstream claim is about miss
+  rate, and that is what this experiment answers — no more, no less.
 - **The workload is a two-stage pipeline with one ring.** Real applications have
   more stages and more rings, and the upstream guidance may well be sufficient
   in topologies this program does not represent.
