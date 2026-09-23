@@ -46,23 +46,27 @@ ORCAMENTO_NS = 67.2          # secao 1: 10 GbE, quadros de 64 B
 LINE_RATE_MPPS = 14.88       # secao 1: 14 880 952 pacotes/s
 
 # efeito-cache.c, coluna "dependente (LATENCIA)"
-ESCADA = [("L1d", "16 KB", 0.894), ("L2", "256 KB", 2.68),
-          ("L3", "8 MB", 9.75), ("RAM", "256 MB", 103.1)]
+ESCADA = [("L1d", "16 KB", 0.891), ("L2", "256 KB", 2.68),
+          ("L3", "8 MB", 9.67), ("RAM", "256 MB", 86.59)]
 
-# custo-paralelismo.c, coluna "mediana"
-PARALELISMO = [(1, 94.36), (2, 46.48), (4, 24.77), (8, 13.26),
-               (12, 9.19), (16, 7.25), (32, 4.59), (64, 3.44)]
+# custo-paralelismo.c, coluna "mediana", rodada r1 de
+# 2026-09-23-expo6000-canal-duplo -- a MESMA rodada das tabelas publicadas
+PARALELISMO = [(1, 76.65), (2, 37.97), (4, 20.58), (8, 10.75),
+               (12, 7.38), (16, 5.64), (32, 3.19), (64, 2.43)]
 
 # efeito-cache.c, bloco RAM. Banda = bytes MOVIDOS pela memória: cada acesso
 # traz uma linha de 64 B inteira, mesmo quando o programa usa 4 bytes dela.
 # No caso sequencial os 16 uint32_t da linha são todos usados, então os 64 B
 # custam 16 acessos.
-BANDA = [("sequencial (o prefetcher enfileira sozinho)", 64.0 / (0.198 * 16)),
-         ("aleatório, endereços independentes",          64.0 / 7.46),
-         ("aleatório, endereços encadeados",             64.0 / 103.1)]
+BANDA = [("sequencial (o prefetcher enfileira sozinho)", 64.0 / (0.187 * 16)),
+         ("aleatório, endereços independentes",          64.0 / 5.81),
+         ("aleatório, endereços encadeados",             64.0 / 86.59)]
 
-# custo-paralelismo.c, fase 2: N nucleos fisicos, 16 cadeias cada, mesma regiao
-NUCLEOS = [(1, 7.27), (2, 8.35), (4, 16.91), (8, 25.82), (12, 36.56)]
+# custo-paralelismo.c, fase 2: N nucleos fisicos, 16 cadeias cada, mesma regiao.
+# Coleta 2026-09-23-expo6000-canal-duplo. O canal e parte da procedencia: a
+# curva de saturacao E a medida do teto de banda, e o teto depende de quantos
+# pentes servem a requisicao.
+NUCLEOS = [(1, 5.85), (2, 6.08), (4, 6.69), (8, 8.69), (12, 12.68)]
 
 # --------------------------------------------------------------------------
 # TEXTOS — um gráfico por idioma
@@ -82,7 +86,7 @@ TEXTOS = {
         esc_eixo="nanossegundos", esc_orc="orçamento: 67,2 ns por pacote",
         esc_excede="excede o orçamento em {0:.0f} ns",
         esc_desc=("Gráfico de barras horizontais. A latência de um acesso dependente é de "
-                  "0,89 ns na L1d, 2,68 ns na L2, 9,75 ns na L3 e 103,1 ns na RAM. O "
+                  "0,89 ns na L1d, 2,68 ns na L2, 9,67 ns na L3 e 86,6 ns na RAM. O "
                   "orçamento de um pacote de 64 B em 10 GbE é 67,2 ns: só o acesso à RAM "
                   "já o excede."),
         con_titulo="Vazão se compra com concorrência — e se paga com latência",
@@ -93,11 +97,11 @@ TEXTOS = {
         con_x="K — acessos em voo ao mesmo tempo (escala log)",
         con_nota1="até K = 16 a curva laranja é plana:", con_nota2="a concorrência sai de graça",
         con_desc=("Dois gráficos empilhados com o mesmo eixo horizontal K em escala "
-                  "logarítmica, de 1 a 64 acessos em voo. No primeiro, a vazão sobe de 10,6 "
-                  "para 291 M acessos/s e satura; uma linha tracejada marca o line rate de "
+                  "logarítmica, de 1 a 64 acessos em voo. No primeiro, a vazão sobe de 13,0 "
+                  "para 411 M acessos/s e satura; uma linha tracejada marca o line rate de "
                   "10 GbE. No segundo, em escala log nos dois eixos, o custo amortizado por "
-                  "acesso cai de 94 para 3,44 ns enquanto o tempo até o lote ficar pronto "
-                  "permanece plano em torno de 100 ns até K = 16 e sobe para 220 ns em "
+                  "acesso cai de 77 para 2,43 ns enquanto o tempo até o lote ficar pronto "
+                  "permanece plano em torno de 80 ns até K = 16 e sobe para 156 ns em "
                   "K = 64. As duas curvas estão em nanossegundos; a segunda é a primeira "
                   "multiplicada por K."),
         ban_titulo="A banda que você usa é a que o seu padrão de acesso permite",
@@ -107,18 +111,18 @@ TEXTOS = {
                  "aleatório, endereços independentes",
                  "aleatório, endereços encadeados"],
         ban_fecho="{0:.0f}× de diferença — mesma máquina, mesma memória, mesmo núcleo.",
-        ban_desc=("Gráfico de barras horizontais. Sobre a mesma RAM, um núcleo move 20,2 "
-                  "GB/s em acesso sequencial, 8,6 GB/s em acesso aleatório com endereços "
-                  "independentes e 0,6 GB/s quando cada endereço depende do anterior."),
+        ban_desc=("Gráfico de barras horizontais. Sobre a mesma RAM, um núcleo move 21,4 "
+                  "GB/s em acesso sequencial, 11,0 GB/s em acesso aleatório com endereços "
+                  "independentes e 0,7 GB/s quando cada endereço depende do anterior."),
         sca_titulo="A banda não se multiplica por núcleo — ela é dividida",
         sca_sub=("vazão agregada com N núcleos físicos empurrando a mesma região — "
                  "custo-paralelismo.c, fase 2"),
         sca_y="M acessos/s (soma de todos os núcleos)", sca_ideal="se escalasse por núcleo",
         sca_teto="{0:.0f} M/s — o teto", sca_ms="{0:.0f} M/s", sca_x="núcleos físicos ativos",
-        sca_fecho="Com 12 ativos, cada núcleo faz 20% do que fazia sozinho.",
-        sca_desc=("Gráfico de linha. A vazão agregada sobe de 138 M acessos/s com um núcleo "
-                  "para 328 M com doze, e satura por volta de oito. A linha de referência "
-                  "mostra onde ela estaria se escalasse por núcleo: 1 651 M com doze."),
+        sca_fecho="Com 12 ativos, cada núcleo faz 46% do que fazia sozinho.",
+        sca_desc=("Gráfico de linha. A vazão agregada sobe de 171 M acessos/s com um núcleo "
+                  "para 948 M com doze, e satura por volta de oito. A linha de referência "
+                  "mostra onde ela estaria se escalasse por núcleo: 2 051 M com doze."),
     ),
     "en": dict(
         sufixo=".en", dec=".",
@@ -127,7 +131,7 @@ TEXTOS = {
         esc_eixo="nanoseconds", esc_orc="budget: 67.2 ns per packet",
         esc_excede="exceeds the budget by {0:.0f} ns",
         esc_desc=("Horizontal bar chart. The latency of one dependent access is 0.89 ns in "
-                  "L1d, 2.68 ns in L2, 9.75 ns in L3 and 103.1 ns in RAM. The budget for a "
+                  "L1d, 2.68 ns in L2, 9.67 ns in L3 and 86.6 ns in RAM. The budget for a "
                   "64 B packet on 10 GbE is 67.2 ns: the RAM access alone already exceeds it."),
         con_titulo="Throughput is bought with concurrency — and paid for in latency",
         con_sub="K independent accesses in flight over the same region — custo-paralelismo.c",
@@ -138,11 +142,11 @@ TEXTOS = {
         con_nota1="up to K = 16 the orange curve is flat:", con_nota2="concurrency comes for free",
         con_desc=("Two stacked charts sharing the same horizontal axis K on a logarithmic "
                   "scale, from 1 to 64 accesses in flight. In the first, throughput rises "
-                  "from 10.6 to 291 M accesses/s and saturates; a dashed line marks the "
+                  "from 13.0 to 411 M accesses/s and saturates; a dashed line marks the "
                   "10 GbE line rate. In the second, on log scales on both axes, the "
-                  "amortized cost per access falls from 94 to 3.44 ns while the time until "
-                  "the batch is ready stays flat around 100 ns up to K = 16 and rises to "
-                  "220 ns at K = 64. Both curves are in nanoseconds; the second is the "
+                  "amortized cost per access falls from 77 to 2.43 ns while the time until "
+                  "the batch is ready stays flat around 80 ns up to K = 16 and rises to "
+                  "156 ns at K = 64. Both curves are in nanoseconds; the second is the "
                   "first multiplied by K."),
         ban_titulo="The bandwidth you get is the one your access pattern allows",
         ban_sub="one core, the same 256 MB region in the same RAM — efeito-cache.c",
@@ -151,18 +155,18 @@ TEXTOS = {
                  "random, independent addresses",
                  "random, chained addresses"],
         ban_fecho="{0:.0f}× difference — same machine, same memory, same core.",
-        ban_desc=("Horizontal bar chart. Over the same RAM, one core moves 20.2 GB/s with "
-                  "sequential access, 8.6 GB/s with random access using independent "
-                  "addresses and 0.6 GB/s when each address depends on the previous one."),
+        ban_desc=("Horizontal bar chart. Over the same RAM, one core moves 21.4 GB/s with "
+                  "sequential access, 11.0 GB/s with random access using independent "
+                  "addresses and 0.7 GB/s when each address depends on the previous one."),
         sca_titulo="Bandwidth does not multiply per core — it is divided",
         sca_sub=("aggregate throughput with N physical cores pushing the same region — "
                  "custo-paralelismo.c, phase 2"),
         sca_y="M accesses/s (sum of all cores)", sca_ideal="if it scaled per core",
         sca_teto="{0:.0f} M/s — the ceiling", sca_ms="{0:.0f} M/s", sca_x="active physical cores",
-        sca_fecho="With 12 active, each core does 20% of what it did alone.",
-        sca_desc=("Line chart. Aggregate throughput rises from 138 M accesses/s with one "
-                  "core to 328 M with twelve, and saturates around eight. The reference "
-                  "line shows where it would be if it scaled per core: 1,651 M with twelve."),
+        sca_fecho="With 12 active, each core does 46% of what it did alone.",
+        sca_desc=("Line chart. Aggregate throughput rises from 171 M accesses/s with one "
+                  "core to 948 M with twelve, and saturates around eight. The reference "
+                  "line shows where it would be if it scaled per core: 2,051 M with twelve."),
     ),
 }
 

@@ -823,10 +823,10 @@ Medindo o efeito ([`efeito-cache.c`](medicoes/efeito-cache.c)):
 ```
   cabe em    tamanho   sequencial    aleatorio    dependente   acessos   disp do
                        (amortizado)  (amortizado) (LATENCIA)   em voo    dependente
-  L1d          16 KB     0.187 ns      0.260 ns      0.895 ns     ~3        0.6%
-  L2          256 KB     0.186 ns      0.332 ns       2.68 ns     ~8        0.0%
-  L3         8192 KB     0.188 ns      0.742 ns       9.74 ns    ~13        1.1%
-  RAM      262144 KB     0.195 ns      6.44 ns       88.61 ns    ~14        1.3%
+  L1d          16 KB     0.189 ns      0.260 ns      0.891 ns     ~3        0.1%
+  L2          256 KB     0.186 ns      0.331 ns       2.68 ns     ~8        0.0%
+  L3         8192 KB     0.187 ns      0.741 ns       9.67 ns    ~13        0.2%
+  RAM      262144 KB     0.187 ns      5.81 ns       86.59 ns    ~15        0.4%
 ```
 
 > **Amortizado não é latência, e a distinção precisa de instrumento.** A coluna
@@ -860,18 +860,18 @@ percorrer 16 KB. O *prefetcher* do processador reconhece o padrão e busca a
 linha seguinte antes que ela seja pedida. A latência da RAM continua existindo —
 ela é apenas escondida.
 
-**A coluna dependente é a latência real**, e é ela que cresce 115× entre a L1d e
+**A coluna dependente é a latência real**, e é ela que cresce 97× entre a L1d e
 a RAM. É a única das três que mede *um* acesso: cada passo da cadeia só descobre
 o próximo endereço depois que o dado chega, e nada se sobrepõe.
 
 **A coluna aleatória fica no meio, e o meio é o assunto.** Sem padrão
 previsível, o prefetcher não ajuda — mas os endereços vêm de um vetor lido em
 ordem, então o processador ainda consegue manter uma dúzia de acessos em voo. Os
-7,21 ns são 101,5 ns divididos por ~14.
+5,81 ns são 86,59 ns divididos por ~15.
 
 #### A concorrência é a alavanca, e ela tem preço
 
-Se dividir por 14 já vale 103 ns, dividir por mais vale mais? Até certo ponto —
+Se dividir por 15 já vale 81 ns, dividir por mais vale mais? Até certo ponto —
 e o ponto é mensurável. [`custo-paralelismo.c`](medicoes/custo-paralelismo.c)
 percorre **K cadeias independentes** sobre a mesma região, com K crescente:
 
@@ -889,19 +889,19 @@ Os dois painéis são a mesma tabela, e juntos são a decisão:
 ```
    K   ns/access   M accesses/s   batch of K ready in   throughput gain
   ---  ---------   -----------   ---------------------   --------------
-    1      76.57        13.1                77 ns            1.0x
-    2      38.18        26.2                76 ns            2.0x
-    4      20.64        48.5                83 ns            3.7x
-    8      10.83        92.4                87 ns            7.1x
-   12       7.52       133.0                90 ns           10.2x
-   16       5.84       171.3                93 ns           13.1x
-   32       3.49       286.4               112 ns           21.9x
-   64       2.77       360.4               178 ns           27.6x
+    1      76.65        13.0                77 ns            1.0x
+    2      37.97        26.3                76 ns            2.0x
+    4      20.58        48.6                82 ns            3.7x
+    8      10.75        93.0                86 ns            7.1x
+   12       7.38       135.4                89 ns           10.4x
+   16       5.64       177.4                90 ns           13.6x
+   32       3.19       313.2               102 ns           24.0x
+   64       2.43       411.1               156 ns           31.5x
 ```
 
-**A latência não muda em nenhuma linha.** Ela fica em ~77 ns até K = 16 — o que muda é
-quantos acessos acontecem ao mesmo tempo. A coluna `ns/acesso` cai 27 vezes sem
-que um único acesso tenha ficado mais rápido.
+**A latência não muda em nenhuma linha.** Ela fica entre 76 e 90 ns até K = 16 —
+o que muda é quantos acessos acontecem ao mesmo tempo. A coluna `ns/acesso` cai
+**31,5 vezes** sem que um único acesso tenha ficado mais rápido.
 
 **Com K = 1 esta máquina não alcança 10 GbE.** São 13,1 milhões de acessos por
 segundo contra os 14,9 milhões de pacotes por segundo da [§1](#1-o-orçamento-quanto-tempo-existe-por-pacote).
@@ -943,11 +943,12 @@ aqui que ele aparece nesta máquina.
 > decisão é tomada. Publicá-la ao lado da origem é o que impede que ela pareça um
 > segundo resultado independente.
 
-> **Leia os selos antes de citar os números.** As linhas de K = 32 e K = 64 saem
-> marcadas `~` (`disp` de 5,9% e 8,7%): quanto menor o valor medido, maior a
-> dispersão relativa, e aos 3 ns a medição já disputa com o ruído da máquina. A
-> forma da curva é sólida em toda a faixa; o valor exato dos dois últimos
-> pontos, menos.
+> **A dispersão desta coleta é baixa em toda a faixa, e isso nem sempre foi
+> assim.** Nenhuma linha sai marcada: a maior `disp` é de 0,4%, em K = 32. Numa
+> configuração anterior as duas últimas linhas vinham com `~` (5,9% e 8,7%),
+> porque quanto menor o valor medido maior a dispersão relativa, e aos 3 ns a
+> medição disputava com o ruído da máquina. A regra continua valendo — **leia os
+> selos antes de citar os números** —; o que mudou foi a máquina, não o critério.
 
 #### O que isso significa em bytes
 
@@ -955,10 +956,10 @@ A mesma região, o mesmo núcleo, a mesma memória — só muda o padrão de ace
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-banda-escuro.svg">
-  <img alt="Gráfico de barras horizontais com a banda efetiva de um núcleo sobre a mesma RAM: 20,2 GB/s em acesso sequencial, 8,6 GB/s em acesso aleatório com endereços independentes e 0,6 GB/s quando cada endereço depende do anterior — 33 vezes de diferença." src="imagens/4-banda-claro.svg">
+  <img alt="Gráfico de barras horizontais com a banda efetiva de um núcleo sobre a mesma RAM: 21,4 GB/s em acesso sequencial, 11,0 GB/s em acesso aleatório com endereços independentes e 0,74 GB/s quando cada endereço depende do anterior — 29 vezes de diferença." src="imagens/4-banda-claro.svg">
 </picture>
 
-Trinta e três vezes, sem trocar uma peça. **A banda que o fabricante vende não é
+Vinte e nove vezes, sem trocar uma peça. **A banda que o fabricante vende não é
 a que o seu programa usa; a que ele usa é a que o padrão de acesso permite.** É
 a razão pela qual "comprar memória mais rápida" quase nunca resolve um plano de
 dados que persegue ponteiros: o gargalo não é a banda, é a falta de
@@ -980,50 +981,67 @@ uma única linha entre threads:
 ```
      cores   ns/access   M accesses/s     aggregate   ideal scaling
   --------   ---------   -----------   -----------   ------------
-         1        6.18       161.9         161.9          100%
-         2        6.77       147.6         295.2           91%
-         4        8.61       116.2         464.8           72%
-         8       14.35        69.7         557.6           43%
-        12       21.29        47.0         563.7           29%
+         1        5.85       170.9         170.9          100%
+         2        6.08       164.4         328.8           96%
+         4        6.69       149.4         597.5           87%
+         8        8.69       115.1         920.6           67%
+        12       12.68        78.9         946.3           46%
 ```
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escala-escuro.svg">
-  <img alt="Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 138 milhões de acessos por segundo com um núcleo para 328 milhões com doze, e a curva achata a partir de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 1 651 milhões com doze." src="imagens/4-escala-claro.svg">
+  <img alt="Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 171 milhões de acessos por segundo com um núcleo para 948 milhões com doze, e a curva achata a partir de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 2 051 milhões com doze." src="imagens/4-escala-claro.svg">
 </picture>
 
-**Com doze núcleos ativos, cada um faz 20% do que fazia sozinho.** A vazão
-agregada cresce 2,4×, não 12× — e a curva achata: de oito para doze núcleos,
-**50% mais núcleos compram 6% de vazão**.
+**Com doze núcleos ativos, cada um faz 46% do que fazia sozinho.** A vazão
+agregada cresce 5,5×, não 12× — e a curva achata: de oito para doze núcleos,
+**50% mais núcleos compram 2,8% de vazão**.
 
-E o teto tem um nome que já apareceu neste capítulo. Trezentos e vinte e oito
-milhões de acessos por segundo, a 64 bytes por linha, são **21,0 GB/s** — o
-mesmo número que um único núcleo alcança em acesso sequencial no gráfico
-anterior, 20,2 GB/s.
+#### O teto é a banda, e isso foi medido duas vezes
 
-**Esta página leu essa coincidência como causa comum, e um experimento a
-derrubou.** O texto afirmava que os dois caminhos chegavam à banda da memória e
-que um núcleo sequencial a saturava sozinho. Trocando a memória de 4800 para
-6000 MT/s — mesma máquina, mesmo binário, mesmo protocolo, uma variável — os
-dois números respondem de formas incompatíveis:
+Novecentos e quarenta e seis milhões de acessos por segundo, a 64 bytes por
+linha, são **60,6 GB/s**. Um único núcleo em acesso sequencial alcança
+**21,4 GB/s** no gráfico anterior. São números distintos, e a distinção
+importa.
 
-```
-  12 nucleos, agregado    30,92 -> 21,28 ns/acesso   -31,2%
-  1 nucleo, sequencial     0,200 -> 0,190 ns/acesso    -5,0%
-```
+> **Esta página já leu esses dois números como o mesmo teto, e a leitura era
+> errada — os números, não.** Numa configuração anterior eles ficavam ambos
+> perto de 20 GB/s, e o texto concluía que um núcleo sequencial saturava a
+> memória sozinho. As duas medições continuam válidas para a máquina em que
+> foram feitas, e estão arquivadas em
+> [`medicoes/historico/`](medicoes/historico/); o que caiu foi a inferência de
+> causa comum a partir da proximidade dos valores.
 
-**Seis vezes mais resposta à mesma intervenção.** O agregado é limitado pela
-banda — ele melhora quando a banda melhora. O núcleo sozinho, não: ele está
-limitado por quantos acessos consegue manter em voo, que é propriedade do
-núcleo, não da memória. A coincidência dos dois números perto de 20 GB/s
-continua sendo verdade **nesta configuração**, e deixa de ser explicação.
+O que separa as duas leituras é intervenção, não argumento. A previsão é
+direta: **se o agregado é limitado pela banda da memória e o núcleo sozinho
+não, então mexer na memória move um e não move o outro.** Duas intervenções de
+variável única testaram isso, em momentos diferentes e com hardware diferente:
+
+| Intervenção | 12 núcleos, agregado | 1 núcleo, sequencial | razão |
+|---|---:|---:|---:|
+| 4800 → 6000 MT/s (frequência) | −31,2% no tempo | −5,0% no tempo | **6×** |
+| 1 → 2 pentes (canais) | +67,9% na vazão | +4,3% no tempo | **16×** |
+
+As duas respondem na mesma direção e com a mesma assimetria. O agregado
+acompanha a memória; o núcleo sozinho, não — ele está limitado por quantos
+acessos consegue manter em voo, que é propriedade do núcleo.
+
+O segundo experimento é o mais decisivo dos dois, porque **dobrar os canais
+dobra a banda teórica sem tocar na latência**. A frequência move as duas
+coisas; o número de canais move só uma. O agregado subiu 68%; a leitura
+sequencial de um núcleo, 4,3%.
+
+> **O que isso ainda não estabelece.** Que o agregado é limitado pela banda
+> está medido. **Qual** é o teto absoluto, não: 60,6 GB/s são 63% do máximo
+> teórico de DDR5-6000 em canal duplo (96 GB/s), e a diferença pode ser do
+> controlador, do padrão de acesso ou do próprio programa. Medir o teto exigiria
+> um gerador de tráfego de memória dedicado, que é outro instrumento.
 
 > A coleta completa está em
 > [`medicoes/historico/`](medicoes/historico/), e o comparativo sai de
-> `comparar-hardware.py` a partir das saídas brutas. Os valores das tabelas
-> acima são anteriores a essa troca e serão republicados quando a máquina
-> parar de mudar — o segundo pente de memória entra em seguida, e muda
-> capacidade e canal ao mesmo tempo.
+> `comparar-hardware.py` a partir das saídas brutas. Os valores desta seção vêm
+> de `2026-09-23-expo6000-canal-duplo`, que é a configuração atual da máquina:
+> dois pentes DDR5-6000 de 16 GB, um nó NUMA.
 
 > **Selo perto do limiar: desconfie do número de amostras antes do fenômeno.**
 > Com sete amostras o selo erra nas duas direções — medido em dez grupos

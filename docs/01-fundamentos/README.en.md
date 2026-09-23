@@ -817,10 +817,10 @@ Measuring the effect ([`efeito-cache.c`](medicoes/efeito-cache.c)):
 ```
   fits in       size   sequential     random      dependent    accesses   disp of
                        (amortised)   (amortised)  (LATENCY)    in flight  dependent
-  L1d          16 KB     0.187 ns      0.260 ns      0.895 ns     ~3        0.6%
-  L2          256 KB     0.186 ns      0.332 ns       2.68 ns     ~8        0.0%
-  L3         8192 KB     0.188 ns      0.742 ns       9.74 ns    ~13        1.1%
-  RAM      262144 KB     0.195 ns      6.44 ns       88.61 ns    ~14        1.3%
+  L1d          16 KB     0.189 ns      0.260 ns      0.891 ns     ~3        0.1%
+  L2          256 KB     0.186 ns      0.331 ns       2.68 ns     ~8        0.0%
+  L3         8192 KB     0.187 ns      0.741 ns       9.67 ns    ~13        0.2%
+  RAM      262144 KB     0.187 ns      5.81 ns       86.59 ns    ~15        0.4%
 ```
 
 > **Amortized is not latency, and telling them apart takes an instrument.** The
@@ -854,7 +854,7 @@ walking 16 KB. The processor's *prefetcher* recognises the pattern and fetches
 the next line before it is asked for. RAM latency still exists — it is merely
 hidden.
 
-**The dependent column is the real latency**, and it is the one that grows 115×
+**The dependent column is the real latency**, and it is the one that grows 97×
 between L1d and RAM. It is the only one of the three that measures *one* access:
 each step of the chain discovers the next address only after the data arrives,
 and nothing overlaps.
@@ -862,11 +862,11 @@ and nothing overlaps.
 **The random column sits in between, and the in-between is the subject.** With
 no predictable pattern the prefetcher does not help — but the addresses come
 from an array read in order, so the processor still keeps about a dozen accesses
-in flight. The 7.21 ns are 101.5 ns divided by ~14.
+in flight. The 5.81 ns are 86.59 ns divided by ~15.
 
 #### Concurrency is the lever, and it has a price
 
-If dividing by 14 is already worth 103 ns, is dividing by more worth more? Up to
+If dividing by 15 is already worth 81 ns, is dividing by more worth more? Up to
 a point — and the point is measurable.
 [`custo-paralelismo.c`](medicoes/custo-paralelismo.c) walks **K independent
 chains** over the same region, with K growing:
@@ -885,21 +885,21 @@ The two panels are the same table, and together they are the decision:
 ```
    K   ns/access   M accesses/s   batch of K ready in   throughput gain
   ---  ---------   -----------   ---------------------   --------------
-    1      76.57        13.1                77 ns            1.0x
-    2      38.18        26.2                76 ns            2.0x
-    4      20.64        48.5                83 ns            3.7x
-    8      10.83        92.4                87 ns            7.1x
-   12       7.52       133.0                90 ns           10.2x
-   16       5.84       171.3                93 ns           13.1x
-   32       3.49       286.4               112 ns           21.9x
-   64       2.77       360.4               178 ns           27.6x
+    1      76.65        13.0                77 ns            1.0x
+    2      37.97        26.3                76 ns            2.0x
+    4      20.58        48.6                82 ns            3.7x
+    8      10.75        93.0                86 ns            7.1x
+   12       7.38       135.4                89 ns           10.4x
+   16       5.64       177.4                90 ns           13.6x
+   32       3.19       313.2               102 ns           24.0x
+   64       2.43       411.1               156 ns           31.5x
 ```
 
-**Latency does not change on any row.** It stays at ~77 ns up to K = 16 — what
-changes is how many accesses happen at once. The `ns/access` column falls 27×
-without a single access having become faster.
+**Latency does not change on any row.** It stays between 76 and 90 ns up to
+K = 16 — what changes is how many accesses happen at once. The `ns/access`
+column falls **31.5×** without a single access having become faster.
 
-**At K = 1 this machine does not reach 10 GbE.** That is 13.1 million accesses per
+**At K = 1 this machine does not reach 10 GbE.** That is 13.0 million accesses per
 second against the 14.9 million packets per second of
 [§1](#1-the-budget-how-much-time-exists-per-packet). A single dependent access
 per packet — chasing a pointer, consulting a chained flow table — **already
@@ -953,10 +953,10 @@ changes:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-banda-escuro.en.svg">
-  <img alt="Horizontal bar chart of the effective bandwidth of one core over the same RAM: 20.2 GB/s for sequential access, 8.6 GB/s for random access with independent addresses and 0.6 GB/s when each address depends on the previous one — a 33-fold difference." src="imagens/4-banda-claro.en.svg">
+  <img alt="Horizontal bar chart of the effective bandwidth of one core over the same RAM: 21.4 GB/s for sequential access, 11.0 GB/s for random access with independent addresses and 0.74 GB/s when each address depends on the previous one — a 29-fold difference." src="imagens/4-banda-claro.en.svg">
 </picture>
 
-Thirty-three times, without swapping a single part. **The bandwidth the vendor
+Twenty-nine times, without swapping a single part. **The bandwidth the vendor
 sells is not the one your program uses; the one it uses is the one its access
 pattern allows.** It is the reason why "buying faster memory" almost never fixes
 a data plane that chases pointers: the bottleneck is not bandwidth, it is the
@@ -978,50 +978,66 @@ line between threads:
 ```
      cores   ns/access   M accesses/s     aggregate   ideal scaling
   --------   ---------   -----------   -----------   ------------
-         1        6.18       161.9         161.9          100%
-         2        6.77       147.6         295.2           91%
-         4        8.61       116.2         464.8           72%
-         8       14.35        69.7         557.6           43%
-        12       21.29        47.0         563.7           29%
+         1        5.85       170.9         170.9          100%
+         2        6.08       164.4         328.8           96%
+         4        6.69       149.4         597.5           87%
+         8        8.69       115.1         920.6           67%
+        12       12.68        78.9         946.3           46%
 ```
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escala-escuro.en.svg">
-  <img alt="Line chart of aggregate throughput against the number of active physical cores. It rises from 138 million accesses per second with one core to 328 million with twelve, and the curve flattens from eight on. A grey reference line shows where it would be if it scaled per core: 1,651 million with twelve." src="imagens/4-escala-claro.en.svg">
+  <img alt="Line chart of aggregate throughput against the number of active physical cores. It rises from 171 million accesses per second with one core to 948 million with twelve, and the curve flattens from eight onwards. A grey reference line shows where it would be if it scaled per core: 2,051 million with twelve." src="imagens/4-escala-claro.en.svg">
 </picture>
 
-**With twelve cores active, each one does 20% of what it did alone.** Aggregate
-throughput grows 2.4×, not 12× — and the curve flattens: from eight to twelve
-cores, **50% more cores buy 6% of throughput**.
+**With twelve cores active, each one does 46% of what it did alone.** Aggregate
+throughput grows 5.5×, not 12× — and the curve flattens: from eight to twelve
+cores, **50% more cores buy 2.8% of throughput**.
 
-And that ceiling has a name that has already appeared in this chapter. Three
-hundred and twenty-eight million accesses per second, at 64 bytes per line, are
-**21.0 GB/s** — the same number a single core reaches with sequential access in
-the previous chart, 20.2 GB/s.
+#### The ceiling is bandwidth, and that was measured twice
 
-**This page read that coincidence as a common cause, and an experiment knocked
-it down.** The text claimed both paths arrived at memory bandwidth and that one
-sequential core saturated it alone. Switching memory from 4800 to 6000 MT/s —
-same machine, same binary, same protocol, one variable — the two numbers respond
-in incompatible ways:
+Nine hundred and forty-six million accesses per second, at 64 bytes per line,
+are **60.6 GB/s**. A single core with sequential access reaches **21.4 GB/s** in
+the previous chart. They are distinct numbers, and the distinction matters.
 
-```
-  12 cores, aggregate     30.92 -> 21.28 ns/access   -31.2%
-  1 core, sequential       0.200 -> 0.190 ns/access    -5.0%
-```
+> **This page once read those two numbers as the same ceiling, and the reading
+> was wrong — the numbers were not.** In an earlier configuration both sat near
+> 20 GB/s, and the text concluded that one sequential core saturated memory on
+> its own. Both measurements remain valid for the machine they were taken on,
+> and are archived in [`medicoes/historico/`](medicoes/historico/); what fell
+> was the inference of a common cause from the proximity of the values.
 
-**Six times the response to the same intervention.** The aggregate is
-bandwidth-limited — it improves when bandwidth improves. The lone core is not:
-it is limited by how many accesses it can keep in flight, which is a property of
-the core, not of the memory. The coincidence of the two numbers near 20 GB/s
-remains true **in this configuration**, and stops being an explanation.
+What separates the two readings is intervention, not argument. The prediction is
+direct: **if the aggregate is limited by memory bandwidth and the lone core is
+not, then touching memory moves one and not the other.** Two single-variable
+interventions tested this, at different times and with different hardware:
+
+| Intervention | 12 cores, aggregate | 1 core, sequential | ratio |
+|---|---:|---:|---:|
+| 4800 → 6000 MT/s (frequency) | −31.2% in time | −5.0% in time | **6×** |
+| 1 → 2 sticks (channels) | +67.9% in throughput | +4.3% in time | **16×** |
+
+Both respond in the same direction and with the same asymmetry. The aggregate
+tracks memory; the lone core does not — it is limited by how many accesses it
+can keep in flight, which is a property of the core.
+
+The second experiment is the more decisive of the two, because **doubling the
+channels doubles theoretical bandwidth without touching latency**. Frequency
+moves both things; the number of channels moves only one. The aggregate rose
+68%; one core's sequential read, 4.3%.
+
+> **What this still does not establish.** That the aggregate is bandwidth-limited
+> is measured. **What** the absolute ceiling is, is not: 60.6 GB/s is 63% of the
+> theoretical maximum of DDR5-6000 in dual channel (96 GB/s), and the gap may
+> belong to the controller, to the access pattern or to the program itself.
+> Measuring the ceiling would require a dedicated memory traffic generator,
+> which is another instrument.
 
 > The full collection is in
 > [`medicoes/historico/`](medicoes/historico/), and the comparison comes out of
-> `comparar-hardware.py` from the raw outputs. The values in the tables above
-> predate that switch and will be republished once the machine stops changing —
-> the second memory stick goes in next, and changes capacity and channel at the
-> same time.
+> `comparar-hardware.py` from the raw outputs. The values in this section come
+> from `2026-09-23-expo6000-canal-duplo`, which is the machine's current
+> configuration: two 16 GB DDR5-6000 sticks, one NUMA node.
 
 > **A seal near the threshold: doubt the sample count before the phenomenon.**
 > With seven samples the seal errs in both directions — measured over ten disjoint

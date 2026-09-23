@@ -511,6 +511,102 @@ one stick and with two, the instrument is consistent, and the remaining
 difference between rows is attributable to the capacity+channel pair — declared
 as a pair, not as bandwidth.
 
+### Outcome: the four predictions, measured
+
+The second stick went in on 2026-09-23. The collection is
+`2026-09-23-expo6000-canal-duplo`, same protocol and same machine state as the
+baseline — `powersave`, C3 active, six rounds with the warm-up discarded. One
+variable: the number of channels.
+
+| # | Prediction | Declared limit | Measured | Outcome |
+|---|---|---|---:|---|
+| 1 | one core's `sequential` does not move | < 5% | **−4.1%** | **confirmed** |
+| 2 | twelve cores' aggregate throughput rises a lot | > 40% | **+68.0%** | **confirmed** |
+| 3 | `dependent` latency changes little | < 5% | **−1.8%** | **confirmed** |
+| 4 | `custo-comunicacao` does not move | < 5% | **largest deviation 4.2%** | **confirmed** |
+
+```
+  1 core, sequential          0.195 -> 0.187 ns/access    -4.1%
+  12 cores, aggregate         21.27 -> 12.66 ns/access   -40.5%
+                              564.2 -> 947.9 M accesses/s +68.0%
+  RAM dependent               88.00 -> 86.38 ns           -1.8%
+```
+
+**Prediction 4 is what gives the other three their value.**
+`custo-comunicacao` measures cache-line traffic between cores, which does not
+touch DRAM: if the channel moved it, the intervention would have an effect
+where it should not, and the other three would lose their meaning. The
+program's five measurements came out between 0.0% and 4.2%, with the ratio
+between SMT sibling and distinct core standing still at **2.29 → 2.29**.
+
+An instrument that responds where it should and stays quiet where it should is
+the only possible evidence that it measures what it says it measures — and this
+time that was declared beforehand, not observed afterwards.
+
+#### What the outcome obliged us to change
+
+The section predicted: *"if 1 and 2 are confirmed, §4.2 becomes more precise and
+shorter"*. That is what happened. The phrase *"one sequential core saturates it
+alone"* left module 01, and the subsection now publishes **both** interventions
+side by side, because they measure the same quantity by independent paths:
+
+| Intervention | 12 cores, aggregate | 1 core, sequential | ratio |
+|---|---:|---:|---:|
+| 4800 → 6000 MT/s | −31.2% in time | −5.0% in time | 6× |
+| 1 → 2 sticks | +68.0% in throughput | +4.3% in time | 16× |
+
+The second intervention is the cleaner of the two, for a reason of mechanism:
+**doubling the channels doubles bandwidth without touching latency**, whereas
+changing the frequency moves both things at once. Confirming the same asymmetry
+by both paths is stronger than confirming it by one.
+
+#### The 2×2 factorial has three cells of four
+
+The design proposed above crossed speed with channel. With this collection it
+stands as:
+
+| | 4800 MT/s | 6000 MT/s |
+|---|---|---|
+| **16 GB, single channel** | collected | collected |
+| **32 GB, dual channel** | **missing** | collected |
+
+The missing cell requires taking the BIOS back to 4800 with both sticks
+installed. It decides none of the four predictions — all of them are already
+resolved — but it answers a different question: **whether the effect of speed
+is the same in both channel configurations**, which would test the instrument's
+consistency across a hardware change. It is recorded as an available collection,
+not as a pending conclusion.
+
+#### The capacity+channel confound remains declared
+
+Adding the stick changed capacity and channel together, and **that was not
+resolved** — no viable design on this machine separates them. What the outcome
+adds is that prediction 3 constrains the space: if capacity were what moves the
+aggregate, it would have to do so **without** altering the latency of a
+512 MB dependent chain, which is what prediction 3 measured standing still at
+−1.8%.
+
+Spare capacity has no way to speed up a chain that already fit in the available
+memory — free memory during the single-channel collection sat around 7 GiB,
+fourteen times the working set. It is a mechanism argument plus a recorded fact,
+and it continues **not to be a control**.
+
+#### One NUMA node, and what that closes
+
+With both sticks, `numactl --hardware` still reports **a single node**, and
+`/sys/devices/system/node/` has only `node0`. This CPU presents all memory as a
+single domain.
+
+Any experiment that depends on **more than one NUMA node** — per-node pool
+locality, remote access cost, per-node lcore placement — remains impossible on
+this machine, and not for lack of sticks.
+[§4.3 of module 01](README.en.md#43-numa-when-memory-stops-being-one-thing)
+already declares that the NUMA numbers there come from the literature and that
+measuring them requires two-socket hardware. This record closes a door the
+hardware change appeared to open: **dual channel is a property of the memory
+controller, not of the NUMA topology**, and the two are easily confused
+precisely because both talk about "how many paths to memory".
+
 ### What is now recorded as a limitation
 
 The machine measured **in single channel** everything published so far, and the

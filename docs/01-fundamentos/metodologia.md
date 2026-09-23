@@ -502,6 +502,101 @@ efeito com um e com dois pentes, o instrumento está consistente, e a diferença
 restante entre as linhas fica atribuível ao par capacidade+canal — declarado
 como par, e não como banda.
 
+### Desfecho: as quatro previsões, medidas
+
+O segundo pente entrou em 23/09/2026. A coleta é
+`2026-09-23-expo6000-canal-duplo`, mesmo protocolo e mesmo estado de máquina da
+linha de base — `powersave`, C3 ativo, seis rodadas com a de aquecimento
+descartada. Uma variável: o número de canais.
+
+| # | Previsão | Limite declarado | Medido | Desfecho |
+|---|---|---|---:|---|
+| 1 | `sequencial` de um núcleo não se move | < 5% | **−4,1%** | **confirmada** |
+| 2 | vazão agregada de doze núcleos sobe muito | > 40% | **+68,0%** | **confirmada** |
+| 3 | latência `dependente` muda pouco | < 5% | **−1,8%** | **confirmada** |
+| 4 | `custo-comunicacao` não se move | < 5% | **maior desvio 4,2%** | **confirmada** |
+
+```
+  1 nucleo, sequencial        0,195 -> 0,187 ns/acesso    -4,1%
+  12 nucleos, agregado        21,27 -> 12,66 ns/acesso   -40,5%
+                              564,2 -> 947,9 M acessos/s +68,0%
+  RAM dependente              88,00 -> 86,38 ns           -1,8%
+```
+
+**A previsão 4 é a que dá valor às outras três.** `custo-comunicacao` mede
+tráfego de linha de cache entre núcleos, que não toca a DRAM: se o canal
+mexesse nele, a intervenção teria efeito onde não deveria e as outras três
+perderiam o sentido. As cinco medições do programa ficaram entre 0,0% e 4,2%,
+com a razão entre irmão SMT e núcleo distinto parada em **2,29 → 2,29**.
+
+Um instrumento que responde onde deve e fica quieto onde deve é a única
+evidência possível de que ele mede o que diz medir — e desta vez isso foi
+declarado antes, não observado depois.
+
+#### O que o desfecho obrigou a mudar
+
+A seção previa: *"se 1 e 2 se confirmarem, a §4.2 fica mais precisa e mais
+curta"*. Foi o que aconteceu. A frase *"um núcleo sequencial a satura sozinho"*
+saiu do módulo 01, e a subseção passou a publicar as **duas** intervenções lado
+a lado, porque elas medem a mesma grandeza por caminhos independentes:
+
+| Intervenção | 12 núcleos, agregado | 1 núcleo, sequencial | razão |
+|---|---:|---:|---:|
+| 4800 → 6000 MT/s | −31,2% no tempo | −5,0% no tempo | 6× |
+| 1 → 2 pentes | +68,0% na vazão | +4,3% no tempo | 16× |
+
+A segunda intervenção é a mais limpa das duas, e por uma razão de mecanismo:
+**dobrar os canais dobra a banda sem tocar na latência**, enquanto trocar a
+frequência move as duas coisas ao mesmo tempo. Confirmar a mesma assimetria
+pelos dois caminhos é mais forte do que confirmar por um só.
+
+#### O fatorial 2×2 tem três células de quatro
+
+O desenho proposto acima cruzava velocidade com canal. Com esta coleta ele fica
+assim:
+
+| | 4800 MT/s | 6000 MT/s |
+|---|---|---|
+| **16 GB, canal único** | coletado | coletado |
+| **32 GB, canal duplo** | **falta** | coletado |
+
+A célula que falta exige voltar a BIOS para 4800 com os dois pentes instalados.
+Ela não decide nenhuma das quatro previsões — todas já se resolveram — mas
+responde a uma pergunta diferente: **se o efeito da velocidade é o mesmo nas
+duas configurações de canal**, o que testaria a consistência do instrumento
+através de uma mudança de hardware. Fica registrada como coleta disponível, não
+como pendência de conclusão.
+
+#### O confundimento capacidade+canal continua declarado
+
+Acrescentar o pente mudou capacidade e canal juntos, e **isto não foi
+resolvido** — nenhum desenho viável nesta máquina os separa. O que o desfecho
+acrescenta é que a previsão 3 restringe o espaço: se a capacidade fosse o que
+move o agregado, ela teria de fazê-lo **sem** alterar a latência de uma cadeia
+dependente de 512 MB, que é o que a previsão 3 mediu parada em −1,8%.
+
+Capacidade sobrando não tem por onde acelerar uma cadeia que já cabia na
+memória disponível — a memória livre durante a coleta de canal único ficou em
+torno de 7 GiB, catorze vezes o conjunto de trabalho. É argumento de mecanismo
+somado a fato registrado, e continua **não sendo um controle**.
+
+#### Um nó NUMA, e o que isso encerra
+
+Com os dois pentes, `numactl --hardware` continua reportando **um único nó**, e
+`/sys/devices/system/node/` tem só `node0`. Canal duplo é propriedade do
+controlador de memória, não da topologia NUMA: esta CPU apresenta toda a memória
+como um domínio.
+
+Qualquer experimento que dependa de **mais de um nó NUMA** — localidade de pool
+por nó, custo de acesso remoto, posicionamento de lcore por nó — permanece
+impossível nesta máquina, e não por falta de pentes. A
+[§4.3 do módulo 01](README.md#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só)
+já declara que os números de NUMA ali vêm da literatura e que medi-los exige
+hardware de dois soquetes. Este registro fecha a porta de um caminho que a troca
+de hardware parecia ter aberto: **canal duplo é propriedade do controlador de
+memória, não da topologia NUMA**, e as duas coisas se confundem com facilidade
+justamente porque ambas falam de "quantos caminhos até a memória".
+
 ### O que já está registrado como limitação
 
 A máquina mediu **em canal único** tudo o que foi publicado até aqui, e o
