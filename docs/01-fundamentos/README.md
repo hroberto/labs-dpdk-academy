@@ -855,10 +855,31 @@ Medindo o efeito ([`efeito-cache.c`](medicoes/efeito-cache.c)):
 
 A tabela tem agora três leituras, e a terceira é nova.
 
-**A coluna sequencial é plana.** Percorrer 256 MB custa o mesmo por acesso que
-percorrer 16 KB. O *prefetcher* do processador reconhece o padrão e busca a
-linha seguinte antes que ela seja pedida. A latência da RAM continua existindo —
-ela é apenas escondida.
+**A coluna sequencial é plana, e a planura é o resultado.** Percorrer 256 MB
+custa o mesmo por acesso que percorrer 16 KB. O *prefetcher* do processador
+reconhece o padrão e busca a linha seguinte antes que ela seja pedida: ele
+sustenta o laço em velocidade cheia mesmo com o conjunto inteiro em DRAM. A
+latência da RAM continua existindo — ela é apenas escondida.
+
+> **O que esta coluna NÃO mede, e a distinção decide o que se pode concluir
+> dela.** O laço de [`efeito-cache.c`](medicoes/efeito-cache.c) acumula numa
+> cadeia carregada pelo laço, com teto de cerca de **um elemento por ciclo**.
+> Esse teto é do laço, não da memória — e é por isso que o valor não muda entre
+> a L1d e a DRAM: nos dois casos a memória entrega mais do que o laço consome.
+>
+> Converter os 0,187 ns por elemento em "GB/s de banda" atribui ao subsistema
+> de memória um número que é do instrumento. A planura diz que **o prefetcher
+> dá conta**; ela não diz quanta banda existe.
+>
+> Consertar isso exigiria vetorizar o laço, e vetorizar exige `-march=native`.
+> O projeto compila com `-O2` portável de propósito, para que a mesma fonte
+> produza número comparável noutra máquina — a §9 trata dessa escolha. O custo
+> dela está declarado aqui, e o
+> [teste L2](medicoes/tests/l2_efeito_cache.sh) falha se a coluna deixar de ser
+> plana, porque aí ela passa a medir outra coisa e este texto deixa de valer.
+>
+> As colunas `aleatorio` e `dependente` não têm esse problema: as duas ficam
+> ordens de grandeza abaixo do teto do laço, e por isso medem a memória.
 
 **A coluna dependente é a latência real**, e é ela que cresce 97× entre a L1d e
 a RAM. É a única das três que mede *um* acesso: cada passo da cadeia só descobre
@@ -956,14 +977,19 @@ A mesma região, o mesmo núcleo, a mesma memória — só muda o padrão de ace
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-banda-escuro.svg">
-  <img alt="Gráfico de barras horizontais com a banda efetiva de um núcleo sobre a mesma RAM: 21,4 GB/s em acesso sequencial, 11,0 GB/s em acesso aleatório com endereços independentes e 0,74 GB/s quando cada endereço depende do anterior — 29 vezes de diferença." src="imagens/4-banda-claro.svg">
+  <img alt="Gráfico de barras horizontais com a banda efetiva de um núcleo sobre a mesma RAM: 11,0 GB/s em acesso aleatório com endereços independentes e 0,74 GB/s quando cada endereço depende do anterior — 15 vezes de diferença entre os dois padrões que a memória limita." src="imagens/4-banda-claro.svg">
 </picture>
 
-Vinte e nove vezes, sem trocar uma peça. **A banda que o fabricante vende não é
-a que o seu programa usa; a que ele usa é a que o padrão de acesso permite.** É
-a razão pela qual "comprar memória mais rápida" quase nunca resolve um plano de
+Quinze vezes, sem trocar uma peça. **A banda que o fabricante vende não é a que
+o seu programa usa; a que ele usa é a que o padrão de acesso permite.** É a
+razão pela qual "comprar memória mais rápida" quase nunca resolve um plano de
 dados que persegue ponteiros: o gargalo não é a banda, é a falta de
 concorrência para ocupá-la.
+
+> **O acesso sequencial ficou fora deste gráfico**, e por uma razão de método:
+> o número dele é o teto do laço, não da memória, conforme a ressalva da
+> tabela. Publicá-lo ao lado de dois valores que a memória de fato limita
+> convidaria exatamente a comparação que não se sustenta.
 
 Repare também no desperdício embutido. Cada acesso aleatório move uma linha de
 **64 bytes** e usa 4 — os outros 60 atravessaram o barramento para nada. É o
@@ -1000,36 +1026,37 @@ agregada cresce 5,5×, não 12× — e a curva achata: de oito para doze núcleo
 #### O teto é a banda, e isso foi medido duas vezes
 
 Novecentos e quarenta e seis milhões de acessos por segundo, a 64 bytes por
-linha, são **60,6 GB/s**. Um único núcleo em acesso sequencial alcança
-**21,4 GB/s** no gráfico anterior. São números distintos, e a distinção
-importa.
+linha, são **60,6 GB/s** com doze núcleos. Um núcleo sozinho, no mesmo
+programa e com o mesmo padrão de acesso, faz **10,9 GB/s**. A pergunta é o que
+limita cada um.
 
-> **Esta página já leu esses dois números como o mesmo teto, e a leitura era
-> errada — os números, não.** Numa configuração anterior eles ficavam ambos
-> perto de 20 GB/s, e o texto concluía que um núcleo sequencial saturava a
-> memória sozinho. As duas medições continuam válidas para a máquina em que
-> foram feitas, e estão arquivadas em
-> [`medicoes/historico/`](medicoes/historico/); o que caiu foi a inferência de
-> causa comum a partir da proximidade dos valores.
+A previsão que separa as hipóteses é direta: **se o agregado é limitado pela
+banda da memória e o núcleo sozinho não, então mexer na banda move um e não
+move o outro.** Duas intervenções de variável única testaram isso, com o mesmo
+instrumento nos dois lados da comparação:
 
-O que separa as duas leituras é intervenção, não argumento. A previsão é
-direta: **se o agregado é limitado pela banda da memória e o núcleo sozinho
-não, então mexer na memória move um e não move o outro.** Duas intervenções de
-variável única testaram isso, em momentos diferentes e com hardware diferente:
-
-| Intervenção | 12 núcleos, agregado | 1 núcleo, sequencial | razão |
+| Intervenção | 1 núcleo | 12 núcleos | razão |
 |---|---:|---:|---:|
-| 4800 → 6000 MT/s (frequência) | −31,2% no tempo | −5,0% no tempo | **6×** |
-| 1 → 2 pentes (canais) | +67,9% na vazão | +4,3% no tempo | **16×** |
+| 4800 → 6000 MT/s (frequência) | −14,5% | −31,2% | 2,2× |
+| 1 → 2 pentes (canais) | **−5,6%** | **−40,5%** | **7,2×** |
 
-As duas respondem na mesma direção e com a mesma assimetria. O agregado
-acompanha a memória; o núcleo sozinho, não — ele está limitado por quantos
-acessos consegue manter em voo, que é propriedade do núcleo.
+As duas respondem na mesma direção e com a mesma assimetria, e a segunda é a
+mais limpa — por uma razão de mecanismo, não de estatística.
 
-O segundo experimento é o mais decisivo dos dois, porque **dobrar os canais
-dobra a banda teórica sem tocar na latência**. A frequência move as duas
-coisas; o número de canais move só uma. O agregado subiu 68%; a leitura
-sequencial de um núcleo, 4,3%.
+**Dobrar os canais acrescenta banda sem mexer na latência.** Trocar a
+frequência mexe nas duas coisas ao mesmo tempo. Se o núcleo sozinho fosse
+limitado por banda, ele responderia às duas igualmente; se fosse limitado por
+latência, responderia mais à frequência. É o que se observa: **14,5% para a
+frequência contra 5,6% para o canal**. O agregado faz o inverso — responde
+mais ao canal (40,5%) do que à frequência (31,2%), que é a assinatura de quem
+disputa banda.
+
+> **A comparação usa `custo-paralelismo` dos dois lados de propósito.** A
+> coluna `sequencial` do `efeito-cache` seria o contraste mais intuitivo, e
+> **não serve**: o número dela é o teto do próprio laço, conforme a ressalva da
+> §4.2, e um número que não pode se mover não testa previsão nenhuma. Aqui as
+> duas linhas saem do mesmo programa, com o mesmo padrão de acesso; muda só
+> quantos núcleos disputam.
 
 > **O que isso ainda não estabelece.** Que o agregado é limitado pela banda
 > está medido. **Qual** é o teto absoluto, não: 60,6 GB/s são 63% do máximo

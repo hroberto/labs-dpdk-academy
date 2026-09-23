@@ -511,27 +511,60 @@ descartada. Uma variável: o número de canais.
 
 | # | Previsão | Limite declarado | Medido | Desfecho |
 |---|---|---|---:|---|
-| 1 | `sequencial` de um núcleo não se move | < 5% | **−4,1%** | **confirmada** |
+| 1 | `sequencial` de um núcleo não se move | < 5% | −4,1% | **NÃO TESTÁVEL** |
 | 2 | vazão agregada de doze núcleos sobe muito | > 40% | **+68,0%** | **confirmada** |
 | 3 | latência `dependente` muda pouco | < 5% | **−1,8%** | **confirmada** |
 | 4 | `custo-comunicacao` não se move | < 5% | **maior desvio 4,2%** | **confirmada** |
 
 ```
-  1 nucleo, sequencial        0,195 -> 0,187 ns/acesso    -4,1%
+  1 nucleo, sequencial        0,195 -> 0,187 ns/acesso    -4,1%   <- instrumento
   12 nucleos, agregado        21,27 -> 12,66 ns/acesso   -40,5%
                               564,2 -> 947,9 M acessos/s +68,0%
   RAM dependente              88,00 -> 86,38 ns           -1,8%
+  1 nucleo, custo-paralelismo  6,20 ->  5,85 ns/acesso    -5,6%   <- substituta
 ```
 
-**A previsão 4 é a que dá valor às outras três.** `custo-comunicacao` mede
+> **A previsão 1 não podia falhar, e por isso não conta.** A coluna
+> `sequencial` do `efeito-cache` é limitada pelo laço que a mede, não pela
+> memória: o acumulador forma uma cadeia carregada pelo laço com teto de cerca
+> de um elemento por ciclo, e esse teto é o mesmo com o conjunto na L1d e com
+> ele em DRAM. Um número que não pode se mover não tem como refutar uma
+> previsão de que ele não se move.
+>
+> A previsão foi registrada de boa-fé e o desfecho medido está correto como
+> aritmética. O que não existe é o **valor evidencial**: o critério de
+> refutação — "subir mais de 20%" — era inalcançável por construção. A §4.2 do
+> módulo 01 traz a ressalva do instrumento, e um
+> [teste L2](README.md#42-cache-e-localidade) trava a armadilha.
+>
+> **A substituta está na última linha do bloco.** O `custo-paralelismo` mede um
+> núcleo sozinho com o mesmo instrumento que mede os doze, e ali o número
+> **pode** se mover: ele se moveu 14,5% quando a frequência mudou. Que tenha se
+> movido só 5,6% com o canal é resultado, não teto. A previsão 1 seria melhor
+> servida por esse instrumento, e é assim que fica registrada para a próxima
+> configuração de hardware.
+
+**A previsão 4 é a que dá valor às outras duas.** `custo-comunicacao` mede
 tráfego de linha de cache entre núcleos, que não toca a DRAM: se o canal
-mexesse nele, a intervenção teria efeito onde não deveria e as outras três
+mexesse nele, a intervenção teria efeito onde não deveria e as demais
 perderiam o sentido. As cinco medições do programa ficaram entre 0,0% e 4,2%,
 com a razão entre irmão SMT e núcleo distinto parada em **2,29 → 2,29**.
 
 Um instrumento que responde onde deve e fica quieto onde deve é a única
 evidência possível de que ele mede o que diz medir — e desta vez isso foi
 declarado antes, não observado depois.
+
+> **E o controle negativo não protegeu contra o defeito da previsão 1.** Ele
+> confere se a **intervenção** vaza para onde não deveria. O que derrubou a
+> previsão 1 foi outra coisa: o **instrumento** dela ter um teto próprio, que
+> nenhuma intervenção alcança. São falhas de famílias diferentes, e um controle
+> negativo bem construído passa verde sobre a segunda.
+>
+> A pergunta que teria pego o defeito não é "a intervenção vazou?", e sim **"o
+> que este número faria se a hipótese fosse falsa?"**. Para a previsão 1 a
+> resposta era "o mesmo", e isso podia ter sido respondido antes de medir — ou
+> depois, com o teste de variar o nível de cache e observar que o valor não se
+> move. Fica registrada como a pergunta a fazer em todo pré-registro futuro.
 
 #### O que o desfecho obrigou a mudar
 
@@ -540,10 +573,10 @@ curta"*. Foi o que aconteceu. A frase *"um núcleo sequencial a satura sozinho"*
 saiu do módulo 01, e a subseção passou a publicar as **duas** intervenções lado
 a lado, porque elas medem a mesma grandeza por caminhos independentes:
 
-| Intervenção | 12 núcleos, agregado | 1 núcleo, sequencial | razão |
+| Intervenção | 12 núcleos | 1 núcleo | razão |
 |---|---:|---:|---:|
-| 4800 → 6000 MT/s | −31,2% no tempo | −5,0% no tempo | 6× |
-| 1 → 2 pentes | +68,0% na vazão | +4,3% no tempo | 16× |
+| 4800 → 6000 MT/s | −31,2% | −14,5% | 2,2× |
+| 1 → 2 pentes | −40,5% | −5,6% | 7,2× |
 
 A segunda intervenção é a mais limpa das duas, e por uma razão de mecanismo:
 **dobrar os canais dobra a banda sem tocar na latência**, enquanto trocar a

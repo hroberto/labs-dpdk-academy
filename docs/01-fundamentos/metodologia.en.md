@@ -520,28 +520,62 @@ variable: the number of channels.
 
 | # | Prediction | Declared limit | Measured | Outcome |
 |---|---|---|---:|---|
-| 1 | one core's `sequential` does not move | < 5% | **−4.1%** | **confirmed** |
+| 1 | one core's `sequential` does not move | < 5% | −4.1% | **NOT TESTABLE** |
 | 2 | twelve cores' aggregate throughput rises a lot | > 40% | **+68.0%** | **confirmed** |
 | 3 | `dependent` latency changes little | < 5% | **−1.8%** | **confirmed** |
 | 4 | `custo-comunicacao` does not move | < 5% | **largest deviation 4.2%** | **confirmed** |
 
 ```
-  1 core, sequential          0.195 -> 0.187 ns/access    -4.1%
+  1 core, sequential          0.195 -> 0.187 ns/access    -4.1%   <- instrument
   12 cores, aggregate         21.27 -> 12.66 ns/access   -40.5%
                               564.2 -> 947.9 M accesses/s +68.0%
   RAM dependent               88.00 -> 86.38 ns           -1.8%
+  1 core, custo-paralelismo    6.20 ->  5.85 ns/access    -5.6%   <- replacement
 ```
 
-**Prediction 4 is what gives the other three their value.**
+> **Prediction 1 could not fail, and therefore does not count.** The
+> `efeito-cache` `sequential` column is limited by the loop that measures it,
+> not by memory: the accumulator forms a loop-carried chain with a ceiling of
+> about one element per cycle, and that ceiling is the same with the working
+> set in L1d and with it in DRAM. A number that cannot move cannot refute a
+> prediction that it does not move.
+>
+> The prediction was registered in good faith and the measured outcome is
+> correct as arithmetic. What does not exist is the **evidential value**: the
+> refutation criterion — "rises by more than 20%" — was unreachable by
+> construction. §4.2 of module 01 carries the instrument's caveat, and an
+> [L2 test](README.en.md#42-cache-and-locality) locks the trap.
+>
+> **The replacement is on the last line of the block.** `custo-paralelismo`
+> measures a single core with the same instrument that measures the twelve, and
+> there the number **can** move: it moved 14.5% when the frequency changed. That
+> it moved only 5.6% with the channel is a result, not a ceiling. Prediction 1
+> would be better served by that instrument, and that is how it is recorded for
+> the next hardware configuration.
+
+**Prediction 4 is what gives the other two their value.**
 `custo-comunicacao` measures cache-line traffic between cores, which does not
 touch DRAM: if the channel moved it, the intervention would have an effect
-where it should not, and the other three would lose their meaning. The
-program's five measurements came out between 0.0% and 4.2%, with the ratio
-between SMT sibling and distinct core standing still at **2.29 → 2.29**.
+where it should not, and the others would lose their meaning. The program's
+five measurements came out between 0.0% and 4.2%, with the ratio between SMT
+sibling and distinct core standing still at **2.29 → 2.29**.
 
 An instrument that responds where it should and stays quiet where it should is
 the only possible evidence that it measures what it says it measures — and this
 time that was declared beforehand, not observed afterwards.
+
+> **And the negative control did not protect against prediction 1's defect.**
+> It checks whether the **intervention** leaks where it should not. What brought
+> prediction 1 down was something else: its **instrument** having a ceiling of
+> its own, which no intervention reaches. They are failures of different
+> families, and a well-built negative control passes green over the second.
+>
+> The question that would have caught the defect is not "did the intervention
+> leak?", but **"what would this number do if the hypothesis were false?"**. For
+> prediction 1 the answer was "the same", and that could have been answered
+> before measuring — or after, by varying the cache level and observing that the
+> value does not move. It is recorded as the question to ask in every future
+> pre-registration.
 
 #### What the outcome obliged us to change
 
@@ -550,10 +584,10 @@ shorter"*. That is what happened. The phrase *"one sequential core saturates it
 alone"* left module 01, and the subsection now publishes **both** interventions
 side by side, because they measure the same quantity by independent paths:
 
-| Intervention | 12 cores, aggregate | 1 core, sequential | ratio |
+| Intervention | 12 cores | 1 core | ratio |
 |---|---:|---:|---:|
-| 4800 → 6000 MT/s | −31.2% in time | −5.0% in time | 6× |
-| 1 → 2 sticks | +68.0% in throughput | +4.3% in time | 16× |
+| 4800 → 6000 MT/s | −31.2% | −14.5% | 2.2× |
+| 1 → 2 sticks | −40.5% | −5.6% | 7.2× |
 
 The second intervention is the cleaner of the two, for a reason of mechanism:
 **doubling the channels doubles bandwidth without touching latency**, whereas

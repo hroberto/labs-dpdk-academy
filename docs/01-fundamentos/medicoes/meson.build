@@ -229,6 +229,15 @@ test('fundamentos - custo-syscall executa', custo_syscall,
 test('fundamentos - efeito-cache executa', efeito_cache,
      suite : ['l2', 'fundamentos'], timeout : 180)
 
+# "Executa" nao basta para este: um programa que mede a coisa errada tambem sai
+# com zero -- foi o que aconteceu com a coluna `dependente` e custou o
+# `test_l1_cadeia.cpp`. Aqui a propriedade conferida e o CARATER da coluna
+# `sequencial`: plana entre os niveis, porque o teto e do laco. Se deixar de
+# ser, a §4.2 precisa ser reescrita, e o teste diz isso na mensagem.
+test('fundamentos - L2 (efeito-cache, o que cada coluna mede)', bash,
+     args : [files('tests/l2_efeito_cache.sh'), efeito_cache],
+     suite : ['l2', 'fundamentos'], timeout : 240)
+
 # L3: sem hugepages reservadas nao ha o que medir, e o programa sai com 77
 # (PULADO). Saia com 0 antes -- e como HugePages_Total=0 e o padrao da maioria
 # das maquinas e do runner do CI, o falso verde era a regra, nao a excecao.

@@ -849,10 +849,32 @@ Measuring the effect ([`efeito-cache.c`](medicoes/efeito-cache.c)):
 
 The table now has three readings, and the third one is new.
 
-**The sequential column is flat.** Walking 256 MB costs the same per access as
-walking 16 KB. The processor's *prefetcher* recognises the pattern and fetches
-the next line before it is asked for. RAM latency still exists — it is merely
-hidden.
+**The sequential column is flat, and the flatness is the result.** Walking
+256 MB costs the same per access as walking 16 KB. The processor's
+*prefetcher* recognises the pattern and fetches the next line before it is
+asked for: it keeps the loop at full speed even with the whole working set in
+DRAM. RAM latency still exists — it is merely hidden.
+
+> **What this column does NOT measure, and the distinction decides what can be
+> concluded from it.** The loop in [`efeito-cache.c`](medicoes/efeito-cache.c)
+> accumulates into a loop-carried chain, with a ceiling of about **one element
+> per cycle**. That ceiling belongs to the loop, not to memory — which is why
+> the value does not change between L1d and DRAM: in both cases memory delivers
+> more than the loop consumes.
+>
+> Converting the 0.187 ns per element into "GB/s of bandwidth" attributes to
+> the memory subsystem a number that belongs to the instrument. The flatness
+> says **the prefetcher keeps up**; it does not say how much bandwidth exists.
+>
+> Fixing that would require vectorising the loop, and vectorising requires
+> `-march=native`. The project compiles with portable `-O2` deliberately, so
+> that the same source produces a comparable number on another machine — §9
+> covers that choice. Its cost is declared here, and the
+> [L2 test](medicoes/tests/l2_efeito_cache.sh) fails if the column stops being
+> flat, because then it measures something else and this text stops holding.
+>
+> The `random` and `dependent` columns do not have this problem: both sit
+> orders of magnitude below the loop's ceiling, and therefore measure memory.
 
 **The dependent column is the real latency**, and it is the one that grows 97×
 between L1d and RAM. It is the only one of the three that measures *one* access:
@@ -940,11 +962,13 @@ is where it shows up on this machine.
 > unit the decision is made in. Publishing it next to its source is what keeps it
 > from looking like a second, independent result.
 
-> **Read the seals before quoting the numbers.** The K = 32 and K = 64 rows come
-> out marked `~` (`disp` of 5.9% and 8.7%): the smaller the measured value, the
-> larger the relative dispersion, and at 3 ns the measurement already competes
-> with the machine's noise. The shape of the curve is solid across the range; the
-> exact value of the last two points, less so.
+> **This collection's dispersion is low across the whole range, and it was not
+> always so.** No row comes out marked: the largest `disp` is 0.4%, at K = 32.
+> In an earlier configuration the last two rows came with `~` (5.9% and 8.7%),
+> because the smaller the measured value the larger the relative dispersion, and
+> at 3 ns the measurement competed with the machine's noise. The rule still
+> holds — **read the seals before quoting the numbers** —; what changed was the
+> machine, not the criterion.
 
 #### What this means in bytes
 
@@ -953,14 +977,19 @@ changes:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-banda-escuro.en.svg">
-  <img alt="Horizontal bar chart of the effective bandwidth of one core over the same RAM: 21.4 GB/s for sequential access, 11.0 GB/s for random access with independent addresses and 0.74 GB/s when each address depends on the previous one — a 29-fold difference." src="imagens/4-banda-claro.en.svg">
+  <img alt="Horizontal bar chart of the effective bandwidth of one core over the same RAM: 11.0 GB/s for random access with independent addresses and 0.74 GB/s when each address depends on the previous one — a 15-fold difference between the two patterns memory actually limits." src="imagens/4-banda-claro.en.svg">
 </picture>
 
-Twenty-nine times, without swapping a single part. **The bandwidth the vendor
+Fifteen times, without swapping a single part. **The bandwidth the vendor
 sells is not the one your program uses; the one it uses is the one its access
 pattern allows.** It is the reason why "buying faster memory" almost never fixes
 a data plane that chases pointers: the bottleneck is not bandwidth, it is the
 lack of concurrency to occupy it.
+
+> **Sequential access was left out of this chart**, for a reason of method: its
+> number is the loop's ceiling, not memory's, per the caveat in the table.
+> Publishing it beside two values memory actually limits would invite exactly
+> the comparison that does not hold.
 
 Note the waste built into it, too. Every random access moves a **64-byte** line
 and uses 4 — the other 60 crossed the bus for nothing. It is the same locality
@@ -997,34 +1026,37 @@ cores, **50% more cores buy 2.8% of throughput**.
 #### The ceiling is bandwidth, and that was measured twice
 
 Nine hundred and forty-six million accesses per second, at 64 bytes per line,
-are **60.6 GB/s**. A single core with sequential access reaches **21.4 GB/s** in
-the previous chart. They are distinct numbers, and the distinction matters.
+are **60.6 GB/s** with twelve cores. A single core, in the same program and
+with the same access pattern, does **10.9 GB/s**. The question is what limits
+each one.
 
-> **This page once read those two numbers as the same ceiling, and the reading
-> was wrong — the numbers were not.** In an earlier configuration both sat near
-> 20 GB/s, and the text concluded that one sequential core saturated memory on
-> its own. Both measurements remain valid for the machine they were taken on,
-> and are archived in [`medicoes/historico/`](medicoes/historico/); what fell
-> was the inference of a common cause from the proximity of the values.
+The prediction that separates the hypotheses is direct: **if the aggregate is
+limited by memory bandwidth and the lone core is not, then touching bandwidth
+moves one and not the other.** Two single-variable interventions tested this,
+with the same instrument on both sides of the comparison:
 
-What separates the two readings is intervention, not argument. The prediction is
-direct: **if the aggregate is limited by memory bandwidth and the lone core is
-not, then touching memory moves one and not the other.** Two single-variable
-interventions tested this, at different times and with different hardware:
-
-| Intervention | 12 cores, aggregate | 1 core, sequential | ratio |
+| Intervention | 1 core | 12 cores | ratio |
 |---|---:|---:|---:|
-| 4800 → 6000 MT/s (frequency) | −31.2% in time | −5.0% in time | **6×** |
-| 1 → 2 sticks (channels) | +67.9% in throughput | +4.3% in time | **16×** |
+| 4800 → 6000 MT/s (frequency) | −14.5% | −31.2% | 2.2× |
+| 1 → 2 sticks (channels) | **−5.6%** | **−40.5%** | **7.2×** |
 
-Both respond in the same direction and with the same asymmetry. The aggregate
-tracks memory; the lone core does not — it is limited by how many accesses it
-can keep in flight, which is a property of the core.
+Both respond in the same direction and with the same asymmetry, and the second
+is the cleaner one — for a reason of mechanism, not of statistics.
 
-The second experiment is the more decisive of the two, because **doubling the
-channels doubles theoretical bandwidth without touching latency**. Frequency
-moves both things; the number of channels moves only one. The aggregate rose
-68%; one core's sequential read, 4.3%.
+**Doubling the channels adds bandwidth without touching latency.** Changing the
+frequency touches both at once. If the lone core were bandwidth-limited it
+would respond equally to both; if it were latency-limited it would respond more
+to frequency. That is what is observed: **14.5% for frequency against 5.6% for
+the channel**. The aggregate does the opposite — it responds more to the
+channel (40.5%) than to frequency (31.2%), which is the signature of something
+competing for bandwidth.
+
+> **The comparison uses `custo-paralelismo` on both sides deliberately.** The
+> `efeito-cache` `sequential` column would be the more intuitive contrast, and
+> it **does not serve**: its number is the loop's own ceiling, per the caveat in
+> §4.2, and a number that cannot move tests no prediction. Here both rows come
+> from the same program, with the same access pattern; only the number of
+> competing cores changes.
 
 > **What this still does not establish.** That the aggregate is bandwidth-limited
 > is measured. **What** the absolute ceiling is, is not: 60.6 GB/s is 63% of the

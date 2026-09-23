@@ -58,8 +58,13 @@ PARALELISMO = [(1, 76.65), (2, 37.97), (4, 20.58), (8, 10.75),
 # traz uma linha de 64 B inteira, mesmo quando o programa usa 4 bytes dela.
 # No caso sequencial os 16 uint32_t da linha são todos usados, então os 64 B
 # custam 16 acessos.
-BANDA = [("sequencial (o prefetcher enfileira sozinho)", 64.0 / (0.187 * 16)),
-         ("aleatório, endereços independentes",          64.0 / 5.81),
+# O ACESSO SEQUENCIAL NAO ENTRA AQUI, e a ausencia e deliberada.
+#
+# O numero dele (0,187 ns/elemento) e o teto do laco de `medir()`, nao da
+# memoria -- ver o comentario de efeito-cache.c. Convertido em GB/s e posto ao
+# lado de dois valores que a memoria de fato limita, ele convidaria a
+# comparacao que nao se sustenta. Fica de fora, com a razao dita no README.
+BANDA = [("aleatório, endereços independentes",          64.0 / 5.81),
          ("aleatório, endereços encadeados",             64.0 / 86.59)]
 
 # custo-paralelismo.c, fase 2: N nucleos fisicos, 16 cadeias cada, mesma regiao.
@@ -107,13 +112,12 @@ TEXTOS = {
         ban_titulo="A banda que você usa é a que o seu padrão de acesso permite",
         ban_sub="um núcleo, a mesma região de 256 MB na mesma RAM — efeito-cache.c",
         ban_eixo="gigabytes por segundo", ban_un="GB/s",
-        ban_rot=["sequencial (o prefetcher enfileira sozinho)",
-                 "aleatório, endereços independentes",
+        ban_rot=["aleatório, endereços independentes",
                  "aleatório, endereços encadeados"],
         ban_fecho="{0:.0f}× de diferença — mesma máquina, mesma memória, mesmo núcleo.",
-        ban_desc=("Gráfico de barras horizontais. Sobre a mesma RAM, um núcleo move 21,4 "
-                  "GB/s em acesso sequencial, 11,0 GB/s em acesso aleatório com endereços "
-                  "independentes e 0,7 GB/s quando cada endereço depende do anterior."),
+        ban_desc=("Gráfico de barras horizontais. Sobre a mesma RAM, um núcleo move 11,0 GB/s "
+                  "em acesso aleatório com endereços independentes e 0,74 GB/s quando cada "
+                  "endereço depende do anterior."),
         sca_titulo="A banda não se multiplica por núcleo — ela é dividida",
         sca_sub=("vazão agregada com N núcleos físicos empurrando a mesma região — "
                  "custo-paralelismo.c, fase 2"),
@@ -151,13 +155,12 @@ TEXTOS = {
         ban_titulo="The bandwidth you get is the one your access pattern allows",
         ban_sub="one core, the same 256 MB region in the same RAM — efeito-cache.c",
         ban_eixo="gigabytes per second", ban_un="GB/s",
-        ban_rot=["sequential (the prefetcher queues on its own)",
-                 "random, independent addresses",
+        ban_rot=["random, independent addresses",
                  "random, chained addresses"],
         ban_fecho="{0:.0f}× difference — same machine, same memory, same core.",
-        ban_desc=("Horizontal bar chart. Over the same RAM, one core moves 21.4 GB/s with "
-                  "sequential access, 11.0 GB/s with random access using independent "
-                  "addresses and 0.7 GB/s when each address depends on the previous one."),
+        ban_desc=("Horizontal bar chart. Over the same RAM, one core moves 11.0 GB/s with "
+                  "random access using independent addresses and 0.74 GB/s when each "
+                  "address depends on the previous one."),
         sca_titulo="Bandwidth does not multiply per core — it is divided",
         sca_sub=("aggregate throughput with N physical cores pushing the same region — "
                  "custo-paralelismo.c, phase 2"),
@@ -349,7 +352,7 @@ def banda(t, L):
         c.append(texto(E + gbs * px + 10, y + 19, f'{num(gbs, L, 1)} {L["ban_un"]}',
                        t["tinta"], 13, 600, tabular=True))
     c.append(texto(28, TOPO + PASSO * len(BANDA) + 40,
-                   L["ban_fecho"].format(BANDA[0][1] / BANDA[2][1]),
+                   L["ban_fecho"].format(BANDA[0][1] / BANDA[-1][1]),
                    t["tinta"], 13, 600))
     return documento(LARGURA, alt, t["superficie"], L["ban_titulo"], L["ban_desc"], c)
 

@@ -64,6 +64,35 @@ static enum modo caso_modo;
 
 static volatile uint32_t sumidouro;
 
+/* O QUE A COLUNA `sequencial` MEDE, E O QUE ELA NAO MEDE.
+ *
+ * O laco acumula em `soma`, e essa soma e uma CADEIA CARREGADA PELO LACO: o
+ * `add` da iteracao seguinte espera o da anterior. Latencia de 1 ciclo,
+ * portanto teto de ~1 elemento por ciclo -- a 4,4 GHz, 4 bytes por ciclo dao
+ * cerca de 21 GB/s.
+ *
+ * Esse teto NAO DEPENDE DE ONDE O DADO ESTA. Com o conjunto na L1d o valor e o
+ * mesmo que com ele em DRAM, porque nos dois casos a memoria entrega mais do
+ * que o laco consome. Daqui sai a leitura correta da coluna:
+ *
+ *   MEDE     a taxa de emissao que o prefetcher consegue sustentar -- e o
+ *            resultado e que ele a sustenta CHEIA ate 256 MB em DRAM.
+ *   NAO MEDE banda de memoria. Converter 0,187 ns/elemento em "21 GB/s de
+ *            banda" atribui ao subsistema de memoria um numero do laco.
+ *
+ * POR QUE NAO SE CONSERTA COM UM LACO MELHOR, aqui.
+ *
+ * Quebrar a cadeia com varios acumuladores sobe o teto para ~32-36 GB/s, e a
+ * DRAM desta maquina entrega mais que isso -- os niveis continuam
+ * indistinguiveis. Para ver o gradiente e preciso vetorizar, o que exige
+ * `-march=native` ou equivalente. O projeto compila com `-O2` portavel de
+ * proposito, para que a mesma fonte produza numero comparavel em outra
+ * maquina. A escolha e essa, e o custo dela e esta coluna nao servir de
+ * bandimetro.
+ *
+ * As colunas `aleatorio` e `dependente` nao tem esse problema: as duas ficam
+ * ordens de grandeza abaixo do teto do laco, e por isso medem a memoria.
+ */
 static double medir(const uint32_t *a, const uint32_t *ordem, size_t n, size_t repeticoes)
 {
     volatile uint64_t soma = 0;
