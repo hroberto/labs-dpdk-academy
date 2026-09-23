@@ -156,17 +156,38 @@ if [ -n "$BIN_VAZADO" ] && [ -x "$BIN_VAZADO" ]; then
         saida=$("$BIN_VAZADO" -l 0,"$LCORE_CONSUMIDOR" --no-huge --file-prefix=academy_leak_$$ -- $tentativa 2>&1)
         rc=$?
         ultima_saida="$saida"
-        cheia=$(grep -o 'nao couberam na fila: [0-9]\+' <<<"$saida" | grep -o '[0-9]\+')
+        # O PADRAO SAI DO PROGRAMA, e o programa imprime em INGLES.
+        #
+        # Este grep ja procurou "nao couberam na fila", que e a traducao da
+        # frase e nao a frase. Nunca casava, `forcou` ficava em 0, e o bloco
+        # inteiro virava PULADO -- dentro de um teste que saia com zero. O
+        # controle negativo do invariante, que este arquivo existe para
+        # sustentar, nunca chegou a rodar.
+        #
+        # E o mesmo defeito que o cabecalho ja descreve para "4095 de 4095":
+        # casar TEXTO em vez de propriedade. Aqui nao ha como fugir do texto --
+        # a pre-condicao so e observavel pela saida --, entao a defesa e outra:
+        # o teste CONFERE que o padrao casou, e nao segue em silencio quando
+        # nao casa.
+        cheia=$(grep -oP 'did not fit in the queue:\s*\K[0-9]+' <<<"$saida")
         if [ -n "$cheia" ] && [ "$cheia" -gt 0 ]; then forcou=1; break; fi
     done
 
     if [ "$forcou" -eq 0 ]; then
-        echo "  PULADO - o ring nunca encheu; o caminho com o vazamento nao foi exercitado"
+        # 77 = PULADO para o Meson, e nao sucesso. Sem isto a ausencia do
+        # controle negativo e indistinguivel de sua aprovacao.
+        echo "  PULADO - o ring nunca encheu em 3 tentativas; o caminho com o"
+        echo "           vazamento nao foi exercitado. Ultima saida:"
+        sed 's/^/             | /' <<<"$ultima_saida" | tail -5
+        exit 77
     else
         check "variante com vazamento sai com codigo != 0" "$([ $rc -ne 0 ]; echo $?)"
         grep -q "INVARIANT VIOLATED" <<<"$saida"
         check "o invariante identifica o vazamento ($cheia objeto(s) sem lugar na fila)" $?
-        vaz=$(grep -o '[0-9]\+ objeto(s) vazaram' <<<"$saida" | grep -o '^[0-9]\+')
+        # Ingles aqui tambem: o programa imprime "N object(s) leaked". Esta
+        # linha procurava "objeto(s) vazaram" e so nao era vista porque a
+        # pre-condicao acima ja tinha desviado o fluxo para o PULADO.
+        vaz=$(grep -oP '\K[0-9]+(?= object\(s\) leaked)' <<<"$saida")
         [ -n "$vaz" ] && [ "$vaz" -gt 0 ]
         check "vazamento quantificado: ${vaz:-0} objeto(s)" $?
     fi
