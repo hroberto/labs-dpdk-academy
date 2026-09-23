@@ -89,10 +89,13 @@ PROGS="custo-syscall custo-comunicacao custo-mckenney efeito-cache custo-espera 
 corre_feed() { # <rodada>
     [ -n "${DPDK_ACADEMY_HUGE_DIR:-}" ] || return 0
     local t; t=$(mktemp -d)
+    # O supervisor EXIGE que --output ainda nao exista (mkdir exist_ok=False), e
+    # `mktemp -d` acabou de criar o diretorio. Dai o subdiretorio: passar "$t"
+    # direto aborta em FileExistsError antes de qualquer medicao.
     python3 ./scripts/feed-supervisor.py --primary "$B2/feed-primario" \
         --secondary "$B2/feed-secundario" --huge-dir "$DPDK_ACADEMY_HUGE_DIR" \
-        --output "$t" --ticks 200000 >/dev/null 2>&1
-    local d; d=$(ls -d "$t"/session-* 2>/dev/null | tail -1)
+        --output "$t/saida" --ticks 200000 >/dev/null 2>&1
+    local d; d=$(ls -d "$t"/saida/session-* 2>/dev/null | tail -1)
     if [ -n "$d" ]; then
         cp "$d/secondary.txt" "$D2/feed-secundario.r$1.txt"
         cp "$d/primary.txt"   "$D2/feed-primario.r$1.txt"

@@ -88,7 +88,7 @@ test('02-mempool-ring/alt-cpp23 - L2 (anel SPSC em C++23)', custo_anel_cpp,
 # O registro aqui e o que impede a repeticao: fonte que nenhum meson.build
 # referencia nao entra no portao de "build limpo, zero avisos" -- ele anuncia
 # que conferiu e nao conferiu. Compilar e barato; descobrir tarde, nao.
-controle_anel_cpp = executable(
+executable(
   'controle-anel',
   'controle-anel.cpp',
   include_directories : alt_cpp23_inc,
