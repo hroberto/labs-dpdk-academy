@@ -418,8 +418,17 @@ processador mantém uma cache específica para traduções já resolvidas: a
 
 A TLB é pequena, e **quão** pequena é um número que a sua máquina sabe — mas que
 o sistema operacional talvez não conte direito. Nesta, o `/proc/cpuinfo` publica
-`TLB size: 192 4K pages`, e o hardware tem **4 096 entradas** no segundo nível.
-O erro é de 21×, e a causa está documentada: a partir do Zen 5 a AMD passou a
+`TLB size: 192 4K pages`.
+
+<!-- retratado: 21× 21x -->
+> **O sub-relato é de 32×, e não dos 21× que esta seção publicou.** Os 192 do
+> `/proc/cpuinfo` são a **soma** do dTLB (128) com o iTLB (64) de 4 KB, os dois
+> em valor bruto. O real é `128 × 32 = 4 096` de dados mais `64 × 32 = 2 048` de
+> instrução, ou 6 144 — e `6 144 / 192 = 32`, que é exatamente o multiplicador.
+> Os 21× vinham de dividir só o dTLB real pela soma bruta: numerador de uma
+> estrutura, denominador de duas.
+
+A causa está documentada: a partir do Zen 5 a AMD passou a
 codificar o tamanho do último nível em **múltiplos de 32**, com um bit
 (`L2TlbSizeX32`) mandando o software multiplicar; o Linux [nunca aprendeu a
 checar esse bit][zen5tlb], e a correção só entra no kernel 7.4.
@@ -438,7 +447,7 @@ Nesta máquina o bit está ligado, o valor bruto é 128, e o real é 128 × 32:
                     L1 DTLB   L2 DTLB   alcance com este nível
   páginas de 4 KB        96     4 096                  16 MB
   hugepages de 2 MB      96     4 096                   8 GB
-  páginas de 1 GB        96        32                  32 GB
+  páginas de 1 GB        96     1 024               1 024 GB
 ```
 
 O que importa não é o número de entradas, e sim o **alcance** (*TLB reach*):
@@ -493,9 +502,18 @@ em vez de 16 MB.
 > **A fórmula tem uma premissa que ela não declara**: que o número de entradas
 > **não muda** com o tamanho da página. Para 4 KB → 2 MB isso vale nesta máquina
 > — são 4 096 entradas nos dois casos, e o 512× é real. Para 1 GB a premissa
-> quebra: o segundo nível guarda **32 entradas**, não 4 096. O alcance sobe de
-> 8 para 32 GB, um fator de 4, não de 512. Confira na sua antes de generalizar;
-> é decisão de microarquitetura, não da aritmética.
+> quebra, mas menos do que parece: o segundo nível tem uma estrutura **separada**
+> de 1 024 entradas, 4-way, só para páginas de 1 GB. O alcance sobe de 8 GB para
+> **1 024 GB**, um fator de 128 em vez de 512. Confira na sua antes de
+> generalizar; é decisão de microarquitetura, não da aritmética.
+>
+> **O número 1 024 depende de um multiplicador, e isso já rendeu erro.** O CPUID
+> reporta 32 no campo de tamanho; o bit `L2TlbSizeX32` manda multiplicar por 32.
+> O par fecha com o fabricante nos **dois** campos — o
+> [*Software Optimization Guide* do Zen 5][sogzen5] descreve *"an additional
+> 4-way set-associative 1G page L2 DTLB with 1024 entries"*, e o CPUID reporta
+> associatividade 4. Sem o multiplicador o tamanho sairia 32 e a associatividade
+> continuaria 4: só o par fecha, e só fecha com o ×32.
 
 **Encurtam a caminhada.** Com página de 2 MB, o offset passa a ter 21 bits
 (2²¹ = 2 MB), consumindo os 9 bits que seriam do nível 1. A entrada do nível 2
@@ -521,9 +539,16 @@ aponta diretamente para o quadro físico: **três acessos em vez de quatro**.
 >
 > Daí sai a resposta, **para esta máquina e para estes tamanhos de região**:
 > 4 KB serve regiões de 400 KB a 16 MB; 2 MB, de 200 MB a 8 GB. Um mempool de
-> 512 MB dá 256 páginas de 2 MB — no meio da faixa. Para 1 GB somam-se os dois
-> problemas: a região precisaria passar de 100 GB para o desperdício sumir, e o
-> segundo nível da TLB só guarda 32 dessas entradas.
+> 512 MB dá 256 páginas de 2 MB — no meio da faixa. Para 1 GB sobra **um** dos
+> dois problemas, e não os dois: a região precisaria passar de 100 GB para o
+> desperdício de arredondamento sumir. **Cobertura de TLB não é argumento
+> contra 1 GB nesta máquina** — 1 024 entradas cobrem 1 TB, trinta vezes a
+> memória instalada.
+>
+> E o argumento que sobra tem contraparte: o
+> [*Getting Started Guide* do DPDK][dpdkreq] recomenda 1 GB para aplicações de
+> 64 bits quando a plataforma suporta. A escolha de 2 MB aqui vem do tamanho
+> das regiões deste material, não de uma limitação de tradução.
 >
 > A heurística é derivada daqui, e os dois números que a alimentam — 4 096
 > entradas de TLB e o tamanho típico de um mempool — são **desta
@@ -3604,6 +3629,7 @@ reproduz é a **aritmética** da sobrecarga, que é a mesma; o que ela não repr
 [napi]: https://www.kernel.org/doc/html/latest/networking/napi.html
 [scaling]: https://www.kernel.org/doc/html/latest/networking/scaling.html
 [hugetlb]: https://www.kernel.org/doc/html/latest/admin-guide/mm/hugetlbpage.html
+[sogzen5]: https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/software-optimization-guides/58455_amd-zen5-software-optimization-guide.pdf
 [thp]: https://docs.kernel.org/admin-guide/mm/transhuge.html
 [superpages]: https://www.usenix.org/legacy/event/osdi02/tech/full_papers/navarro/navarro.pdf
 [lwntlb]: https://lwn.net/Articles/379748/

@@ -37,3 +37,19 @@ repositorio?". Aqui a resposta e sim, e a verificacao esta acima em vez de
 ficar por conta de quem le. Uma campanha anterior deste projeto foi descartada
 e recoletada por sujeira que ATINGIA as fontes medidas; a distincao entre os
 dois casos e o que este registro preserva.
+
+tlb-real.r*.txt: SAIDA DE PROGRAMA DEFEITUOSO, mantida como registro
+------------------------------------------------------------------
+Os arquivos tlb-real desta coleta trazem "1 GB (hugepage) 96 32 32 GB". O
+programa nao aplicava o multiplicador L2TlbSizeX32 a folha 0x80000019, e o
+valor correto e 1024 entradas, 1024 GB de alcance.
+
+O defeito foi encontrado por revisao externa e confirmado contra o Software
+Optimization Guide do Zen 5 da AMD, que descreve "an additional 4-way
+set-associative 1G page L2 DTLB with 1024 entries" -- o CPUID desta maquina
+reporta tamanho bruto 32 e associatividade 4, e so o par fecha com o x32.
+
+A saida NAO foi reescrita. Ela e o registro do que o programa produziu naquele
+dia, e reescreve-la apagaria a distincao entre "a maquina mudou" e "o programa
+estava errado". O numero publicado no modulo 01 vem do programa CORRIGIDO, que
+le CPUID e e deterministico: qualquer execucao reproduz 1024.
