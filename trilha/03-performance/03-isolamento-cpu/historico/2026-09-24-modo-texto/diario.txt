@@ -1,4 +1,4 @@
-==> campanha em modo texto  2026-09-24T01:04:32-03:00
+==> campanha em modo texto  2026-09-24T07:50:21-03:00
     saida: /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-modo-texto
     alvo systemd     : graphical.target
     processos grafico: 0
@@ -6,19 +6,19 @@
     C3 disable cpu2  : 0
     cmdline          : BOOT_IMAGE=/boot/vmlinuz-7.0.0-31-generic root=UUID=bdd65119-6069-4cc3-898a-7e0a0beba60b ro quiet splash amd_iommu=on iommu=pt crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M systemd.unit=multi-user.target
     kernel           : 7.0.0-31-generic
-    uptime           : up 0 minutes
-    memoria          : avail 26,84 GiB, swap em uso 0,00 GiB
-    carga            : 0.36 0.12 0.04
+    uptime           : up 2 minutes
+    memoria          : avail 26,85 GiB, swap em uso 0,00 GiB
+    carga            : 0.17 0.10 0.04
 
-==> 1/6 osnoise hist, 10 min na CPU 2  (01:04:32)
+==> 1/6 osnoise hist, 10 min na CPU 2  (07:50:21)
     ok
     over:         0 
-    count:    78973 
+    count:    42267 
     min:          1 
-    avg:       1.63 
-    max:         23 
+    avg:       2.18 
+    max:         35 
 
-==> 2/6 campanha de isolamento, 4 celulas x 5 repeticoes  (01:14:32)
+==> 2/6 campanha de isolamento, 4 celulas x 5 repeticoes  (08:00:21)
 ==> campanha de isolamento: CPU 2 (irmao SMT 14), outra CPU 4
     4 celulas x 5 repeticoes x 30s
     repeticao 1 de 5 concluida
@@ -29,7 +29,7 @@
 ==> 20 execucoes registradas em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-modo-texto/isolamento/isolamento.csv
     ok
 
-==> 3/6 campanha de tempo do mempool  (01:24:33)
+==> 3/6 campanha de tempo do mempool  (08:10:21)
 ==> campanha B4-tempo: 2 versoes x 2 topologias
     x 10 tamanhos de cache x 21 repeticoes
     prefixos SEM RTE_LIBRTE_MEMPOOL_STATS, metrica em ns/pacote
@@ -58,7 +58,7 @@
 ==> 840 execucoes registradas em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-modo-texto/mempool-tempo/mempool-tempo.csv
     ok
 
-==> 4/6 campanha de miss do mempool  (01:26:31)
+==> 4/6 campanha de miss do mempool  (08:12:20)
 ==> campanha B4: 2 versoes x 2 topologias
     x 9 tamanhos de cache x 6 repeticoes
     saida: /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-modo-texto/mempool-cache/mempool-cache.csv
@@ -71,17 +71,18 @@
 ==> 240 execucoes registradas em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-modo-texto/mempool-cache/mempool-cache.csv
     ok
 
-==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  (01:27:05)
+==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  (08:12:54)
     hugepage do feed: /mnt/huge-academia (efemera, desmontada no fim)
-CONCLUIDA -> /home/henrique/workspaces/labs_dpdk_academy/docs/01-fundamentos/medicoes/historico/2026-09-24-modo-texto
-          -> /home/henrique/workspaces/labs_dpdk_academy/docs/02-runtime-dpdk/medicoes/historico/2026-09-24-modo-texto
-          -> /home/henrique/workspaces/labs_dpdk_academy/docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-24-modo-texto
-Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medicoes/historico/{outra,2026-09-24-modo-texto}
-    ok
-    feed: 12 arquivos, completo
+    ABORTADO: 2026-09-24-modo-texto existe e esta INCOMPLETA.
+              01-fundamentos         117 de 118 arquivos
+              02-runtime-dpdk        31 de 32 arquivos
+              03-mempool-ring-mbuf   31 de 32 arquivos
+              A campanha de hardware nao sobrescreve. Para refazer:
+                rm -rf docs/*/medicoes/historico/2026-09-24-modo-texto
+              O passo 6 vai comparar contra coleta parcial; leia com isso em mente.
     hugepage do feed desmontada
 
-==> 6/6 revisao dos dados do projeto  (01:58:27)
+==> 6/6 revisao dos dados do projeto  (08:12:54)
     rotulos que se moveram mais de 5%: 10
         custo-espera: atomic seq_cst (store+load)                                   3.680           3.960    +7.6%  <<<
         custo-traducao.regiao16mb: DIFFERENCE attributable to translation           1.660           1.520    -8.4%  <<<
@@ -100,13 +101,14 @@ Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medi
     comparacao completa em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-modo-texto/comparacao.txt
 
     portao de qualidade:
+        [aviso] nao consegui resolver actions/checkout@v7 (offline?)
         [aviso] caminho absoluto encontrado
         [aviso] 4 numero(s) arredondados SEM CLASSIFICACAO (triagem: --arredondados)
         [ok]    build limpo, zero avisos
-        2 aviso(s) — não bloqueiam
+        3 aviso(s) — não bloqueiam
         [1mtudo passou.[0m Pode commitar.
 
-==> CONCLUIDA  2026-09-24T01:59:28-03:00
+==> CONCLUIDA  2026-09-24T08:13:56-03:00
 
     O que ficou em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-modo-texto:
       ambiente.txt      estado da maquina antes de medir

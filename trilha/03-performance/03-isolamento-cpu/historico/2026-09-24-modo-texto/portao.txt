@@ -9,7 +9,7 @@
   [ok]    nenhuma invocação combina --in-memory com --no-huge
   [ok]    ações da CI fixadas por SHA
   [ok]    GITHUB_TOKEN com permissões declaradas
-  [ok]    actions/checkout fixada em v7 (SHA confere com a tag)
+  [aviso] nao consegui resolver actions/checkout@v7 (offline?)
 
 [1m== 3. Informações sensíveis ==[0m
   [ok]    nenhum padrão de credencial
@@ -24,13 +24,13 @@
   [ok]    42 âncoras de linha verificadas, 0 desatualizadas
   [ok]    aritmetica: 4 conta(s) conferida(s); 0 divergente(s) (tolerância de 1.0 ponto per
   [ok]    autodescricao: 2358 afirmação(ões) sobre o próprio material conferida(s); 0 não 
-  [ok]    blocos: 158 bloco(s) numerico(s) conferidos contra 18 coleta(s) (2026-09-20-ex
+  [ok]    blocos: 158 bloco(s) numerico(s) conferidos contra 19 coleta(s) (2026-09-20-ex
   [ok]    citacao: CITATION.cff: 9 campo(s) obrigatório(s), versão/data/licença/URL co
   [ok]    concordancia: docs/01-fundamentos/6.3-aprofundamento.md
   [ok]    evidencia: docs/00-visao-geral/README.md: 3 de 4 numero(s) de prosa sem bloco
   [ok]    figuras: 12 figura(s) conferida(s); 0 divergencia(s) entre alt= e <desc>
   [ok]    forca-epistemica: 203 contagem(ns) de força epistêmica em 29 par(es); 0 desequilíbrio
-  [ok]    identidade: 97 objeto(s) de história e a árvore versionada conferidos, 0 ocorrê
+  [ok]    identidade: 98 objeto(s) de história e a árvore versionada conferidos, 0 ocorrê
   [ok]    idioma: 29 documento(s) em ingles conferidos contra o dicionario pt-BR; 0 linh
   [ok]    medicao: 104 fonte(s) conferida(s); 0 laco(s) com getenv() por iteracao
   [ok]    paridade: 29 de 29 pares com estrutura de titulos e bibliografia alinhadas
@@ -51,6 +51,6 @@
   [ok]    commit.gpgsign ativo (chave /home/henrique/.…)
 
 [1m== Veredito ==[0m
-  2 aviso(s) — não bloqueiam
+  3 aviso(s) — não bloqueiam
   [1mtudo passou.[0m Pode commitar.
 
