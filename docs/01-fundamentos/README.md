@@ -1128,8 +1128,9 @@ disputa banda.
 > `comparar-hardware.py` a partir das saídas brutas. Os quatro contrastes desta
 > seção vêm das células `2026-09-24-*-texto-*`, que cobrem o fatorial de
 > 4800 e 6000 MT/s por um e dois pentes. Os demais valores do módulo vêm de
-> `2026-09-23-expo6000-canal-duplo`. A máquina esteve nas quatro configurações
-> em 24/09 e ficou na última medida — dois pentes a 4800 MT/s, um nó NUMA.
+> `2026-09-23-expo6000-canal-duplo`. A máquina passou pelas quatro configurações
+> em 24/09 e voltou à de referência: dois pentes DDR5-6000 de 16 GB, canal
+> duplo, um nó NUMA.
 
 > **Selo perto do limiar: desconfie do número de amostras antes do fenômeno.**
 > Com sete amostras o selo erra nas duas direções — medido em dez grupos

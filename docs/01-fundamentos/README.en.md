@@ -1129,8 +1129,8 @@ signature of something competing for bandwidth.
 > section come from the `2026-09-24-*-texto-*` cells, which cover the factorial
 > of 4800 and 6000 MT/s by one and two sticks. The module's other values come
 > from `2026-09-23-expo6000-canal-duplo`. The machine passed through all four
-> configurations on 24/09 and stayed in the last one measured — two sticks at
-> 4800 MT/s, one NUMA node.
+> configurations on 24/09 and returned to the reference one: two 16 GB DDR5-6000
+> sticks, dual channel, one NUMA node.
 
 > **A seal near the threshold: doubt the sample count before the phenomenon.**
 > With seven samples the seal errs in both directions — measured over ten disjoint
