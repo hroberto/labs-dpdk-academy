@@ -81,6 +81,43 @@ static double medir_uma(void)
     return (double)(academy_now_ns() - t0) / n_rodadas;
 }
 
+/* PERIODO DE CLOCK MEDIDO, e nao lido do sysfs.
+ *
+ * `scaling_cur_freq` e o que o driver ACHA que pediu, e em amd-pstate ele nao
+ * e a frequencia efetiva do nucleo. O `custo-mckenney` ja resolvia isso de
+ * outro jeito: uma cadeia de somas inteiras dependentes custa um ciclo por
+ * elemento em regime, entao o tempo por elemento E o periodo de clock.
+ *
+ * A diferenca entre as duas fontes e justamente o que esta sonda precisa
+ * distinguir, porque ela publica CICLOS -- e ciclos calculados sobre uma
+ * frequencia errada sao um numero errado com aparencia de invariante. */
+static _Alignas(64) volatile long sumidouro_clk;
+static double periodo_ns(void)
+{
+    const int n = 20000000;
+    volatile long x = 0;
+    const uint64_t t0 = academy_now_ns();
+    for (int i = 0; i < n; i++)
+        x = x + 1;
+    const double r = (double)(academy_now_ns() - t0) / n;
+    sumidouro_clk = x;
+    return r;
+}
+
+/* AQUECIMENTO, com a duracao que o `custo-espera` ja usa. Nao e chute: aquele
+ * arquivo documenta 400 ms como o ponto onde o efeito de arranque some, medido,
+ * e nao onde se cansou de esperar. */
+#define AQUECIMENTO_MS 400
+static void aquecer(void)
+{
+    const uint64_t ate = academy_now_ns() + (uint64_t)AQUECIMENTO_MS * 1000000ull;
+    long a = 0;
+    while (academy_now_ns() < ate)
+        for (int i = 0; i < 10000; i++)
+            a += i;
+    sumidouro_clk = a;
+}
+
 static double freq_ghz(int cpu)
 {
     char caminho[128];
@@ -140,6 +177,13 @@ int main(int argc, char **argv)
     printf("  sonda-relaxed: %d amostras de %d rodadas, cpu %d, governor %s\n\n",
            n, RODADAS, cpu, gov);
 
+    aquecer();
+    const double T0 = periodo_ns();
+    printf("  periodo de clock MEDIDO, apos %d ms de aquecimento: %.4f ns"
+           "  (%.2f GHz)\n", AQUECIMENTO_MS, T0, T0 > 0 ? 1.0 / T0 : 0.0);
+    printf("  frequencia lida do sysfs no mesmo instante:         %.2f GHz\n\n",
+           freq_ghz(cpu));
+
     /* AMOSTRA DE AQUECIMENTO DESCARTADA. Nao e cerimonia: o material ja mede
      * que a primeira execucao apos ociosidade sai ~30% alta na operacao mais
      * curta, e esta e a operacao mais curta do projeto. */
@@ -180,8 +224,18 @@ int main(int argc, char **argv)
                 putchar('#');
             putchar('\n');
         }
+        const double med = percentil(ord, n, 0.50);
+        const double T1 = periodo_ns();
         printf("\n  minimo %.4f   mediana %.4f   maximo %.4f\n",
-               ord[0], percentil(ord, n, 0.50), ord[n - 1]);
+               ord[0], med, ord[n - 1]);
+        printf("  periodo de clock ao FIM: %.4f ns (%.2f GHz)\n", T1,
+               T1 > 0 ? 1.0 / T1 : 0.0);
+        /* OS CICLOS SAO O RESULTADO. Se o modelo estiver certo eles nao mudam
+         * com o modo, com o governor nem com a maquina -- so com a carga no
+         * irmao SMT. */
+        printf("  CICLOS por operacao: %.3f (pelo periodo inicial)"
+               "   %.3f (pelo final)\n", T0 > 0 ? med / T0 : 0.0,
+               T1 > 0 ? med / T1 : 0.0);
         free(ord);
     }
 
