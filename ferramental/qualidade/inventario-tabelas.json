@@ -8,7 +8,7 @@
     "trilha/04-projeto-final/README.md"
   ],
   "limites": "Tabelas Markdown e blocos numericos nas oito paginas listadas. Nao abrange todos os numeros em prosa nem verifica automaticamente sua origem.",
-  "total": 123,
+  "total": 126,
   "entradas": [
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -586,98 +586,119 @@
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 544,
+      "linha": 487,
+      "secao": "O elo entre a contagem e o tempo, medido",
+      "tipo": "tabela_markdown",
+      "sha256": "885cbfaf67a796e8397f4726b5ea57a610582cbf91204056df9bbc0744b914b2"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 501,
+      "secao": "O controle: mesmas viagens, versões diferentes",
+      "tipo": "bloco_numerico",
+      "sha256": "8f04559d6fb0ca420f534e98317b07a0f2fc846971276e860fc7c1f173fe5345"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 527,
+      "secao": "O custo de uma viagem",
+      "tipo": "bloco_numerico",
+      "sha256": "1fe4b09facf508873bf8f990750debad39933ed7581932de82e262e6d00e1767"
+    },
+    {
+      "arquivo": "docs/03-mempool-ring-mbuf/README.md",
+      "linha": 646,
       "secao": "2. O mbuf: quatro números que parecem redundantes",
       "tipo": "bloco_numerico",
       "sha256": "063a80f47eed6ff44059abe004fbe398fd205226398c965587339b8a04690f05"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 674,
+      "linha": 776,
       "secao": "2.4 Posse: quem libera",
       "tipo": "tabela_markdown",
       "sha256": "202c753512434d518a531ceeaaaafcc64f525775309fe643baa36455b395db34"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 691,
+      "linha": 793,
       "secao": "3. O anel: o preço da generalidade",
       "tipo": "bloco_numerico",
       "sha256": "635a5bc04c2782211cb2777c3588827f990748652bf9da1c4ad6a8bf8bf617e7"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 790,
+      "linha": 892,
       "secao": "Dois vocabulários para o mesmo algoritmo",
       "tipo": "tabela_markdown",
       "sha256": "7ba41f93bcf63c33458cbfa515963e3731fa36f57f9371edd17d929ca62f2c5d"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 811,
+      "linha": 913,
       "secao": "O que o binário medido realmente emite",
       "tipo": "bloco_numerico",
       "sha256": "f69a6483eaed3ac18b791c38993e2a5d922a82a93e72c7ff0c0ce02731e8cd8d"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 851,
+      "linha": 953,
       "secao": "3.2 Quatro estratégias para o mesmo anel",
       "tipo": "tabela_markdown",
       "sha256": "209fe27c59a18b9e8239ca79d82583a85f1da4496034725bfd9dc06fa9240c30"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 888,
+      "linha": 990,
       "secao": "O mesmo problema fora do DPDK",
       "tipo": "tabela_markdown",
       "sha256": "6643cd297fca5a9251f25a04778d681f73365198e6ef05d2c9fd047503f14fba"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 977,
+      "linha": 1079,
       "secao": "3.4 `_bulk` e `_burst` não são sinônimos",
       "tipo": "tabela_markdown",
       "sha256": "733444ebfad15508e3e54b6f82c6fc05db78fdcfccce7adbc656a4354a45c54e"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 1030,
+      "linha": 1132,
       "secao": "O `ftoken` é o mecanismo, e vale entender por quê",
       "tipo": "tabela_markdown",
       "sha256": "8c3d40fac1d31a3464342657a6f46e0629a055c693300c578a3ead472362bdc4"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 1050,
+      "linha": 1152,
       "secao": "O custo: *head-of-line blocking*",
       "tipo": "tabela_markdown",
       "sha256": "42d6b1b1ded41b342728d22b0042e63325b15591cb9251b507581b5c9ab8dce7"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 1196,
+      "linha": 1298,
       "secao": "5.1 Nem todo programa deste módulo é medição",
       "tipo": "tabela_markdown",
       "sha256": "07d25a3ba8143d70d7eacd5492099acd55bb72a67db6f208d345b7faa7b50237"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 1244,
+      "linha": 1346,
       "secao": "6.1 O degrau: `get_bulk` não entrega lote parcial",
       "tipo": "tabela_markdown",
       "sha256": "138622c9479008925c9f6f7db7278cca2bf1c617e01922d867e6d61e5cd14b0b"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 1280,
+      "linha": 1382,
       "secao": "6.2 A regra 4, confrontada — e corrigida",
       "tipo": "tabela_markdown",
       "sha256": "c5738905a71ae0f061eb7fc88e3b4337edd9ed1f423346ea4f115122183550f3"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
-      "linha": 1367,
+      "linha": 1469,
       "secao": "9. Navegação",
       "tipo": "tabela_markdown",
       "sha256": "573d3d447bf73781ac79c5cf02601f1a7b90b0951d1c2deb35ed7cb38634f23b"

@@ -470,12 +470,114 @@ A segunda coleta está em
 [`medicoes/historico/2026-09-23-mempool-cache-canal-duplo/`](medicoes/historico/2026-09-23-mempool-cache-canal-duplo/),
 com as 240 saídas brutas.
 
+#### O elo entre a contagem e o tempo, medido
+
+A subseção anterior mede **idas ao anel comum**, e a afirmação do upstream é
+sobre taxa de miss. Nenhuma das duas é tempo. A ligação entre elas — se mais
+idas custam mais, e quanto — exigia um par de prefixos construído **sem**
+`RTE_LIBRTE_MEMPOOL_STATS`, porque o contador daquela macro é atualizado no
+caminho quente e o binário instrumentado não é o de produção.
+
+Os prefixos sem o contador foram construídos, e a coleta correu em **modo
+texto**, sem sessão gráfica, pela razão documentada no
+[tópico de isolamento de CPU](../../trilha/03-performance/03-isolamento-cpu/README.md#666-intervenção-coleta-sem-sessão-gráfica):
+a grandeza de interesse aqui é da ordem de décimos de nanossegundo por pacote, e
+o ruído da sessão gráfica é maior que ela.
+
+| Elemento | Valor |
+|---|---|
+| prefixos | 25.11 e 26.07 **sem** `RTE_LIBRTE_MEMPOOL_STATS` |
+| repetições | 21 por célula |
+| métrica | nanossegundos por pacote, dos três inteiros de `DPDK_ACADEMY_BRUTO` |
+| ambiente | `multi-user.target`, sem gerenciador de display |
+
+##### O controle: mesmas viagens, versões diferentes
+
+A topologia simétrica com `cache_size` ≥ 32 é um controle exato, e não por
+construção deste experimento: as duas versões fazem ali **a mesma** viagem
+única de preenchimento inicial — 0,5 por milhão de pacotes, o valor da tabela
+anterior. Se o tempo diferir, a diferença não pode ser das viagens.
+
+```
+  cache   25.11    26.07    delta
+  -----  ------   ------   ------
+     32   2.350    2.527   +0.177
+     48   2.350    2.526   +0.176
+     64   2.349    2.525   +0.176
+     96   2.352    2.527   +0.175
+    128   2.349    2.525   +0.176
+    256   2.349    2.528   +0.179
+    512   2.349    2.527   +0.178
+
+  mediana do delta: +0.176 ns/pacote   amplitude: 0.004 ns
+```
+
+O 26.07 custa **0,176 ns a mais por pacote** que o 25.11 com o mesmo número de
+viagens. As sete células concordam dentro de quatro picossegundos — amplitude
+menor que a última casa que o programa publica. É diferença de versão, medida
+com as viagens mantidas constantes.
+
+##### O custo de uma viagem
+
+Na topologia assimétrica as viagens variam por duas ordens de grandeza, e o
+tempo acompanha. Ajustando tempo contra viagens por pacote, com cada versão
+restrita às células **acima do seu próprio limiar de absorção** — 64 para o
+25.11, 32 para o 26.07, os limiares que a subseção anterior deriva do fonte:
+
+```
+  25.11:  ns/pacote = 3.723 + 82.9 x viagens/pacote    R2 = 0.869   n = 5
+  26.07:  ns/pacote = 3.920 + 37.4 x viagens/pacote    R2 = 0.710   n = 7
+```
+
+O coeficiente angular tem unidade de **nanossegundos por viagem**: cada ida ao
+anel comum custa cerca de 83 ns no 25.11 e 37 ns no 26.07.
+
+A restrição às células acima do limiar não é conveniência. Abaixo dele o
+produtor não absorve a própria devolução, e a contagem passa a medir a corrida
+entre os dois lcores em vez do que o cache governa — a subseção anterior mostra
+que é exatamente ali que as contagens variam entre execuções e entre máquinas.
+Ajustar sobre elas mediria a corrida.
+
+##### A leitura: mais viagens não é proporcionalmente pior
+
+As duas retas juntas respondem a pergunta que a contagem sozinha não responde.
+O 26.07 faz **duas a três vezes mais** viagens que o 25.11 no mesmo
+`cache_size` — é a lei da subseção anterior, e ela não mudou. Mas cada viagem
+dele custa **menos da metade**.
+
+A razão entre os coeficientes é 2,2. A razão entre os tamanhos de recarga que o
+fonte prevê para as células ajustadas vai de 2,1 a 3,0, conforme o
+`cache_size`. As duas são compatíveis, e a leitura que isso sugere é que o
+custo de uma viagem é dominado por **quantos objetos ela move**, não pelo fato
+de ela acontecer. O ajuste não isola essa relação — o tamanho da recarga varia
+dentro de cada reta —, de modo que ela fica como leitura compatível, não como
+medição.
+
+##### O que este ajuste não sustenta
+
+O `R²` do 26.07 é 0,710, e a causa está nos dados: três células com
+`cache_size` 32, 48 e 64 fazem **exatamente** 31 250 viagens e medem 4,888,
+4,891 e 5,160 ns por pacote. O espalhamento a viagens idênticas é de 0,27 ns —
+maior que o efeito de versão que o controle isola.
+
+Existe, portanto, uma segunda fonte de variação na topologia assimétrica que as
+viagens não explicam. O controle simétrico não a vê, porque ali as viagens são
+uma só e o sistema não tem corrida. A hipótese natural é a mesma corrida entre
+lcores que governa as retentativas, cuja contagem a subseção anterior mostra
+variar de 25 mil a 139 mil na mesma célula; confirmá-la exigiria instrumentar
+a velocidade relativa dos dois lcores ao longo da execução, o que o programa
+atual não faz.
+
 #### O que este experimento não autoriza
 
-- **Não há medida de tempo**, e o bloqueio era duplo. O primeiro motivo é do
-  build: os dois DPDK foram construídos com `RTE_LIBRTE_MEMPOOL_STATS`, cujo
-  contador é atualizado no caminho quente, então o programa medido não é o de
-  produção. **Este continua de pé.**
+- **A medida de tempo existe, e cobre menos que a contagem.** O bloqueio era
+  duplo e os dois caíram. O primeiro era do build: os dois DPDK foram
+  construídos com `RTE_LIBRTE_MEMPOOL_STATS`, cujo contador é atualizado no
+  caminho quente, então o programa medido não era o de produção. **Os prefixos
+  sem o contador foram construídos**, e a seção anterior traz o resultado. O
+  que ele cobre é a topologia assimétrica acima dos limiares de absorção e o
+  controle simétrico; abaixo dos limiares o tempo mede a corrida entre lcores,
+  e nessa faixa não há afirmação.
 
   O segundo era do instrumento — o `pipeline_ring` imprimia o tempo com `%.1f`,
   o que sobre ~5 ns por pacote quantiza em 2%, ordem de grandeza das diferenças

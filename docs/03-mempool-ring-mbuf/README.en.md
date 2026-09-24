@@ -472,12 +472,114 @@ The second collection is in
 [`medicoes/historico/2026-09-23-mempool-cache-canal-duplo/`](medicoes/historico/2026-09-23-mempool-cache-canal-duplo/),
 with all 240 raw outputs.
 
+#### The link between the count and time, measured
+
+The preceding subsection measures **trips to the common ring**, and the
+upstream claim is about miss rate. Neither is time. Linking them — whether more
+trips cost more, and how much — required a pair of prefixes built **without**
+`RTE_LIBRTE_MEMPOOL_STATS`, because that macro's counter is updated on the hot
+path and the instrumented binary is not the production one.
+
+The prefixes without the counter were built, and the collection ran in **text
+mode**, with no graphical session, for the reason documented in the
+[CPU isolation topic](../../trilha/03-performance/03-isolamento-cpu/README.en.md#666-intervention-collecting-without-a-graphical-session):
+the quantity of interest here is of the order of tenths of a nanosecond per
+packet, and the graphical session's noise is larger than that.
+
+| Element | Value |
+|---|---|
+| prefixes | 25.11 and 26.07 **without** `RTE_LIBRTE_MEMPOOL_STATS` |
+| repetitions | 21 per cell |
+| metric | nanoseconds per packet, from the three integers of `DPDK_ACADEMY_BRUTO` |
+| environment | `multi-user.target`, no display manager |
+
+##### The control: same trips, different versions
+
+The symmetric topology with `cache_size` ≥ 32 is an exact control, and not by
+construction of this experiment: both versions make **the same** single
+fill-up trip there — 0.5 per million packets, the value in the previous table.
+If the time differs, the difference cannot come from the trips.
+
+```
+  cache   25.11    26.07    delta
+  -----  ------   ------   ------
+     32   2.350    2.527   +0.177
+     48   2.350    2.526   +0.176
+     64   2.349    2.525   +0.176
+     96   2.352    2.527   +0.175
+    128   2.349    2.525   +0.176
+    256   2.349    2.528   +0.179
+    512   2.349    2.527   +0.178
+
+  median delta: +0.176 ns/packet   spread: 0.004 ns
+```
+
+26.07 costs **0.176 ns more per packet** than 25.11 at the same number of
+trips. The seven cells agree to within four picoseconds — a spread smaller than
+the last digit the program publishes. It is a version difference, measured with
+the trips held constant.
+
+##### The cost of one trip
+
+In the asymmetric topology the trips vary by two orders of magnitude, and time
+follows. Fitting time against trips per packet, with each version restricted to
+the cells **above its own absorption threshold** — 64 for 25.11, 32 for 26.07,
+the thresholds the previous subsection derives from the source:
+
+```
+  25.11:  ns/packet = 3.723 + 82.9 x trips/packet    R2 = 0.869   n = 5
+  26.07:  ns/packet = 3.920 + 37.4 x trips/packet    R2 = 0.710   n = 7
+```
+
+The slope has units of **nanoseconds per trip**: each trip to the common ring
+costs about 83 ns on 25.11 and 37 ns on 26.07.
+
+Restricting to the cells above the threshold is not convenience. Below it the
+producer does not absorb its own return, and the count begins to measure the
+race between the two lcores rather than what the cache governs — the previous
+subsection shows that this is exactly where the counts vary between runs and
+between machines. Fitting over them would measure the race.
+
+##### The reading: more trips is not proportionally worse
+
+The two lines together answer the question the count alone does not. 26.07
+makes **two to three times more** trips than 25.11 at the same `cache_size` —
+that is the law of the previous subsection, and it has not changed. But each of
+its trips costs **less than half**.
+
+The ratio between the slopes is 2.2. The ratio between the refill sizes the
+source predicts for the fitted cells ranges from 2.1 to 3.0, depending on
+`cache_size`. The two are compatible, and the reading this suggests is that a
+trip's cost is dominated by **how many objects it moves**, not by the fact that
+it happens. The fit does not isolate that relation — refill size varies within
+each line — so it stands as a compatible reading, not as a measurement.
+
+##### What this fit does not support
+
+26.07's `R²` is 0.710, and the cause is in the data: three cells with
+`cache_size` 32, 48 and 64 make **exactly** 31,250 trips and measure 4.888,
+4.891 and 5.160 ns per packet. The spread at identical trips is 0.27 ns —
+larger than the version effect the control isolates.
+
+There is therefore a second source of variation in the asymmetric topology that
+trips do not explain. The symmetric control does not see it, because there the
+trips are a single one and the system has no race. The natural hypothesis is
+the same lcore race that governs the retries, whose count the previous
+subsection shows varying from 25 thousand to 139 thousand within the same cell;
+confirming it would require instrumenting the relative speed of the two lcores
+over the run, which the current program does not do.
+
 #### What this experiment does not authorize
 
-- **There is no timing measurement**, and the blocker was twofold. The first
-  reason belongs to the build: both DPDKs were built with
-  `RTE_LIBRTE_MEMPOOL_STATS`, whose counter is updated on the hot path, so the
-  program measured is not the one in production. **This one still stands.**
+- **The timing measurement exists, and it covers less than the count.** The
+  blocker was twofold and both halves fell. The first belonged to the build:
+  both DPDKs were built with `RTE_LIBRTE_MEMPOOL_STATS`, whose counter is
+  updated on the hot path, so the program measured was not the one in
+  production. **The prefixes without the counter were built**, and the
+  preceding section carries the result. What it covers is the asymmetric
+  topology above the absorption thresholds and the symmetric control; below the
+  thresholds timing measures the lcore race, and in that band there is no
+  claim.
 
   The second belonged to the instrument — `pipeline_ring` printed the time with
   `%.1f`, which over ~5 ns per packet quantizes at 2%, the same order as the
