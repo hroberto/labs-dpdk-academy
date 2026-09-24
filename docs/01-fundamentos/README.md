@@ -982,7 +982,7 @@ divididos por 27 acessos sobrepostos.
 **Os dois eixos desse painel são logarítmicos, e isso não é preferência de
 desenho.** Como `lote = K × ns por acesso`, se a concorrência fosse de graça o
 custo cairia exatamente com 1/K e a **laranja seria uma horizontal**. Ela é, até
-K = 16 — 94 para 116 ns, +23%, enquanto a vazão cresce 13×. Onde ela deixa de ser
+K = 16 — 77 para 90 ns, +17%, enquanto a vazão cresce 13,6×. Onde ela deixa de ser
 horizontal é, ponto a ponto, onde a concorrência passa a custar: de 16 para 64 a
 vazão cresce 2× e a espera, 1,9×. **O joelho é a decisão de projeto**, e é
 aqui que ele aparece nesta máquina.
@@ -1594,7 +1594,7 @@ As seções anteriores mediram mecanismos. Esta as põe lado a lado como
 |---|---|---|---|---|
 | **hugepages** | o custo adicional de tradução | **10,01 ns** na coleta vigente, e o ganho **acompanha o conjunto de trabalho sem ser monotônico**: 1,21 ns em 8 MB, 18,03 em 32 MB, 8,13 em 64 MB, 10,01 em 512 MB — o pico em 32 MB é discutido na [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço) | memória reservada que some do sistema; configuração de boot; sem swap | conjunto de trabalho pequeno o bastante para caber na TLB |
 | **layout contíguo** | a falta de localidade | até 33× de banda ([§4.2](#42-cache-e-localidade)) | refatoração; estruturas menos naturais de escrever | acesso genuinamente disperso, em que não há ordem a explorar |
-| **lote e *prefetch*** | a falta de concorrência | 94 → 7,3 ns amortizados, 13× de vazão ([§4.2](#42-cache-e-localidade)) | **latência**: esperar o lote encher (+23% até K = 16, +133% em K = 64) | quando a cauda de latência é o contrato, e não a vazão |
+| **lote e *prefetch*** | a falta de concorrência | 77 → 5,6 ns amortizados, 13,6× de vazão ([§4.2](#42-cache-e-localidade)) | **latência**: esperar o lote encher (+17% até K = 16, +103% em K = 64) | quando a cauda de latência é o contrato, e não a vazão |
 | **`__rte_cache_aligned`** | o falso compartilhamento | 53 → 8 ns ([§4.2.1](#421-falso-compartilhamento-o-erro-mais-comum-de-quem-escreve-plano-de-dados)) | até 63 bytes desperdiçados por objeto | estrutura só de leitura, ou tocada por um lcore só |
 | **afinidade de memória** | a travessia entre nós | ver [§4.3](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só) | complexidade operacional: fixar lcore, alocar no nó certo, e provar que ficou | máquina de um nó só |
 
@@ -2657,7 +2657,7 @@ feed de canal único, e uma segunda âncora — a orientação de rajadas de at�
 datagramas, descritores e bits que ela obriga a fazer.
 
 > **O que é medido e o que é modelado.** Não é medição de NIC: não há rede,
-> driver nem DPDK, e reproduzir 4,5 milhões de pacotes por segundo exige a NIC e
+> driver nem DPDK, e reproduzir os 3,88 milhões de pacotes por segundo do pico exige a NIC e
 > o gerador de tráfego previstos para o nível 6. A honestidade possível hoje é
 > dizer, linha por linha, de onde vem cada número:
 >
@@ -2833,9 +2833,9 @@ elemento de rede** no caminho.
 > vêm de literatura secundária, não da G.114. O que a recomendação **fixa** é o
 > atraso de um sentido, e é contra ele que a conta abaixo é feita.
 
-Agora considere o sistema do gráfico acima, descrito como "média de 10 µs".
-Parece consumir 0,007% do orçamento — desprezível. Mas o p99,9 dele é 5 ms, que
-é **500 vezes a média**. Cinco milissegundos são **3,3% do orçamento de 150 ms**,
+Agora considere o sistema do gráfico acima, descrito como "média de 14 µs".
+Parece consumir 0,009% do orçamento — desprezível. Mas o p99,9 dele é 5 ms, que
+é **357 vezes a média**. Cinco milissegundos são **3,3% do orçamento de 150 ms**,
 consumidos por 1 em cada 1000 pacotes — e, por virem como variação, precisam ser
 absorvidos pelo buffer de *de-jitter*, que por sua vez **soma ao mesmo
 orçamento**. Não inviabiliza a chamada sozinho; compromete a folga que todos os

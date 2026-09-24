@@ -366,14 +366,14 @@ O texto publicado diz, sobre os ~21 GB/s que doze núcleos alcançam juntos:
 O EXPO deu o primeiro indício contra a segunda frase. Ele elevou a taxa por
 canal em 25%, e o acesso sequencial de **um** núcleo não se mexeu:
 
-| RAM, um núcleo | antes do EXPO | depois |
-|---|---:|---:|
-| `sequencial` (amortizado) | 0,194 ns | **0,195 ns** |
-| `aleatorio` (amortizado) | 7,21 ns | 6,49 ns |
-| `dependente` (latência) | 101,5 ns | 89,31 ns |
+| RAM, um núcleo | antes do EXPO | depois | variação |
+|---|---:|---:|---:|
+| `sequencial` (amortizado) | 0,200 ns | **0,195 ns** | **−2,5%** |
+| `aleatorio` (amortizado) | 7,09 ns | 6,45 ns | −9,0% |
+| `dependente` (latência) | 98,73 ns | 88,00 ns | −10,9% |
 
-Latência caiu 12%, vazão de acesso disperso caiu 10% — e o sequencial ficou
-parado. Um número que não responde a memória mais rápida **não está limitado
+Latência caiu 11%, o acesso disperso 9% — e o sequencial praticamente não se
+mexeu. Um número que não responde a memória mais rápida **não está limitado
 pela memória**.
 
 ### As previsões, e o que refuta cada uma
@@ -417,12 +417,12 @@ A campanha de 20/09, cinco rodadas em máquina ociosa, com o aquecimento
 descartado, comparada com os valores publicados:
 
 ```
-  12 nucleos (agregado)      36,56 -> 21,28 ns/acesso    -41,8%   RESPONDE
-  1 nucleo, sequencial        0,194 -> 0,190 ns/acesso     -2,1%   nao responde
+  12 nucleos (agregado)      30,92 -> 21,27 ns/acesso    -31,2%   RESPONDE
+  1 nucleo, sequencial        0,200 -> 0,195 ns/acesso     -2,5%   nao responde
 ```
 
 **Previsão 1 confirmada, previsão 2 confirmada.** Memória 25% mais rápida
-melhorou o agregado em 42% e não fez nada pelo núcleo sozinho. As duas metades
+melhorou o agregado em 45% de vazão e não fez nada pelo núcleo sozinho. As duas metades
 da frase da §4.2 se separam: o agregado **é** limitado pela banda; o núcleo
 sequencial sozinho **não é** — ele está limitado por si mesmo.
 
@@ -441,12 +441,12 @@ O EXPO produziu a evidência por outro caminho. Se a penalidade é servida pelo
 L3, memória mais rápida **não deve** baratea-la:
 
 ```
-  L3 dependente                 9,70 -> 9,70 ns      0,0%
-  DIFERENCA de traducao        10,40 -> 11,02 ns    +6,0%
-  RAM dependente              101,50 -> 86,14 ns   -15,1%
+  L3 dependente                  9,71 ->  9,73 ns    +0,2%
+  DIFERENCA de traducao         10,65 -> 10,94 ns    +2,7%
+  RAM dependente                98,73 -> 88,00 ns   -10,9%
 ```
 
-A DRAM melhorou 15%, o L3 não se moveu, e a tradução **acompanhou o L3**. Não é
+A DRAM melhorou 11%, o L3 ficou em 0,2%, e a tradução **acompanhou o L3** com 2,7%. Não é
 o contador de hardware que a seção pede, e não prova o caminho percorrido; mas
 é uma predição arriscada que se confirmou, e o experimento original não
 conseguia produzi-la.
@@ -454,10 +454,25 @@ conseguia produzi-la.
 ### A linha divisória, como validação do conjunto
 
 Vale o registro geral, porque ele diz mais sobre os instrumentos que sobre o
-hardware: das medições comparadas, **doze não se moveram** (0,0% a 1,5%) e
-**dez se moveram entre 11% e 42%**. O critério que as separa é único — tocar a
-DRAM ou o fabric. `laco sozinho`, `RAZAO com/sem irmao SMT`, `L1d dependente` e
-`L3 dependente` saíram em **0,0%**.
+hardware. Das **56** medições que o `comparar-hardware.py` confronta hoje:
+
+| Faixa | Quantas | O que há nela |
+|---|---:|---|
+| até 1,5% | **24** | cache, atômicas, travas locais — nada que toque a DRAM |
+| 1,6% a 9,0% | 16 | caminhos mistos: parte do trabalho em cache, parte fora |
+| 10,9% a 31,2% | **16** | DRAM e o *fabric* entre CCDs |
+
+> **A faixa do meio existe, e uma versão anterior desta seção a omitia.** O
+> texto dizia "doze não se moveram, dez se moveram", como se a divisão fosse
+> limpa. Ela era limpa no conjunto menor que a ferramenta cobria então; com
+> 56 comparações há dezesseis medições entre 1,6% e 9,0%, e apagá-las tornaria
+> o argumento mais bonito do que os dados permitem.
+
+O que sustenta a validação não é a ausência de meio-termo, e sim **os extremos
+caírem onde o mecanismo prevê**. `laco sozinho`, `RAZAO com/sem irmao SMT`,
+`L1d dependente` e `L3 dependente` saíram em **0,0%** — nenhum deles toca a
+memória principal. O agregado de doze núcleos saiu em **31,2%**, o maior de
+todos, e é o que mais disputa banda.
 
 Instrumento que responde onde deve e fica quieto onde deve é a única evidência
 possível de que ele mede o que diz medir.

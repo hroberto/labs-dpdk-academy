@@ -980,7 +980,7 @@ is that separation which shows 3.44 ns was never memory's response time. It is
 **Both axes of that panel are logarithmic, and that is not a drawing
 preference.** Since `batch = K × ns per access`, if concurrency were free the cost
 would fall exactly with 1/K and the **orange would be a horizontal line**. It is,
-up to K = 16 — 94 to 116 ns, +23%, while throughput grows 13×. Where it stops
+up to K = 16 — 77 to 90 ns, +17%, while throughput grows 13.6×. Where it stops
 being horizontal is, point by point, where concurrency starts to cost: from 16 to
 64 throughput grows 2× and the wait, 1.9×. **The knee is the design decision**, and this
 is where it shows up on this machine.
@@ -1585,7 +1585,7 @@ cost.
 |---|---|---|---|---|
 | **hugepages** | the extra cost of translation | **10.01 ns** in the current collection, and the gain **tracks the working set without being monotonic**: 1.21 ns at 8 MB, 18.03 at 32 MB, 8.13 at 64 MB, 10.01 at 512 MB — the peak at 32 MB is discussed in [§4.1](#41-virtual-memory-what-translating-an-address-means) | reserved memory that vanishes from the system; boot configuration; no swap | a working set small enough to fit in the TLB |
 | **contiguous layout** | lost locality | up to 33× of bandwidth ([§4.2](#42-cache-and-locality)) | refactoring; structures that are less natural to write | genuinely scattered access, with no order to exploit |
-| **batching and prefetch** | lack of concurrency | 94 → 7.3 ns amortized, 13× throughput ([§4.2](#42-cache-and-locality)) | **latency**: waiting for the batch to fill (+23% up to K = 16, +133% at K = 64) | when the latency tail is the contract, not throughput |
+| **batching and prefetch** | lack of concurrency | 77 → 5.6 ns amortized, 13.6× throughput ([§4.2](#42-cache-and-locality)) | **latency**: waiting for the batch to fill (+17% up to K = 16, +103% at K = 64) | when the latency tail is the contract, not throughput |
 | **`__rte_cache_aligned`** | false sharing | 53 → 8 ns ([§4.2.1](#421-false-sharing-the-most-common-mistake-of-data-plane-programmers)) | up to 63 bytes wasted per object | a read-only structure, or one touched by a single lcore |
 | **memory affinity** | crossing between nodes | see [§4.3](#43-numa-when-memory-stops-being-one-thing) | operational complexity: pin the lcore, allocate on the right node, and prove it landed there | a single-node machine |
 
@@ -2610,7 +2610,7 @@ single-channel feed, and a second anchor — the guidance about bursts of up to
 datagrams, descriptors and bits that it forces.
 
 > **What is measured and what is modelled.** It is not a NIC measurement: there is no
-> network, driver or DPDK, and reproducing 4.5 million packets per second requires the NIC and
+> network, driver or DPDK, and reproducing the peak's 3.88 million packets per second requires the NIC and
 > the traffic generator planned for level 6. The honesty available today is to say, line by
 > line, where each number comes from:
 >
@@ -2778,8 +2778,8 @@ unacceptable for general network planning. That budget is split among the codec,
 > recommendation **does** fix is the one-way delay, and it is against that the
 > calculation below is made.
 
-Now consider the system in the chart above, described as "a mean of 10 µs". It seems to
-consume 0.007% of the budget — negligible. But its p99.9 is 5 ms, which is **500 times the
+Now consider the system in the chart above, described as "a mean of 14 µs". It seems to
+consume 0.009% of the budget — negligible. But its p99.9 is 5 ms, which is **357 times the
 mean**. Five milliseconds are **3.3% of the 150 ms budget**, consumed by 1 in every 1000
 packets — and, arriving as variation, they must be absorbed by the de-jitter buffer, which
 in turn **adds to the same budget**. It does not make the call unfeasible on its own; it

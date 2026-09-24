@@ -372,14 +372,13 @@ The published text says, about the ~21 GB/s twelve cores reach together:
 EXPO gave the first hint against the second sentence. It raised the per-channel
 rate by 25%, and the sequential access of **one** core did not move:
 
-| RAM, one core | before EXPO | after |
-|---|---:|---:|
-| `sequential` (amortised) | 0.194 ns | **0.195 ns** |
-| `random` (amortised) | 7.21 ns | 6.49 ns |
-| `dependent` (latency) | 101.5 ns | 89.31 ns |
+| RAM, one core | before EXPO | after | change |
+|---|---:|---:|---:|
+| `sequential` (amortised) | 0.200 ns | **0.195 ns** | **−2.5%** |
+| `random` (amortised) | 7.09 ns | 6.45 ns | −9.0% |
+| `dependent` (latency) | 98.73 ns | 88.00 ns | −10.9% |
 
-Latency fell 12%, scattered-access throughput fell 10% — and sequential stood
-still. A number that does not respond to faster memory **is not limited by
+Latency fell 11%, scattered access 9% — and sequential barely moved. A number that does not respond to faster memory **is not limited by
 memory**.
 
 ### The predictions, and what refutes each
@@ -425,12 +424,12 @@ The campaign of 2026-09-20, five rounds on an idle machine, warm-up discarded,
 against the published values:
 
 ```
-  12 cores (aggregate)       36.56 -> 21.28 ns/access    -41.8%   RESPONDS
-  1 core, sequential          0.194 -> 0.190 ns/access     -2.1%   does not
+  12 cores (aggregate)       30.92 -> 21.27 ns/access    -31.2%   RESPONDS
+  1 core, sequential          0.200 -> 0.195 ns/access     -2.5%   does not
 ```
 
 **Prediction 1 confirmed, prediction 2 confirmed.** Memory 25% faster improved
-the aggregate by 42% and did nothing for the lone core. The two halves of the
+the aggregate by 45% in throughput and did nothing for the lone core. The two halves of the
 §4.2 sentence come apart: the aggregate **is** bandwidth-limited; the lone
 sequential core **is not** — it is limited by itself.
 
@@ -449,12 +448,12 @@ EXPO produced the evidence by another route. If the penalty is served by the
 L3, faster memory **should not** make it cheaper:
 
 ```
-  L3 dependent                  9.70 -> 9.70 ns      0.0%
-  translation DIFFERENCE       10.40 -> 11.02 ns    +6.0%
-  RAM dependent               101.50 -> 86.14 ns   -15.1%
+  L3 dependent                   9.71 ->  9.73 ns    +0.2%
+  translation DIFFERENCE        10.65 -> 10.94 ns    +2.7%
+  RAM dependent                 98.73 -> 88.00 ns   -10.9%
 ```
 
-DRAM improved 15%, the L3 did not move, and translation **followed the L3**. It
+DRAM improved 11%, the L3 stayed at 0.2%, and translation **followed the L3** at 2.7%. It
 is not the hardware counter the section asks for, and it does not prove the
 path taken; but it is a risky prediction that held, and the original experiment
 could not produce it.
@@ -462,11 +461,26 @@ could not produce it.
 ### The dividing line, as validation of the instrument set
 
 The general record is worth keeping, because it says more about the instruments
-than about the hardware: of the measurements compared, **twelve did not move**
-(0.0% to 1.5%) and **ten moved between 11% and 42%**. The criterion separating
-them is a single one — touching DRAM or the fabric. The in-core ALU loop, the
-paired SMT ratio, and the `L1d` and `L3` dependent columns all came out at
-**0.0%**.
+than about the hardware. Of the **56** measurements `comparar-hardware.py`
+confronts today:
+
+| Band | How many | What is in it |
+|---|---:|---|
+| up to 1.5% | **24** | cache, atomics, local locks — nothing touching DRAM |
+| 1.6% to 9.0% | 16 | mixed paths: part of the work in cache, part outside |
+| 10.9% to 31.2% | **16** | DRAM and the inter-CCD fabric |
+
+> **The middle band exists, and an earlier version of this section omitted it.**
+> The text said "twelve did not move, ten moved", as if the split were clean. It
+> was clean in the smaller set the tool covered then; with 56 comparisons there
+> are sixteen measurements between 1.6% and 9.0%, and erasing them would make
+> the argument prettier than the data allows.
+
+What sustains the validation is not the absence of a middle, but **the extremes
+landing where the mechanism predicts**. The in-core ALU loop, the paired SMT
+ratio, and the `L1d` and `L3` dependent columns all came out at **0.0%** — none
+of them touches main memory. The twelve-core aggregate came out at **31.2%**,
+the largest of all, and it is the one that competes hardest for bandwidth.
 
 An instrument that responds where it should and stays quiet where it should is
 the only possible evidence that it measures what it claims to measure.

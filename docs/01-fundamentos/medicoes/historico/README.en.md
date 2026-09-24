@@ -10,7 +10,7 @@ the raw output of the measurement programs.
 This project treated the machine as a constant. It is not.
 
 On 2026-09-20 the EXPO 6000 profile was enabled on the board. RAM latency fell
-15%, the aggregate throughput of twelve cores improved 42% — and **nothing in
+11%, the aggregate throughput of twelve cores improved 45% — and **nothing in
 the repository recorded the previous configuration**, because
 `scripts/ambiente.sh` had no such field. The published numbers described
 hardware that had ceased to exist, with nothing to compare against.
