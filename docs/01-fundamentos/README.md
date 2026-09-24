@@ -146,7 +146,7 @@ O resultado central: **cabem cerca de duas chamadas de sistema no orçamento de
 um pacote.** E `getpid()` é a syscall mais barata que existe — não faz I/O, não
 toca em memória do usuário, não dorme. Uma `recvmsg()` real custa muito mais.
 
-Repare que esse resultado **não dependia** do número errado: ele sai de 33,55 ns
+Repare que esse resultado **não dependia** do número errado: ele sai de 33,8 ns
 contra 67,2 ns de orçamento, e a chamada de função não entra na conta. O que a
 correção mudou foi a razão syscall/chamada — de "294×" para a faixa de 36× a 46×
 conforme o regime de medição, tratada no aviso acima —, que é uma frase de
@@ -1051,7 +1051,7 @@ uma única linha entre threads:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escala-escuro.svg">
-  <img alt="Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 171 milhões de acessos por segundo com um núcleo para 948 milhões com doze, e a curva achata a partir de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 2 051 milhões com doze." src="imagens/4-escala-claro.svg">
+  <img alt="Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 171 milhões de acessos por segundo com um núcleo para 946 milhões com doze, e a curva achata a partir de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 2 051 milhões com doze." src="imagens/4-escala-claro.svg">
 </picture>
 
 **Com doze núcleos ativos, cada um faz 46% do que fazia sozinho.** A vazão
@@ -2569,7 +2569,7 @@ tempo**. A distribuição exata está no
   rajada          32768    0.000%     21234    6948.8
 ```
 
-**A previsão se sustenta.** Com 512 descritores a perda é de 26,6%; o anel de
+**A previsão se sustenta.** Com 512 descritores a perda é de 26,5%; o anel de
 4 096 — acima dos 2 516 que a conta pedia — derruba para 6,3%, e não a zero,
 porque as rajadas longas continuam existindo. E a linha cadenciada mostra que
 **o mesmo tráfego, distribuído por igual, não perde nada e nunca ocupa mais que
@@ -2581,7 +2581,7 @@ A tabela completa, com todas as profundidades e as colunas de mediana e
 
 > **A utilização média não prevê nada disso.** `ρ` médio é **0,019** — a máquina
 > fica ociosa 98,1% do tempo, e um painel de monitoração mostraria folga total
-> enquanto 26,6% dos pacotes morrem. É a mesma tese da
+> enquanto 26,5% dos pacotes morrem. É a mesma tese da
 > [§11](#112-três-leituras), levada ao extremo.
 
 #### O que o buffer compra, e o que ele cobra
@@ -3414,7 +3414,7 @@ razão cai. Quanto exatamente depende de CPU, geração, PCID, versão de kernel
 de quais mitigações estão ativas — este documento não mede nada disso, e não
 afirma o que não mediu.
 
-**Consequência prática, e é ela que importa:** os **33,55 ns** medidos aqui não
+**Consequência prática, e é ela que importa:** os **33,8 ns** medidos aqui não
 são "o custo de uma syscall". São o custo *nesta CPU, neste kernel, com as
 mitigações efetivamente ativas nesta máquina*. Um leitor em outra configuração
 medirá outra coisa, e estará igualmente certo. O que **não** muda é a conclusão
@@ -3595,13 +3595,13 @@ utilização. A observação do documento estava certa e sem nome.
 >
 > **E isso deixou de ser advertência.** A
 > [§6.3](#63-quantos-descritores-e-o-que-eles-não-compram) mede o mesmo tráfego
-> nas duas distribuições: cadenciado, perda zero; em rajada, **26,6 % de perda
+> nas duas distribuições: cadenciado, perda zero; em rajada, **26,5 % de perda
 > com ρ médio de 0,019**. O `ca²` sai de 0,00 para 2,99.
 
 > **Correção: esta seção atribuía essa perda ao termo de Kingman, e a
 > atribuição estava errada.** O texto dizia que o `ca²` medido era "o termo de
 > Kingman, medido em vez de suposto", o que sugere que a aproximação explica os
-> 26,6 %. Ela não explica, e a §6.3 sempre disse o contrário — *"com `ρ > 1` não
+> 26,5 %. Ela não explica, e a §6.3 sempre disse o contrário — *"com `ρ > 1` não
 > há estado estacionário para calcular; é aritmética de acúmulo"*. O documento
 > contradizia a si mesmo, e o lado errado era este.
 >
@@ -3611,7 +3611,7 @@ utilização. A observação do documento estava certa e sem nome.
 > de 1 e não há estado estacionário; o anel de descritores é finito; e um
 > processo de dois estados tem intervalos **correlacionados**, porque o estado
 > modulador persiste. A própria aritmética denuncia o problema — uma
-> aproximação avaliada em `ρ = 0,019` prevê espera desprezível, não 26,6 % de
+> aproximação avaliada em `ρ = 0,019` prevê espera desprezível, não 26,5 % de
 > perda.
 >
 > O que governa é o acúmulo, `dQ/dt = λ_rajada − μ`, integrado sobre a duração

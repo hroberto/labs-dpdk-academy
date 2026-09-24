@@ -144,7 +144,7 @@ The central result: **about two system calls fit in one packet's budget.** And
 `getpid()` is the cheapest syscall there is — it does no I/O, touches no user memory,
 does not sleep. A real `recvmsg()` costs far more.
 
-Note that this result **did not depend** on the wrong number: it comes from 33.55 ns
+Note that this result **did not depend** on the wrong number: it comes from 33.8 ns
 against a 67.2 ns budget, and the function call does not enter the account. What the
 correction changed was the syscall/call ratio — from "294×" to the 36× to 46× range
 depending on the measurement regime, handled in the warning above — which is a
@@ -1051,7 +1051,7 @@ line between threads:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escala-escuro.en.svg">
-  <img alt="Line chart of aggregate throughput against the number of active physical cores. It rises from 171 million accesses per second with one core to 948 million with twelve, and the curve flattens from eight onwards. A grey reference line shows where it would be if it scaled per core: 2,051 million with twelve." src="imagens/4-escala-claro.en.svg">
+  <img alt="Line chart of aggregate throughput against the number of active physical cores. It rises from 171 million accesses per second with one core to 946 million with twelve, and the curve flattens from eight onwards. A grey reference line shows where it would be if it scaled per core: 2,051 million with twelve." src="imagens/4-escala-claro.en.svg">
 </picture>
 
 **With twelve cores active, each one does 46% of what it did alone.** Aggregate
@@ -2524,7 +2524,7 @@ distribution is in the [code](medicoes/rajada-nasdaq.c).
   burst           32768    0.000%     21234    6948.8
 ```
 
-**The prediction holds.** With 512 descriptors the loss is 26.6%; the 4,096 ring
+**The prediction holds.** With 512 descriptors the loss is 26.5%; the 4,096 ring
 — above the 2,516 the arithmetic asked for — brings it down to 6.3%, and not to
 zero, because long bursts keep happening. And the paced row shows that **the same
 traffic, spread evenly, loses nothing and never occupies more than one
@@ -2535,7 +2535,7 @@ The full table, with every depth and the median and `ca²` columns, is in the
 
 > **Average utilisation predicts none of this.** Mean `ρ` is **0.019** — the
 > machine is idle 98.1% of the time, and a monitoring dashboard would show plenty
-> of headroom while 26.6% of the packets die. It is the same thesis as
+> of headroom while 26.5% of the packets die. It is the same thesis as
 > [§11](#112-three-readings), taken to the extreme.
 
 #### What a buffer buys, and what it charges
@@ -3338,7 +3338,7 @@ amortised and the ratio falls. How much exactly depends on CPU, generation, PCID
 version and which mitigations are active — this document measures none of that, and does not
 claim what it did not measure.
 
-**The practical consequence, and it is the one that matters:** the **33.55 ns** measured here
+**The practical consequence, and it is the one that matters:** the **33.8 ns** measured here
 are not "the cost of a syscall". They are the cost *on this CPU, this kernel, with the
 mitigations actually active on this machine*. A reader on another configuration will measure
 something else, and will be equally right. What does **not** change is the argument's
@@ -3507,13 +3507,13 @@ The document's observation was right, and unnamed.
 >
 > **And that is no longer just a warning.**
 > [§6.3](#63-how-many-descriptors-and-what-they-do-not-buy) measures the same
-> traffic under both distributions: paced, zero loss; bursty, **26.6% loss at a
+> traffic under both distributions: paced, zero loss; bursty, **26.5% loss at a
 > mean ρ of 0.019**. `ca²` goes from 0.00 to 2.99.
 
 > **Correction: this section attributed that loss to Kingman's term, and the
 > attribution was wrong.** The text called the measured `ca²` "Kingman's term,
 > measured rather than assumed", which suggests the approximation explains the
-> 26.6%. It does not, and §6.3 always said the opposite — *"with `ρ > 1` there
+> 26.5%. It does not, and §6.3 always said the opposite — *"with `ρ > 1` there
 > is no steady state to compute; it is the arithmetic of accumulation"*. The
 > document contradicted itself, and this was the wrong side.
 >
@@ -3523,7 +3523,7 @@ The document's observation was right, and unnamed.
 > 1 and there is no steady state; the descriptor ring is finite; and a two-state
 > process has **correlated** intervals, because the modulating state persists.
 > The arithmetic gives the problem away on its own — an approximation evaluated
-> at `ρ = 0.019` predicts negligible waiting, not 26.6% loss.
+> at `ρ = 0.019` predicts negligible waiting, not 26.5% loss.
 >
 > What governs is accumulation, `dQ/dt = λ_burst − μ`, integrated over the
 > duration of the burst. `ca²` remains valid as **evidence** of the difference

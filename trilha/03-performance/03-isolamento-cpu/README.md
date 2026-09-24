@@ -242,7 +242,7 @@ esta Parte A executa.
 
 ## 6. Medição
 
-Oito coletas de 2026-09-23, cada uma com quatro células × cinco repetições ×
+Nove coletas de 2026-09-23, cada uma com quatro células × cinco repetições ×
 30 s, ordem das células permutada a cada repetição. Máquina declarada
 exclusiva; navegador fechado. CPU medida: 2 (irmão SMT: 14). Provocador na
 CPU 4.
@@ -261,6 +261,7 @@ variável decide.
 | **D** | idem C + pressão de memória confinada a um cgroup | 30,9 µs | 7/20 |
 | **E** | idem C + pressão global: swap 2,19 GiB, disponível 5,08 GiB | 153,9 µs | 11/20 |
 | **E″** | idem E: swap 2,51 GiB, disponível 4,87 GiB | 24,0 µs | 1/20 |
+| **T** | **sem sessão gráfica** — boot em `multi-user.target` | **21,5 µs** | **1/20** |
 
 > **A coleta E′ foi planejada como braço com pressão e correu sem nenhuma.** A
 > condição de parada do consumidor de memória era absoluta — "alocar até haver
@@ -510,7 +511,165 @@ explicação.
 **Desfecho: descritivo, não causal.** A observação fica registrada porque é
 medida e porque orienta o próximo instrumento; ela não é proposta como causa.
 
-### 6.7 O que permanece aberto, e o que falta para fechar
+#### 6.6.5 Identificação da fonte por rastreamento de eventos
+
+Os quatro candidatos anteriores foram eliminados por ausência de correlação.
+Esse método não permite confirmação: a contagem agregada por vetor e por
+processo demonstra que determinado suspeito não estava presente, mas não
+atribui um evento individual a uma origem.
+
+A atribuição por evento requer instrumento específico. O tracer `osnoise`,
+integrado ao kernel e exposto pela ferramenta `rtla`, mede a mesma grandeza
+que a sonda deste tópico — intervalos em que a CPU é subtraída da tarefa
+corrente — e classifica cada ocorrência em cinco categorias: hardware, NMI,
+IRQ, softirq e thread.
+
+A concordância entre os dois instrumentos foi verificada previamente, em três
+grandezas independentes:
+
+| Grandeza | `osnoise` (kthread) | `stall_probe` (processo) |
+|---|---:|---:|
+| maior parada única | 717 µs | 632–834 µs |
+| eventos de thread por segundo | 8,45 | 7,2 |
+| IRQ por segundo | 1 999 | ≈ 2 000 (`LOC`) |
+
+Trata-se de dois programas distintos, um executando em espaço de kernel e
+outro em espaço de usuário, que convergem nas três medidas.
+
+##### Atribuição por função
+
+Configurado com limiar de parada, o `osnoise` registra os eventos que ocuparam
+a CPU no instante da maior parada observada. Duas capturas independentes
+produziram o mesmo resultado:
+
+```
+kworker/2:2  workqueue_execute_start: function amdgpu_device_delay_enable_gfx_off [amdgpu]
+kworker/2:2  thread_noise: kworker/2:2  duration 808492 ns
+```
+
+A função pertence ao driver `amdgpu` e executa a reativação do *power gating*
+do bloco gráfico. A GPU integrada desativa o subsistema GFX em ociosidade; após
+cada período de uso, o driver agenda trabalho diferido para reativá-lo, e a
+transição consome centenas de microssegundos. A execução ocorre em *workqueue*
+por CPU — categoria já listada na tabela da §2, para a qual nenhum parâmetro de
+linha de boot oferece remoção.
+
+A distribuição por função, em treze segundos de rastreamento:
+
+| Função | n | Maior | Soma |
+|---|---:|---:|---:|
+| `amdgpu_device_delay_enable_gfx_off` | 12 | 808,5 µs | 2 455 µs |
+| `vmstat_update` | 7 | 74,2 µs | 291 µs |
+| `psi_avgs_work` | 78 | 51,9 µs | 334 µs |
+| `blk_mq_timeout_work` | 1 | 8,8 µs | 8,8 µs |
+| `pci_pme_list_scan` | 5 | 8,2 µs | 35,8 µs |
+
+As doze execuções da função do `amdgpu` totalizam duração superior à soma das
+noventa e uma restantes. Nenhuma das demais funções excede 75 µs.
+
+##### Padrão temporal
+
+Os eventos de maior duração apresentam periodicidade de um segundo e duração
+decrescente. O padrão é reprodutível nas duas capturas:
+
+```
+  rastro de 29 s            rastro de 13 s
+  0,20 s -> 333 us          0,26 s -> 325 us
+  1,21 s -> 294 us          1,26 s -> 276 us
+  2,22 s -> 243 us          2,27 s -> 171 us
+  3,22 s -> 216 us          3,28 s -> 200 us
+  4,23 s -> 183 us          4,29 s -> 174 us
+  5,24 s -> 110 us          (cessa)
+  (silencio)                (silencio)
+  13,30 s -> 707 us         11,34 s -> 808 us
+```
+
+A interpretação compatível com o comportamento documentado do driver é o
+reagendamento do trabalho: a reativação é tentada, não se completa enquanto há
+processamento gráfico pendente, e é reagendada a intervalos de um segundo, com
+duração decrescente até a conclusão. Em ambas as capturas o padrão foi
+precedido por atividade de terminal, que envolve redesenho de tela.
+
+##### Registro independente no journal do kernel
+
+Durante o período de investigação, o kernel emitiu de forma autônoma:
+
+```
+kernel: workqueue: dm_irq_work_func [amdgpu] hogged CPU for >10000us 7 times,
+        consider switching to WQ_UNBOUND
+```
+
+A função referida pertence ao mesmo driver e executa trabalho distinto. A
+duração registrada — superior a dez milissegundos — excede em uma ordem de
+grandeza o maior evento medido neste tópico. O registro coincidiu com
+interrupção momentânea da interface gráfica observada na sessão.
+
+##### Ruído de hardware
+
+A §8 listava a interrupção SMI de firmware como não observável sem o tracer
+`hwlat`. O `osnoise` classifica ruído de hardware em coluna própria e
+registrou valor nulo em dez minutos de coleta. A hipótese de SMI é, portanto,
+eliminada nesta máquina, e a limitação correspondente é retirada.
+
+#### 6.6.6 Intervenção: coleta sem sessão gráfica
+
+A identificação da função não constitui, por si, demonstração de causalidade.
+O critério adotado nas subseções anteriores exige intervenção de variável
+única: suprimir o suspeito e verificar se o efeito desaparece.
+
+A supressão do driver `amdgpu` por lista negra inviabilizaria o console. A
+alternativa adotada foi suspender a sessão gráfica, mantendo o restante do
+sistema em configuração idêntica. A máquina foi reiniciada em uma entrada de
+GRUB configurada para `systemd.unit=multi-user.target`, sem gerenciador de
+display, e a coleta foi executada por console de texto.
+
+**Pré-registro.** Escrito antes da execução, no cabeçalho de
+`ferramental/qualidade/campanha-modo-texto.sh`:
+
+> Predição: se a origem do modo alto é o `amdgpu`, o `osnoise` em modo texto
+> registra máximo de thread abaixo de 100 µs, a função
+> `amdgpu_device_delay_enable_gfx_off` não aparece entre os eventos, e as
+> paradas acima da janela caem a zero ou próximo de zero.
+>
+> Refutação: se o máximo permanecer em centenas de microssegundos, ou se as
+> paradas acima da janela persistirem na mesma proporção, a origem não é a
+> sessão gráfica, e a atribuição está incorreta.
+
+**Resultado.** As duas medidas se deslocaram na direção prevista:
+
+| Grandeza | Com sessão gráfica | Modo texto |
+|---|---:|---:|
+| `osnoise`, máximo de thread | 711 µs | **25 µs** |
+| `stall_probe`, maior parada | 805 µs | **41 µs** |
+| paradas acima da janela (40 µs) | 37 | **0** |
+| `amdgpu_device_delay_enable_gfx_off` | 12 ocorrências | **ausente** |
+
+A distribuição bimodal descrita na §6.6 não se manifesta na ausência da sessão
+gráfica. O modo alto — o conjunto de paradas entre 40 µs e 630 µs — desaparece
+integralmente. A predição não foi refutada em nenhuma das quatro grandezas.
+
+O achado é a conclusão da cadeia iniciada na §6.6: a distribuição bimodal
+observada nas coletas anteriores era produzida pela reativação do *power
+gating* da GPU integrada, agendada em *workqueue* por CPU e, portanto, não
+removível por isolamento de CPU, `nohz_full` ou afinidade de interrupções.
+
+##### Convergência dos instrumentos após a intervenção
+
+A §6.6.4 registrava discordância não resolvida entre os dois instrumentos: o
+`osnoise` previa ruído suficiente para afetar 84 % das células, enquanto a
+sonda observava afetação em 15 %. A divergência, de fator 5,6, foi atribuída
+provisoriamente a diferença de metodologia.
+
+Em modo texto a discordância não se reproduz: ambos os instrumentos registram
+valores da mesma ordem (25 µs e 41 µs). A divergência era, portanto,
+propriedade da fonte, não dos instrumentos. O `osnoise` executa uma thread que
+não consome CPU útil; a sonda executa uma carga que ocupa a CPU
+continuamente. Uma CPU saturada por tarefa de usuário recebe menos trabalho
+diferido de *workqueue* do que uma CPU que alterna entre ociosidade e
+atividade — o que reduz a frequência de reativação do *power gating* e,
+consequentemente, a exposição da sonda ao fenômeno.
+
+### 6.7 Síntese dos candidatos e limitações remanescentes
 
 | Candidato | Desfecho | Evidência |
 |---|---|---|
@@ -519,39 +678,87 @@ medida e porque orienta o próximo instrumento; ela não é proposta como causa.
 | estado C profundo | **eliminado** | B × C, p = 0,304 |
 | disputa de CPU | **eliminado** | fila de execução = 1 em A e C |
 | pressão de memória como estado | **não sustentado** | réplica E″, p = 0,269 |
-| atividade de recuperação | descritivo | §6.6.4 |
-| configuração de memória, reinício | **não separados** | confundidos entre si |
+| atividade de recuperação | descritivo, não causal | §6.6.4 |
+| SMI de firmware | **eliminado** | `HW = 0` em dez minutos |
+| ***workqueue* do driver `amdgpu`** | **confirmado** | §6.6.5, §6.6.6 |
 
-A última linha é a única variável de pé entre A e C, e ela é dupla: instalar o
-segundo pente exigiu reiniciar, e as duas mudanças não podem ser separadas por
-software.
+A fonte constava da tabela da §2 desde o início, na linha *"Workqueues por
+CPU"*. O elemento ausente não era a hipótese, e sim o instrumento capaz de
+atribuir um evento individual a uma origem. Contagem agregada por vetor e por
+processo — método das oito primeiras coletas — permite eliminar candidatos por
+correlação ausente, mas não identifica o ocupante da CPU.
 
-> **Este experimento não vai acontecer, e a razão é uma decisão, não um
-> bloqueio.** Separá-las exigiria remover o pente e recoletar, e o responsável
-> pela máquina decidiu não fazer essa intervenção. O registro precisa ser esse,
-> e não "falta hardware": a diferença entre **não poder** e **não querer** é o
-> tipo de coisa que, omitida, transforma escolha em impossibilidade aos olhos
-> de quem lê depois.
->
-> **O custo fica declarado:** a diferença entre as coletas A e C permanece
-> atribuída ao par configuração-de-memória mais reinício, sem separação
-> possível neste material. Quem repetir este tópico noutra máquina, com o
-> segundo pente já instalado desde o início, mede A e C com um reinício em
-> comum e resolve o que aqui ficou aberto — de graça, por ordem de montagem.
+As quatro eliminações anteriores não são redundantes em relação ao achado
+final. Duas delas apresentavam ordem de grandeza compatível com o fenômeno: a
+latência de saída do estado C3 é de 350 µs, e o modo alto alcançava 800 µs.
+A compatibilidade de escala, isoladamente, não estabelece causa; sua aceitação
+teria produzido atribuição incorreta acompanhada de valores corretos.
 
-**O instrumento que falta é o mesmo em todas as linhas.** Contagem agregada por
-vetor e por processo não atribui **um evento** a **uma fonte**; ela só permite
-eliminar candidatos por correlação ausente, que foi o que este tópico fez. O
-`osnoise` do kernel rastreia por evento e diria, para cada parada individual,
-quem ocupou a CPU. É o próximo passo, e a §8 o registra como limitação.
+#### Implicações para o protocolo de coleta
 
-> **O que estas cinco intervenções estabelecem, mesmo sem a causa.** Três
-> candidatos plausíveis foram eliminados por medição, e um quarto não
-> sobreviveu à réplica. Um material que afirmasse qualquer um deles por
-> compatibilidade de escala estaria hoje publicando uma explicação falsa —
-> duas delas tinham a ordem de grandeza certa. **Compatibilidade de escala
-> torna uma hipótese testável, não verdadeira**, e é a diferença entre as duas
-> coisas que este tópico demonstra na prática.
+As coletas deste tópico, e as campanhas publicadas anteriormente, declaram
+*"máquina exclusiva, navegador fechado"*. A medição demonstra que essa condição
+não elimina a sessão gráfica: o compositor, o servidor de display e o driver da
+GPU permanecem ativos e produzem, isoladamente, eventos de até 800 µs a
+intervalos de poucos segundos.
+
+O efeito sobre os resultados publicados é limitado pelo desenho estatístico
+adotado. O projeto reporta **mediana com dispersão**, não média. Um evento raro
+de 800 µs desloca em pouco a mediana de uma coleta com bilhões de amostras: os
+três braços sem pressão agrupados (C, C′ e E′, n = 60) dão mediana de 24,8 µs
+contra 21,5 µs em modo texto — redução de 13 % em uma métrica composta
+inteiramente por cauda. Em métricas de corpo da distribuição, o deslocamento
+esperado é menor.
+
+**Esses 13 % não medem o efeito da sessão gráfica; medem o efeito dela numa
+sessão ociosa.** A tabela da §6 registra nove coletas na mesma máquina: oito
+ficam entre 21,5 e 30,9 µs, e a coleta **A** fica em **515,5 µs**, vinte vezes
+as demais. A distância entre 24,8 µs e 515,5 µs excede em uma ordem de grandeza
+a distância entre 24,8 µs e o modo texto — e as duas pontas foram medidas com
+sessão gráfica ativa.
+
+A leitura que os dados sustentam é que a contribuição da sessão gráfica **não é
+constante aditiva**: depende de quanto a sessão trabalhou durante a coleta. O
+§6.6.5 dá o mecanismo — a reativação do *power gating* é agendada por atividade
+gráfica, e nos dois rastros o padrão periódico foi precedido de redesenho de
+tela. Uma coleta que corre com a sessão parada paga 13 %; quanto paga uma que
+corre com a sessão em uso não está medido, e a coleta A é compatível com valor
+muito maior.
+
+A especificação foi corrigida em `metodologia.md`: coletas cuja grandeza de
+interesse seja dispersão, jitter ou cauda de distribuição devem ser executadas
+em modo texto.
+
+#### Questões em aberto
+
+- **Natureza do trabalho executado pelo `gfx_off`** durante centenas de
+  microssegundos. O rastreamento identifica a função de entrada, não as
+  operações internas.
+- **Efeito da desativação do *power gating*.** O driver `amdgpu` aceita
+  parâmetros para essa finalidade. A intervenção separaria a atribuição "GPU"
+  da atribuição "sessão gráfica", que a medição atual não distingue.
+- **Magnitude do deslocamento nas comparações existentes.** As 56 medições
+  confrontadas por `comparar-hardware.py` não foram reexecutadas em modo texto.
+  Pelo argumento da mediana, espera-se deslocamento reduzido; trata-se de
+  expectativa, não de medição.
+- **Generalidade do achado.** A medição foi obtida em uma máquina, com GPU
+  integrada AMD e driver `amdgpu`. Plataformas com GPU discreta ou com outro
+  driver não estão cobertas por esta evidência.
+- **Confundimento entre configuração de memória e reinício** nas coletas A e C.
+  A separação exigiria a remoção física de um módulo, intervenção recusada por
+  quem responde pela máquina. Trata-se de decisão registrada, não de limitação
+  técnica: a repetição do tópico em máquina com ambos os módulos instalados
+  desde o início resolve o confundimento.
+- **[HIPÓTESE] A diferença entre A e C pode não ser de memória.** O documento
+  atribui os 515,5 µs da coleta A ao par configuração-de-memória mais reinício,
+  porque eram as únicas variáveis conhecidas quando ela foi escrita. O §6.6.5
+  acrescenta uma terceira: a atividade da sessão gráfica, que sozinha produz
+  eventos da mesma ordem de grandeza. A coleta A não registrou estado de
+  ambiente — `ambiente.txt` só passou a ser gravado na campanha de modo texto —,
+  de modo que a hipótese **não é testável sobre os dados existentes**. Fica
+  registrada porque altera o que uma repetição deste tópico precisa controlar:
+  não bastam os dois módulos instalados desde o início, é preciso declarar
+  também o estado da sessão gráfica em cada coleta.
 
 ---
 
@@ -582,23 +789,26 @@ classifica, relata a janela, recusa parâmetro inválido com código distinto, e
 - **Não há `imissed` aqui.** O elo entre parada e pacote perdido exige NIC fora
   do kernel, e esta máquina não a tem — o mesmo bloqueio do módulo de RX/TX. A
   janela da §1 é a ponte teórica, e está declarada como cota inferior.
-- **P3 e P4 exigem reiniciar**, e ficam para uma sessão com a máquina dedicada.
-- **SMI não é observável** sem `hwlat`, que precisa da máquina quieta por muito
-  tempo. Se houver SMI acima da janela, nenhum perfil zera o descarte — e o
-  texto dirá isso quando houver medição.
+- **P3 e P4 exigem reinício e permanecem sem coleta.** O procedimento é
+  viável por entrada de GRUB de boot único, o mesmo mecanismo empregado na
+  coleta em modo texto (§6.6.6).
 - **A sonda mede uma CPU por vez.** Ruído correlacionado entre CPUs, que
   importa num pipeline de vários lcores, não aparece.
-- **O modo alto da distribuição bimodal não tem fonte atribuída, e é a
-  limitação principal do tópico.** Quatro candidatos foram submetidos a
-  intervenção e nenhum sobreviveu: estado C profundo, disputa de CPU, pressão
-  de memória como estado e atividade de recuperação (§6.6). `/proc/interrupts`
-  não o explica: na execução de 723 µs da coleta A os únicos vetores foram
-  `LOC` (59 958), `NMI` (4) e `PMI` (4), e nenhum deles dura centenas de
-  microssegundos.
-- **O instrumento disponível não atribui evento a fonte.** Contagem agregada
-  por vetor e por processo permite **eliminar** candidatos, que foi o que as
-  oito coletas fizeram; não permite **identificar** a causa de uma parada
-  individual. Para isso é preciso `osnoise`, que rastreia por evento.
+- **A fonte do modo alto está identificada, mas não esgotada.** Trata-se do
+  trabalho `amdgpu_device_delay_enable_gfx_off`, executado em *workqueue* por
+  CPU (§6.6.5); a supressão da sessão gráfica o elimina nos dois instrumentos
+  (§6.6.6). Permanecem indeterminadas as operações executadas pela função
+  durante centenas de microssegundos e a possibilidade de removê-la pela
+  desativação do *power gating*, mantida a sessão gráfica.
+- **As coletas com sessão gráfica estão sujeitas a uma fonte de ruído não
+  declarada no protocolo.** A condição "máquina exclusiva, navegador fechado"
+  não exclui o compositor, o servidor de display e o driver da GPU. O efeito
+  sobre as medianas publicadas é limitado — a mediana da maior parada variou
+  13 % entre as duas condições (§6.7) —, mas percentis altos e máximos medidos
+  nessa condição incorporam a fonte.
+- **O deslocamento das 56 medições de `comparar-hardware.py` em modo texto não
+  foi quantificado.** A medição exigiria repetir a campanha de hardware na
+  nova condição.
 - **A configuração de memória e o reinício não foram separados, e não serão.**
   Instalar o segundo pente exigiu reiniciar, e nenhuma intervenção de software
   desfaz uma das duas mudanças sem a outra. É a única variável de pé entre as

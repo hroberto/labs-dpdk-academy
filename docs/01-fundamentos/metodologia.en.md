@@ -62,7 +62,7 @@ the regime**.
 > and so the ratio came out **low**: 33,5/0,92 = 36, against 33,8/0,73 = 46.
 >
 > **This section's argument does not change**, because it never depended on the ratio:
-> it comes from 33.5 ns against a 67.2 ns budget, and the function call does not enter
+> it comes from 33.8 ns against a 67.2 ns budget, and the function call does not enter
 > the account. But the ratio is the sentence people repeat, and it was 22% low.
 >
 > Reproduce it: run `custo-syscall` once after a few minutes of an idle machine, and
@@ -76,7 +76,7 @@ the regime**.
 | 36× against 46× | the measurement was right, the regime was undeclared | say whether you measured cold or in steady state |
 
 And an observation that holds for the whole document: **neither changed §2's
-conclusion**. It comes from 33.5 ns against a 67.2 ns budget, and the function
+conclusion**. It comes from 33.8 ns against a 67.2 ns budget, and the function
 call does not enter that account. What both hit was the **ratio**, which is the
 soundbite — exactly the part people repeat, and therefore the part that most
 needs to be right.
@@ -256,7 +256,7 @@ instructive in the module.
 ## 4. §10 — this machine's PTI state
 
 [§10](README.en.md#why-the-syscall-is-so-cheap-here) states that PTI is not
-active on this machine, and that the 33.55 ns syscall is therefore not a
+active on this machine, and that the 33.8 ns syscall is therefore not a
 universal cost. The statement is **measured**, not inferred from the
 architecture — being AMD does not imply PTI is off, because the mitigation is
 configurable by boot parameter.
@@ -664,6 +664,72 @@ document did not say so — nor did `scripts/ambiente.sh`, which exists precisel
 so the environment is not described in prose. Both fields landed together with
 this section; when they need privilege, they **declare that they were not read**
 instead of disappearing.
+
+---
+
+## 7. The collection condition: why the graphical session was excluded
+
+This repository's measurement protocol specifies a dedicated machine with no
+concurrent load, and the campaign scripts declare it in their headers — *"the
+machine is exclusive to this purpose"*. The condition was treated as sufficient
+until per-event tracing contradicted it.
+
+### What the measurement showed
+
+The `osnoise` tracer attributed the longest stalls on an idle CPU to the
+function `amdgpu_device_delay_enable_gfx_off`, which re-enables power gating
+for the integrated GPU's graphics block. Execution occurs in a per-CPU
+workqueue and costs hundreds of microseconds. With the graphical session
+suspended, the same CPU showed a maximum of 25 µs against 711 µs — and the
+function disappeared from the trace. The full chain, with pre-registration and
+refutation criterion, is in [§6.6.5 and §6.6.6 of the CPU isolation
+module][iso].
+
+The consequence for the protocol is direct: **closing the browser does not
+suspend the graphical session**. The compositor, the display server and the GPU
+driver remain active and produce, on their own, events of up to 800 µs at
+intervals of a few seconds. The declaration of exclusivity described a
+condition that was not the condition measured.
+
+### What this requires, and what it does not
+
+The effect on already published results is bounded by the statistical design.
+The project reports **median with dispersion**, not mean; a rare 800 µs event
+shifts the median of a collection of billions of samples very little. The
+direct measurement of that shift, on the most sensitive metric available — the
+median of the largest stall, composed entirely of tail — was from 24.8 µs to
+21.5 µs, or 13%. Metrics from the body of the distribution shift less.
+
+Those 13% hold for a collection running with an **idle graphical session**, and
+do not generalise. Among the nine collections of the isolation topic, eight sit
+between 21.5 and 30.9 µs and one sits at 515.5 µs — all on the same machine,
+both ends with an active graphical session. The session's contribution is not
+an additive constant: it depends on how much it worked during the measurement,
+because power-gating re-enablement is scheduled by graphics activity.
+
+The specification now distinguishes two regimes:
+
+| Quantity of interest | Required condition |
+|---|---|
+| median, mean, ratio between medians | dedicated machine, graphical session allowed |
+| dispersion, jitter, p99, p99.9, maximum | **text mode**, no display manager |
+
+Text mode is obtained through a one-shot GRUB entry with
+`systemd.unit=multi-user.target`. The script
+[`ferramental/qualidade/campanha-modo-texto.sh`][cmt] refuses to run while
+any graphical process is alive, so that the condition is verified by the
+program rather than by the operator's memory.
+
+### The limit of this correction
+
+The 56 comparisons confronted by `comparar-hardware.py` were **not re-run** in
+text mode. By the median argument a small shift is expected, but this is an
+expectation, not a measurement. The finding also comes from one machine, with
+an AMD integrated GPU: platforms with a discrete GPU or a different driver are
+not covered.
+
+[iso]: ../../trilha/03-performance/03-isolamento-cpu/README.en.md#665-identifying-the-source-by-per-event-tracing
+[cmt]: ../../ferramental/qualidade/campanha-modo-texto.sh
 
 ---
 

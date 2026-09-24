@@ -52,8 +52,19 @@ set -u
 RAIZ="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$RAIZ"
 
+# `--continuar` retoma uma coleta parcial em vez de exigir tudo de novo. Ele
+# existe porque a primeira execucao perdeu os passos 2 e 3 por falta de
+# permissao, e repetir os dez minutos de osnoise que JA deram certo seria
+# desperdicio -- e tentacao para encurtar o protocolo da proxima vez.
+CONTINUAR=0
+[ "${1:-}" = "--continuar" ] && { CONTINUAR=1; shift; }
+
 SAIDA="$RAIZ/trilha/03-performance/03-isolamento-cpu/historico/$(date +%Y-%m-%d)-modo-texto"
-[ -e "$SAIDA" ] && { echo "ABORTADO: $SAIDA ja existe -- nao sobrescrevo coleta."; exit 1; }
+if [ -e "$SAIDA" ] && [ "$CONTINUAR" -eq 0 ]; then
+    echo "ABORTADO: $SAIDA ja existe -- nao sobrescrevo coleta."
+    echo "          use --continuar para completar o que faltou."
+    exit 1
+fi
 
 # --------------------------------------------------------------------------
 # PORTAO 1: ROOT. O rtla exige, e falhar no meio da campanha desperdicaria os
@@ -76,7 +87,10 @@ id "$DONO" >/dev/null 2>&1 || { echo "FALHA: nao identifiquei o usuario dono ($D
 # resultado pareceria valido.
 # --------------------------------------------------------------------------
 alvo=$(systemctl get-default 2>/dev/null)
-graficos=$(pgrep -c -x "Xorg|Xwayland|gnome-shell|kwin_wayland|sway" 2>/dev/null || echo 0)
+# `pgrep -c` imprime "0" E sai com 1 quando nao acha nada; um `|| echo 0`
+# somaria um segundo "0" e o teste inteiro abaixo quebraria.
+graficos=$(pgrep -c -x "Xorg|Xwayland|gnome-shell|kwin_wayland|sway" 2>/dev/null)
+graficos=${graficos:-0}
 echo "==> conferindo a condicao"
 echo "    alvo padrao do systemd : $alvo"
 echo "    processos graficos     : $graficos"
@@ -94,6 +108,13 @@ case "$alvo" in
 esac
 
 mkdir -p "$SAIDA"
+# O DIRETORIO PRECISA PERTENCER AO DONO, e esta linha custou uma coleta.
+#
+# O script roda como root e cria a saida como root; as campanhas rodam como o
+# DONO, via `sudo -u`, e fazem `mkdir` dentro dela. Sem o chown, as duas
+# falham com "Permission denied" DEPOIS dos dez minutos do osnoise -- que e o
+# pior momento possivel para descobrir.
+chown -R "$DONO" "$SAIDA"
 exec > >(tee -a "$SAIDA/diario.txt") 2>&1
 echo "==> campanha em modo texto  $(date -Is)"
 echo "    saida: $SAIDA"
@@ -123,7 +144,10 @@ sed 's/^/    /' "$SAIDA/ambiente.txt"
 # --------------------------------------------------------------------------
 echo
 echo "==> 1/3 osnoise hist, 10 min na CPU 2  ($(date +%T))"
-if command -v rtla >/dev/null; then
+if [ -s "$SAIDA/osnoise-hist.txt" ] && grep -q "^count:" "$SAIDA/osnoise-hist.txt"; then
+    echo "    JA COLETADO nesta saida; preservando."
+    grep -E "^(over|count|min|avg|max):" "$SAIDA/osnoise-hist.txt" | sed 's/^/    /'
+elif command -v rtla >/dev/null; then
     rtla osnoise hist -c 2 -d 10m -T 1 > "$SAIDA/osnoise-hist.txt" 2>&1 \
         && echo "    ok" || echo "    FALHA (saida em osnoise-hist.txt)"
     grep -E "^(over|count|min|avg|max):" "$SAIDA/osnoise-hist.txt" | sed 's/^/    /'

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 408" width="880" height="408" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">A banda não se multiplica por núcleo — ela é dividida</title>
-<desc id="d">Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 171 milhões de acessos por segundo com um núcleo para 948 milhões com doze, e a curva achata a partir de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 2 051 milhões com doze.</desc>
+<desc id="d">Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 171 milhões de acessos por segundo com um núcleo para 946 milhões com doze, e a curva achata a partir de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 2 051 milhões com doze.</desc>
 <rect width="880" height="408" fill="#1a1a19"/>
 <text x="28.0" y="34.0" fill="#ffffff" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">A banda não se multiplica por núcleo — ela é dividida</text>
 <text x="28.0" y="55.0" fill="#c3c2b7" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">vazão agregada com N núcleos físicos empurrando a mesma região — custo-paralelismo.c, fase 2</text>

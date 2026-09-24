@@ -62,7 +62,7 @@ regime**.
 > 33,8/0,73 = 46.
 >
 > **O argumento desta seção não muda**, porque ele nunca dependeu da razão: sai de
-> 33,5 ns contra 67,2 ns de orçamento, e a chamada de função não entra na conta.
+> 33,8 ns contra 67,2 ns de orçamento, e a chamada de função não entra na conta.
 > Mas a razão é a frase que as pessoas repetem, e ela estava 22% baixa.
 >
 > Reproduza: rode `custo-syscall` uma vez depois de alguns minutos de máquina
@@ -76,7 +76,7 @@ regime**.
 | 36× contra 46× | a medição estava certa, o regime não estava declarado | diga se mediu a frio ou em regime |
 
 E uma observação que vale para o documento inteiro: **nenhuma das duas mudou a
-conclusão do §2**. Ela sai de 33,5 ns contra 67,2 ns de orçamento, e a chamada
+conclusão do §2**. Ela sai de 33,8 ns contra 67,2 ns de orçamento, e a chamada
 de função não entra nessa conta. O que as duas atingiram foi a **razão**, que é
 a frase de efeito — exatamente a parte que as pessoas repetem, e por isso a que
 mais precisa estar certa.
@@ -254,7 +254,7 @@ descartado — a razão é metodológica, e é das mais instrutivas do módulo.
 ## 4. §10 — o estado de PTI desta máquina
 
 A [§10](README.md#por-que-a-syscall-aqui-é-tão-barata) afirma que o PTI não
-está ativo nesta máquina, e que por isso os 33,55 ns de syscall não são um custo
+está ativo nesta máquina, e que por isso os 33,8 ns de syscall não são um custo
 universal. A afirmação é **medida**, não inferida da arquitetura — ser AMD não
 implica PTI desligado, porque a mitigação é configurável por parâmetro de boot.
 
@@ -654,6 +654,71 @@ documento não dizia isso — nem o `scripts/ambiente.sh`, que existe justamente
 para o ambiente não ser descrito em prosa. Os dois campos entraram junto com
 esta seção; quando exigem privilégio, eles **declaram que não foram lidos** em
 vez de sumir.
+
+---
+
+## 7. A condição de coleta: por que a sessão gráfica foi excluída
+
+O protocolo de medição deste repositório especifica máquina dedicada, sem
+carga concorrente, e os scripts de campanha o declaram no cabeçalho — *"a
+máquina está exclusiva para esta finalidade"*. A condição foi tratada como
+suficiente até que o rastreamento por evento a contradisse.
+
+### O que a medição mostrou
+
+O rastreador `osnoise` atribuiu as paradas mais longas de uma CPU ociosa à
+função `amdgpu_device_delay_enable_gfx_off`, que reativa o *power gating* do
+bloco gráfico da GPU integrada. A execução ocorre em *workqueue* por CPU e
+consome centenas de microssegundos. Com a sessão gráfica suspensa, a mesma
+CPU apresentou máximo de 25 µs contra 711 µs — e a função desapareceu do
+rastro. A cadeia completa, com pré-registro e critério de refutação, está em
+[§6.6.5 e §6.6.6 do módulo de isolamento de CPU][iso].
+
+A consequência para o protocolo é direta: **fechar o navegador não suspende a
+sessão gráfica**. O compositor, o servidor de display e o driver da GPU
+permanecem ativos e produzem, sozinhos, eventos de até 800 µs a intervalos de
+poucos segundos. A declaração de exclusividade descrevia uma condição que não
+era a condição medida.
+
+### O que isso obriga, e o que não obriga
+
+O efeito sobre os resultados já publicados é limitado pelo desenho estatístico.
+O projeto reporta **mediana com dispersão**, não média; um evento raro de
+800 µs desloca pouco a mediana de uma coleta com bilhões de amostras. A
+medida direta desse deslocamento, na métrica mais sensível disponível — a
+mediana da maior parada, composta inteiramente por cauda — foi de 24,8 µs para
+21,5 µs, ou 13 %. Métricas de corpo da distribuição deslocam menos.
+
+Esses 13 % valem para coleta que corre com a **sessão gráfica ociosa**, e não
+generalizam. Entre as nove coletas do tópico de isolamento, oito ficam entre
+21,5 e 30,9 µs e uma fica em 515,5 µs — todas na mesma máquina, as duas pontas
+com sessão gráfica ativa. A contribuição da sessão não é constante aditiva:
+depende de quanto ela trabalhou durante a medição, porque a reativação do
+*power gating* é agendada por atividade gráfica.
+
+A especificação passa a distinguir dois regimes:
+
+| Grandeza de interesse | Condição exigida |
+|---|---|
+| mediana, média, razão entre medianas | máquina dedicada, sessão gráfica permitida |
+| dispersão, jitter, p99, p99,9, máximo | **modo texto**, sem gerenciador de display |
+
+O modo texto é obtido por entrada de GRUB de boot único com
+`systemd.unit=multi-user.target`. O script
+[`ferramental/qualidade/campanha-modo-texto.sh`][cmt] recusa execução
+enquanto houver processo gráfico vivo, de modo que a condição seja verificada
+pelo programa e não pela lembrança do operador.
+
+### O limite desta correção
+
+As 56 comparações que o `comparar-hardware.py` confronta **não foram
+reexecutadas** em modo texto. Pelo argumento da mediana espera-se deslocamento
+reduzido, mas trata-se de expectativa, não de medição. O achado também é de
+uma máquina, com GPU integrada AMD: plataformas com GPU discreta ou outro
+driver não estão cobertas.
+
+[iso]: ../../trilha/03-performance/03-isolamento-cpu/README.md#665-identificação-da-fonte-por-rastreamento-de-eventos
+[cmt]: ../../ferramental/qualidade/campanha-modo-texto.sh
 
 ---
 

@@ -513,7 +513,166 @@ pair that needed explaining.
 measured and because it points at the next instrument; it is not proposed as a
 cause.
 
-### 6.7 What remains open, and what it would take to close
+#### 6.6.5 Identifying the source by per-event tracing
+
+The four preceding candidates were eliminated by absent correlation. That
+method does not permit confirmation: aggregate counts per vector and per
+process establish that a given suspect was not present, but do not attribute an
+individual event to an origin.
+
+Per-event attribution requires a specific instrument. The `osnoise` tracer,
+integrated into the kernel and exposed by the `rtla` tool, measures the same
+quantity as this topic's probe — intervals in which the CPU is taken away from
+the running task — and classifies each occurrence into five categories:
+hardware, NMI, IRQ, softirq and thread.
+
+Agreement between the two instruments was verified beforehand, across three
+independent quantities:
+
+| Quantity | `osnoise` (kthread) | `stall_probe` (process) |
+|---|---:|---:|
+| largest single stall | 717 µs | 632–834 µs |
+| thread events per second | 8.45 | 7.2 |
+| IRQ per second | 1,999 | ≈ 2,000 (`LOC`) |
+
+These are two distinct programs, one running in kernel space and the other in
+user space, converging on all three measures.
+
+##### Attribution by function
+
+Configured with a stall threshold, `osnoise` records the events that occupied
+the CPU at the moment of the largest observed stall. Two independent captures
+produced the same result:
+
+```
+kworker/2:2  workqueue_execute_start: function amdgpu_device_delay_enable_gfx_off [amdgpu]
+kworker/2:2  thread_noise: kworker/2:2  duration 808492 ns
+```
+
+The function belongs to the `amdgpu` driver and performs the re-enabling of
+power gating for the graphics block. The integrated GPU disables the GFX
+subsystem when idle; after each period of use the driver schedules deferred
+work to re-enable it, and the transition costs hundreds of microseconds.
+Execution occurs in a per-CPU workqueue — the category already listed in the
+§2 table, for which no boot-line parameter offers removal.
+
+Distribution by function, over thirteen seconds of tracing:
+
+| Function | n | Largest | Sum |
+|---|---:|---:|---:|
+| `amdgpu_device_delay_enable_gfx_off` | 12 | 808.5 µs | 2,455 µs |
+| `vmstat_update` | 7 | 74.2 µs | 291 µs |
+| `psi_avgs_work` | 78 | 51.9 µs | 334 µs |
+| `blk_mq_timeout_work` | 1 | 8.8 µs | 8.8 µs |
+| `pci_pme_list_scan` | 5 | 8.2 µs | 35.8 µs |
+
+The twelve executions of the `amdgpu` function total a duration greater than
+the sum of the remaining ninety-one. None of the other functions exceeds 75 µs.
+
+##### Temporal pattern
+
+The longest events show a one-second periodicity and decreasing duration. The
+pattern is reproducible across both captures:
+
+```
+  29 s trace                13 s trace
+  0.20 s -> 333 us          0.26 s -> 325 us
+  1.21 s -> 294 us          1.26 s -> 276 us
+  2.22 s -> 243 us          2.27 s -> 171 us
+  3.22 s -> 216 us          3.28 s -> 200 us
+  4.23 s -> 183 us          4.29 s -> 174 us
+  5.24 s -> 110 us          (ceases)
+  (silence)                 (silence)
+  13.30 s -> 707 us         11.34 s -> 808 us
+```
+
+The interpretation consistent with the driver's documented behaviour is work
+rescheduling: re-enabling is attempted, does not complete while graphics
+processing is pending, and is rescheduled at one-second intervals with
+decreasing duration until completion. In both captures the pattern was
+preceded by terminal activity, which involves screen redraw.
+
+##### Independent record in the kernel journal
+
+During the investigation the kernel emitted, unprompted:
+
+```
+kernel: workqueue: dm_irq_work_func [amdgpu] hogged CPU for >10000us 7 times,
+        consider switching to WQ_UNBOUND
+```
+
+The named function belongs to the same driver and performs distinct work. The
+recorded duration — above ten milliseconds — exceeds by an order of magnitude
+the largest event measured in this topic. The record coincided with a momentary
+interruption of the graphical interface observed in the session.
+
+##### Hardware noise
+
+§8 listed the firmware SMI as unobservable without the `hwlat` tracer.
+`osnoise` classifies hardware noise in a column of its own and recorded zero
+over ten minutes of collection. The SMI hypothesis is therefore eliminated on
+this machine, and the corresponding limitation is withdrawn.
+
+#### 6.6.6 Intervention: collecting without a graphical session
+
+Identifying the function does not by itself demonstrate causality. The
+criterion adopted in the preceding subsections requires a single-variable
+intervention: suppress the suspect and verify that the effect disappears.
+
+Blacklisting the `amdgpu` driver would make the console unusable. The
+alternative adopted was to suspend the graphical session while keeping the rest
+of the system in an identical configuration. The machine was rebooted into a
+GRUB entry configured for `systemd.unit=multi-user.target`, with no display
+manager, and collection ran from a text console.
+
+**Pre-registration.** Written before execution, in the header of
+`ferramental/qualidade/campanha-modo-texto.sh`:
+
+> Prediction: if the origin of the high mode is `amdgpu`, then `osnoise` in
+> text mode records a thread maximum below 100 µs, the function
+> `amdgpu_device_delay_enable_gfx_off` does not appear among the events, and
+> stalls above the window fall to zero or near zero.
+>
+> Refutation: if the maximum remains in the hundreds of microseconds, or if
+> stalls above the window persist in the same proportion, the origin is not
+> the graphical session and the attribution is incorrect.
+
+**Result.** Both measures moved in the predicted direction:
+
+| Quantity | With graphical session | Text mode |
+|---|---:|---:|
+| `osnoise`, thread maximum | 711 µs | **25 µs** |
+| `stall_probe`, largest stall | 805 µs | **41 µs** |
+| stalls above the window (40 µs) | 37 | **0** |
+| `amdgpu_device_delay_enable_gfx_off` | 12 occurrences | **absent** |
+
+The bimodal distribution described in §6.6 does not appear in the absence of a
+graphical session. The high mode — the set of stalls between 40 µs and 630 µs —
+disappears entirely. The prediction was not refuted on any of the four
+quantities.
+
+This is the conclusion of the chain opened in §6.6: the bimodal distribution
+observed in earlier collections was produced by the re-enabling of power gating
+on the integrated GPU, scheduled in a per-CPU workqueue and therefore not
+removable by CPU isolation, `nohz_full` or interrupt affinity.
+
+##### Convergence of the instruments after the intervention
+
+§6.6.4 recorded an unresolved disagreement between the two instruments:
+`osnoise` predicted noise sufficient to affect 84% of cells, while the probe
+observed 15% affected. The divergence, a factor of 5.6, was provisionally
+attributed to a difference in methodology.
+
+In text mode the disagreement does not reproduce: both instruments record
+values of the same order (25 µs and 41 µs). The divergence was therefore a
+property of the source, not of the instruments. `osnoise` runs a thread that
+consumes no useful CPU; the probe runs a load that occupies the CPU
+continuously. A CPU saturated by a user task receives less deferred workqueue
+work than one alternating between idleness and activity — which reduces the
+frequency of power-gating re-enablement and, consequently, the probe's exposure
+to the phenomenon.
+
+### 6.7 Summary of candidates and remaining limitations
 
 | Candidate | Outcome | Evidence |
 |---|---|---|
@@ -522,41 +681,89 @@ cause.
 | deep C-state | **eliminated** | B × C, p = 0.304 |
 | CPU contention | **eliminated** | run-queue = 1 in A and C |
 | memory pressure as a state | **not supported** | replication E″, p = 0.269 |
-| reclaim activity | descriptive | §6.6.4 |
-| memory configuration, reboot | **not separated** | confounded with each other |
+| reclaim activity | descriptive, not causal | §6.6.4 |
+| firmware SMI | **eliminated** | `HW = 0` over ten minutes |
+| ***amdgpu* driver workqueue** | **confirmed** | §6.6.5, §6.6.6 |
 
-The last row is the only variable still standing between A and C, and it is
-double: installing the second stick required a reboot, and the two changes
-cannot be separated by software.
+The source was present in the §2 table from the outset, in the row *"Per-CPU
+workqueues"*. What was missing was not the hypothesis but the instrument
+capable of attributing an individual event to an origin. Aggregate counts per
+vector and per process — the method of the first eight collections — allow
+candidates to be eliminated by absent correlation, but do not identify the
+occupant of the CPU.
 
-> **This experiment is not going to happen, and the reason is a decision, not a
-> blocker.** Separating them would require removing the stick and collecting
-> again, and whoever is responsible for the machine decided against that
-> intervention. The record has to say so, rather than "hardware is missing":
-> the difference between **cannot** and **will not** is the kind of thing that,
-> left out, turns a choice into an impossibility in the eyes of a later reader.
->
-> **The cost is declared:** the difference between collections A and C remains
-> attributed to the pair memory-configuration plus reboot, with no separation
-> possible in this material. Anyone repeating this topic on another machine,
-> with the second stick installed from the start, measures A and C with a
-> reboot in common and settles what stayed open here — for free, by order of
-> assembly.
+The four earlier eliminations are not redundant with respect to the final
+finding. Two of them had an order of magnitude compatible with the phenomenon:
+C3 exit latency is 350 µs, and the high mode reached 800 µs. Compatibility of
+scale alone does not establish cause; accepting it would have produced an
+incorrect attribution accompanied by correct values.
 
-**The missing instrument is the same on every row.** Aggregate counts per
-vector and per process do not attribute **one event** to **one source**; they
-only allow candidates to be eliminated by absent correlation, which is what
-this topic did. The kernel's `osnoise` tracks per event and would say, for each
-individual stall, who occupied the CPU. It is the next step, and §8 records it
-as a limitation.
+#### Implications for the collection protocol
 
-> **What these five interventions establish, even without the cause.** Three
-> plausible candidates were eliminated by measurement, and a fourth did not
-> survive replication. A material asserting any of them on compatibility of
-> scale would today be publishing a false explanation — two of them had the
-> right order of magnitude. **Compatibility of scale makes a hypothesis
-> testable, not true**, and the difference between those two things is what
-> this topic demonstrates in practice.
+The collections in this topic, and the campaigns published earlier, declare
+*"exclusive machine, browser closed"*. Measurement shows that this condition
+does not eliminate the graphical session: the compositor, the display server
+and the GPU driver remain active and produce, on their own, events of up to
+800 µs at intervals of a few seconds.
+
+The effect on published results is bounded by the statistical design adopted.
+The project reports **median with dispersion**, not mean. A rare 800 µs event
+shifts the median of a collection of billions of samples very little: the three
+no-pressure arms pooled (C, C′ and E′, n = 60) give a median of 24.8 µs against
+21.5 µs in text mode — a 13% reduction in a metric composed entirely of tail.
+For metrics drawn from the body of the distribution, the expected shift is
+smaller.
+
+**Those 13% do not measure the effect of the graphical session; they measure
+its effect on an idle session.** The §6 table records nine collections on the
+same machine: eight fall between 21.5 and 30.9 µs, and collection **A** sits at
+**515.5 µs**, twenty times the rest. The distance between 24.8 µs and 515.5 µs
+exceeds, by an order of magnitude, the distance between 24.8 µs and text mode —
+and both ends were measured with an active graphical session.
+
+The reading the data support is that the graphical session's contribution is
+**not an additive constant**: it depends on how much the session worked during
+the collection. §6.6.5 supplies the mechanism — power-gating re-enablement is
+scheduled by graphics activity, and in both traces the periodic pattern was
+preceded by screen redraw. A collection running with an idle session pays 13%;
+what one running with the session in use pays is not measured, and collection A
+is consistent with a much larger value.
+
+The specification was corrected in `metodologia.md`: collections whose quantity
+of interest is dispersion, jitter or distribution tail are to be run in text
+mode.
+
+#### Open questions
+
+- **The nature of the work performed by `gfx_off`** over hundreds of
+  microseconds. Tracing identifies the entry function, not the internal
+  operations.
+- **The effect of disabling power gating.** The `amdgpu` driver accepts
+  parameters for this purpose. The intervention would separate the attribution
+  "GPU" from the attribution "graphical session", which the present measurement
+  does not distinguish.
+- **The magnitude of the shift in existing comparisons.** The 56 measurements
+  compared by `comparar-hardware.py` were not re-run in text mode. By the
+  median argument a small shift is expected; this is an expectation, not a
+  measurement.
+- **Generality of the finding.** The measurement was obtained on one machine,
+  with an AMD integrated GPU and the `amdgpu` driver. Platforms with a discrete
+  GPU or a different driver are not covered by this evidence.
+- **Confounding between memory configuration and reboot** in collections A and
+  C. Separating them would require physically removing a module, an
+  intervention declined by whoever is responsible for the machine. This is a
+  recorded decision, not a technical limitation: repeating the topic on a
+  machine with both modules installed from the start resolves the confound.
+- **[HYPOTHESIS] The difference between A and C may not be about memory.** The
+  document attributes collection A's 515.5 µs to the pair memory-configuration
+  plus reboot, because those were the only variables known when it was written.
+  §6.6.5 adds a third: graphical session activity, which on its own produces
+  events of the same order of magnitude. Collection A recorded no environment
+  state — `ambiente.txt` only began to be written in the text-mode campaign —
+  so the hypothesis is **not testable on the existing data**. It is recorded
+  because it changes what a repetition of this topic must control: both modules
+  installed from the start is not enough, the state of the graphical session
+  must also be declared for each collection.
 
 ---
 
@@ -589,24 +796,26 @@ rejects invalid parameters with a distinct code, and **declares** when
   outside the kernel, and this machine does not have it — the same blocker as
   the RX/TX module. The §1 window is the theoretical bridge, and is declared as
   a lower bound.
-- **P3 and P4 require a reboot**, and are left for a session with the machine
-  dedicated.
-- **SMI is not observable** without `hwlat`, which needs the machine quiet for a
-  long time. If there is an SMI above the window, no profile zeroes the drops —
-  and the text will say so once there is measurement.
+- **P3 and P4 require a reboot and remain uncollected.** The procedure is
+  feasible through a one-shot GRUB entry, the same mechanism used for the
+  text-mode collection (§6.6.6).
 - **The probe measures one CPU at a time.** Noise correlated across CPUs, which
   matters in a multi-lcore pipeline, does not appear.
-- **The high mode of the bimodal distribution has no attributed source, and it
-  is the topic's principal limitation.** Four candidates were subjected to
-  intervention and none survived: deep C-state, CPU contention, memory pressure
-  as a state, and reclaim activity (§6.6). `/proc/interrupts` does not explain
-  it: in the 723 µs run of collection A the only vectors were `LOC` (59,958),
-  `NMI` (4) and `PMI` (4), and none of them lasts hundreds of microseconds.
-- **The available instrument does not attribute an event to a source.**
-  Aggregate counts per vector and per process allow candidates to be
-  **eliminated**, which is what the eight collections did; they do not allow
-  the cause of an individual stall to be **identified**. That requires
-  `osnoise`, which tracks per event.
+- **The source of the high mode is identified but not exhausted.** It is the
+  work item `amdgpu_device_delay_enable_gfx_off`, executed in a per-CPU
+  workqueue (§6.6.5); suppressing the graphical session eliminates it on both
+  instruments (§6.6.6). What the function performs over hundreds of
+  microseconds, and whether disabling power gating removes it with the
+  graphical session retained, remain undetermined.
+- **Collections with a graphical session are subject to a noise source not
+  declared in the protocol.** The condition "exclusive machine, browser closed"
+  does not exclude the compositor, the display server and the GPU driver. The
+  effect on published medians is bounded — the median of the largest stall
+  varied by 13% between the two conditions (§6.7) — but high percentiles and
+  maxima measured under that condition incorporate the source.
+- **The shift of the 56 measurements in `comparar-hardware.py` under text mode
+  has not been quantified.** Measuring it would require repeating the hardware
+  campaign under the new condition.
 - **The memory configuration and the reboot were not separated, and will not
   be.** Installing the second stick required a reboot, and no software
   intervention undoes one of the two changes without the other. It is the only
