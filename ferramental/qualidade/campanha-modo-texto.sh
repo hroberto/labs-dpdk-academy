@@ -238,6 +238,9 @@ fi
 echo
 echo "==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  ($(date +%T))"
 CONF="$(date +%Y-%m-%d)-modo-texto"
+# A coleta de referencia serve a dois passos: gabarito de completude aqui, e
+# o outro lado da comparacao no passo 6.
+REF="2026-09-23-expo6000-canal-duplo"
 ./scripts/ambiente.sh --cachear-memoria >/dev/null 2>&1 \
     && chown "$DONO" .ambiente-memoria 2>/dev/null
 
@@ -281,8 +284,35 @@ else
     echo "           a comparacao do passo 6 perdera os rotulos do feed"
 fi
 
-if [ -d "docs/01-fundamentos/medicoes/historico/$CONF" ]; then
-    echo "    JA COLETADO em $CONF; preservando."
+# COLETA INCOMPLETA NAO E COLETA, e distinguir as duas exige contar.
+#
+# `campanha-hardware.sh` recusa sobrescrever pasta existente -- e faz certo.
+# Mas um guarda que so pergunta "a pasta existe?" trata uma campanha
+# interrompida no meio como campanha pronta, e o passo 6 compararia contra
+# coleta parcial relatando diferenca que e falta de arquivo. O gabarito e a
+# propria coleta de referencia: se a nova nao tem o mesmo numero de arquivos
+# nos tres modulos, ela nao esta pronta.
+completa() { # <configuracao>  -> 0 se os tres modulos batem com a referencia
+    local c="$1" m a b
+    for m in 01-fundamentos 02-runtime-dpdk 03-mempool-ring-mbuf; do
+        a=$(ls "docs/$m/medicoes/historico/$REF" 2>/dev/null | wc -l)
+        b=$(ls "docs/$m/medicoes/historico/$c"   2>/dev/null | wc -l)
+        [ "$b" -ge "$a" ] || return 1
+    done
+    return 0
+}
+if [ -d "docs/01-fundamentos/medicoes/historico/$CONF" ] && completa "$CONF"; then
+    echo "    JA COLETADO em $CONF e completa; preservando."
+elif [ -d "docs/01-fundamentos/medicoes/historico/$CONF" ]; then
+    echo "    ABORTADO: $CONF existe e esta INCOMPLETA."
+    for m in 01-fundamentos 02-runtime-dpdk 03-mempool-ring-mbuf; do
+        printf "              %-22s %s de %s arquivos\n" "$m" \
+            "$(ls docs/$m/medicoes/historico/$CONF 2>/dev/null | wc -l)" \
+            "$(ls docs/$m/medicoes/historico/$REF  2>/dev/null | wc -l)"
+    done
+    echo "              A campanha de hardware nao sobrescreve. Para refazer:"
+    echo "                rm -rf docs/*/medicoes/historico/$CONF"
+    echo "              O passo 6 vai comparar contra coleta parcial; leia com isso em mente."
 elif [ -x build/docs/01-fundamentos/medicoes/custo-syscall ]; then
     # `sudo -u` limpa o ambiente, entao a variavel vai explicita na chamada:
     # exportar no shell de root nao a faz chegar ao filho.
@@ -316,7 +346,6 @@ fi
 # --------------------------------------------------------------------------
 echo
 echo "==> 6/6 revisao dos dados do projeto  ($(date +%T))"
-REF="2026-09-23-expo6000-canal-duplo"
 {
     for m in 01-fundamentos 02-runtime-dpdk 03-mempool-ring-mbuf; do
         a="docs/$m/medicoes/historico/$REF"
