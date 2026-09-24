@@ -1,0 +1,118 @@
+--- 01-fundamentos ---
+  medicao                                                            2026-09-23-exp  2026-09-24-mod   delta
+  ---------------------------------------------------------------------------------------------------------
+  custo-comunicacao: 1 thread  on 1 physical core (cpu 0)                  1865.400        1866.100    +0.0%
+  custo-comunicacao: 2 threads on 2 SMT siblings (cpu 0,12)                1929.600        1932.200    +0.1%
+  custo-comunicacao: 2 threads on 2 physical cores (cpu 0,2)               3719.100        3723.100    +0.1%
+  custo-comunicacao: BETWEEN domains (cpu 0 <-> 6)                           81.490          81.420    -0.1%
+  custo-comunicacao: RATIO between/within (paired)                            4.160           4.190    +0.7%
+  custo-comunicacao: RATIO with/without SMT sibling (paired)                  2.290           2.290    +0.0%
+  custo-comunicacao: loop alone on the core                                   0.536           0.535    -0.2%
+  custo-comunicacao: neighbour on SMT sibling (cpu 12)                        1.230           1.230    +0.0%
+  custo-comunicacao: neighbour on physical core (cpu 2)                       0.550           0.550    +0.0%
+  custo-comunicacao: within domain 0 (cpu 0 <-> 2)                           19.570          19.450    -0.6%
+  custo-espera: POSIX semaphore (SLEEPS)                                   1254.100        1201.500    -4.2%
+  custo-espera: atomic + busy wait (does not sleep)                          18.390          17.590    -4.4%
+  custo-espera: atomic relaxed (store+load)                                   0.399           0.408    +2.3%
+  custo-espera: atomic seq_cst (store+load)                                   3.680           3.960    +7.6%  <<<
+  custo-espera: mutex + busy wait (does not sleep)                           95.330          93.550    -1.9%
+  custo-espera: mutex + condvar (SLEEPS)                                   1309.900        1257.600    -4.0%
+  custo-espera: mutex lock+unlock                                             8.560           8.600    +0.5%
+  custo-espera: semaphore post+wait                                           8.460           8.490    +0.4%
+  custo-espera: spinlock lock+unlock                                          4.500           4.500    +0.0%
+  custo-mckenney: CAS with miss, OTHER L3 domain                             81.510          81.440    -0.1%
+  custo-mckenney: CAS with miss, same L3 domain                              20.080          20.060    -0.1%
+  custo-mckenney: CAS, best case                                              7.130           7.130    +0.0%
+  custo-mckenney: lock, best case                                             2.060           2.010    -2.4%
+  custo-mckenney: plain miss, OTHER L3 domain                                81.730          81.690    -0.0%
+  custo-mckenney: plain miss, same L3 domain                                 20.860          20.890    +0.1%
+  custo-paralelismo: 1 core                                                   5.850           5.830    -0.3%
+  custo-paralelismo: 12 cores                                                12.660          12.660    +0.0%
+  custo-paralelismo: 2 cores                                                  6.080           6.070    -0.2%
+  custo-paralelismo: 4 cores                                                  6.690           6.690    +0.0%
+  custo-paralelismo: 8 cores                                                  8.690           8.680    -0.1%
+  custo-paralelismo: K = 1  (1 access in flight)                             77.500          76.450    -1.4%
+  custo-paralelismo: K = 12 (12 accesses in flight)                           7.430           7.420    -0.1%
+  custo-paralelismo: K = 16 (16 accesses in flight)                           5.670           5.650    -0.4%
+  custo-paralelismo: K = 2  (2 accesses in flight)                           38.170          38.200    +0.1%
+  custo-paralelismo: K = 32 (32 accesses in flight)                           3.200           3.200    +0.0%
+  custo-paralelismo: K = 4  (4 accesses in flight)                           20.680          20.670    -0.0%
+  custo-paralelismo: K = 64 (64 accesses in flight)                           2.440           2.450    +0.4%
+  custo-paralelismo: K = 8  (8 accesses in flight)                           10.760          10.830    +0.7%
+  custo-syscall: clock_gettime (vDSO, no trap)                               15.520          15.520    +0.0%
+  custo-syscall: function call (user-space)                                   0.719           0.715    -0.6%
+  custo-syscall: real syscall (SYS_getpid)                                   33.260          33.230    -0.1%
+  custo-traducao.regiao16mb: 2 MB hugepages                                   8.600           8.590    -0.1%
+  custo-traducao.regiao16mb: 4 KB pages                                      10.300          10.110    -1.8%
+  custo-traducao.regiao16mb: DIFFERENCE attributable to translation           1.660           1.520    -8.4%  <<<
+  custo-traducao.regiao32mb: 2 MB hugepages                                  14.920          13.810    -7.4%  <<<
+  custo-traducao.regiao32mb: 4 KB pages                                      32.660          31.910    -2.3%
+  custo-traducao.regiao32mb: DIFFERENCE attributable to translation          17.560          17.860    +1.7%
+  custo-traducao.regiao64mb: 2 MB hugepages                                  65.450          64.440    -1.5%
+  custo-traducao.regiao64mb: 4 KB pages                                      72.750          71.230    -2.1%
+  custo-traducao.regiao64mb: DIFFERENCE attributable to translation           7.450           6.750    -9.4%  <<<
+  custo-traducao.regiao8mb: 2 MB hugepages                                    8.470           8.470    +0.0%
+  custo-traducao.regiao8mb: 4 KB pages                                        9.680           9.660    -0.2%
+  custo-traducao.regiao8mb: DIFFERENCE attributable to translation            1.200           1.190    -0.8%
+  custo-traducao.seq16mb: 2 MB hugepages                                      0.900           0.897    -0.3%
+  custo-traducao.seq16mb: 4 KB pages                                          1.010           0.982    -2.8%
+  custo-traducao.seq16mb: DIFFERENCE attributable to translation              0.106           0.079   -25.5%  <<<
+  custo-traducao.seq32mb: 2 MB hugepages                                      1.170           1.160    -0.9%
+  custo-traducao.seq32mb: 4 KB pages                                          1.210           1.210    +0.0%
+  custo-traducao.seq32mb: DIFFERENCE attributable to translation              0.040           0.068   +70.0%  <<<
+  custo-traducao.seq512mb: 2 MB hugepages                                     1.370           1.370    +0.0%
+  custo-traducao.seq512mb: 4 KB pages                                         1.340           1.350    +0.7%
+  custo-traducao.seq64mb: 2 MB hugepages                                      1.370           1.360    -0.7%
+  custo-traducao.seq64mb: 4 KB pages                                          1.270           1.270    +0.0%
+  custo-traducao.seq8mb: 2 MB hugepages                                       0.935           0.893    -4.5%
+  custo-traducao.seq8mb: 4 KB pages                                           0.943           0.939    -0.4%
+  custo-traducao.seq8mb: DIFFERENCE attributable to translation               0.049           0.044   -10.2%  <<<
+  custo-traducao: 2 MB hugepages                                             80.010          79.170    -1.0%
+  custo-traducao: 4 KB pages                                                 90.220          89.670    -0.6%
+  custo-traducao: DIFFERENCE attributable to translation                     10.240          10.500    +2.5%
+  efeito-cache: L1d dependent                                                 0.892           0.892    +0.0%
+  efeito-cache: L1d random                                                    0.260           0.259    -0.4%
+  efeito-cache: L1d sequential                                                0.189           0.188    -0.5%
+  efeito-cache: L2 dependent                                                  2.680           2.680    +0.0%
+  efeito-cache: L2 random                                                     0.331           0.330    -0.3%
+  efeito-cache: L2 sequential                                                 0.186           0.186    +0.0%
+  efeito-cache: L3 dependent                                                  9.690           9.660    -0.3%
+  efeito-cache: L3 random                                                     0.741           0.739    -0.3%
+  efeito-cache: L3 sequential                                                 0.187           0.187    +0.0%
+  efeito-cache: RAM dependent                                                86.380          86.940    +0.6%
+  efeito-cache: RAM random                                                    5.830           5.810    -0.3%
+  efeito-cache: RAM sequential                                                0.187           0.187    +0.0%
+  rajada-nasdaq: 1        40        106        2000                           1.700           1.700    +0.0%
+  rajada-nasdaq: 1      1          1                                          2.840           2.840    +0.0%
+  rajada-nasdaq: 1      4          1                                          2.840           2.840    +0.0%
+  rajada-nasdaq: 1     16          1                                          2.840           2.840    +0.0%
+  rajada-nasdaq: 16       640        706         125                          0.710           0.710    +0.0%
+  rajada-nasdaq: 2        80        146        1000                           1.170           1.170    +0.0%
+  rajada-nasdaq: 3      3          3                                          0.950           0.950    +0.0%
+  rajada-nasdaq: 32      1280       1346          63                          0.680           0.680    +0.0%
+  rajada-nasdaq: 4       160        226         500                           0.900           0.900    +0.0%
+  rajada-nasdaq: 512     15635808           0    0.000%         1             0.700           0.700    +0.0%
+  rajada-nasdaq: 64      2560       2626          32                          0.670           0.670    +0.0%
+  rajada-nasdaq: 8       320        386         250                           0.770           0.770    +0.0%
+  rajada-nasdaq: 8      8          8                                          0.360           0.360    +0.0%
+  rajada-nasdaq: mean rho                                                     0.019           0.019    +0.0%
+
+  190 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+--- 02-runtime-dpdk ---
+  medicao                                      2026-09-23-exp  2026-09-24-mod   delta
+  -----------------------------------------------------------------------------------
+  custo-init.in-memory: rte_eal_cleanup()               0.095           0.095    +0.0%
+  custo-init.in-memory: rte_eal_init()                118.400         121.000    +2.2%
+  custo-init.no-huge: rte_eal_cleanup()                 0.594           0.593    -0.2%
+  custo-init.no-huge: rte_eal_init()                  118.500         121.000    +2.1%
+  feed-secundario: publication -> observation          10.020          10.020    +0.0%
+
+  5 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+--- 03-mempool-ring-mbuf ---
+  medicao                                      2026-09-23-exp  2026-09-24-mod   delta
+  -----------------------------------------------------------------------------------
+  custo-alocacao: malloc/free                           2.180           2.780   +27.5%  <<<
+  custo-alocacao: mempool get/put, NO cache            10.470          13.430   +28.3%  <<<
+  custo-alocacao: mempool get/put, with cache           0.993           1.250   +25.9%  <<<
+
+  3 rotulo(s); mediana das medianas, execucao de aquecimento descartada

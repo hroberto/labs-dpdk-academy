@@ -1,0 +1,42 @@
+EAL: Detected CPU lcores: 24
+EAL: Detected NUMA nodes: 1
+EAL: Detected shared linkage of DPDK
+EAL: Multi-process socket /tmp/dpdk/camp_custo-anel_1/mp_socket
+EAL: Selected IOVA mode 'VA'
+  origin: custo-anel @ v0.06.00-18-g1a87f1d  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-24T01:36:35-0300  |  DPDK 25.11.0
+
+
+== The price of the ring's generality ==
+
+  ring of 4096 slots; full enqueue+dequeue cycle
+  ONE lcore, NO contention: what is measured is the atomic instruction,
+  not the cache-line migration between cores
+  samples: 25, each with 200000 operations
+
+  batch      SP/SC (ns/obj)   MP/MC (ns/obj) MP/MC cost
+  -----      --------------   -------------- -----------
+  1                1.627 ns         8.209 ns       404%
+  8                0.536 ns         1.280 ns       139%
+  32               0.403 ns         0.483 ns        20%
+  128              0.371 ns         0.301 ns       -19%
+
+  The MP/MC cost does not vanish for lack of contention: the atomic
+  operation runs either way. What batching does is dilute that fixed
+  cost over more objects -- the same logic that already appeared in
+  batch size and in the cross-core traversal.
+
+== _bulk and _burst are not synonyms ==
+
+  ring requested with 16 slots; real capacity: 15
+  (one slot is reserved to tell full apart from empty)
+
+  enqueued 12 into an empty ring ........ burst accepted 12, free=3
+  asking for 12 more with only 3 free:
+    _bulk  accepted 0  <- all or nothing: NOTHING went in
+    _burst accepted 3  <- partial: 3 went in, 9 stayed out
+
+  The practical consequence is in _burst's return value: the 9 objects
+  that did NOT go in are still yours. Whoever ignores that number and
+  treats them all as enqueued loses ownership of them -- and, if they came
+  from a mempool, the pool drains silently until the pipeline stalls.
+
