@@ -252,6 +252,16 @@ Each collection declares the machine state it ran in. The difference between
 them is the instrument of §6.6: one collection measures; a pair differing in
 one variable decides.
 
+> **Where these collections are.** This topic's `historico/` directory was
+> emptied on 24/09/2026: two runs on the same day had collided on the same name
+> and one ended up labelled with the wrong memory configuration. The nine
+> collections in this table remain in the git history, in the commit preceding
+> the removal, and the four that succeed them — the memory factorial of §6.7 —
+> are archived under names carrying hour, minute and a configuration checked by
+> program. The table is kept because it is the evidence for §6.1 to §6.6; what
+> changed is where it lives, and this block exists so that the change is not
+> discovered by whoever goes looking for the file.
+
 | | Machine state | max stall, median | above 34.4 µs |
 |---|---|---:|---:|
 | **A** | single channel; swap 2.01 GiB, available 4.89 GiB | 515.5 µs | 16/20 |
@@ -734,6 +744,61 @@ The specification was corrected in `metodologia.md`: collections whose quantity
 of interest is dispersion, jitter or distribution tail are to be run in text
 mode.
 
+#### The confound between memory and reboot, resolved
+
+The previous version of this section recorded as a permanent limitation that
+collections A and C differed in two variables — memory configuration and
+reboot — and that separating them would require physically removing a module,
+an intervention that was not available. The removal was carried out on
+24/09/2026, and the pair was measured.
+
+**The design.** Four cells, a factorial of memory profile by number of
+modules, all in text mode, with the BIOS configuration checked by program
+against what the collection's name declares. The two cells at 4800 MT/s run the
+full isolation campaign and differ **only** in the number of modules.
+
+```
+  cell                        median    max     above the window
+  ------------------------   -------  -------  -----------------
+  4800 MT/s, single channel   22.1 us  38.6 us            1 / 20
+  4800 MT/s, dual channel     21.5 us  35.1 us            1 / 20
+
+  Mann-Whitney  U = 229   z = +0.784   p = 0.433
+```
+
+Both distributions are unimodal between 14 and 38 µs. There is no high mode in
+either.
+
+**The outcome.** The difference between single and dual channel is 0.6 µs and
+is not supported at the 5% level. For comparison, collections A and C — the
+same two memory configurations, measured with a graphical session — differed by
+490 µs, from 515.5 to 25.2 µs.
+
+Memory configuration does not produce the effect attributed to it. The
+hypothesis recorded on 23/09, that the A×C difference came from graphical
+session activity and not from memory, is **supported**: with the graphical
+session absent, the remaining variable stops producing a measurable effect.
+
+> **What this cost and what it taught.** The earlier attribution was not
+> arbitrary — memory configuration was the only variable known when it was
+> written. The error was not in attributing; it was in attributing the only
+> observed variable without declaring that an unobserved one existed.
+> `ambiente.txt` began to be recorded because of this.
+
+**The factorial, in passing.** The four cells also measure what each factor
+buys, and the mechanism checks out:
+
+| factor | 1 core | 4 cores | 12 cores |
+|---|---:|---:|---:|
+| channel, at 4800 (1 → 2 modules) | −8.4% | −37.6% | −44.6% |
+| speed, at 2 modules (4800 → 6000) | −11.0% | −12.1% | −26.3% |
+
+Doubling channels buys **bandwidth**: the effect grows with parallelism and is
+nearly nil on a single core. Raising the frequency buys **latency and
+bandwidth**: the effect is roughly constant at low core counts and grows at
+high ones. The isolated access (`K = 1`), which measures pure latency, moves
+−12.6% with speed.
+
 #### Open questions
 
 - **The nature of the work performed by `gfx_off`** over hundreds of
@@ -743,28 +808,15 @@ mode.
   parameters for this purpose. The intervention would separate the attribution
   "GPU" from the attribution "graphical session", which the present measurement
   does not distinguish.
-- **The magnitude of the shift in existing comparisons.** The 198 labels
-  compared by `comparar-hardware.py` were not re-run in text mode. By the
-  median argument a small shift is expected; this is an expectation, not a
-  measurement.
+- **The magnitude of the shift between graphical session and text mode.** The
+  comparison was made once, on 24/09: ten of the 198 labels moved by more than
+  5%, and the reading of the ten is in §6.7 — seven are artefacts of the metric
+  or of the frequency regime, not of the graphical session. One comparison is
+  not a series, and separating the two effects was not measured with a design
+  of its own.
 - **Generality of the finding.** The measurement was obtained on one machine,
   with an AMD integrated GPU and the `amdgpu` driver. Platforms with a discrete
   GPU or a different driver are not covered by this evidence.
-- **Confounding between memory configuration and reboot** in collections A and
-  C. Separating them would require physically removing a module, an
-  intervention declined by whoever is responsible for the machine. This is a
-  recorded decision, not a technical limitation: repeating the topic on a
-  machine with both modules installed from the start resolves the confound.
-- **[HYPOTHESIS] The difference between A and C may not be about memory.** The
-  document attributes collection A's 515.5 µs to the pair memory-configuration
-  plus reboot, because those were the only variables known when it was written.
-  §6.6.5 adds a third: graphical session activity, which on its own produces
-  events of the same order of magnitude. Collection A recorded no environment
-  state — `ambiente.txt` only began to be written in the text-mode campaign —
-  so the hypothesis is **not testable on the existing data**. It is recorded
-  because it changes what a repetition of this topic must control: both modules
-  installed from the start is not enough, the state of the graphical session
-  must also be declared for each collection.
 
 ---
 
@@ -814,16 +866,17 @@ rejects invalid parameters with a distinct code, and **declares** when
   effect on published medians is bounded — the median of the largest stall
   varied by 13% between the two conditions (§6.7) — but high percentiles and
   maxima measured under that condition incorporate the source.
-- **The shift of the 198 labels in `comparar-hardware.py` under text mode
-  has not been quantified.** Measuring it would require repeating the hardware
-  campaign under the new condition.
-- **The memory configuration and the reboot were not separated, and will not
-  be.** Installing the second stick required a reboot, and no software
-  intervention undoes one of the two changes without the other. It is the only
-  variable still standing between collections A and C. Separating it would
-  require physically removing the stick, and that intervention was **declined**
-  by whoever answers for the machine — a decision, not a technical blocker, and
-  recorded as such in §6.7.
+- **The shift between graphical session and text mode was measured once.** On
+  24/09, ten of the 198 labels moved by more than 5%; the reading is in §6.7
+  and most of it is an artefact of the metric or of the frequency regime. One
+  comparison is not a series.
+- **The frequency regime changes with the condition, and that is not
+  controlled.** With a graphical session the CPU measures at 5.56–5.61 GHz; in
+  text mode it starts at 4.33 GHz and climbs during the run, because nothing
+  warms it beforehand. Text mode is not merely "cleaner": it swaps the regime,
+  and §1.2 of the
+  [fundamentals methodology](../../../docs/01-fundamentos/metodologia.en.md)
+  requires declaring which of the two was measured.
 - **Twenty runs per arm give little power.** Arm E produced p = 0.028 against
   the no-pressure condition and the replication did not confirm it (§6.6.3). No
   conclusion in this topic rests on a single pair of collections.

@@ -566,6 +566,11 @@ variable: the number of channels.
 > it moved only 5.6% with the channel is a result, not a ceiling. Prediction 1
 > would be better served by that instrument, and that is how it is recorded for
 > the next hardware configuration.
+>
+> **The 24/09 factorial redid that pair with better matching** and gave −11.0
+> to −11.6% for frequency against −7.7 to −8.4% for the channel. The reading
+> survives — the lone core responds more to frequency — with a margin far
+> narrower than these 14.5 against 5.6 suggest.
 
 **Prediction 4 is what gives the other two their value.**
 `custo-comunicacao` measures cache-line traffic between cores, which does not
@@ -591,6 +596,8 @@ time that was declared beforehand, not observed afterwards.
 > value does not move. It is recorded as the question to ask in every future
 > pre-registration.
 
+<!-- cita-retratado: 14,5 14.5 31,2 31.2 5,6 5.6 40,5 40.5 7,2 7.2 -->
+
 #### What the outcome obliged us to change
 
 The section predicted: *"if 1 and 2 are confirmed, §4.2 becomes more precise and
@@ -600,13 +607,29 @@ side by side, because they measure the same quantity by independent paths:
 
 | Intervention | 12 cores | 1 core | ratio |
 |---|---:|---:|---:|
-| 4800 → 6000 MT/s | −31.2% | −14.5% | 2.2× |
-| 1 → 2 sticks | −40.5% | −5.6% | 7.2× |
+| 4800 → 6000 MT/s, with 1 stick | −28.6% | −11.6% | 2.5× |
+| 4800 → 6000 MT/s, with 2 sticks | −26.3% | −11.0% | 2.4× |
+| 1 → 2 sticks, at 4800 MT/s | −44.6% | −8.4% | 5.3× |
+| 1 → 2 sticks, at 6000 MT/s | −42.8% | −7.7% | 5.6× |
 
 The second intervention is the cleaner of the two, for a reason of mechanism:
 **doubling the channels doubles bandwidth without touching latency**, whereas
 changing the frequency moves both things at once. Confirming the same asymmetry
 by both paths is stronger than confirming it by one.
+
+> **These values are from 24/09 and replace those of the block above, which is
+> from 23/09.** The block stays as it is: it records what that comparison gave,
+> and rewriting it would erase the pre-registration instead of completing it.
+> What changed is not the measurement but the **pairing**. The 23/09 channel
+> contrast compared a collection with a cold CPU, starting at 4.33 GHz, against
+> one warm and steady at 5.58 GHz — frequency regime as a third variable inside
+> a contrast meant to isolate channels.
+>
+> The four cells of 24/09 measure each factor at **both levels** of the other,
+> under a single condition, and they agree with each other: frequency moves the
+> same with one stick or two, the channel moves the same at 4800 or at 6000.
+> The single-core effect shifts the most — from −5.6% to −8.4% — because it is
+> the most sensitive to the clock and was the most contaminated.
 
 #### The 2×2 factorial has three cells of four
 

@@ -68,3 +68,5 @@
 183	MEDIDO	duracao osnoise em 4,23 s do rastro (§6.6.5); colide por acaso com 183,0 retratado noutro documento
 0,44	MEDIDO	mempool bulk no lote 128; bloco publica 0.436, colide por acaso com 0,437/0,447/0,449 retratados noutro modulo
 82.9	CALCULADO	coeficiente da regressao ns x viagens do 25.11 na §1.4; colide por acaso com 82,99 retratado
+38	MEDIDO	limite superior das duas distribuicoes unimodais da §6.7; colide por acaso com 38,1 e 38,50 retratados noutros modulos
+40	CITADO	jitter de 40 ms da literatura secundaria no modulo 01, e a janela de 40 us no topico de isolamento; colide por acaso com 40,5 retratado

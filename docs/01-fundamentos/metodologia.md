@@ -558,6 +558,11 @@ descartada. Uma variável: o número de canais.
 > movido só 5,6% com o canal é resultado, não teto. A previsão 1 seria melhor
 > servida por esse instrumento, e é assim que fica registrada para a próxima
 > configuração de hardware.
+>
+> **O fatorial de 24/09 refez esse par com pareamento melhor** e deu −11,0 a
+> −11,6 % para a frequência contra −7,7 a −8,4 % para o canal. A leitura
+> sobrevive — o núcleo sozinho responde mais à frequência —, com margem bem mais
+> estreita do que estes 14,5 contra 5,6 sugerem.
 
 **A previsão 4 é a que dá valor às outras duas.** `custo-comunicacao` mede
 tráfego de linha de cache entre núcleos, que não toca a DRAM: se o canal
@@ -581,6 +586,8 @@ declarado antes, não observado depois.
 > depois, com o teste de variar o nível de cache e observar que o valor não se
 > move. Fica registrada como a pergunta a fazer em todo pré-registro futuro.
 
+<!-- cita-retratado: 14,5 14.5 31,2 31.2 5,6 5.6 40,5 40.5 7,2 7.2 -->
+
 #### O que o desfecho obrigou a mudar
 
 A seção previa: *"se 1 e 2 se confirmarem, a §4.2 fica mais precisa e mais
@@ -590,13 +597,29 @@ a lado, porque elas medem a mesma grandeza por caminhos independentes:
 
 | Intervenção | 12 núcleos | 1 núcleo | razão |
 |---|---:|---:|---:|
-| 4800 → 6000 MT/s | −31,2% | −14,5% | 2,2× |
-| 1 → 2 pentes | −40,5% | −5,6% | 7,2× |
+| 4800 → 6000 MT/s, com 1 pente | −28,6% | −11,6% | 2,5× |
+| 4800 → 6000 MT/s, com 2 pentes | −26,3% | −11,0% | 2,4× |
+| 1 → 2 pentes, a 4800 MT/s | −44,6% | −8,4% | 5,3× |
+| 1 → 2 pentes, a 6000 MT/s | −42,8% | −7,7% | 5,6× |
 
 A segunda intervenção é a mais limpa das duas, e por uma razão de mecanismo:
 **dobrar os canais dobra a banda sem tocar na latência**, enquanto trocar a
 frequência move as duas coisas ao mesmo tempo. Confirmar a mesma assimetria
 pelos dois caminhos é mais forte do que confirmar por um só.
+
+> **Estes valores são de 24/09 e substituem os do bloco acima, que é de 23/09.**
+> O bloco fica como está: ele registra o que aquela comparação deu, e reescrevê-lo
+> apagaria o pré-registro em vez de completá-lo. O que mudou não foi a medição,
+> foi o **pareamento**. O contraste de canal de 23/09 comparava uma coleta com a
+> CPU fria, partindo de 4,33 GHz, contra outra quente e estável a 5,58 GHz —
+> regime de frequência como terceira variável dentro de um contraste que se
+> propunha a isolar canais.
+>
+> As quatro células de 24/09 medem cada fator nos **dois níveis** do outro, em
+> condição única, e concordam entre si: a frequência move o mesmo com um pente
+> ou dois, o canal move o mesmo a 4800 ou a 6000. O efeito de um núcleo é o que
+> mais se desloca — de −5,6 % para −8,4 % —, porque é o mais sensível ao relógio
+> e era o mais contaminado.
 
 #### O fatorial 2×2 tem três células de quatro
 

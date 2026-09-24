@@ -1072,19 +1072,43 @@ instrumento nos dois lados da comparação:
 
 | Intervenção | 1 núcleo | 12 núcleos | razão |
 |---|---:|---:|---:|
-| 4800 → 6000 MT/s (frequência) | −14,5% | −31,2% | 2,2× |
-| 1 → 2 pentes (canais) | **−5,6%** | **−40,5%** | **7,2×** |
+| 4800 → 6000 MT/s, com 1 pente | −11,6% | −28,6% | 2,5× |
+| 4800 → 6000 MT/s, com 2 pentes | −11,0% | −26,3% | 2,4× |
+| 1 → 2 pentes, a 4800 MT/s | **−8,4%** | **−44,6%** | **5,3×** |
+| 1 → 2 pentes, a 6000 MT/s | **−7,7%** | **−42,8%** | **5,6×** |
 
-As duas respondem na mesma direção e com a mesma assimetria, e a segunda é a
-mais limpa — por uma razão de mecanismo, não de estatística.
+**Cada fator foi medido nos dois níveis do outro**, e é isso que sustenta a
+leitura: o efeito da frequência é o mesmo com um pente ou com dois, e o do
+canal é o mesmo a 4800 ou a 6000. Os dois fatores são aditivos, e nenhum dos
+quatro contrastes depende de onde o outro estava.
 
 **Dobrar os canais acrescenta banda sem mexer na latência.** Trocar a
 frequência mexe nas duas coisas ao mesmo tempo. Se o núcleo sozinho fosse
 limitado por banda, ele responderia às duas igualmente; se fosse limitado por
-latência, responderia mais à frequência. É o que se observa: **14,5% para a
-frequência contra 5,6% para o canal**. O agregado faz o inverso — responde
-mais ao canal (40,5%) do que à frequência (31,2%), que é a assinatura de quem
+latência, responderia mais à frequência. É o que se observa, embora por margem
+estreita: **11,0 a 11,6 % para a frequência contra 7,7 a 8,4 % para o canal**.
+O agregado faz o inverso, e aí a margem é larga — responde muito mais ao canal
+(42,8 a 44,6 %) do que à frequência (26,3 a 28,6 %), que é a assinatura de quem
 disputa banda.
+
+> **Estes números substituem os de 23/09, e a razão é de desenho.** A versão
+> anterior publicava −14,5 % e −31,2 % para a frequência e −5,6 % e −40,5 %
+> para o canal. Ela não estava mal medida; estava **mal pareada**. O contraste
+> de canal comparava uma coleta que correu com a CPU fria, partindo de
+> 4,33 GHz, contra outra que correu quente e estável a 5,58 GHz — regime de
+> frequência como terceira variável, dentro de um contraste que se propunha a
+> isolar canais. O efeito de um núcleo só, que é o mais sensível ao relógio,
+> era o mais contaminado, e por isso ele é o que mais se move: de −5,6 % para
+> −8,4 %.
+>
+> As quatro células de 24/09 foram medidas em condição única — modo texto, sem
+> sessão gráfica, todas partindo de 4,33 GHz — com a configuração da BIOS
+> conferida por programa contra o nome da coleta antes de cada medição. A
+> conclusão qualitativa não mudou; a margem do contraste de um núcleo encolheu
+> pela metade, e é honesto dizer que ela está mais estreita do que o texto
+> anterior sugeria.
+
+<!-- retratado: 14.5 14,5 31.2 31,2 5.6 5,6 40.5 40,5 7.2 7,2 -->
 
 > **A comparação usa `custo-paralelismo` dos dois lados de propósito.** A
 > coluna `sequencial` do `efeito-cache` seria o contraste mais intuitivo, e
@@ -1101,9 +1125,11 @@ disputa banda.
 
 > A coleta completa está em
 > [`medicoes/historico/`](medicoes/historico/), e o comparativo sai de
-> `comparar-hardware.py` a partir das saídas brutas. Os valores desta seção vêm
-> de `2026-09-23-expo6000-canal-duplo`, que é a configuração atual da máquina:
-> dois pentes DDR5-6000 de 16 GB, um nó NUMA.
+> `comparar-hardware.py` a partir das saídas brutas. Os quatro contrastes desta
+> seção vêm das células `2026-09-24-*-texto-*`, que cobrem o fatorial de
+> 4800 e 6000 MT/s por um e dois pentes. Os demais valores do módulo vêm de
+> `2026-09-23-expo6000-canal-duplo`. A máquina esteve nas quatro configurações
+> em 24/09 e ficou na última medida — dois pentes a 4800 MT/s, um nó NUMA.
 
 > **Selo perto do limiar: desconfie do número de amostras antes do fenômeno.**
 > Com sete amostras o selo erra nas duas direções — medido em dez grupos

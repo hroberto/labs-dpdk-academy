@@ -1072,19 +1072,42 @@ with the same instrument on both sides of the comparison:
 
 | Intervention | 1 core | 12 cores | ratio |
 |---|---:|---:|---:|
-| 4800 → 6000 MT/s (frequency) | −14.5% | −31.2% | 2.2× |
-| 1 → 2 sticks (channels) | **−5.6%** | **−40.5%** | **7.2×** |
+| 4800 → 6000 MT/s, with 1 stick | −11.6% | −28.6% | 2.5× |
+| 4800 → 6000 MT/s, with 2 sticks | −11.0% | −26.3% | 2.4× |
+| 1 → 2 sticks, at 4800 MT/s | **−8.4%** | **−44.6%** | **5.3×** |
+| 1 → 2 sticks, at 6000 MT/s | **−7.7%** | **−42.8%** | **5.6×** |
 
-Both respond in the same direction and with the same asymmetry, and the second
-is the cleaner one — for a reason of mechanism, not of statistics.
+**Each factor was measured at both levels of the other**, and that is what
+supports the reading: the frequency effect is the same with one stick or two,
+and the channel effect is the same at 4800 or at 6000. The two factors are
+additive, and none of the four contrasts depends on where the other one stood.
 
 **Doubling the channels adds bandwidth without touching latency.** Changing the
 frequency touches both at once. If the lone core were bandwidth-limited it
 would respond equally to both; if it were latency-limited it would respond more
-to frequency. That is what is observed: **14.5% for frequency against 5.6% for
-the channel**. The aggregate does the opposite — it responds more to the
-channel (40.5%) than to frequency (31.2%), which is the signature of something
-competing for bandwidth.
+to frequency. That is what is observed, though by a narrow margin: **11.0 to
+11.6% for frequency against 7.7 to 8.4% for the channel**. The aggregate does
+the opposite, and there the margin is wide — it responds far more to the
+channel (42.8 to 44.6%) than to frequency (26.3 to 28.6%), which is the
+signature of something competing for bandwidth.
+
+> **These numbers replace those of 23/09, and the reason is one of design.** The
+> previous version published −14.5% and −31.2% for frequency and −5.6% and
+> −40.5% for the channel. It was not badly measured; it was **badly paired**.
+> The channel contrast compared a collection that ran with a cold CPU, starting
+> at 4.33 GHz, against one that ran warm and steady at 5.58 GHz — frequency
+> regime as a third variable, inside a contrast meant to isolate channels. The
+> single-core effect, the one most sensitive to the clock, was the most
+> contaminated, and that is why it moves the most: from −5.6% to −8.4%.
+>
+> The four cells of 24/09 were measured under a single condition — text mode,
+> no graphical session, all starting from 4.33 GHz — with the BIOS
+> configuration checked by program against the collection's name before each
+> measurement. The qualitative conclusion did not change; the margin of the
+> single-core contrast halved, and it is honest to say it is narrower than the
+> earlier text suggested.
+
+<!-- retratado: 14.5 14,5 31.2 31,2 5.6 5,6 40.5 40,5 7.2 7,2 -->
 
 > **The comparison uses `custo-paralelismo` on both sides deliberately.** The
 > `efeito-cache` `sequential` column would be the more intuitive contrast, and
@@ -1102,9 +1125,12 @@ competing for bandwidth.
 
 > The full collection is in
 > [`medicoes/historico/`](medicoes/historico/), and the comparison comes out of
-> `comparar-hardware.py` from the raw outputs. The values in this section come
-> from `2026-09-23-expo6000-canal-duplo`, which is the machine's current
-> configuration: two 16 GB DDR5-6000 sticks, one NUMA node.
+> `comparar-hardware.py` from the raw outputs. The four contrasts in this
+> section come from the `2026-09-24-*-texto-*` cells, which cover the factorial
+> of 4800 and 6000 MT/s by one and two sticks. The module's other values come
+> from `2026-09-23-expo6000-canal-duplo`. The machine passed through all four
+> configurations on 24/09 and stayed in the last one measured — two sticks at
+> 4800 MT/s, one NUMA node.
 
 > **A seal near the threshold: doubt the sample count before the phenomenon.**
 > With seven samples the seal errs in both directions — measured over ten disjoint

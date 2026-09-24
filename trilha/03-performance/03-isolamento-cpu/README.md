@@ -729,6 +729,59 @@ A especificação foi corrigida em `metodologia.md`: coletas cuja grandeza de
 interesse seja dispersão, jitter ou cauda de distribuição devem ser executadas
 em modo texto.
 
+#### O confundimento entre memória e reinício, resolvido
+
+A versão anterior desta seção registrava como limitação permanente que as
+coletas A e C diferiam em duas variáveis — configuração de memória e reinício
+— e que separá-las exigiria a remoção física de um módulo, intervenção que não
+estava disponível. A remoção foi feita em 24/09/2026, e o par foi medido.
+
+**O desenho.** Quatro células, fatorial de perfil de memória por número de
+módulos, todas em modo texto, com a configuração da BIOS conferida por programa
+contra o que o nome da coleta declara. As duas células a 4800 MT/s correm a
+campanha de isolamento completa e diferem **apenas** no número de módulos.
+
+```
+  celula                      mediana   maior   acima da janela
+  ------------------------   --------  ------  ----------------
+  4800 MT/s, canal unico       22,1 us  38,6 us          1 / 20
+  4800 MT/s, canal duplo       21,5 us  35,1 us          1 / 20
+
+  Mann-Whitney  U = 229   z = +0,784   p = 0,433
+```
+
+As duas distribuições são unimodais entre 14 e 38 µs. Não há modo alto em
+nenhuma das duas.
+
+**O desfecho.** A diferença entre canal único e canal duplo é de 0,6 µs e não
+se sustenta ao nível de 5 %. Para comparação, as coletas A e C — as mesmas
+duas configurações de memória, medidas com sessão gráfica — diferiam em
+490 µs, de 515,5 para 25,2 µs.
+
+A configuração de memória não produz o efeito que lhe era atribuído. A
+hipótese registrada em 23/09, de que a diferença A×C vinha da atividade da
+sessão gráfica e não da memória, fica **sustentada**: com a sessão gráfica
+ausente, a variável que restava deixa de produzir efeito mensurável.
+
+> **O que isso custou e o que ensinou.** A atribuição anterior não era
+> arbitrária — configuração de memória era a única variável conhecida quando
+> ela foi escrita. O erro não estava em atribuir; estava em atribuir a única
+> variável observada sem declarar que havia uma não observada. O `ambiente.txt`
+> passou a ser gravado por isso.
+
+**O fatorial, de passagem.** As quatro células medem também o que cada fator
+compra, e o mecanismo confere:
+
+| fator | 1 núcleo | 4 núcleos | 12 núcleos |
+|---|---:|---:|---:|
+| canal, a 4800 (1 → 2 módulos) | −8,4 % | −37,6 % | −44,6 % |
+| velocidade, a 2 módulos (4800 → 6000) | −11,0 % | −12,1 % | −26,3 % |
+
+Dobrar canais compra **banda**: o efeito cresce com o paralelismo e é quase
+nulo num núcleo só. Aumentar a frequência compra **latência e banda**: o efeito
+é aproximadamente constante nos núcleos baixos e cresce nos altos. O acesso
+isolado (`K = 1`), que mede latência pura, move −12,6 % com a velocidade.
+
 #### Questões em aberto
 
 - **Natureza do trabalho executado pelo `gfx_off`** durante centenas de
@@ -737,29 +790,14 @@ em modo texto.
 - **Efeito da desativação do *power gating*.** O driver `amdgpu` aceita
   parâmetros para essa finalidade. A intervenção separaria a atribuição "GPU"
   da atribuição "sessão gráfica", que a medição atual não distingue.
-- **Magnitude do deslocamento nas comparações existentes.** Os 198 rótulos
-  confrontados por `comparar-hardware.py` não foram reexecutados em modo
-  texto.
-  Pelo argumento da mediana, espera-se deslocamento reduzido; trata-se de
-  expectativa, não de medição.
+- **Magnitude do deslocamento entre sessão gráfica e modo texto.** A
+  comparação foi feita uma vez, em 24/09: dez dos 198 rótulos passaram de 5 %,
+  e a leitura dos dez está na §6.7 — sete são artefato da métrica ou do regime
+  de frequência, não da sessão gráfica. Uma comparação não é uma série, e a
+  separação entre os dois efeitos não foi medida com desenho próprio.
 - **Generalidade do achado.** A medição foi obtida em uma máquina, com GPU
   integrada AMD e driver `amdgpu`. Plataformas com GPU discreta ou com outro
   driver não estão cobertas por esta evidência.
-- **Confundimento entre configuração de memória e reinício** nas coletas A e C.
-  A separação exigiria a remoção física de um módulo, intervenção recusada por
-  quem responde pela máquina. Trata-se de decisão registrada, não de limitação
-  técnica: a repetição do tópico em máquina com ambos os módulos instalados
-  desde o início resolve o confundimento.
-- **[HIPÓTESE] A diferença entre A e C pode não ser de memória.** O documento
-  atribui os 515,5 µs da coleta A ao par configuração-de-memória mais reinício,
-  porque eram as únicas variáveis conhecidas quando ela foi escrita. O §6.6.5
-  acrescenta uma terceira: a atividade da sessão gráfica, que sozinha produz
-  eventos da mesma ordem de grandeza. A coleta A não registrou estado de
-  ambiente — `ambiente.txt` só passou a ser gravado na campanha de modo texto —,
-  de modo que a hipótese **não é testável sobre os dados existentes**. Fica
-  registrada porque altera o que uma repetição deste tópico precisa controlar:
-  não bastam os dois módulos instalados desde o início, é preciso declarar
-  também o estado da sessão gráfica em cada coleta.
 
 ---
 
@@ -807,15 +845,16 @@ classifica, relata a janela, recusa parâmetro inválido com código distinto, e
   sobre as medianas publicadas é limitado — a mediana da maior parada variou
   13 % entre as duas condições (§6.7) —, mas percentis altos e máximos medidos
   nessa condição incorporam a fonte.
-- **O deslocamento dos 198 rótulos de `comparar-hardware.py` em modo texto não
-  foi quantificado.** A medição exigiria repetir a campanha de hardware na
-  nova condição.
-- **A configuração de memória e o reinício não foram separados, e não serão.**
-  Instalar o segundo pente exigiu reiniciar, e nenhuma intervenção de software
-  desfaz uma das duas mudanças sem a outra. É a única variável de pé entre as
-  coletas A e C. Separá-la exigiria remover fisicamente o pente, e essa
-  intervenção foi **recusada** por quem responde pela máquina — decisão, não
-  bloqueio técnico, e registrada como tal na §6.7.
+- **O deslocamento entre sessão gráfica e modo texto foi medido uma vez.** Em
+  24/09, dez dos 198 rótulos passaram de 5 %; a leitura está na §6.7 e a maior
+  parte é artefato da métrica ou do regime de frequência. Uma comparação não
+  é uma série.
+- **O regime de frequência muda com a condição, e isso não é controlado.** Com
+  sessão gráfica a CPU mede a 5,56–5,61 GHz; em modo texto parte de 4,33 GHz e
+  sobe durante a execução, porque nada a esquenta antes. Modo texto não é
+  apenas "mais limpo": ele troca o regime, e a §1.2 da
+  [metodologia dos fundamentos](../../../docs/01-fundamentos/metodologia.md)
+  manda declarar qual dos dois se mediu.
 - **Vinte execuções por braço dão pouco poder.** O braço E produziu p = 0,028
   contra a condição sem pressão e a réplica não confirmou (§6.6.3). Nenhuma
   conclusão deste tópico repousa sobre um único par de coletas.
