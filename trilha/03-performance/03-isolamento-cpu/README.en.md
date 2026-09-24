@@ -743,7 +743,7 @@ mode.
   parameters for this purpose. The intervention would separate the attribution
   "GPU" from the attribution "graphical session", which the present measurement
   does not distinguish.
-- **The magnitude of the shift in existing comparisons.** The 56 measurements
+- **The magnitude of the shift in existing comparisons.** The 198 labels
   compared by `comparar-hardware.py` were not re-run in text mode. By the
   median argument a small shift is expected; this is an expectation, not a
   measurement.
@@ -814,7 +814,7 @@ rejects invalid parameters with a distinct code, and **declares** when
   effect on published medians is bounded — the median of the largest stall
   varied by 13% between the two conditions (§6.7) — but high percentiles and
   maxima measured under that condition incorporate the source.
-- **The shift of the 56 measurements in `comparar-hardware.py` under text mode
+- **The shift of the 198 labels in `comparar-hardware.py` under text mode
   has not been quantified.** Measuring it would require repeating the hardware
   campaign under the new condition.
 - **The memory configuration and the reboot were not separated, and will not

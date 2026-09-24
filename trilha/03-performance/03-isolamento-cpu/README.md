@@ -737,8 +737,9 @@ em modo texto.
 - **Efeito da desativação do *power gating*.** O driver `amdgpu` aceita
   parâmetros para essa finalidade. A intervenção separaria a atribuição "GPU"
   da atribuição "sessão gráfica", que a medição atual não distingue.
-- **Magnitude do deslocamento nas comparações existentes.** As 56 medições
-  confrontadas por `comparar-hardware.py` não foram reexecutadas em modo texto.
+- **Magnitude do deslocamento nas comparações existentes.** Os 198 rótulos
+  confrontados por `comparar-hardware.py` não foram reexecutados em modo
+  texto.
   Pelo argumento da mediana, espera-se deslocamento reduzido; trata-se de
   expectativa, não de medição.
 - **Generalidade do achado.** A medição foi obtida em uma máquina, com GPU
@@ -806,7 +807,7 @@ classifica, relata a janela, recusa parâmetro inválido com código distinto, e
   sobre as medianas publicadas é limitado — a mediana da maior parada variou
   13 % entre as duas condições (§6.7) —, mas percentis altos e máximos medidos
   nessa condição incorporam a fonte.
-- **O deslocamento das 56 medições de `comparar-hardware.py` em modo texto não
+- **O deslocamento dos 198 rótulos de `comparar-hardware.py` em modo texto não
   foi quantificado.** A medição exigiria repetir a campanha de hardware na
   nova condição.
 - **A configuração de memória e o reinício não foram separados, e não serão.**

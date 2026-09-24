@@ -722,7 +722,7 @@ program rather than by the operator's memory.
 
 ### The limit of this correction
 
-The 56 comparisons confronted by `comparar-hardware.py` were **not re-run** in
+The 198 labels confronted by `comparar-hardware.py` were **not re-run** in
 text mode. By the median argument a small shift is expected, but this is an
 expectation, not a measurement. The finding also comes from one machine, with
 an AMD integrated GPU: platforms with a discrete GPU or a different driver are

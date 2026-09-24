@@ -711,7 +711,7 @@ pelo programa e não pela lembrança do operador.
 
 ### O limite desta correção
 
-As 56 comparações que o `comparar-hardware.py` confronta **não foram
+Os 198 rótulos que o `comparar-hardware.py` confronta **não foram
 reexecutadas** em modo texto. Pelo argumento da mediana espera-se deslocamento
 reduzido, mas trata-se de expectativa, não de medição. O achado também é de
 uma máquina, com GPU integrada AMD: plataformas com GPU discreta ou outro
