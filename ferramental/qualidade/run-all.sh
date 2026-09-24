@@ -176,7 +176,7 @@ echo "=========================================================="
 # --------------------------------------------------------------------------
 SAIDA_AMB="docs/01-fundamentos/medicoes/historico/$CONFIG-ambiente-$SELO"
 echo
-echo "==> ETAPA 1/3  procedencia da maquina  ($(date +%T))"
+echo "==> ETAPA 1/4  procedencia da maquina  ($(date +%T))"
 mkdir -p "$SAIDA_AMB"
 chown "$DONO" .ambiente-memoria 2>/dev/null   # o cache ja foi refeito ao derivar o nome
 {
@@ -202,7 +202,7 @@ echo "    saida: $SAIDA_AMB"
 # --------------------------------------------------------------------------
 SAIDA_SONDA="docs/01-fundamentos/medicoes/historico/$CONFIG-sonda-$SELO"
 echo
-echo "==> ETAPA 2/3  sonda atomic relaxed  ($(date +%T))"
+echo "==> ETAPA 2/4  sonda atomic relaxed  ($(date +%T))"
 if [ ! -x "$SONDA" ]; then
     echo "    PULADO: $SONDA ausente; rode ./scripts/build-all.sh"
 else
@@ -305,12 +305,70 @@ fi
 # deste arquivo: os argumentos certos deixam de depender de memoria.
 # --------------------------------------------------------------------------
 echo
-echo "==> ETAPA 3/3  campanha completa  ($(date +%T))"
+echo "==> ETAPA 3/4  campanha completa  ($(date +%T))"
 # O MODO VAI DETECTADO, nao fixo. `--fixar-governor` vale nos dois: em texto
 # porque nada aquece a CPU, em grafico porque tira a unica variavel que o
 # compositor ainda move sem declarar.
 ./ferramental/qualidade/campanha.sh "--$MODO" --fixar-governor "$CONFIG"
 rc=$?
+
+# --------------------------------------------------------------------------
+# ETAPA 4: as invocacoes unicas da trilha.
+#
+# NAO SAO CAMPANHA, e o README delas diz isso: execucao unica nao carrega
+# dispersao nem serve de linha de base. Servem para que o bloco publicado no
+# topico tenha um arquivo por tras, que e o minimo que este projeto exige de
+# qualquer numero.
+#
+# Ficavam de fora deste script por acidente, nao por principio -- e por isso
+# eram os unicos blocos do material que so se refaziam a mao, com a invocacao
+# copiada do README. Copiar invocacao a mao e como o nome da coleta era
+# montado ate ontem.
+#
+# As invocacoes abaixo sao as que os documentos publicam. Mudar uma delas aqui
+# sem mudar no documento faz o bloco divergir da propria procedencia, e o
+# `verificar-blocos.py` acusa.
+# --------------------------------------------------------------------------
+echo
+echo "==> ETAPA 4/4  invocacoes unicas da trilha  ($(date +%T))"
+T02=trilha/01-fundamentos/02-mempool-ring
+SAIDA_T02="$T02/historico/$CONFIG-$SELO"
+SAIDA_CPP="$T02/alternativas/cpp23/historico/$CONFIG-$SELO"
+PR=build/$T02/pipeline_ring
+PRV=build/$T02/pipeline_ring_vazado
+PKT=build/$T02/alternativas/cpp23/packet_pipeline
+
+if [ ! -x "$PR" ] || [ ! -x "$PRV" ] || [ ! -x "$PKT" ]; then
+    echo "    PULADO: binarios do topico 02 ausentes; rode ./scripts/build-all.sh"
+else
+    mkdir -p "$SAIDA_T02" "$SAIDA_CPP"
+    ./scripts/ambiente.sh > "$SAIDA_T02/ambiente.txt" 2>&1
+
+    # `--file-prefix` proprio: sem ele, duas invocacoes simultaneas ou um
+    # residuo de execucao anterior disputam a mesma area de hugepage.
+    #
+    # O CODIGO DE SAIDA NAO E CONFERIDO AQUI, e isso e deliberado:
+    # `pipeline_ring_vazado` termina com 1 POR DESENHO -- ele existe para
+    # demonstrar o vazamento e o sinaliza pela saida. Tratar rc != 0 como falha
+    # faria o script "consertar" o unico programa que esta certo em falhar. O
+    # que se confere e a SAIDA ter conteudo, que e o que vira procedencia.
+    sudo -u "$DONO" -H "$PR"  -l 0   --no-huge --file-prefix=topico02 -- -n 10 \
+        > "$SAIDA_T02/pipeline_ring.n10.txt" 2>&1
+    sudo -u "$DONO" -H "$PR"  -l 0,2 --no-huge --file-prefix=topico02 -- -n 2000000 -b 256 \
+        > "$SAIDA_T02/pipeline_ring.2m-b256.txt" 2>&1
+    sudo -u "$DONO" -H "$PRV" -l 0,2 --no-huge --file-prefix=topico02 -- -n 2000000 -b 256 \
+        > "$SAIDA_T02/pipeline_ring_vazado.2m-b256.txt" 2>&1
+    sudo -u "$DONO" -H "$PKT" -n 10 \
+        > "$SAIDA_CPP/packet_pipeline.n10.txt" 2>&1
+
+    for f in "$SAIDA_T02"/pipeline_ring*.txt "$SAIDA_CPP"/packet_pipeline*.txt; do
+        [ -s "$f" ] && printf "    %-42s %s bytes\n" "$(basename "$f")" "$(stat -c %s "$f")" \
+                    || printf "    %-42s VAZIO\n" "$(basename "$f")"
+    done
+    chown -R "$DONO" "$SAIDA_T02" "$SAIDA_CPP"
+    echo "    saida: $SAIDA_T02"
+    echo "           $SAIDA_CPP"
+fi
 
 echo
 echo "=========================================================="
