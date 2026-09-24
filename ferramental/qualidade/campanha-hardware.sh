@@ -149,7 +149,7 @@ le() { ./$B/custo-comunicacao 2>/dev/null | awk '/within domain/{d=$8} /^  BETWE
   for c in 1 2 3 4; do sleep 30; a=$(le); b=$(le); echo "  $c      $a               $b"; done
 } > "$D/teste-estado-maquina.txt"
 
-echo "CONCLUIDA -> $D"
-echo "          -> $D2"
-echo "          -> $D3"
+echo "CONCLUIDA -> ${D#$RAIZ/}"   # relativo: o diario e publico
+echo "          -> ${D2#$RAIZ/}"
+echo "          -> ${D3#$RAIZ/}"
 echo "Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medicoes/historico/{outra,$CONF}"

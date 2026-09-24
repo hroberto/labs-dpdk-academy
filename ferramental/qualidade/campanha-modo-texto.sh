@@ -188,7 +188,11 @@ mkdir -p "$SAIDA"
 chown -R "$DONO" "$SAIDA"
 exec > >(tee -a "$SAIDA/diario.txt") 2>&1
 echo "==> campanha em modo texto  $(date -Is)"
-echo "    saida: $SAIDA"
+# CAMINHO RELATIVO, e o motivo nao e estetica. O diario e versionado e o
+# repositorio e publico: um caminho absoluto carrega o nome de usuario da
+# maquina de quem mediu, que e a mesma classe de vazamento que o
+# `verificar-identidade.py` existe para impedir na historia do git.
+echo "    saida: ${SAIDA#$RAIZ/}"
 
 # --------------------------------------------------------------------------
 # PROCEDENCIA. O que descreve a maquina vai para o arquivo ANTES de medir: se

@@ -44,7 +44,7 @@
   [ok]    rastros: 5 dimensao(oes) de rastro conferida(s); 0 residuo(s)
 
 [1m== 6. Assinatura de commit ==[0m
-  [ok]    commit.gpgsign ativo (chave /home/henrique/.…)
+  [ok]    commit.gpgsign ativo (chave …/<redigido>…)
 
 [1m== Veredito ==[0m
   [1mtudo passou.[0m Pode commitar.

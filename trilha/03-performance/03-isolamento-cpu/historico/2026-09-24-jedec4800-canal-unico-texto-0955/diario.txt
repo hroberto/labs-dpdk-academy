@@ -1,5 +1,5 @@
 ==> campanha em modo texto  2026-09-24T09:55:28-03:00
-    saida: /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955
     alvo systemd     : graphical.target
     processos grafico: 0
     governor cpu2    : powersave
@@ -26,14 +26,14 @@
     repeticao 3 de 5 concluida
     repeticao 4 de 5 concluida
     repeticao 5 de 5 concluida
-==> 20 execucoes registradas em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/isolamento/isolamento.csv
+==> 20 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/isolamento/isolamento.csv
     ok
 
 ==> 3/6 campanha de tempo do mempool  (10:15:29)
 ==> campanha B4-tempo: 2 versoes x 2 topologias
     x 10 tamanhos de cache x 21 repeticoes
     prefixos SEM RTE_LIBRTE_MEMPOOL_STATS, metrica em ns/pacote
-    saida: /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/mempool-tempo/mempool-tempo.csv
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/mempool-tempo/mempool-tempo.csv
     repeticao 1 de 21 concluida
     repeticao 2 de 21 concluida
     repeticao 3 de 21 concluida
@@ -55,27 +55,27 @@
     repeticao 19 de 21 concluida
     repeticao 20 de 21 concluida
     repeticao 21 de 21 concluida
-==> 840 execucoes registradas em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/mempool-tempo/mempool-tempo.csv
+==> 840 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/mempool-tempo/mempool-tempo.csv
     ok
 
 ==> 4/6 campanha de miss do mempool  (10:17:27)
 ==> campanha B4: 2 versoes x 2 topologias
     x 9 tamanhos de cache x 6 repeticoes
-    saida: /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/mempool-cache/mempool-cache.csv
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/mempool-cache/mempool-cache.csv
     repeticao 1 de 6 concluida
     repeticao 2 de 6 concluida
     repeticao 3 de 6 concluida
     repeticao 4 de 6 concluida
     repeticao 5 de 6 concluida
     repeticao 6 de 6 concluida
-==> 240 execucoes registradas em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/mempool-cache/mempool-cache.csv
+==> 240 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/mempool-cache/mempool-cache.csv
     ok
 
 ==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  (10:18:01)
     hugepage do feed: /mnt/huge-academia (efemera, desmontada no fim)
-CONCLUIDA -> /home/henrique/workspaces/labs_dpdk_academy/docs/01-fundamentos/medicoes/historico/2026-09-24-jedec4800-canal-unico-texto-0955
-          -> /home/henrique/workspaces/labs_dpdk_academy/docs/02-runtime-dpdk/medicoes/historico/2026-09-24-jedec4800-canal-unico-texto-0955
-          -> /home/henrique/workspaces/labs_dpdk_academy/docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-24-jedec4800-canal-unico-texto-0955
+CONCLUIDA -> docs/01-fundamentos/medicoes/historico/2026-09-24-jedec4800-canal-unico-texto-0955
+          -> docs/02-runtime-dpdk/medicoes/historico/2026-09-24-jedec4800-canal-unico-texto-0955
+          -> docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-24-jedec4800-canal-unico-texto-0955
 Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medicoes/historico/{outra,2026-09-24-jedec4800-canal-unico-texto-0955}
     ok
     feed: 12 arquivos, completo
@@ -107,7 +107,7 @@ Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medi
       189 rotulo(s); mediana das medianas, execucao de aquecimento descartada
       5 rotulo(s); mediana das medianas, execucao de aquecimento descartada
       3 rotulo(s); mediana das medianas, execucao de aquecimento descartada
-    comparacao completa em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/comparacao.txt
+    comparacao completa em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/comparacao.txt
 
     portao de qualidade:
         [ok]    build limpo, zero avisos
@@ -115,7 +115,7 @@ Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medi
 
 ==> CONCLUIDA  2026-09-24T10:54:16-03:00
 
-    O que ficou em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955:
+    O que ficou em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955:
       ambiente.txt      estado da maquina antes de medir
       osnoise-hist.txt  distribuicao de ruido, dez minutos
       isolamento/       20 celulas do stall_probe

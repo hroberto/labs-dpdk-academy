@@ -415,7 +415,13 @@ if [ -n "${CI:-}${GITHUB_ACTIONS:-}" ]; then
     fi
 elif [ "$(git config --get commit.gpgsign || echo false)" = "true" ]; then
     chave=$(git config --get user.signingkey || echo "")
-    if [ -n "$chave" ]; then ok "commit.gpgsign ativo (chave ${chave:0:16}…)"
+    # TRUNCAR NAO BASTA QUANDO A CHAVE E UM CAMINHO. Os dezesseis primeiros
+    # caracteres de um caminho sob o diretorio pessoal sao exatamente o prefixo
+    # que carrega o nome de usuario, e a saida deste portao e arquivada junto
+    # das campanhas -- num repositorio publico.
+    # Chave por ID continua sendo mostrada; caminho vira so o nome do arquivo.
+    case "$chave" in /*|~*) chave="…/$(basename "$chave")" ;; esac
+    if [ -n "$chave" ]; then ok "commit.gpgsign ativo (chave ${chave:0:24}…)"
     else falha "commit.gpgsign ativo mas user.signingkey não definido"; fi
 else
     falha "commit.gpgsign desligado — a main exige assinatura verificada"

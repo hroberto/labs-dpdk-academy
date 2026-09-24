@@ -1,5 +1,5 @@
 ==> campanha em modo texto  2026-09-24T11:10:17-03:00
-    saida: /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-unico-texto-1110
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-unico-texto-1110
     alvo systemd     : graphical.target
     processos grafico: 0
     governor cpu2    : powersave
@@ -14,9 +14,9 @@
 
 ==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  (11:10:17)
     hugepage do feed: /mnt/huge-academia (efemera, desmontada no fim)
-CONCLUIDA -> /home/henrique/workspaces/labs_dpdk_academy/docs/01-fundamentos/medicoes/historico/2026-09-24-expo6000-canal-unico-texto-1110
-          -> /home/henrique/workspaces/labs_dpdk_academy/docs/02-runtime-dpdk/medicoes/historico/2026-09-24-expo6000-canal-unico-texto-1110
-          -> /home/henrique/workspaces/labs_dpdk_academy/docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-24-expo6000-canal-unico-texto-1110
+CONCLUIDA -> docs/01-fundamentos/medicoes/historico/2026-09-24-expo6000-canal-unico-texto-1110
+          -> docs/02-runtime-dpdk/medicoes/historico/2026-09-24-expo6000-canal-unico-texto-1110
+          -> docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-24-expo6000-canal-unico-texto-1110
 Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medicoes/historico/{outra,2026-09-24-expo6000-canal-unico-texto-1110}
     ok
     feed: 12 arquivos, completo
@@ -48,7 +48,7 @@ Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medi
       189 rotulo(s); mediana das medianas, execucao de aquecimento descartada
       5 rotulo(s); mediana das medianas, execucao de aquecimento descartada
       3 rotulo(s); mediana das medianas, execucao de aquecimento descartada
-    comparacao completa em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-unico-texto-1110/comparacao.txt
+    comparacao completa em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-unico-texto-1110/comparacao.txt
 
     portao de qualidade:
         [ok]    build limpo, zero avisos
@@ -56,7 +56,7 @@ Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medi
 
 ==> CONCLUIDA  2026-09-24T11:43:27-03:00
 
-    O que ficou em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-unico-texto-1110:
+    O que ficou em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-unico-texto-1110:
       ambiente.txt      estado da maquina antes de medir
       osnoise-hist.txt  distribuicao de ruido, dez minutos
       isolamento/       20 celulas do stall_probe
