@@ -1,0 +1,101 @@
+EAL: Detected CPU lcores: 24
+EAL: Detected NUMA nodes: 1
+EAL: Detected shared linkage of DPDK
+EAL: Multi-process socket /tmp/dpdk/camp_anatomia-mbuf_5/mp_socket
+EAL: Selected IOVA mode 'VA'
+  origin: anatomia-mbuf @ v0.06.00-23-g6b7d70e  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-24T12:24:52-0300  |  DPDK 25.11.0
+
+
+== 1. The layout, with this version's numbers ==
+
+  sizeof(struct rte_mbuf) ..... 128 bytes (2 cache lines of 64 B)
+  RTE_PKTMBUF_HEADROOM ........ 128 bytes reserved BEFORE the data
+  RTE_MBUF_DEFAULT_DATAROOM ... 2048 bytes for the packet
+  RTE_MBUF_DEFAULT_BUF_SIZE ... 2176 bytes (dataroom + headroom)
+  element (mbuf + buffer) ..... 2304 bytes
+  + mempool header ............ 64 bytes
+  = object in the pool ........ 2368 bytes
+
+  A pool of 8192 mbufs takes about 18.5 MiB in objects alone.
+
+  Offset of each field inside the structure:
+
+    field          offset  cache line
+    -----          ------  --------------
+    buf_addr            0  0
+    data_off           16  0
+    refcnt             18  0
+    nb_segs            20  0
+    port               22  0
+    pkt_len            36  0
+    data_len           40  0
+    buf_len            54  0
+    pool               56  0
+    next               64  1
+    tx_offload         72  1
+    shinfo             80  1
+    priv_size          88  1
+    timesync           90  1
+    dynfield1          92  1
+
+  The split across two cache lines is deliberate, and the table above
+  shows where it falls. The FIRST line holds what the hot path reads on
+  every packet: buffer, offsets, lengths, refcount and pool.
+
+  The SECOND line holds six fields, not one: next, tx_offload, shinfo,
+  priv_size, timesync and dynfield1. `next` is the one the DPDK header
+  names explicitly -- "next pointer in the second cache line" -- because
+  it is the one whose absence from the first line was a design choice.
+
+  AND A SINGLE-SEGMENT PACKET STILL TOUCHES THE SECOND LINE.
+  The generic free path reads it: rte_pktmbuf_prefree_seg() does
+  `if (m->next != NULL) m->next = NULL;` on every segment it releases.
+  So the saving is on the RX/TX hot path, not over the mbuf's whole
+  life -- allocation and release reach the second line regardless.
+
+== 2. The four numbers, in motion ==
+
+  A 60-byte packet, encapsulated and then decapsulated.
+  Note WHEN each number changes -- and when it does not.
+
+  step                            buf_len  headroom  data_len   pkt_len  tailroom nb_segs
+  ------------------------------  -------  --------  --------   -------  --------  ------
+  freshly allocated                  2176       128         0         0      2048       1
+  append(60) = payload               2176       128        60        60      1988       1
+  prepend(14) = ethernet             2176       114        74        74      1988       1
+  prepend(20) = tunnel               2176        94        94        94      1988       1
+  adj(20) = strips the tunnel        2176       114        74        74      1988       1
+  trim(4) = strips from the end      2176       114        70        70      1992       1
+
+  headroom shrinks on every prepend and grows on every adj: it is the
+  space BEFORE the data. tailroom does the opposite, at the end. buf_len
+  never changes: it is the size of the buffer, not of the packet.
+
+== 3. Packet in several segments ==
+
+  Here data_len and pkt_len STOP being equal, and this is where most
+  code breaks: whoever reads data_len thinking it is the packet size
+  processes only the first chunk, silently.
+
+  step                            buf_len  headroom  data_len   pkt_len  tailroom nb_segs
+  ------------------------------  -------  --------  --------   -------  --------  ------
+  head of the chain                  2176       114        70       170      1992       2
+  second segment                     2176         -       100         -         -       -
+
+  pkt_len (170) = sum of all segments.
+  data_len (70) = only what fits in THIS mbuf.
+  nb_segs (2) = how many mbufs make up the packet.
+
+== 4. Who frees the mbuf ==
+
+  refcnt of the head .......... 1
+  free objects in the pool .... 1021 of 1023
+
+  after rte_pktmbuf_free(head):
+  free objects in the pool .... 1023 of 1023
+
+  BOTH mbufs came back with a single call: free() walks the chain.
+  Freeing the second segment as well, on its own, would return the
+  same object to the pool twice -- and the pool does not complain:
+  it starts handing the SAME object to two owners.
+

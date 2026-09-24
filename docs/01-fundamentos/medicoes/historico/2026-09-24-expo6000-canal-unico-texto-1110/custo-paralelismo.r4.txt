@@ -1,0 +1,74 @@
+  origin: custo-paralelismo @ v0.06.00-23-g6b7d70e  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-24T11:30:50-0300
+
+Latency vs throughput: the same access, with K in flight (256 MB)
+(7 samples per measurement; times in ns)
+
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  K = 1  (1 access in flight)            78.15  78.13-78.19     78.06-78.26         0.1%   0.1%  
+  K = 2  (2 accesses in flight)          38.64  38.63-38.66     38.61-38.73         0.1%   0.1%  
+  K = 4  (4 accesses in flight)          21.01  21.00-21.04     20.98-21.09         0.2%   0.2%  
+  K = 8  (8 accesses in flight)          11.13  11.12-11.13     11.11-11.14         0.1%   0.1%  
+  K = 12 (12 accesses in flight)          7.73  7.73-7.74       7.72-7.75           0.1%   0.1%  
+  K = 16 (16 accesses in flight)          6.00  6.00-6.01       5.99-6.02           0.3%   0.2%  
+  K = 32 (32 accesses in flight)          3.59  3.59-3.60       3.58-3.61           0.3%   0.2%  
+  K = 64 (64 accesses in flight)          2.86  2.85-2.86       2.84-2.87           0.4%   0.3%  
+
+  What the table above means, column by column:
+
+   K   ns/access   M accesses/s   batch of K ready in   throughput gain
+  ---  ---------   -----------   ---------------------   --------------
+    1      78.15        12.8                78 ns            1.0x
+    2      38.64        25.9                77 ns            2.0x
+    4      21.01        47.6                84 ns            3.7x
+    8      11.13        89.9                89 ns            7.0x
+   12       7.73       129.3                93 ns           10.1x
+   16       6.00       166.5                96 ns           13.0x
+   32       3.59       278.2               115 ns           21.7x
+   64       2.86       349.9               183 ns           27.3x
+
+  The latency of ONE access is ~78 ns and does not change in any row.
+  What changes is how many of them happen at the same time.
+
+  With K = 1 this machine does 12.8 M accesses/s -- BELOW the 14.9 M
+  packets/s of the 10 GbE line rate with 64 B frames. A single
+  dependent access per packet already loses the rate, before any
+  processing. With K = 64 there is 2252% of headroom left.
+
+  And the price: the batch of 64 is only ready in 183 ns, against 78 ns
+  for the lone access. Throughput bought with latency -- the budget of
+  67.2 ns per packet says how much of that trade you can afford.
+
+
+  PHASE 2 -- and when several cores want the same memory?
+
+  Each core walks 16 chains of its own over the SAME region.
+  No line is shared between threads: what remains is the
+  memory path. 12 physical cores available.
+  (21 samples per point -- more than phase 1; see the comment
+   on AMOSTRAS_NUCLEOS_FIXO for why 7 are not enough here)
+
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  1 core                                  6.34  6.31-6.38       6.29-6.45           1.0%   0.8%  
+  2 cores                                 6.97  6.94-7.01       6.86-7.09           1.0%   0.8%  
+  4 cores                                 8.96  8.90-9.00       8.81-9.49           1.1%   1.6%  
+  8 cores                                14.88  14.86-14.93     14.60-15.07         0.5%   0.6%  
+  12 cores                               22.12  22.06-22.21     21.99-22.29         0.7%   0.4%  
+
+     cores   ns/access   M accesses/s     aggregate   ideal scaling
+  --------   ---------   -----------   -----------   ------------
+         1        6.34       157.8         157.8          100%
+         2        6.97       143.4         286.9           91%
+         4        8.96       111.6         446.6           71%
+         8       14.88        67.2         537.7           43%
+        12       22.12        45.2         542.5           29%
+
+  From 1 to 12 cores the AGGREGATE throughput grows 3.4x, not 12x.
+  Each core, alone, did 157.8 M accesses/s; with 12 active it does
+  45.2 M -- 29% of what it did alone. Bandwidth does not multiply
+  per core: it is divided.
+
+  And the design consequence: sizing a data plane from the
+  measurement of ONE lcore overestimates the whole system. The number
+  that matters is the bottom row of this table, not the top one.

@@ -1,0 +1,9 @@
+alvo systemd     : graphical.target
+processos grafico: 0
+governor cpu2    : powersave
+C3 disable cpu2  : 0
+cmdline          : BOOT_IMAGE=/boot/vmlinuz-7.0.0-31-generic root=UUID=bdd65119-6069-4cc3-898a-7e0a0beba60b ro quiet splash amd_iommu=on iommu=pt crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M systemd.unit=multi-user.target
+kernel           : 7.0.0-31-generic
+uptime           : up 2 minutes
+memoria          : avail 11,24 GiB, swap em uso 0,00 GiB
+carga            : 0.40 0.17 0.06

@@ -1,0 +1,23 @@
+  origin: custo-init @ v0.06.00-23-g6b7d70e  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-24T13:10:18-0300  |  DPDK 25.11.0
+
+
+== Cost of initialising and shutting down the EAL ==
+
+  configuration measured: -l 0 --in-memory
+  samples: 11 (one per process; rte_eal_init is not reentrant)
+
+  warning: "rte_eal_cleanup()" has disp 10.1% with 11 samples -- in that band the seal
+           does not decide. Raise it to 20+ before explaining the result.
+  values in MILLISECONDS
+
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  rte_eal_init()                         121.5  120.6-121.6     117.8-122.6         0.8%   1.2%  
+  rte_eal_cleanup()                      0.094  0.088-0.098     0.074-0.108        10.1%   9.9% !
+
+  Reading:
+    At 10 GbE with 64 B frames one packet arrives every 67.2 ns.
+    The 121 ms initialisation window is worth 2 million packets
+    not served. That is why a data-plane process comes up once
+    and stays up: restarting it in production is not a cheap operation.
+

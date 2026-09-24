@@ -1,0 +1,72 @@
+==> campanha em modo texto  2026-09-24T11:10:17-03:00
+    saida: /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-unico-texto-1110
+    alvo systemd     : graphical.target
+    processos grafico: 0
+    governor cpu2    : powersave
+    C3 disable cpu2  : 0
+    cmdline          : BOOT_IMAGE=/boot/vmlinuz-7.0.0-31-generic root=UUID=bdd65119-6069-4cc3-898a-7e0a0beba60b ro quiet splash amd_iommu=on iommu=pt crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M systemd.unit=multi-user.target
+    kernel           : 7.0.0-31-generic
+    uptime           : up 2 minutes
+    memoria          : avail 11,25 GiB, swap em uso 0,00 GiB
+    carga            : 0.50 0.21 0.08
+
+==> passos 1 a 4 PULADOS (--so-hardware): nao dependem do perfil de memoria
+
+==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  (11:10:17)
+    hugepage do feed: /mnt/huge-academia (efemera, desmontada no fim)
+CONCLUIDA -> /home/henrique/workspaces/labs_dpdk_academy/docs/01-fundamentos/medicoes/historico/2026-09-24-expo6000-canal-unico-texto-1110
+          -> /home/henrique/workspaces/labs_dpdk_academy/docs/02-runtime-dpdk/medicoes/historico/2026-09-24-expo6000-canal-unico-texto-1110
+          -> /home/henrique/workspaces/labs_dpdk_academy/docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-24-expo6000-canal-unico-texto-1110
+Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medicoes/historico/{outra,2026-09-24-expo6000-canal-unico-texto-1110}
+    ok
+    feed: 12 arquivos, completo
+    hugepage do feed desmontada
+
+==> 6/6 revisao dos dados do projeto  (11:42:26)
+    rotulos que se moveram mais de 5%: 28
+        custo-espera: atomic seq_cst (store+load)                                   3.680           3.960    +7.6%  <<<
+        custo-paralelismo: 1 core                                                   5.850           6.330    +8.2%  <<<
+        custo-paralelismo: 12 cores                                                12.660          22.140   +74.9%  <<<
+        custo-paralelismo: 2 cores                                                  6.080           6.970   +14.6%  <<<
+        custo-paralelismo: 4 cores                                                  6.690           8.940   +33.6%  <<<
+        custo-paralelismo: 8 cores                                                  8.690          14.900   +71.5%  <<<
+        custo-paralelismo: K = 16 (16 accesses in flight)                           5.670           6.000    +5.8%  <<<
+        custo-paralelismo: K = 32 (32 accesses in flight)                           3.200           3.590   +12.2%  <<<
+        custo-paralelismo: K = 64 (64 accesses in flight)                           2.440           2.860   +17.2%  <<<
+        custo-traducao.regiao16mb: DIFFERENCE attributable to translation           1.660           1.400   -15.7%  <<<
+        custo-traducao.regiao32mb: 2 MB hugepages                                  14.920          13.700    -8.2%  <<<
+        custo-traducao.regiao32mb: 4 KB pages                                      32.660          30.200    -7.5%  <<<
+        custo-traducao.regiao32mb: DIFFERENCE attributable to translation          17.560          16.490    -6.1%  <<<
+        custo-traducao.regiao64mb: DIFFERENCE attributable to translation           7.450           6.330   -15.0%  <<<
+        custo-traducao.seq16mb: 4 KB pages                                          1.010           0.951    -5.8%  <<<
+        custo-traducao.seq16mb: DIFFERENCE attributable to translation              0.106           0.039   -63.2%  <<<
+        custo-traducao.seq32mb: 4 KB pages                                          1.210           1.340   +10.7%  <<<
+        custo-traducao.seq32mb: DIFFERENCE attributable to translation              0.040           0.133  +232.5%  <<<
+        custo-traducao.seq512mb: 2 MB hugepages                                     1.370           1.640   +19.7%  <<<
+        custo-traducao.seq512mb: 4 KB pages                                         1.340           1.660   +23.9%  <<<
+    PREVISAO REFUTADA (28 rotulos marcados, previa-se no maximo 5)
+      189 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+      5 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+      3 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+    comparacao completa em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-unico-texto-1110/comparacao.txt
+
+    portao de qualidade:
+        [ok]    build limpo, zero avisos
+        [1mtudo passou.[0m Pode commitar.
+
+==> CONCLUIDA  2026-09-24T11:43:27-03:00
+
+    O que ficou em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-unico-texto-1110:
+      ambiente.txt      estado da maquina antes de medir
+      osnoise-hist.txt  distribuicao de ruido, dez minutos
+      isolamento/       20 celulas do stall_probe
+      mempool-tempo/    ns por pacote, prefixos sem estatisticas
+      mempool-cache/    idas ao anel, mesma condicao do tempo
+      comparacao.txt    o que se moveu contra a coleta com sessao grafica
+      portao.txt        portao de qualidade completo
+
+    A campanha de hardware ficou nos historicos dos tres modulos,
+    sob 2026-09-24-expo6000-canal-unico-texto-1110.
+
+    Para voltar ao modo grafico:
+      sudo systemctl set-default graphical.target && sudo reboot

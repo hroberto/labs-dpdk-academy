@@ -1,0 +1,64 @@
+==> campanha em modo texto  2026-09-24T11:56:33-03:00
+    saida: /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-duplo-texto-1156
+    alvo systemd     : graphical.target
+    processos grafico: 0
+    governor cpu2    : powersave
+    C3 disable cpu2  : 0
+    cmdline          : BOOT_IMAGE=/boot/vmlinuz-7.0.0-31-generic root=UUID=bdd65119-6069-4cc3-898a-7e0a0beba60b ro quiet splash amd_iommu=on iommu=pt crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M systemd.unit=multi-user.target
+    kernel           : 7.0.0-31-generic
+    uptime           : up 1 minute
+    memoria          : avail 26,84 GiB, swap em uso 0,00 GiB
+    carga            : 0.35 0.11 0.04
+
+==> passos 1 a 4 PULADOS (--so-hardware): nao dependem do perfil de memoria
+
+==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  (11:56:33)
+    hugepage do feed: /mnt/huge-academia (efemera, desmontada no fim)
+CONCLUIDA -> /home/henrique/workspaces/labs_dpdk_academy/docs/01-fundamentos/medicoes/historico/2026-09-24-expo6000-canal-duplo-texto-1156
+          -> /home/henrique/workspaces/labs_dpdk_academy/docs/02-runtime-dpdk/medicoes/historico/2026-09-24-expo6000-canal-duplo-texto-1156
+          -> /home/henrique/workspaces/labs_dpdk_academy/docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-24-expo6000-canal-duplo-texto-1156
+Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medicoes/historico/{outra,2026-09-24-expo6000-canal-duplo-texto-1156}
+    ok
+    feed: 12 arquivos, completo
+    hugepage do feed desmontada
+
+==> 6/6 revisao dos dados do projeto  (12:27:50)
+    rotulos que se moveram mais de 5%: 12
+        custo-espera: atomic seq_cst (store+load)                                   3.680           3.980    +8.2%  <<<
+        custo-traducao.regiao16mb: DIFFERENCE attributable to translation           1.660           1.510    -9.0%  <<<
+        custo-traducao.regiao32mb: 2 MB hugepages                                  14.920          14.070    -5.7%  <<<
+        custo-traducao.regiao32mb: 4 KB pages                                      32.660          28.230   -13.6%  <<<
+        custo-traducao.regiao32mb: DIFFERENCE attributable to translation          17.560          14.450   -17.7%  <<<
+        custo-traducao.regiao64mb: DIFFERENCE attributable to translation           7.450           6.610   -11.3%  <<<
+        custo-traducao.seq16mb: DIFFERENCE attributable to translation              0.106           0.066   -37.7%  <<<
+        custo-traducao.seq32mb: DIFFERENCE attributable to translation              0.040           0.044   +10.0%  <<<
+        custo-traducao.seq8mb: DIFFERENCE attributable to translation               0.049           0.029   -40.8%  <<<
+        custo-alocacao: malloc/free                           2.180           2.780   +27.5%  <<<
+        custo-alocacao: mempool get/put, NO cache            10.470          13.420   +28.2%  <<<
+        custo-alocacao: mempool get/put, with cache           0.993           1.620   +63.1%  <<<
+    PREVISAO REFUTADA (12 rotulos marcados, previa-se no maximo 5)
+      187 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+      5 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+      3 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+    comparacao completa em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-duplo-texto-1156/comparacao.txt
+
+    portao de qualidade:
+        [ok]    build limpo, zero avisos
+        [1mtudo passou.[0m Pode commitar.
+
+==> CONCLUIDA  2026-09-24T12:28:51-03:00
+
+    O que ficou em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-duplo-texto-1156:
+      ambiente.txt      estado da maquina antes de medir
+      osnoise-hist.txt  distribuicao de ruido, dez minutos
+      isolamento/       20 celulas do stall_probe
+      mempool-tempo/    ns por pacote, prefixos sem estatisticas
+      mempool-cache/    idas ao anel, mesma condicao do tempo
+      comparacao.txt    o que se moveu contra a coleta com sessao grafica
+      portao.txt        portao de qualidade completo
+
+    A campanha de hardware ficou nos historicos dos tres modulos,
+    sob 2026-09-24-expo6000-canal-duplo-texto-1156.
+
+    Para voltar ao modo grafico:
+      sudo systemctl set-default graphical.target && sudo reboot

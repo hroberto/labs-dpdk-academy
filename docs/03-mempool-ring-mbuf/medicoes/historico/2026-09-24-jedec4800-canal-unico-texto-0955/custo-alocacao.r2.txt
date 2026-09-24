@@ -1,0 +1,57 @@
+EAL: Detected CPU lcores: 24
+EAL: Detected NUMA nodes: 1
+EAL: Detected shared linkage of DPDK
+EAL: Multi-process socket /tmp/dpdk/camp_custo-alocacao_2/mp_socket
+EAL: Selected IOVA mode 'VA'
+  origin: custo-alocacao @ v0.06.00-23-g6b7d70e  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-24T10:34:09-0300  |  DPDK 25.11.0
+
+
+== What it costs to get one object ==
+
+  object of 128 bytes; pool of 4095 objects
+  cache per lcore ........ 455 objects (derived, not eyeballed)
+    chosen ............... no caveats
+    the obvious (256) .... n is not a multiple of the cache (objects pinned) -> 255 objects pinned
+  samples: 25, each with 200000 operations
+  measuring on lcore 0; noise thread pinned to CPU 2
+  (glibc has a fast path for single-threaded processes; without the
+   noise thread malloc would measure a cost no real server pays)
+
+  --- one object at a time, in NANOSECONDS PER OBJECT ---
+
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  malloc/free                             2.78  2.77-2.78       2.77-2.78           0.3%   0.2%  
+  mempool get/put, with cache             1.25  1.25-1.62       1.23-1.62          29.8%  12.7% !
+  mempool get/put, NO cache              13.42  13.37-13.42     11.81-13.46         0.4%   3.7%  
+
+  frequency of core 0 during the measurement: 4.33 -> 4.93 GHz
+  ratios, which do NOT depend on frequency:
+    mempool with cache is 2.23x faster than malloc
+    the per-lcore cache is worth 10.8x (with cache against without)
+    without the cache, the mempool is 4.8x SLOWER than malloc
+
+  --- in BATCH, ns per object: the two sides move in opposite directions ---
+
+  batch         malloc/free   mempool bulk      ratio
+  -----         -----------   ------------      -----
+  1                 2.73 ns       1.820 ns       1.5x
+  8                 2.26 ns       0.641 ns       3.5x
+  32               12.31 ns       0.464 ns      26.6x
+  128              19.64 ns       0.434 ns      45.3x
+
+  Reading:
+    The pool is not magic: it trades dynamic allocation for an index
+    into a pre-allocated array, and the per-lcore cache avoids even the
+    atomic operation on the shared ring -- which is what the NO-cache row measures.
+
+    The direction of the two batch columns is the main result: asking for
+    more objects at once makes each object CHEAPER in the mempool and MORE
+    EXPENSIVE in malloc. The reason on the malloc side lies inside glibc's
+    allocator and this project does not investigate it; what matters here is
+    that the batching strategy, central to the data plane, only pays off on
+    one of the sides.
+
+    None of these numbers includes page faults: the pool is already warm.
+    In production, the first pass over the memory is more expensive.
+

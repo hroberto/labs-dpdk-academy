@@ -1,0 +1,71 @@
+EAL: Detected CPU lcores: 24
+EAL: Detected NUMA nodes: 1
+EAL: Detected shared linkage of DPDK
+EAL: Selected IOVA mode 'VA'
+EAL: No free 1048576 kB hugepages reported on node 0
+  origin: estado-lcore @ v0.06.00-23-g6b7d70e  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-24T12:01:14-0300  |  DPDK 25.11.0
+
+
+== What the EAL decided ==
+
+  version .............. DPDK 25.11.0
+  process type ......... PRIMARIO
+  IOVA mode ............ VA (virtual)
+  arguments consumed     3  (rte_eal_init returns the COUNT, not 0/-1)
+  lcores in use ........ 4  (the machine has 24 logical CPUs)
+  main lcore ........... 0
+  clock (TSC) .......... 4.392 GHz
+
+  lcore    real CPU(s)    role         core id        NUMA node
+  -----    ------------   -----        -------        ------- 
+  0        0              main         0              0       
+  1        1              worker       1              0       
+  2        2              worker       2              0       
+  3        3              worker       3              0       
+
+  Two columns that are often confused:
+
+  * "real CPU(s)" comes from rte_lcore_cpuset(): it is where the lcore's
+    thread is actually pinned. With -l 0-3 it matches the lcore number; with
+    --lcores '0@6' lcore 0 starts running on CPU 6.
+
+  * "core id" comes from rte_lcore_to_cpu_id(), and BOTH its name and its
+    documentation mislead. The header promises "the id of the lcore on a
+    socket starting from zero"; the implementation returns
+    lcore_config[lcore_id].core_id, filled once from the sysfs file
+    cpu<lcore_id>/topology/core_id -- the PHYSICAL CORE ID of the CPU whose
+    number equals the lcore id.
+
+    Three consequences follow, and each breaks a different assumption:
+      - it is NOT the CPU number, and not an index either;
+      - SMT siblings SHARE it, so two enabled lcores can report the same
+        value -- which an index "starting from zero" could never do;
+      - --lcores does not update it: it is indexed by lcore id, not by the
+        CPU the lcore was pinned to.
+
+    Try:  --lcores '0@3,12@4'   (lcores 0 and 12 are SMT siblings here)
+    Using this value to pin a thread or pick an IRQ puts the work on the
+    wrong core, and the symptom shows up only in performance.
+
+== State machine of the worker lcore ==
+
+  This DPDK version exposes TWO states: WAIT and RUNNING.
+  Until DPDK 20.11 there was a third, FINISHED, still described in
+  most of the material available on the web.
+
+  apos rte_eal_init:     lcore 1: WAIT     lcore 2: WAIT     lcore 3: WAIT    
+  apos remote_launch:    lcore 1: RUNNING  lcore 2: RUNNING  lcore 3: RUNNING 
+  durante o trabalho:    lcore 1: RUNNING  lcore 2: RUNNING  lcore 3: RUNNING 
+
+  values returned by the workers:
+    lcore 1 -> 107
+    lcore 2 -> 207
+    lcore 3 -> 307
+
+  apos wait_lcore:       lcore 1: WAIT     lcore 2: WAIT     lcore 3: WAIT    
+
+  Note that the state returns to WAIT on its own: there is no FINISHED to
+  observe. rte_eal_wait_lcore() is what delivers the return value,
+  and that is why it remains mandatory even when the worker
+  has already finished.
+
