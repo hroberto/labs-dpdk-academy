@@ -624,7 +624,7 @@ GRUB configurada para `systemd.unit=multi-user.target`, sem gerenciador de
 display, e a coleta foi executada por console de texto.
 
 **Pré-registro.** Escrito antes da execução, no cabeçalho de
-`ferramental/qualidade/campanha-modo-texto.sh`:
+`ferramental/qualidade/campanha.sh`:
 
 > Predição: se a origem do modo alto é o `amdgpu`, o `osnoise` em modo texto
 > registra máximo de thread abaixo de 100 µs, a função

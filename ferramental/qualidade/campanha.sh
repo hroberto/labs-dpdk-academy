@@ -1,5 +1,28 @@
 #!/usr/bin/env bash
-# Campanha em MODO TEXTO: a sessao grafica e a fonte do modo alto?
+# A campanha de medicao do projeto, nos dois ambientes que ela reconhece.
+#
+#   --texto    servidor ou console: EXIGE ausencia de sessao grafica
+#   --grafico  maquina de trabalho: ACEITA sessao grafica, e declara o custo
+#
+# POR QUE OS DOIS, E NAO SO O PRIMEIRO
+#
+# Ate 24/09/2026 este script abortava se houvesse processo grafico vivo. A
+# regra estava certa para o que ele media naquele dia -- a sessao grafica era o
+# objeto do experimento -- e errada como porta de entrada do projeto: quem
+# clona numa maquina de trabalho nao consegue rodar campanha nenhuma, e a
+# alternativa que sobra e nao medir.
+#
+# O modo grafico nao e "o modo ruim". Ele e o modo em que a CPU chega quente e
+# com relogio estavel, e em que os valores ABSOLUTOS sao mais confiaveis. O
+# modo texto e o modo em que o jitter e menor e a cauda e limpa. Cada um mede
+# melhor uma coisa, e a §7 da metodologia dos fundamentos diz qual usar para
+# que grandeza.
+#
+# O que nenhum dos dois aceita e a condicao NAO DECLARADA. Por isso o modo e
+# argumento obrigatorio, vai para o `ambiente.txt` da coleta, e o script recusa
+# `--texto` com sessao grafica viva em vez de avisar e seguir.
+#
+# O EXPERIMENTO QUE ORIGINOU ESTE SCRIPT
 #
 # PRE-REGISTRO -- ESCRITO ANTES DA COLETA, E E POR ISSO QUE ESTE CABECALHO
 # EXISTE
@@ -70,11 +93,11 @@
 #   1. sudo systemctl set-default multi-user.target
 #   2. sudo reboot
 #   3. entrar no console e rodar, NOMEANDO a configuracao medida:
-#        sudo ferramental/qualidade/campanha-modo-texto.sh 2026-09-24-expo6000-canal-duplo-texto
+#        sudo ferramental/qualidade/campanha.sh 2026-09-24-expo6000-canal-duplo-texto
 #
 #      Para comparar dois perfis de memoria, a segunda coleta so precisa do
 #      passo de hardware -- os passos 1 a 4 nao dependem da BIOS:
-#        sudo ferramental/qualidade/campanha-modo-texto.sh --so-hardware \
+#        sudo ferramental/qualidade/campanha.sh --so-hardware \
 #             2026-09-24-jedec4800-canal-duplo-texto
 #   4. ao terminar:  sudo systemctl set-default graphical.target && sudo reboot
 #
@@ -90,14 +113,31 @@ cd "$RAIZ"
 # desperdicio -- e tentacao para encurtar o protocolo da proxima vez.
 CONTINUAR=0
 SO_HARDWARE=0
+MODO=""
 while [ $# -gt 0 ]; do
     case "$1" in
+        --texto)        MODO=texto; shift ;;
+        --grafico)      MODO=grafico; shift ;;
         --continuar)    CONTINUAR=1; shift ;;
         --so-hardware)  SO_HARDWARE=1; shift ;;
         -*) echo "opcao desconhecida: $1" >&2; exit 2 ;;
         *)  break ;;
     esac
 done
+# O MODO E OBRIGATORIO, e nao tem padrao de proposito. Um padrao faria a
+# condicao ser herdada em vez de declarada, e condicao herdada e o defeito que
+# este projeto passou o mes inteiro corrigindo.
+if [ -z "$MODO" ]; then
+    echo "uso: $0 --texto|--grafico [--continuar] [--so-hardware] <configuracao>" >&2
+    echo >&2
+    echo "  --texto    servidor ou console. Exige ausencia de sessao grafica." >&2
+    echo "             Menor jitter; use para dispersao, p99 e cauda." >&2
+    echo "  --grafico  maquina de trabalho. Aceita sessao grafica." >&2
+    echo "             Relogio estavel; use para medianas e razoes." >&2
+    echo >&2
+    echo "  A §7 da metodologia dos fundamentos diz qual usar para que grandeza." >&2
+    exit 2
+fi
 
 # O NOME DA CONFIGURACAO E ARGUMENTO, e nao derivado da data.
 #
@@ -165,18 +205,35 @@ graficos=${graficos:-0}
 echo "==> conferindo a condicao"
 echo "    alvo padrao do systemd : $alvo"
 echo "    processos graficos     : $graficos"
-if [ "$graficos" -ne 0 ]; then
-    echo "FALHA: ha $graficos processo(s) grafico(s) vivo(s)."
+# O PORTAO E ASSIMETRICO DE PROPOSITO.
+#
+# `--texto` RECUSA sessao grafica: a condicao e o objeto da medicao, e medir
+# com ela viva daria um resultado que pareceria valido. `--grafico` ACEITA
+# qualquer estado -- inclusive a ausencia de sessao grafica, que e so uma
+# maquina de trabalho ociosa -- porque ali a condicao nao e a hipotese.
+#
+# O que os dois fazem igual e GRAVAR o que encontraram. Coleta cuja condicao
+# nao esta no arquivo nao e comparavel com nenhuma outra.
+if [ "$MODO" = "texto" ] && [ "$graficos" -ne 0 ]; then
+    echo "FALHA: --texto exige ausencia de sessao grafica, e ha $graficos processo(s) vivo(s)."
     pgrep -a -x "Xorg|Xwayland|gnome-shell|kwin_wayland|sway" | sed 's/^/           /'
-    echo "       A campanha mede a AUSENCIA deles. Reinicie em multi-user.target."
+    echo "       Reinicie em multi-user.target, ou meca com --grafico."
     exit 1
 fi
-case "$alvo" in
-    multi-user.target) ;;
-    *) echo "AVISO: alvo padrao e '$alvo', nao multi-user.target."
-       echo "       Sem processo grafico vivo a condicao vale, mas o proximo"
-       echo "       boot volta ao grafico. Seguindo." ;;
-esac
+if [ "$MODO" = "texto" ]; then
+    case "$alvo" in
+        multi-user.target) ;;
+        *) echo "AVISO: alvo padrao e '$alvo', nao multi-user.target."
+           echo "       Sem processo grafico vivo a condicao vale, mas o proximo"
+           echo "       boot volta ao grafico. Seguindo." ;;
+    esac
+else
+    echo "    modo grafico: $graficos processo(s) grafico(s) durante a medicao"
+    if [ "$graficos" -eq 0 ]; then
+        echo "    NOTA: nenhum processo grafico vivo. A coleta vale, e e equivalente"
+        echo "          a --texto; o rotulo do modo continua sendo o declarado."
+    fi
+fi
 
 mkdir -p "$SAIDA"
 # O DIRETORIO PRECISA PERTENCER AO DONO, e esta linha custou uma coleta.
@@ -199,6 +256,7 @@ echo "    saida: ${SAIDA#$RAIZ/}"
 # a campanha morrer no meio, o que ja se sabe fica registrado.
 # --------------------------------------------------------------------------
 {
+    echo "modo declarado   : $MODO"
     echo "alvo systemd     : $alvo"
     echo "processos grafico: $graficos"
     echo "governor cpu2    : $(cat /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor 2>/dev/null)"

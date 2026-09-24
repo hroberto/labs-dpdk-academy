@@ -728,7 +728,7 @@ A especificação passa a distinguir dois regimes:
 
 O modo texto é obtido por entrada de GRUB de boot único com
 `systemd.unit=multi-user.target`. O script
-[`ferramental/qualidade/campanha-modo-texto.sh`][cmt] recusa execução
+[`ferramental/qualidade/campanha.sh`][cmt] recusa execução
 enquanto houver processo gráfico vivo, de modo que a condição seja verificada
 pelo programa e não pela lembrança do operador.
 
@@ -741,7 +741,7 @@ uma máquina, com GPU integrada AMD: plataformas com GPU discreta ou outro
 driver não estão cobertas.
 
 [iso]: ../../trilha/03-performance/03-isolamento-cpu/README.md#665-identificação-da-fonte-por-rastreamento-de-eventos
-[cmt]: ../../ferramental/qualidade/campanha-modo-texto.sh
+[cmt]: ../../ferramental/qualidade/campanha.sh
 
 ---
 

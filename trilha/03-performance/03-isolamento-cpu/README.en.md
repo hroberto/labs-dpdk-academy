@@ -637,7 +637,7 @@ GRUB entry configured for `systemd.unit=multi-user.target`, with no display
 manager, and collection ran from a text console.
 
 **Pre-registration.** Written before execution, in the header of
-`ferramental/qualidade/campanha-modo-texto.sh`:
+`ferramental/qualidade/campanha.sh`:
 
 > Prediction: if the origin of the high mode is `amdgpu`, then `osnoise` in
 > text mode records a thread maximum below 100 µs, the function

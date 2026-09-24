@@ -739,7 +739,7 @@ The specification now distinguishes two regimes:
 
 Text mode is obtained through a one-shot GRUB entry with
 `systemd.unit=multi-user.target`. The script
-[`ferramental/qualidade/campanha-modo-texto.sh`][cmt] refuses to run while
+[`ferramental/qualidade/campanha.sh`][cmt] refuses to run while
 any graphical process is alive, so that the condition is verified by the
 program rather than by the operator's memory.
 
@@ -752,7 +752,7 @@ an AMD integrated GPU: platforms with a discrete GPU or a different driver are
 not covered.
 
 [iso]: ../../trilha/03-performance/03-isolamento-cpu/README.en.md#665-identifying-the-source-by-per-event-tracing
-[cmt]: ../../ferramental/qualidade/campanha-modo-texto.sh
+[cmt]: ../../ferramental/qualidade/campanha.sh
 
 ---
 

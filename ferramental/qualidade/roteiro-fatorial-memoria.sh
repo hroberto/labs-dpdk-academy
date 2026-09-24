@@ -71,7 +71,7 @@ campanha() { # <velocidade> <pentes> <nome-da-coleta> [--so-hardware]
     local vel="$1" pentes="$2" nome="$3"; shift 3
     echo "==> celula: $nome"
     conferir "$vel" "$pentes" || return 1
-    ./ferramental/qualidade/campanha-modo-texto.sh "$@" "$nome"
+    ./ferramental/qualidade/campanha.sh --texto "$@" "$nome"
 }
 
 # =========================================================================
