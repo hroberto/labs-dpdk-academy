@@ -4,9 +4,17 @@
 #
 #   sudo ./ferramental/qualidade/run-all.sh
 #
-# O nome da coleta sai do proprio hardware -- data, perfil de memoria e numero
-# de pentes, lidos do `dmidecode`. Passe um nome so quando quiser rotular uma
-# condicao que o hardware nao expressa (um braco de controle, uma replica).
+# O nome da coleta se monta sozinho:
+#
+#   2026-09-25-10-35-expo6000-canal-duplo
+#   \_____________/ \____________________/
+#    carimbo da          configuracao lida
+#    execucao            do `dmidecode`
+#
+# O carimbo vem na frente para que `ls` devolva a ordem cronologica sem
+# ninguem pedir. Passe um nome so quando quiser rotular uma condicao que o
+# hardware nao expressa (um braco de controle, uma replica); o carimbo e
+# acrescentado de qualquer jeito.
 #
 # Para a condicao limpa, antes:
 #   sudo grub-reboot modo-texto && sudo reboot
@@ -87,7 +95,7 @@ derivar_config() {
         2) canal="canal-duplo" ;;
         *) canal="canal-${pentes}pentes" ;;
     esac
-    printf '%s-%s-%s' "$(date +%Y-%m-%d)" "$perfil" "$canal"
+    printf '%s-%s' "$perfil" "$canal"
 }
 
 CONFIG="${1:-}"
@@ -111,7 +119,17 @@ fi
 # de login escrito no arquivo faz o script funcionar numa maquina so, que e o
 # oposto do que um protocolo versionado serve para ser.
 DONO=${SUDO_USER:-$(stat -c %U "$RAIZ" 2>/dev/null || logname 2>/dev/null || echo root)}
-SELO="$(date +%H%M)"
+# O CARIMBO VAI NA FRENTE, e e `YYYY-MM-DD-HH-MM`.
+#
+# Ate aqui a hora ia no fim -- `...-canal-duplo-1035` -- e a data no comeco. O
+# nome ficava ordenavel por dia e NAO por execucao: duas coletas do mesmo dia
+# apareciam juntas na listagem, mas fora de ordem entre si, e a hora so se lia
+# depois de atravessar o resto do nome.
+#
+# Com o carimbo inteiro na frente, `ls` devolve a ordem cronologica de graca, e
+# e isso que se quer de um historico. O que vem depois descreve a CONFIGURACAO,
+# que e o segundo criterio natural de leitura.
+CARIMBO="$(date +%Y-%m-%d-%H-%M)"
 SONDA=build/docs/01-fundamentos/medicoes/sonda-relaxed
 
 # O MODO E DETECTADO, NAO EXIGIDO -- e isso muda o que a coleta pode afirmar.
@@ -139,7 +157,7 @@ fi
 echo "=========================================================="
 echo "  run-all  $(date -Is)"
 echo "  configuracao : $CONFIG  $([ "$DERIVADO" -eq 1 ] && echo "(derivada do hardware)" || echo "(informada)")"
-echo "  selo         : $SELO"
+echo "  carimbo      : $CARIMBO"
 echo "  modo detectado: $MODO ($graficos processo(s) grafico(s))"
 if [ "$MODO" = "grafico" ]; then
     pgrep -a -x "Xorg|Xwayland|gnome-shell|kwin_wayland|sway" | sed 's/^/                 /'
@@ -174,7 +192,7 @@ echo "=========================================================="
 # e um cache anterior ao ultimo boot descreveria a configuracao ANTERIOR -- que
 # e exatamente o erro que o portao do `campanha-hardware.sh` existe para pegar.
 # --------------------------------------------------------------------------
-SAIDA_AMB="docs/01-fundamentos/medicoes/historico/$CONFIG-ambiente-$SELO"
+SAIDA_AMB="docs/01-fundamentos/medicoes/historico/$CARIMBO-$CONFIG-ambiente"
 echo
 echo "==> ETAPA 1/4  procedencia da maquina  ($(date +%T))"
 mkdir -p "$SAIDA_AMB"
@@ -182,7 +200,7 @@ chown "$DONO" .ambiente-memoria 2>/dev/null   # o cache ja foi refeito ao deriva
 {
     echo "modo detectado : $MODO ($graficos processo(s) grafico(s))"
     echo "configuracao   : $CONFIG"
-    echo "selo           : $SELO"
+    echo "carimbo        : $CARIMBO"
     echo
 } > "$SAIDA_AMB/ambiente.txt"
 ./scripts/ambiente.sh >> "$SAIDA_AMB/ambiente.txt" 2>&1
@@ -200,7 +218,7 @@ echo "    saida: $SAIDA_AMB"
 # unica etapa em que a carga no irmao SMT e ZERO por construcao, entao e a
 # unica que pode afirmar o contrafactual da §5.
 # --------------------------------------------------------------------------
-SAIDA_SONDA="docs/01-fundamentos/medicoes/historico/$CONFIG-sonda-$SELO"
+SAIDA_SONDA="docs/01-fundamentos/medicoes/historico/$CARIMBO-$CONFIG-sonda"
 echo
 echo "==> ETAPA 2/4  sonda atomic relaxed  ($(date +%T))"
 if [ ! -x "$SONDA" ]; then
@@ -309,7 +327,10 @@ echo "==> ETAPA 3/4  campanha completa  ($(date +%T))"
 # O MODO VAI DETECTADO, nao fixo. `--fixar-governor` vale nos dois: em texto
 # porque nada aquece a CPU, em grafico porque tira a unica variavel que o
 # compositor ainda move sem declarar.
-./ferramental/qualidade/campanha.sh "--$MODO" --fixar-governor "$CONFIG"
+# O NOME VAI JA CARIMBADO. A campanha detecta o carimbo e nao aplica outro --
+# sem isso ela usaria o horario de QUANDO ELA comeca, que e minutos depois das
+# etapas anteriores, e a mesma execucao apareceria sob dois nomes.
+./ferramental/qualidade/campanha.sh "--$MODO" --fixar-governor "$CARIMBO-$CONFIG"
 rc=$?
 
 # --------------------------------------------------------------------------
@@ -332,8 +353,8 @@ rc=$?
 echo
 echo "==> ETAPA 4/4  invocacoes unicas da trilha  ($(date +%T))"
 T02=trilha/01-fundamentos/02-mempool-ring
-SAIDA_T02="$T02/historico/$CONFIG-$SELO"
-SAIDA_CPP="$T02/alternativas/cpp23/historico/$CONFIG-$SELO"
+SAIDA_T02="$T02/historico/$CARIMBO-$CONFIG"
+SAIDA_CPP="$T02/alternativas/cpp23/historico/$CARIMBO-$CONFIG"
 PR=build/$T02/pipeline_ring
 PRV=build/$T02/pipeline_ring_vazado
 PKT=build/$T02/alternativas/cpp23/packet_pipeline

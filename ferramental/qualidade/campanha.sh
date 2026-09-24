@@ -188,18 +188,33 @@ if [ -z "$CONFIG" ]; then
     exit 2
 fi
 
-# HORA E MINUTO NO NOME, e o motivo e uma coleta que quase foi lida errado.
+# CARIMBO `YYYY-MM-DD-HH-MM` NA FRENTE DO NOME.
 #
 # Duas execucoes do mesmo dia colidiam no mesmo diretorio. Quem chegasse
 # segundo ou abortava, ou -- pior -- gravava metade ao lado da metade da
 # outra, com a data sugerindo que era tudo a mesma medicao. A data sozinha
 # nao identifica uma coleta; identifica um dia.
 #
-# `--continuar` NAO acrescenta o selo: ele existe para retomar uma coleta que
-# ja tem nome, e gerar um nome novo a cada tentativa seria o oposto de
-# retomar.
-if [ "$CONTINUAR" -eq 0 ]; then
-    CONFIG="${CONFIG}-$(date +%H%M)"
+# O carimbo vai na FRENTE, e nao no fim, porque e assim que `ls` devolve a
+# ordem cronologica sem ninguem pedir. Com a hora no fim, duas coletas do
+# mesmo dia apareciam juntas e fora de ordem entre si.
+#
+# ELE NAO E REAPLICADO se o nome ja vier carimbado. `run-all.sh` carimba uma
+# vez e passa o nome inteiro para ca; carimbar de novo criaria um segundo
+# horario no meio do nome -- e, pior, um horario DIFERENTE, porque a campanha
+# comeca minutos depois das outras etapas. Uma execucao se partiria em dois
+# nomes.
+#
+# `--continuar` tambem nao carimba: ele retoma coleta que ja tem nome, e gerar
+# nome novo a cada tentativa seria o oposto de retomar.
+ja_carimbado() {
+    case "$1" in
+        [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+if [ "$CONTINUAR" -eq 0 ] && ! ja_carimbado "$CONFIG"; then
+    CONFIG="$(date +%Y-%m-%d-%H-%M)-${CONFIG}"
 fi
 echo "==> coleta: $CONFIG"
 
