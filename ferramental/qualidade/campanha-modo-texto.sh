@@ -240,13 +240,72 @@ echo "==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  ($(date +%T))
 CONF="$(date +%Y-%m-%d)-modo-texto"
 ./scripts/ambiente.sh --cachear-memoria >/dev/null 2>&1 \
     && chown "$DONO" .ambiente-memoria 2>/dev/null
+
+# A HUGEPAGE DO FEED, e por que ela precisa estar aqui.
+#
+# O par feed-primario/feed-secundario exige um hugetlbfs GRAVAVEL pelo dono.
+# `/dev/hugepages` e root:root 755 nesta distribuicao, e a campanha desiste do
+# feed em silencio quando `DPDK_ACADEMY_HUGE_DIR` nao esta definida -- um
+# `return 0` no `corre_feed`. O resultado pareceria completo e teria doze
+# arquivos a menos que a coleta de referencia, e a comparacao do passo 6
+# perderia esses rotulos sem dizer que perdeu.
+#
+# O ponto de montagem e DESFEITO no fim: a decisao registrada e que a hugepage
+# de teste nao vira recurso permanente da maquina.
+# O preparador sai com sucesso em DOIS desfechos: `/dev/hugepages` ja era
+# gravavel pelo dono, e entao ele nao monta nada; ou ele monta /mnt/huge-academia.
+# A variavel precisa apontar para o que de fato existe -- apontar para um
+# diretorio nao montado daria feed sem hugetlbfs, que falha tarde.
+HUGE_PREPARADA=0
+unset DPDK_ACADEMY_HUGE_DIR
+DPDK_ACADEMY_USUARIO="$DONO" ./scripts/preparar-hugepages.sh >/dev/null 2>&1
+# Testar a permissao COMO O DONO, nao como root: `test -w` sob root responde
+# sempre que sim, e o preparador deste projeto ja documenta essa armadilha.
+grava_como_dono() { # <caminho>
+    if command -v runuser >/dev/null 2>&1; then
+        runuser -u "$DONO" -- test -w "$1" 2>/dev/null
+    else
+        su -s /bin/sh -c "test -w '$1'" "$DONO" 2>/dev/null
+    fi
+}
+if grava_como_dono /dev/hugepages; then
+    export DPDK_ACADEMY_HUGE_DIR=/dev/hugepages
+    echo "    hugepage do feed: /dev/hugepages (ja gravavel pelo dono)"
+elif mountpoint -q /mnt/huge-academia 2>/dev/null \
+     && grava_como_dono /mnt/huge-academia; then
+    export DPDK_ACADEMY_HUGE_DIR=/mnt/huge-academia
+    HUGE_PREPARADA=1
+    echo "    hugepage do feed: /mnt/huge-academia (efemera, desmontada no fim)"
+else
+    echo "    AVISO: sem hugetlbfs gravavel pelo dono; o feed NAO sera coletado"
+    echo "           a comparacao do passo 6 perdera os rotulos do feed"
+fi
+
 if [ -d "docs/01-fundamentos/medicoes/historico/$CONF" ]; then
     echo "    JA COLETADO em $CONF; preservando."
 elif [ -x build/docs/01-fundamentos/medicoes/custo-syscall ]; then
-    sudo -u "$DONO" -H ./ferramental/qualidade/campanha-hardware.sh "$CONF" \
+    # `sudo -u` limpa o ambiente, entao a variavel vai explicita na chamada:
+    # exportar no shell de root nao a faz chegar ao filho.
+    sudo -u "$DONO" -H \
+        DPDK_ACADEMY_HUGE_DIR="${DPDK_ACADEMY_HUGE_DIR:-}" \
+        ./ferramental/qualidade/campanha-hardware.sh "$CONF" \
         && echo "    ok" || echo "    FALHA"
+    # O feed some em silencio; conferir a contagem e o unico jeito de saber.
+    nfeed=$(ls docs/02-runtime-dpdk/medicoes/historico/$CONF/feed-*.txt 2>/dev/null | wc -l)
+    if [ "$nfeed" -eq 12 ]; then
+        echo "    feed: 12 arquivos, completo"
+    else
+        echo "    AVISO: feed com $nfeed arquivos, esperados 12 -- a comparacao"
+        echo "           do passo 6 perde esses rotulos"
+    fi
 else
     echo "    PULADO: binarios dos modulos ausentes; rode scripts/build-all.sh"
+fi
+
+if [ "$HUGE_PREPARADA" -eq 1 ]; then
+    ./scripts/preparar-hugepages.sh --desfazer >/dev/null 2>&1 \
+        && echo "    hugepage do feed desmontada" \
+        || echo "    AVISO: nao desmontei $DPDK_ACADEMY_HUGE_DIR"
 fi
 
 # --------------------------------------------------------------------------
