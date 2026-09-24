@@ -29,11 +29,31 @@ E o caso não é hipotético -- este repositório foi apagado e republicado para
 remover endereços de e-mail pessoais da história, e renomear era uma das
 mudanças em discussão no mesmo dia.
 
+A ORDEM DAS OPERAÇÕES NUMA TAG NOVA, e ela não é a intuitiva
+
+Este verificador compara `version` com a TAG DE MAIOR VERSÃO já existente.
+Enquanto a tag não existe, ele acusa divergência -- e a tag não pode existir
+antes do commit que ela aponta. A sequência que funciona é:
+
+    1. bumpar `version` e `date-released` no CITATION.cff
+    2. commitar (o portão acusa a divergência; é esperado)
+    3. criar a tag assinada sobre esse commit
+    4. rodar o portão de novo: agora passa
+
+O passo 2 é o único do projeto em que o portão fica vermelho por construção.
+Quem não souber disso desiste do bump ou edita o verificador -- e as duas
+saídas são piores que a espera de um comando.
+
 O QUE ELE NÃO CONFERE
 
 Se o texto do `abstract` continua verdadeiro. Isso é semântica, nenhum padrão
 sintático decide, e a garantia ali é humana -- a mesma ressalva que o
 verificador de paridade já declara no próprio cabeçalho.
+
+Nem a grafia do nome do autor contra o registro ORCID. O identificador resolve
+independentemente da grafia, e conferi-lo exigiria rede -- o que um portão de
+pre-commit não deve exigir. O alinhamento foi feito a mão em 2026-09-23, com o
+registro público como referência, e está declarado no próprio CITATION.cff.
 """
 import os
 import re
