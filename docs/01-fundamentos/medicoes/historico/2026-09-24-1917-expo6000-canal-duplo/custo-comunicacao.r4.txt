@@ -1,0 +1,48 @@
+  origin: custo-comunicacao @ v0.06.00-38-g1ad5ab5  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-24T19:59:44-0300
+
+Cost of two cores exchanging a cache line
+
+  L3 cache domains on this machine: 2
+    domain 0: CPUs 0-5,12-17
+    domain 1: CPUs 6-11,18-23
+
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  within domain 0 (cpu 0 <-> 2)          20.74  20.46-21.34     20.08-21.76         4.2%   2.4% ~
+  BETWEEN domains (cpu 0 <-> 6)          81.43  81.42-81.46     81.41-81.52         0.1%   0.0%  
+  RATIO between/within (paired)           3.93  3.82-3.98       3.74-4.06           4.1%   2.4% ~
+
+  Contention between SMT threads (same physical core)
+
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  loop alone on the core                 0.536  0.536-0.536     0.536-0.537         0.0%   0.1%  
+  neighbour on SMT sibling (cpu 12)       1.23  1.23-1.23       1.23-1.23           0.0%   0.1%  
+  RATIO with/without SMT sibling (paired)      2.29  2.29-2.29       2.29-2.30           0.0%   0.1%  
+
+  regime control  phase 1: base 0.538  ratio 2.29
+                      phase 2: base 0.537  ratio 2.29   (after 400 ms of continuous load)
+  The two phases agree: the ratio does not depend on conditioning.
+  neighbour on physical core (cpu 2)     0.549  0.549-0.549     0.545-0.551         0.1%   0.3%  
+
+  Sharing the core costs 130% of performance; using distinct
+  physical cores costs 2%. Two logical CPUs are not two
+  cores: in a polling loop, which never yields the execution
+  units, the SMT sibling competes all the time.
+
+  AGGREGATE throughput of the CPU pair (M operations/s)
+
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  1 thread  on 1 physical core (cpu 0)    1860.3  1860.0-1860.6   1856.5-1921.2       0.0%   0.7%  
+  2 threads on 2 physical cores (cpu 0,2)    3707.9  3707.0-3708.2   3701.5-3713.4       0.0%   0.1%  
+  2 threads on 2 SMT siblings (cpu 0,12)    1926.4  1925.4-1926.8   1919.7-1927.1       0.1%   0.1%  
+
+  two physical cores yield 1.99x one core
+  two SMT siblings    yield 1.04x one core
+  The 2.29x degradation of the observed thread does NOT predict this:
+  applied symmetrically, it would give 0.87x.
+
+  Crossing the interconnect costs 3.9x more.
+  That is 121% of the 67.2 ns budget of a 64 B packet at 10 GbE:
+  a single handoff between badly placed cores already blows it.

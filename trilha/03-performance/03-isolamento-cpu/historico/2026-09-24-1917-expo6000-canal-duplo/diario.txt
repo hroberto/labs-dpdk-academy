@@ -1,0 +1,128 @@
+==> campanha em modo texto  2026-09-24T19:18:24-03:00
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo
+    modo declarado   : texto
+    governor fixado  : sim (era powersave)
+    alvo systemd     : graphical.target
+    processos grafico: 0
+    governor cpu2    : performance
+    C3 disable cpu2  : 0
+    cmdline          : BOOT_IMAGE=/boot/vmlinuz-7.0.0-31-generic root=UUID=bdd65119-6069-4cc3-898a-7e0a0beba60b ro quiet splash amd_iommu=on iommu=pt crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M systemd.unit=multi-user.target
+    kernel           : 7.0.0-31-generic
+    uptime           : up 1 minute
+    memoria          : avail 26,78 GiB, swap em uso 0,00 GiB
+    carga            : 0.97 0.29 0.10
+
+==> 1/6 osnoise hist, 10 min na CPU 2  (19:18:24)
+    ok
+    over:         0 
+    count:    46152 
+    min:          1 
+    avg:       2.07 
+    max:         27 
+
+==> 2/6 campanha de isolamento, 4 celulas x 5 repeticoes  (19:28:24)
+==> campanha de isolamento: CPU 2 (irmao SMT 14), outra CPU 4
+    4 celulas x 5 repeticoes x 30s
+    repeticao 1 de 5 concluida
+    repeticao 2 de 5 concluida
+    repeticao 3 de 5 concluida
+    repeticao 4 de 5 concluida
+    repeticao 5 de 5 concluida
+==> 20 execucoes registradas em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/isolamento/isolamento.csv
+    ok
+
+==> 3/6 campanha de tempo do mempool  (19:38:24)
+==> campanha B4-tempo: 2 versoes x 2 topologias
+    x 10 tamanhos de cache x 21 repeticoes
+    prefixos SEM RTE_LIBRTE_MEMPOOL_STATS, metrica em ns/pacote
+    saida: /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-tempo/mempool-tempo.csv
+    repeticao 1 de 21 concluida
+    repeticao 2 de 21 concluida
+    repeticao 3 de 21 concluida
+    repeticao 4 de 21 concluida
+    repeticao 5 de 21 concluida
+    repeticao 6 de 21 concluida
+    repeticao 7 de 21 concluida
+    repeticao 8 de 21 concluida
+    repeticao 9 de 21 concluida
+    repeticao 10 de 21 concluida
+    repeticao 11 de 21 concluida
+    repeticao 12 de 21 concluida
+    repeticao 13 de 21 concluida
+    repeticao 14 de 21 concluida
+    repeticao 15 de 21 concluida
+    repeticao 16 de 21 concluida
+    repeticao 17 de 21 concluida
+    repeticao 18 de 21 concluida
+    repeticao 19 de 21 concluida
+    repeticao 20 de 21 concluida
+    repeticao 21 de 21 concluida
+==> 840 execucoes registradas em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-tempo/mempool-tempo.csv
+    ok
+
+==> 4/6 campanha de miss do mempool  (19:40:15)
+==> campanha B4: 2 versoes x 2 topologias
+    x 9 tamanhos de cache x 6 repeticoes
+    saida: /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-cache/mempool-cache.csv
+    repeticao 1 de 6 concluida
+    repeticao 2 de 6 concluida
+    repeticao 3 de 6 concluida
+    repeticao 4 de 6 concluida
+    repeticao 5 de 6 concluida
+    repeticao 6 de 6 concluida
+==> 240 execucoes registradas em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-cache/mempool-cache.csv
+    ok
+
+==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  (19:40:48)
+    hugepage do feed: /mnt/huge-academia (efemera, desmontada no fim)
+CONCLUIDA -> docs/01-fundamentos/medicoes/historico/2026-09-24-1917-expo6000-canal-duplo
+          -> docs/02-runtime-dpdk/medicoes/historico/2026-09-24-1917-expo6000-canal-duplo
+          -> docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-24-1917-expo6000-canal-duplo
+Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medicoes/historico/{outra,2026-09-24-1917-expo6000-canal-duplo}
+    ok
+    feed: 12 arquivos, completo
+    hugepage do feed desmontada
+
+==> 6/6 revisao dos dados do projeto  (20:12:03)
+    rotulos que se moveram mais de 5%: 14
+        custo-comunicacao: RATIO between/within (paired)                            4.160           3.880    -6.7%  <<<
+        custo-comunicacao: within domain 0 (cpu 0 <-> 2)                           19.570          20.990    +7.3%  <<<
+        custo-espera: atomic relaxed (store+load)                                   0.399           0.255   -36.1%  <<<
+        custo-traducao.regiao16mb: DIFFERENCE attributable to translation           1.660           1.500    -9.6%  <<<
+        custo-traducao.regiao32mb: 2 MB hugepages                                  14.920          13.370   -10.4%  <<<
+        custo-traducao.regiao32mb: 4 KB pages                                      32.660          29.060   -11.0%  <<<
+        custo-traducao.regiao32mb: DIFFERENCE attributable to translation          17.560          15.150   -13.7%  <<<
+        custo-traducao.regiao64mb: DIFFERENCE attributable to translation           7.450           6.420   -13.8%  <<<
+        custo-traducao.seq16mb: 4 KB pages                                          1.010           0.947    -6.2%  <<<
+        custo-traducao.seq16mb: DIFFERENCE attributable to translation              0.106           0.046   -56.6%  <<<
+        custo-traducao.seq32mb: DIFFERENCE attributable to translation              0.040           0.073   +82.5%  <<<
+        custo-traducao.seq8mb: DIFFERENCE attributable to translation               0.049           0.040   -18.4%  <<<
+        custo-init.in-memory: rte_eal_cleanup()               0.095           0.086    -9.5%  <<<
+        custo-init.no-huge: rte_eal_cleanup()                 0.594           0.496   -16.5%  <<<
+    PREVISAO REFUTADA (14 rotulos marcados, previa-se no maximo 5)
+      188 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+      5 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+      3 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+    comparacao completa em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/comparacao.txt
+
+    portao de qualidade:
+        [ok]    build limpo, zero avisos
+        [1mtudo passou.[0m Pode commitar.
+
+==> CONCLUIDA  2026-09-24T20:13:04-03:00
+
+    O que ficou em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo:
+      ambiente.txt      estado da maquina antes de medir
+      osnoise-hist.txt  distribuicao de ruido, dez minutos
+      isolamento/       20 celulas do stall_probe
+      mempool-tempo/    ns por pacote, prefixos sem estatisticas
+      mempool-cache/    idas ao anel, mesma condicao do tempo
+      comparacao.txt    o que se moveu contra a coleta com sessao grafica
+      portao.txt        portao de qualidade completo
+
+    A campanha de hardware ficou nos historicos dos tres modulos,
+    sob 2026-09-24-1917-expo6000-canal-duplo.
+
+    Para voltar ao modo grafico:
+      sudo systemctl set-default graphical.target && sudo reboot
+==> governor restaurado para powersave

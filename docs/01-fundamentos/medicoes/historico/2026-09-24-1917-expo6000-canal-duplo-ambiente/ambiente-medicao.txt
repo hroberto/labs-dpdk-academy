@@ -1,0 +1,69 @@
+== Ambiente de medição ==
+
+  -- escalonamento de frequência --
+  driver de frequencia   amd-pstate-epp
+  governor               powersave
+  governors possiveis    performance powersave
+  frequencia minima      613954
+  frequencia maxima      5662016
+  boost                  1
+  faixa de frequencia    9,2x_0,61-5,66GHz
+
+  -- isolamento e concorrência --
+  nucleos isolados       vazio
+  nohz_full              vazio
+  SMT                    on
+  ASLR                   2
+  NMI watchdog           1
+  carga                  0.46 (media de 1 min)
+
+  -- o que isto custa, medido nesta arvore --
+
+  A faixa de frequencia assusta mais do que cobra. Doze execucoes de
+  `custo-syscall` partindo de frequencias entre 0,61 e 5,62 GHz -- variacao de
+  9x -- produziram entre 0,714 e 0,747 ns por chamada de funcao: 4,6% de
+  amplitude. O laco de medicao leva o nucleo ao teto em microssegundos, e a
+  mediana absorve o resto.
+
+  O que cobra caro e outra coisa: a PRIMEIRA execucao depois de ociosidade
+  prolongada mediu 0,926, 0,927 e 0,930 ns em tres observacoes independentes,
+  contra 0,713 a 0,747 nas execucoes imediatamente seguintes. Excesso de ~30%,
+  na operacao mais curta. O mecanismo nao foi isolado -- saida de C-state
+  profundo e paginas fora do cache sao os candidatos --, e o efeito e
+  reprodutivel.
+
+  Consequencia pratica, que inverte a intuicao da ressalva -- E QUE VALE PARA
+  O MODO EM QUE FOI MEDIDA, com sessao grafica ativa: fixar o governor ajuda
+  pouco; DESCARTAR A PRIMEIRA EXECUCAO apos ociosidade ajuda muito.
+
+  EM MODO TEXTO A CONCLUSAO SE INVERTE, e isto foi medido em 24/09/2026.
+
+  Com sessao grafica o compositor mantem a CPU ocupada, entao so a primeira
+  execucao apos ociosidade e fria e descarta-la resolve. Sem sessao grafica
+  nada aquece a CPU entre invocacoes: TODA execucao e a primeira apos
+  ociosidade, e o descarte nao alcanca o problema.
+
+  O par medido, mesma maquina e mesma configuracao, diferindo so no governor:
+
+    powersave     relogio 4,33 -> 4,94..5,57 GHz   malloc 2,78 nas seis
+    performance   relogio 5,58 -> 5,55 GHz         malloc 2,18 a 2,19
+
+  O 2,78 nao era ruido: era o valor que a operacao mais curta dava por ser
+  medida PRIMEIRO, sempre no relogio frio. Com o governor fixo ele volta ao
+  que o modo grafico da.
+
+  A regra que sobrevive nao e "governor ajuda pouco"; e que o remedio depende
+  do que mantem a CPU quente. Em modo grafico, o compositor faz isso e o
+  descarte basta. Em modo texto, nada faz, e o governor passa a ser a variavel
+  dominante dos valores absolutos.
+
+  -- para fixar o que da para fixar --
+
+    sudo cpupower frequency-set -g performance       # governor
+    echo 0 | sudo tee /sys/devices/system/cpu/cpufreq/boost
+    # isolamento exige reinicio, na linha de comando do kernel:
+    #   isolcpus=6-11,18-23 nohz_full=6-11,18-23 rcu_nocbs=6-11,18-23
+
+  Nada disto e executado por este script: ele apura e declara.
+
+  ambiente apurado por inteiro
