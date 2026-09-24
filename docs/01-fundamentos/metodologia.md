@@ -345,6 +345,121 @@ quatro instrumentos faz isso.
 
 ---
 
+### 5.1 O `0,397` é `1,818 / f`, e o `0,205` é `1,125 / f`
+
+A seção acima identificou a causa certa — carga no irmão SMT — por eliminação e
+por um teste de carga que reproduziu a razão. O que faltava era a grandeza
+invariante: **a medição não tem um valor em nanossegundos; tem um valor em
+ciclos**, e tudo o que se observou em nanossegundos é esse número dividido pela
+frequência do momento.
+
+**O instrumento.** O `custo-espera` dá a esta medição nove amostras de 2 milhões
+de rodadas — cerca de 4,5 ms de trabalho. Uma CPU não sai da frequência base
+nesse tempo. Investigar a distribuição pelo programa inteiro custaria 27 s por
+3,6 ms de dado útil, então a pergunta pediu instrumento próprio:
+[`sonda-relaxed.c`](medicoes/sonda-relaxed.c), que repete o laço original —
+mesmo alinhamento, mesma ordem de memória, mesmo sumidouro volátil — e publica
+**as amostras individuais com a frequência de cada uma**, em vez do resumo.
+
+**O que 20 000 amostras mostram.** Com o núcleo sozinho, e depois que a
+frequência estabiliza:
+
+```
+  bloco          ns/operacao   GHz    ciclos
+  -----------   -----------  -----   -------
+      1- 2000        0.2074   5.44     1.129
+   2001- 4000        0.2034   5.53     1.125
+   4001- 6000        0.2036   5.53     1.125
+   6001- 8000        0.2036   5.53     1.125
+   8001-10000        0.2037   5.53     1.125
+  10001-12000        0.2037   5.53     1.126
+  12001-14000        0.2036   5.53     1.125
+  14001-16000        0.2036   5.53     1.125
+  16001-18000        0.2036   5.53     1.125
+  18001-20000        0.2038   5.53     1.126
+```
+
+Os nanossegundos se movem; os **ciclos não**. E com o irmão SMT saturado por um
+laço em `taskset -c 12`, outras 20 000 amostras:
+
+```
+      1- 5000        0.3378   5.38     1.817
+   5001-10000        0.3379   5.38     1.817
+  10001-15000        0.3381   5.38     1.818
+  15001-20000        0.3380   5.38     1.818
+```
+
+**O modelo tem dois parâmetros e explica todos os valores já publicados:**
+
+```
+  ns por operacao = ciclos / frequencia
+
+    ciclos = 1,125   nucleo sozinho
+           = 1,818   irmao SMT saturado
+```
+
+| valor publicado | ciclos implícitos | frequência implícita |
+|---:|---|---:|
+| 0,205 | 1,125 | 5,49 GHz |
+| 0,255 | 1,125 | 4,41 GHz |
+| 0,262 e 0,270 | 1,125 | 4,29 e 4,17 GHz |
+| 0,397 | 1,818 | 4,58 GHz |
+| 0,410 | 1,818 | 4,43 GHz |
+
+A verificação direta fecha na quarta casa: a sonda, executada fria, mede
+**0,2597 ns** com a frequência lida em **4,33 GHz**, e `1,125 / 4,33` é
+**0,2598**.
+
+> **A razão de 1,94× da seção acima era `1,818 / 1,125 = 1,616` mais a
+> diferença de relógio entre as duas observações.** A explicação estava certa;
+> a razão medida misturava dois efeitos, e por isso não batia exatamente com o
+> `1,69×` do teste de carga.
+
+#### A atribuição ao ASLR não se sustenta
+
+A seção acima atribui os valores **intermediários** (0,262 e 0,270) a viés de
+leiaute, porque eles desapareceram ao desligar a aleatorização com `setarch -R`.
+A atribuição é plausível e está errada: os dois braços daquele teste correram
+em **sequência**, e o segundo herdou uma CPU já aquecida pelo primeiro.
+
+Intercalando os braços, de modo que ambos vejam a mesma condição térmica:
+
+```
+  par 1:  com ASLR 0,2585   sem ASLR 0,2023     <- a primeira corrida e fria
+  par 2:  com ASLR 0,2028   sem ASLR 0,2029
+  par 3:  com ASLR 0,2028   sem ASLR 0,2027
+  par 4:  com ASLR 0,2028   sem ASLR 0,2029
+  par 5:  com ASLR 0,2028   sem ASLR 0,2028
+  par 6:  com ASLR 0,2028   sem ASLR 0,2029
+```
+
+Os dois braços são indistinguíveis. O que produz o valor intermediário é a
+**primeira corrida**, com ou sem ASLR — e a corrida fria some do segundo braço
+de um teste sequencial por construção, não por efeito do leiaute.
+
+> **O que sobrevive e o que cai.** Sobrevive a causa do modo alto: carga no
+> irmão SMT, agora com a grandeza invariante medida. Cai a atribuição dos
+> intermediários ao leiaute, que era um confundimento com o estado térmico. O
+> teste que a separa é intercalar os braços, e ele é barato.
+
+> **Os dois valores continuam publicados na tabela acima, e devem.** Eles foram
+> medidos corretamente; o que caiu foi a explicação deles. Retratar a medição
+> seria apagar o dado por causa de um erro que estava na leitura.
+
+#### O que isto obriga em quem mede
+
+Qualquer medição desta ordem de grandeza publicada em nanossegundos, sem a
+frequência ao lado, é um número sobre um eixo não declarado. As três condições
+que o projeto usa dão três respostas para o mesmo laço:
+
+| condição | frequência típica | `atomic relaxed` |
+|---|---:|---:|
+| gráfico, `powersave` | ramp de 4,33 a 5,5 | 0,205 a 0,410 |
+| texto, `powersave` | 4,33 a 4,95 | 0,255 |
+| texto, `performance` | 5,58 estável | 0,205 |
+
+Nenhuma está errada. As três medem o mesmo 1,125 ciclos.
+
 ## 6. Pré-registro: o segundo pente de memória
 
 Esta seção é escrita **antes** da medição, e é a primeira vez que este

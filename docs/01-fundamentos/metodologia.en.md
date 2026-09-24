@@ -351,6 +351,123 @@ of the four instruments does that.
 
 ---
 
+### 5.1 The `0.397` is `1.818 / f`, and the `0.205` is `1.125 / f`
+
+The section above identified the right cause — load on the SMT sibling — by
+elimination and by a load test that reproduced the ratio. What was missing was
+the invariant quantity: **the measurement has no value in nanoseconds; it has a
+value in cycles**, and everything observed in nanoseconds is that number
+divided by the frequency of the moment.
+
+**The instrument.** `custo-espera` gives this measurement nine samples of two
+million rounds — about 4.5 ms of work. A CPU does not leave its base frequency
+in that time. Investigating the distribution through the whole program would
+cost 27 s per 3.6 ms of useful data, so the question called for an instrument
+of its own: [`sonda-relaxed.c`](medicoes/sonda-relaxed.c), which repeats the
+original loop — same alignment, same memory order, same volatile sink — and
+publishes **the individual samples with each one's frequency**, rather than the
+summary.
+
+**What 20,000 samples show.** With the core alone, once the frequency settles:
+
+```
+  block          ns/operation   GHz    cycles
+  -----------   -----------  -----   -------
+      1- 2000        0.2074   5.44     1.129
+   2001- 4000        0.2034   5.53     1.125
+   4001- 6000        0.2036   5.53     1.125
+   6001- 8000        0.2036   5.53     1.125
+   8001-10000        0.2037   5.53     1.125
+  10001-12000        0.2037   5.53     1.126
+  12001-14000        0.2036   5.53     1.125
+  14001-16000        0.2036   5.53     1.125
+  16001-18000        0.2036   5.53     1.125
+  18001-20000        0.2038   5.53     1.126
+```
+
+The nanoseconds move; the **cycles do not**. And with the SMT sibling saturated
+by a loop under `taskset -c 12`, another 20,000 samples:
+
+```
+      1- 5000        0.3378   5.38     1.817
+   5001-10000        0.3379   5.38     1.817
+  10001-15000        0.3381   5.38     1.818
+  15001-20000        0.3380   5.38     1.818
+```
+
+**The model has two parameters and explains every value published so far:**
+
+```
+  ns per operation = cycles / frequency
+
+    cycles = 1.125   core alone
+           = 1.818   SMT sibling saturated
+```
+
+| published value | implied cycles | implied frequency |
+|---:|---|---:|
+| 0.205 | 1.125 | 5.49 GHz |
+| 0.255 | 1.125 | 4.41 GHz |
+| 0.262 and 0.270 | 1.125 | 4.29 and 4.17 GHz |
+| 0.397 | 1.818 | 4.58 GHz |
+| 0.410 | 1.818 | 4.43 GHz |
+
+Direct verification closes to the fourth decimal: the probe, run cold, measures
+**0.2597 ns** with the frequency read at **4.33 GHz**, and `1.125 / 4.33` is
+**0.2598**.
+
+> **The 1.94× ratio of the section above was `1.818 / 1.125 = 1.616` plus the
+> clock difference between the two observations.** The explanation was right;
+> the measured ratio mixed two effects, which is why it did not match the
+> `1.69×` of the load test exactly.
+
+#### The attribution to ASLR does not hold
+
+The section above attributes the **intermediate** values (0.262 and 0.270) to
+layout bias, because they disappeared when randomisation was turned off with
+`setarch -R`. The attribution is plausible and it is wrong: the two arms of
+that test ran **in sequence**, and the second inherited a CPU already warmed by
+the first.
+
+Interleaving the arms, so that both see the same thermal condition:
+
+```
+  pair 1:  with ASLR 0.2585   without 0.2023     <- the first run is cold
+  pair 2:  with ASLR 0.2028   without 0.2029
+  pair 3:  with ASLR 0.2028   without 0.2027
+  pair 4:  with ASLR 0.2028   without 0.2029
+  pair 5:  with ASLR 0.2028   without 0.2028
+  pair 6:  with ASLR 0.2028   without 0.2029
+```
+
+The two arms are indistinguishable. What produces the intermediate value is the
+**first run**, with or without ASLR — and the cold run disappears from the
+second arm of a sequential test by construction, not by any effect of layout.
+
+> **What survives and what falls.** The cause of the high mode survives: load
+> on the SMT sibling, now with the invariant quantity measured. The attribution
+> of the intermediates to layout falls; it was a confound with thermal state.
+> The test that separates them is to interleave the arms, and it is cheap.
+
+> **The two values remain published in the table above, and they should.** They
+> were measured correctly; what fell was their explanation. Retracting the
+> measurement would be erasing the datum because of an error that lay in the
+> reading.
+
+#### What this obliges of whoever measures
+
+Any measurement of this order of magnitude published in nanoseconds, without
+the frequency beside it, is a number on an undeclared axis. The three
+conditions the project uses give three answers for the same loop:
+
+| condition | typical frequency | `atomic relaxed` |
+|---|---:|---:|
+| graphical, `powersave` | ramp from 4.33 to 5.5 | 0.205 to 0.410 |
+| text, `powersave` | 4.33 to 4.95 | 0.255 |
+| text, `performance` | 5.58 steady | 0.205 |
+
+None is wrong. All three measure the same 1.125 cycles.
+
 ## 6. Pre-registration: the second memory stick
 
 This section is written **before** the measurement, and it is the first time

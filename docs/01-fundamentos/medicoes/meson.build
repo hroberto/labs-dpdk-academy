@@ -212,6 +212,13 @@ rajada_nasdaq = executable('rajada-nasdaq', 'rajada-nasdaq.c', versao_h,
 test('fundamentos - L2 (rajada de market data)', rajada_nasdaq,
      suite : ['l2', 'fundamentos'], timeout : 300)
 
+# Sonda dedicada a UMA medicao do custo-espera. Existe porque investigar a
+# distribuicao daquele laco pelo programa inteiro custaria 27 s por 3,6 ms de
+# dado util. Nao entra em campanha: e instrumento de investigacao.
+sonda_relaxed = executable('sonda-relaxed', 'sonda-relaxed.c',
+                           c_args : alinhamento,
+                           dependencies : [libm], install : false)
+
 custo_espera = executable('custo-espera', 'custo-espera.c', versao_h,
                           c_args : alinhamento,
                           dependencies : [dependency('threads'), libm], install : false)
