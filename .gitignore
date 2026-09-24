@@ -40,3 +40,7 @@ __pycache__/
 # 'sudo ./scripts/ambiente.sh --cachear-memoria'. O que vai ao
 # repositorio e a TABELA gerada, nao o cache local.
 .ambiente-memoria
+
+# Lixo de redirecionamento errado (`2>1` em vez de `2>&1`). Ja entrou num
+# commit uma vez; ignorar e mais barato que lembrar.
+/1

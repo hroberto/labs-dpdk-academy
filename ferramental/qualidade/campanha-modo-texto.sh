@@ -69,7 +69,13 @@
 #
 #   1. sudo systemctl set-default multi-user.target
 #   2. sudo reboot
-#   3. entrar no console e rodar:  sudo ferramental/qualidade/campanha-modo-texto.sh
+#   3. entrar no console e rodar, NOMEANDO a configuracao medida:
+#        sudo ferramental/qualidade/campanha-modo-texto.sh 2026-09-24-expo6000-canal-duplo-texto
+#
+#      Para comparar dois perfis de memoria, a segunda coleta so precisa do
+#      passo de hardware -- os passos 1 a 4 nao dependem da BIOS:
+#        sudo ferramental/qualidade/campanha-modo-texto.sh --so-hardware \
+#             2026-09-24-jedec4800-canal-duplo-texto
 #   4. ao terminar:  sudo systemctl set-default graphical.target && sudo reboot
 #
 # O passo 4 esta impresso no fim da execucao, para nao depender de memoria.
@@ -83,9 +89,48 @@ cd "$RAIZ"
 # permissao, e repetir os dez minutos de osnoise que JA deram certo seria
 # desperdicio -- e tentacao para encurtar o protocolo da proxima vez.
 CONTINUAR=0
-[ "${1:-}" = "--continuar" ] && { CONTINUAR=1; shift; }
+SO_HARDWARE=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --continuar)    CONTINUAR=1; shift ;;
+        --so-hardware)  SO_HARDWARE=1; shift ;;
+        -*) echo "opcao desconhecida: $1" >&2; exit 2 ;;
+        *)  break ;;
+    esac
+done
 
-SAIDA="$RAIZ/trilha/03-performance/03-isolamento-cpu/historico/$(date +%Y-%m-%d)-modo-texto"
+# O NOME DA CONFIGURACAO E ARGUMENTO, e nao derivado da data.
+#
+# A primeira versao fixava "<data>-modo-texto". Uma coleta com a memoria em
+# JEDEC 4800 nasceria com o mesmo nome de uma em EXPO 6000, e o comparativo
+# entre as duas pareceria nulo em vez de invalido -- exatamente o cenario que
+# o portao do cache de memoria do `campanha-hardware.sh` existe para impedir.
+# Quem mede duas configuracoes tem de poder nomea-las.
+CONFIG="${1:-}"
+if [ -z "$CONFIG" ]; then
+    echo "uso: $0 [--continuar] [--so-hardware] <configuracao>" >&2
+    echo "  exemplo: $0 2026-09-24-jedec4800-canal-duplo-texto" >&2
+    echo "  a configuracao vira o nome da coleta nos quatro historicos," >&2
+    echo "  com hora e minuto acrescentados: ...-texto-0812" >&2
+    exit 2
+fi
+
+# HORA E MINUTO NO NOME, e o motivo e uma coleta que quase foi lida errado.
+#
+# Duas execucoes do mesmo dia colidiam no mesmo diretorio. Quem chegasse
+# segundo ou abortava, ou -- pior -- gravava metade ao lado da metade da
+# outra, com a data sugerindo que era tudo a mesma medicao. A data sozinha
+# nao identifica uma coleta; identifica um dia.
+#
+# `--continuar` NAO acrescenta o selo: ele existe para retomar uma coleta que
+# ja tem nome, e gerar um nome novo a cada tentativa seria o oposto de
+# retomar.
+if [ "$CONTINUAR" -eq 0 ]; then
+    CONFIG="${CONFIG}-$(date +%H%M)"
+fi
+echo "==> coleta: $CONFIG"
+
+SAIDA="$RAIZ/trilha/03-performance/03-isolamento-cpu/historico/$CONFIG"
 if [ -e "$SAIDA" ] && [ "$CONTINUAR" -eq 0 ]; then
     echo "ABORTADO: $SAIDA ja existe -- nao sobrescrevo coleta."
     echo "          use --continuar para completar o que faltou."
@@ -165,6 +210,18 @@ echo "    saida: $SAIDA"
 sed 's/^/    /' "$SAIDA/ambiente.txt"
 
 # --------------------------------------------------------------------------
+# OS PASSOS 1 A 4 MEDEM RUIDO E MEMPOOL, e nenhum deles depende do perfil de
+# memoria da BIOS. Numa coleta cujo objetivo e comparar 4800 contra 6000 eles
+# consomem a maior parte do tempo sem responder a pergunta -- dai
+# `--so-hardware`. A condicao de modo texto ja foi conferida acima, e vale
+# igual para os dois caminhos.
+# --------------------------------------------------------------------------
+if [ "$SO_HARDWARE" -eq 1 ]; then
+    echo
+    echo "==> passos 1 a 4 PULADOS (--so-hardware): nao dependem do perfil de memoria"
+else
+
+# --------------------------------------------------------------------------
 # 1. osnoise: histograma de dez minutos. Nao para no primeiro evento, entao
 #    da a DISTRIBUICAO -- que e o que responde a previsao.
 # --------------------------------------------------------------------------
@@ -225,6 +282,8 @@ else
     echo "    PULADO: binarios COM estatisticas ausentes"
 fi
 
+fi   # fim dos passos 1 a 4
+
 # --------------------------------------------------------------------------
 # 5. campanha de hardware: os dezenove programas dos tres modulos, que e o que
 #    o `comparar-hardware.py` confronta. Sem este passo, o projeto continua
@@ -237,7 +296,7 @@ fi
 # --------------------------------------------------------------------------
 echo
 echo "==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  ($(date +%T))"
-CONF="$(date +%Y-%m-%d)-modo-texto"
+CONF="$CONFIG"
 # A coleta de referencia serve a dois passos: gabarito de completude aqui, e
 # o outro lado da comparacao no passo 6.
 REF="2026-09-23-expo6000-canal-duplo"
@@ -292,11 +351,22 @@ fi
 # coleta parcial relatando diferenca que e falta de arquivo. O gabarito e a
 # propria coleta de referencia: se a nova nao tem o mesmo numero de arquivos
 # nos tres modulos, ela nao esta pronta.
+# CONTAR REPETICOES, NAO ARQUIVOS, e a diferenca custou uma coleta.
+#
+# A primeira versao comparava `ls | wc -l` contra a referencia. A referencia
+# carrega um `diario.txt.tmp` que sobrou de uma execucao antiga e um
+# `diario.txt` que o modo texto grava noutro lugar -- um arquivo de diferenca
+# em cada modulo. Coleta completa era declarada INCOMPLETA por causa de lixo,
+# e o passo 5 abortou uma campanha que devia ter rodado.
+#
+# O que constitui a medicao sao as saidas por repeticao, `*.r<N>.txt`. Contar
+# so elas ignora diario, ambiente e qualquer residuo.
 completa() { # <configuracao>  -> 0 se os tres modulos batem com a referencia
     local c="$1" m a b
     for m in 01-fundamentos 02-runtime-dpdk 03-mempool-ring-mbuf; do
-        a=$(ls "docs/$m/medicoes/historico/$REF" 2>/dev/null | wc -l)
-        b=$(ls "docs/$m/medicoes/historico/$c"   2>/dev/null | wc -l)
+        a=$(ls "docs/$m/medicoes/historico/$REF"/*.r[0-9]*.txt 2>/dev/null | wc -l)
+        b=$(ls "docs/$m/medicoes/historico/$c"/*.r[0-9]*.txt   2>/dev/null | wc -l)
+        [ "$a" -gt 0 ] || return 1
         [ "$b" -ge "$a" ] || return 1
     done
     return 0
@@ -306,9 +376,9 @@ if [ -d "docs/01-fundamentos/medicoes/historico/$CONF" ] && completa "$CONF"; th
 elif [ -d "docs/01-fundamentos/medicoes/historico/$CONF" ]; then
     echo "    ABORTADO: $CONF existe e esta INCOMPLETA."
     for m in 01-fundamentos 02-runtime-dpdk 03-mempool-ring-mbuf; do
-        printf "              %-22s %s de %s arquivos\n" "$m" \
-            "$(ls docs/$m/medicoes/historico/$CONF 2>/dev/null | wc -l)" \
-            "$(ls docs/$m/medicoes/historico/$REF  2>/dev/null | wc -l)"
+        printf "              %-22s %s de %s saidas de repeticao\n" "$m" \
+            "$(ls docs/$m/medicoes/historico/$CONF/*.r[0-9]*.txt 2>/dev/null | wc -l)" \
+            "$(ls docs/$m/medicoes/historico/$REF/*.r[0-9]*.txt  2>/dev/null | wc -l)"
     done
     echo "              A campanha de hardware nao sobrescreve. Para refazer:"
     echo "                rm -rf docs/*/medicoes/historico/$CONF"
