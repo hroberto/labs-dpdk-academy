@@ -811,8 +811,8 @@ o conjunto de CPUs ao qual o lcore está fixado — a terceira coluna da tabela.
 
 A sintaxe de [`--lcores`][optlcore] importa em máquina com topologia relevante. A da
 [§4.3 dos fundamentos](../01-fundamentos/README.md#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só)
-tem dois CCDs, e a comunicação entre eles custou de 82 a 99 ns contra 20 a 22 ns
-dentro do mesmo CCD, nas cinco repetições arquivadas. Com [`-l`][optlcore], os lcores caem onde os números mandarem; com
+tem dois CCDs, e a comunicação entre eles custou 81,5 ns contra 17,9 a 20,0 ns
+dentro do mesmo CCD, nas seis repetições arquivadas. Com [`-l`][optlcore], os lcores caem onde os números mandarem; com
 `--lcores`, o mapeamento é escolhido — e é assim que se garante que produtor e
 consumidor de um mesmo anel fiquem no mesmo domínio de cache.
 

@@ -2523,11 +2523,11 @@ Os três números, para este experimento:
 | Grandeza | Valor | De onde vem |
 |---|---:|---|
 | `λ_pico` | 3 881 988 pacotes/s | enlace de 10 Gb/s com datagrama de 322 B no fio |
-| `μ` | 1 365 969 pacotes/s | **medido nesta máquina**: 732 ns por pacote, 25 amostras |
+| `μ` | 1 366 272 pacotes/s | **medido nesta máquina**: 732 ns por pacote, 25 amostras |
 | `T` | 1 ms | ordem de grandeza de uma rajada de abertura |
 
 ```
-ΔQ = (3 881 988 − 1 365 969) × 1 ms  =  2 516 descritores
+ΔQ = (3 881 988 − 1 366 272) × 1 ms  =  2 516 descritores
 ```
 
 > **A previsão, antes de medir.** Anéis de 256, 512 e 1 024 devem ser
@@ -2587,7 +2587,7 @@ A tabela completa, com todas as profundidades e as colunas de mediana e
 #### O que o buffer compra, e o que ele cobra
 
 A última linha da tabela é a lição que fica: com 32 768 descritores a perda
-chega a zero — e o p99 vai a **7,0 ms**. Num feed de market data isso é o mesmo
+chega a zero — e o p99 vai a **6,9 ms**. Num feed de market data isso é o mesmo
 que descarte, porque a ordem já foi executada por outro.
 
 > **Buffer não cria capacidade. Ele transforma parte da perda em fila.** E cobra

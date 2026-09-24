@@ -85,7 +85,7 @@ on the same machine, with the same methodology as the project's other programs.
 > [limitations](../00-visao-geral/README.en.md#5-the-measurement-environment) declare — the
 > absolute values change between runs: the same binary gave 2.19 ns and 2.77 ns for
 > `malloc`, depending on whether turbo engaged. The **ratios** were identical (2.23×
-> in both). That is why this module claims "twice as fast" and not "0.98
+> in both). That is why this module claims "twice as fast" and not "1.25
 > nanoseconds": the ratio is the claim; the nanosecond is circumstance.
 
 **`malloc()` costs 2.18 ns, not tens.** Repeatedly allocating and freeing an object
@@ -101,7 +101,7 @@ line explains where the gain comes from.
 
 A mempool has two layers ([mempool guide][guiamempool]): a common, shared ring, and a **per-lcore cache** acting as
 a buffer. Creating the same pool with `cache_size = 0`, the operation goes from
-**0.98 ns to 10.45 ns** — ten times more expensive, and five times more expensive
+**1.25 ns to 13.27 ns** — ten times more expensive, and five times more expensive
 than `malloc()`.
 
 The reading matters more than the number: **without the per-lcore cache, the mempool
@@ -159,8 +159,8 @@ This is the section's main result, and it appears in no published comparison:
 ```
 
 Asking for more objects at once **cheapens** each object in the mempool
-(1.84 → 0.45 ns) and **makes it more expensive** in `malloc` (2.39 → 19.64 ns). The
-ratio between the two goes from 1.3× to 37.5×.
+(1.85 → 0.44 ns) and **makes it more expensive** in `malloc` (2.74 → 19.61 ns). The
+ratio between the two goes from 1.5× to 45.0×.
 
 That is decisive because the data plane **is** batch processing.
 [§3 of the practical topic](../../trilha/01-fundamentos/02-mempool-ring/README.en.md)

@@ -289,8 +289,9 @@ stall above the window is enough for affinity alone not to guarantee the
 budget.
 
 What the collection shows more strongly is the **shape** of the distribution,
-not the count. Fifteen runs fall between 15.7 and 40.0 µs, and five jump to the
-hundreds. There is nothing between 40 µs and 630 µs: the distribution is
+not the count. Fifteen runs fall between 15.7 and 31.6 µs, two brush against the
+window (34.8 and 40.0 µs) and three jump to the hundreds — 631.6, 660.4 and
+752.9 µs. There is nothing between 40.0 µs and 631.6 µs: the distribution is
 **bimodal**, with two modes separated by more than an order of magnitude and
 nothing in between.
 
@@ -647,7 +648,7 @@ manager, and collection ran from a text console.
 | `amdgpu_device_delay_enable_gfx_off` | 12 occurrences | **absent** |
 
 The bimodal distribution described in §6.6 does not appear in the absence of a
-graphical session. The high mode — the set of stalls between 40 µs and 630 µs —
+graphical session. The high mode — the set of stalls between 40.0 µs and 631.6 µs —
 disappears entirely. The prediction was not refuted on any of the four
 quantities.
 

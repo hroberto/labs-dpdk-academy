@@ -13,7 +13,7 @@ tempo. Mas o programa precisa de objetos por pacote.
 
 > **Cuidado com a versão folclórica deste argumento.** Costuma-se dizer que
 > `malloc()` "custa dezenas de nanossegundos", e isso foi medido neste projeto:
-> alocar e liberar um objeto por vez custa **2,18 ns**, porque a glibc tem um
+> alocar e liberar um objeto por vez custa **2,78 ns**, porque a glibc tem um
 > cache por thread e o par cai nele. A justificativa real do mempool é outra, e
 > aparece quando se trabalha em **lote** — o regime do plano de dados. Os números
 > estão na [§1 do módulo de teoria](../../../docs/03-mempool-ring-mbuf/README.md#1-por-que-não-usar-malloc--a-resposta-medida).

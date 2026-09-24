@@ -2478,11 +2478,11 @@ The three numbers, for this experiment:
 | Quantity | Value | Where it comes from |
 |---|---:|---|
 | `λ_peak` | 3,881,988 packets/s | a 10 Gb/s link with a 322 B on-wire datagram |
-| `μ` | 1,365,969 packets/s | **measured on this machine**: 732 ns per packet, 25 samples |
+| `μ` | 1,366,272 packets/s | **measured on this machine**: 732 ns per packet, 25 samples |
 | `T` | 1 ms | the order of magnitude of an opening burst |
 
 ```
-ΔQ = (3,881,988 − 1,365,969) × 1 ms  =  2,516 descriptors
+ΔQ = (3,881,988 − 1,366,272) × 1 ms  =  2,516 descriptors
 ```
 
 > **The prediction, before measuring.** Rings of 256, 512 and 1,024 should be
@@ -2541,7 +2541,7 @@ The full table, with every depth and the median and `ca²` columns, is in the
 #### What a buffer buys, and what it charges
 
 The table's last row is the lesson that stays: with 32,768 descriptors the loss
-reaches zero — and the p99 goes to **7.0 ms**. On a market-data feed that is the
+reaches zero — and the p99 goes to **6.9 ms**. On a market-data feed that is the
 same as a drop, because the order has already been filled by someone else.
 
 > **A buffer does not create capacity. It turns part of the loss into queue.**

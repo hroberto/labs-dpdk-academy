@@ -13,7 +13,7 @@ program needs objects per packet.
 
 > **Beware of the folkloric version of this argument.** It is commonly said that
 > `malloc()` "costs tens of nanoseconds", and this was measured in this project:
-> allocating and freeing one object at a time costs **2.18 ns**, because glibc has a
+> allocating and freeing one object at a time costs **2.78 ns**, because glibc has a
 > per-thread cache and the pair falls into it. The mempool's real justification is
 > another, and it appears when you work in **batches** — the data plane's regime. The
 > numbers are in [§1 of the theory module](../../../docs/03-mempool-ring-mbuf/README.en.md#1-why-not-use-malloc--the-measured-answer).

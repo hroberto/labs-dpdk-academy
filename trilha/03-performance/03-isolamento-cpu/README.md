@@ -288,10 +288,10 @@ ainda **2,7 vezes** a janela de 4096 descritores. H1 se sustenta: basta uma
 parada acima da janela para que a afinidade sozinha não garanta o orçamento.
 
 O que a coleta mostra com mais força é a **forma** da distribuição, não a
-contagem. Quinze execuções ficam entre 15,7 e 40,0 µs, e cinco saltam para a
-casa das centenas. Não há nada entre 40 µs e 630 µs: a distribuição é
-**bimodal**, com dois modos separados por mais de uma ordem de grandeza e nada
-no meio.
+contagem. Quinze execuções ficam entre 15,7 e 31,6 µs, duas encostam na janela
+(34,8 e 40,0 µs) e três saltam para a casa das centenas — 631,6, 660,4 e
+752,9 µs. Não há nada entre 40,0 µs e 631,6 µs: a distribuição é **bimodal**,
+com dois modos separados por mais de uma ordem de grandeza e nada no meio.
 
 Isso restringe o mecanismo antes de qualquer medição adicional. Uma cauda
 contínua indicaria acúmulo de muitas fontes pequenas, cada uma somando um
@@ -645,7 +645,7 @@ display, e a coleta foi executada por console de texto.
 | `amdgpu_device_delay_enable_gfx_off` | 12 ocorrências | **ausente** |
 
 A distribuição bimodal descrita na §6.6 não se manifesta na ausência da sessão
-gráfica. O modo alto — o conjunto de paradas entre 40 µs e 630 µs — desaparece
+gráfica. O modo alto — o conjunto de paradas entre 40,0 µs e 631,6 µs — desaparece
 integralmente. A predição não foi refutada em nenhuma das quatro grandezas.
 
 O achado é a conclusão da cadeia iniciada na §6.6: a distribuição bimodal
@@ -699,7 +699,7 @@ teria produzido atribuição incorreta acompanhada de valores corretos.
 As coletas deste tópico, e as campanhas publicadas anteriormente, declaram
 *"máquina exclusiva, navegador fechado"*. A medição demonstra que essa condição
 não elimina a sessão gráfica: o compositor, o servidor de display e o driver da
-GPU permanecem ativos e produzem, isoladamente, eventos de até 800 µs a
+GPU permanecem ativos e produzem, isoladamente, eventos de até 808 µs a
 intervalos de poucos segundos.
 
 O efeito sobre os resultados publicados é limitado pelo desenho estatístico

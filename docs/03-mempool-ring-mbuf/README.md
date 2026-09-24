@@ -87,7 +87,7 @@ dois na mesma máquina, com a mesma metodologia dos demais programas do projeto.
 > os valores absolutos mudam entre execuções: o mesmo binário deu 2,19 ns e
 > 2,77 ns para o `malloc`, conforme o turbo engatasse. As **razões** ficaram
 > idênticas (2,23× nas duas). É por isso que este módulo afirma "duas vezes mais
-> rápido" e não "0,98 nanossegundos": a razão é a afirmação; o nanossegundo é
+> rápido" e não "1,25 nanossegundos": a razão é a afirmação; o nanossegundo é
 > circunstância.
 
 **`malloc()` custa 2,18 ns, não dezenas.** Alocar e liberar repetidamente um
@@ -103,7 +103,7 @@ linha explica de onde vem o ganho.
 
 Um mempool tem duas camadas ([guia do mempool][guiamempool]): um anel comum,
 compartilhado, e um **cache por lcore** que serve de amortecedor. Criando o mesmo pool com `cache_size = 0`, a
-operação passa de **0,98 ns para 10,45 ns** — dez vezes mais cara, e cinco vezes
+operação passa de **1,25 ns para 13,27 ns** — dez vezes mais cara, e cinco vezes
 mais cara que o `malloc()`.
 
 A leitura importa mais que o número: **sem o cache por lcore, o mempool perde
@@ -161,9 +161,9 @@ publicada:
   128              19.61 ns       0.436 ns      45.0x
 ```
 
-Pedir mais objetos de uma vez **barateia** cada objeto no mempool (1,84 → 0,45 ns)
-e **encarece** no `malloc` (2,39 → 19,64 ns). A razão entre os dois vai de 1,3×
-para 37,5×.
+Pedir mais objetos de uma vez **barateia** cada objeto no mempool (1,85 → 0,44 ns)
+e **encarece** no `malloc` (2,74 → 19,61 ns). A razão entre os dois vai de 1,5×
+para 45,0×.
 
 Isso é decisivo porque o plano de dados **é** processamento em lote. A
 [§3 do tópico prático](../../trilha/01-fundamentos/02-mempool-ring/README.md)
