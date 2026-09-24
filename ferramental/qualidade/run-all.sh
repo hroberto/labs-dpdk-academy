@@ -2,8 +2,14 @@
 # =========================================================================
 # UMA EXECUCAO, TUDO QUE PRECISA DA MAQUINA LIMPA
 #
+#   sudo ./ferramental/qualidade/run-all.sh
+#
+# O nome da coleta sai do proprio hardware -- data, perfil de memoria e numero
+# de pentes, lidos do `dmidecode`. Passe um nome so quando quiser rotular uma
+# condicao que o hardware nao expressa (um braco de controle, uma replica).
+#
+# Para a condicao limpa, antes:
 #   sudo grub-reboot modo-texto && sudo reboot
-#   (no console)  sudo ./ferramental/qualidade/run-all.sh <configuracao>
 #
 # POR QUE UM SO SCRIPT
 #
@@ -40,16 +46,71 @@ set -u
 RAIZ="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$RAIZ" || exit 1
 
-CONFIG="${1:-}"
-if [ -z "$CONFIG" ]; then
-    echo "uso: $0 <configuracao>" >&2
-    echo "  exemplo: $0 2026-09-25-expo6000-canal-duplo" >&2
-    echo "  a configuracao nomeia as coletas; hora e minuto entram sozinhos." >&2
-    exit 2
-fi
+# O PORTAO DE ROOT VEM ANTES DE TUDO, e a ordem nao e arbitraria.
+#
+# `--cachear-memoria` le o `dmidecode`, que exige privilegio. Sem root ele
+# falha CALADO, e a derivacao do nome abaixo usaria o cache anterior -- ou
+# seja, nomearia a coleta com a configuracao de memoria que a maquina tinha
+# ANTES. E exatamente o erro que a derivacao existe para impedir, entrando
+# pela porta dos fundos.
 [ "$(id -u)" -eq 0 ] || { echo "FALHA: rode com sudo." >&2; exit 1; }
 
-DONO=${SUDO_USER:-henrique}
+# O NOME DA COLETA E DERIVADO DO HARDWARE, e o argumento vira opcional.
+#
+# Ate aqui o nome era digitado, e foi assim que uma coleta JEDEC 4800 nasceu
+# rotulada como se fosse EXPO 6000: o operador sabia da BIOS, o comando nao.
+# Derivar do `dmidecode` fecha essa porta -- o nome passa a ser consequencia do
+# que a maquina E, nao do que alguem lembrou de escrever.
+#
+# O cache e refeito ANTES de ler, pela mesma razao: um cache anterior ao ultimo
+# boot descreveria a configuracao anterior, e o nome herdaria o erro.
+#
+# O argumento explicito continua aceito e tem precedencia. Ele serve para o
+# caso em que se quer nomear uma condicao que o hardware nao expressa -- um
+# braco de controle, uma replica, um teste de governor.
+./scripts/ambiente.sh --cachear-memoria >/dev/null 2>&1 \
+    && chown "${SUDO_USER:-root}" .ambiente-memoria 2>/dev/null
+
+derivar_config() {
+    [ -r .ambiente-memoria ] || return 1
+    # shellcheck disable=SC1091
+    . ./.ambiente-memoria 2>/dev/null || return 1
+    local vel pentes perfil canal
+    vel=$(printf '%s' "${CACHE_VEL:-}" | grep -oE '^[0-9]+') || return 1
+    pentes=$(printf '%s' "${CACHE_CANAIS:-}" | grep -oE '^[0-9]+') || return 1
+    [ -n "$vel" ] && [ -n "$pentes" ] || return 1
+    # 4800 MT/s e o padrao JEDEC do DDR5 desta plataforma; acima disso so com
+    # perfil EXPO ligado na BIOS. A distincao e o que a coleta precisa dizer.
+    if [ "$vel" -le 4800 ]; then perfil="jedec$vel"; else perfil="expo$vel"; fi
+    case "$pentes" in
+        1) canal="canal-unico" ;;
+        2) canal="canal-duplo" ;;
+        *) canal="canal-${pentes}pentes" ;;
+    esac
+    printf '%s-%s-%s' "$(date +%Y-%m-%d)" "$perfil" "$canal"
+}
+
+CONFIG="${1:-}"
+if [ -z "$CONFIG" ]; then
+    CONFIG=$(derivar_config) || {
+        echo "FALHA: nao derivei a configuracao do hardware." >&2
+        echo "  Passe o nome explicitamente: $0 <configuracao>" >&2
+        echo "  exemplo: $0 2026-09-25-expo6000-canal-duplo" >&2
+        exit 2
+    }
+    DERIVADO=1
+else
+    DERIVADO=0
+fi
+
+# O DONO NAO E UM NOME FIXO, e a razao e de reproducao, nao de estilo.
+#
+# Sob `sudo`, `$USER` vale root -- entao e `$SUDO_USER` que diz quem chamou.
+# Quando nem ele existe, o dono do proprio repositorio e a melhor resposta
+# disponivel: e a conta que vai precisar ler o que este script gravar. Um nome
+# de login escrito no arquivo faz o script funcionar numa maquina so, que e o
+# oposto do que um protocolo versionado serve para ser.
+DONO=${SUDO_USER:-$(stat -c %U "$RAIZ" 2>/dev/null || logname 2>/dev/null || echo root)}
 SELO="$(date +%H%M)"
 SONDA=build/docs/01-fundamentos/medicoes/sonda-relaxed
 
@@ -77,7 +138,7 @@ fi
 
 echo "=========================================================="
 echo "  run-all  $(date -Is)"
-echo "  configuracao : $CONFIG"
+echo "  configuracao : $CONFIG  $([ "$DERIVADO" -eq 1 ] && echo "(derivada do hardware)" || echo "(informada)")"
 echo "  selo         : $SELO"
 echo "  modo detectado: $MODO ($graficos processo(s) grafico(s))"
 if [ "$MODO" = "grafico" ]; then
@@ -117,8 +178,7 @@ SAIDA_AMB="docs/01-fundamentos/medicoes/historico/$CONFIG-ambiente-$SELO"
 echo
 echo "==> ETAPA 1/3  procedencia da maquina  ($(date +%T))"
 mkdir -p "$SAIDA_AMB"
-./scripts/ambiente.sh --cachear-memoria >/dev/null 2>&1 \
-    && chown "$DONO" .ambiente-memoria 2>/dev/null
+chown "$DONO" .ambiente-memoria 2>/dev/null   # o cache ja foi refeito ao derivar o nome
 {
     echo "modo detectado : $MODO ($graficos processo(s) grafico(s))"
     echo "configuracao   : $CONFIG"
