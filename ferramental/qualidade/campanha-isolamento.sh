@@ -113,4 +113,4 @@ for rep in $(seq 1 "$REPETICOES"); do
     echo "    repeticao $rep de $REPETICOES concluida"
 done
 
-echo "==> $(( $(wc -l < "$CSV") - 1 )) execucoes registradas em $CSV"
+echo "==> $(( $(wc -l < "$CSV") - 1 )) execucoes registradas em ${CSV#$PWD/}"

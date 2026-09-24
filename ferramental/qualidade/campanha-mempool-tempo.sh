@@ -97,7 +97,7 @@ uma() { # <versao> <topologia> <cache> <repeticao> <ordem>
 echo "==> campanha B4-tempo: ${#VERSOES[@]} versoes x ${#TOPOLOGIA[@]} topologias"
 echo "    x ${#CACHES[@]} tamanhos de cache x $REPETICOES repeticoes"
 echo "    prefixos SEM RTE_LIBRTE_MEMPOOL_STATS, metrica em ns/pacote"
-echo "    saida: $CSV"
+echo "    saida: ${CSV#$PWD/}"
 
 for rep in $(seq 1 "$REPETICOES"); do
     # A unidade de repeticao e a CELULA, e as duas versoes de uma celula correm
@@ -114,4 +114,4 @@ for rep in $(seq 1 "$REPETICOES"); do
     echo "    repeticao $rep de $REPETICOES concluida"
 done
 
-echo "==> $(( $(wc -l < "$CSV") - 1 )) execucoes registradas em $CSV"
+echo "==> $(( $(wc -l < "$CSV") - 1 )) execucoes registradas em ${CSV#$PWD/}"

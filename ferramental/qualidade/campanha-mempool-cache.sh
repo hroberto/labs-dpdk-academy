@@ -102,7 +102,7 @@ uma_execucao() { # <versao> <topologia> <cache> <repeticao> <ordem>
 
 echo "==> campanha B4: ${#VERSOES[@]} versoes x ${#TOPOLOGIA[@]} topologias"
 echo "    x ${#CACHES[@]} tamanhos de cache x $REPETICOES repeticoes"
-echo "    saida: $CSV"
+echo "    saida: ${CSV#$PWD/}"
 
 for rep in $(seq 1 "$REPETICOES"); do
     # A ORDEM DAS CELULAS MUDA A CADA REPETICAO. Sem isto, uma celula sempre
@@ -140,4 +140,4 @@ for rep in $(seq 1 "$REPETICOES"); do
     fi
 done
 
-echo "==> $(( $(wc -l < "$CSV") - 1 )) execucoes registradas em $CSV"
+echo "==> $(( $(wc -l < "$CSV") - 1 )) execucoes registradas em ${CSV#$PWD/}"

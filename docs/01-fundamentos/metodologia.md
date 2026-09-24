@@ -415,6 +415,53 @@ A verificação direta fecha na quarta casa: a sonda, executada fria, mede
 > a razão medida misturava dois efeitos, e por isso não batia exatamente com o
 > `1,69×` do teste de carga.
 
+#### Medir o relógio por cadeia dependente mede outra coisa sob SMT
+
+A sonda publicava os ciclos dividindo pelo período de clock que ela mesma mede
+— uma cadeia de somas dependentes, uma por ciclo em regime. Em modo texto, com
+o irmão SMT saturado, ela devolveu **1,046 ciclos** onde o modelo previa 1,818.
+
+A previsão estava certa. Errado estava o denominador.
+
+**O mecanismo.** Uma cadeia dependente mede a **vazão de emissão desta
+thread**, não a frequência do núcleo. Quando o irmão SMT disputa as unidades
+de execução, as duas threads emitem cada uma cerca de metade — e o período
+medido dobra *junto* com a medição que ele deveria normalizar. Numerador e
+denominador caem juntos, e a divisão cancela exatamente o efeito que se quer
+ver.
+
+O `sysfs` não cai, porque lê a frequência do hardware, que não muda por haver
+duas threads no núcleo:
+
+| condição | `sysfs` | cadeia dependente | razão |
+|---|---:|---:|---:|
+| núcleo sozinho | 5,59 GHz | 5,51 GHz | 0,99 |
+| irmão SMT saturado | 5,44 GHz | 3,12 GHz | **0,57** |
+
+E pelo relógio de hardware o modelo fecha na terceira casa: 0,3353 ns a
+5,44 GHz dão **1,824 ciclos**, contra os 1,818 medidos em modo gráfico.
+
+**A sonda passou a publicar os dois**, com o nome do que cada um mede:
+
+```
+  sem carga                      irmao SMT saturado
+  ----------------------------   ----------------------------
+  por HARDWARE  (5.53 GHz) 1.122  por HARDWARE  (5.39 GHz) 1.822
+  por EMISSAO   (5.51 GHz) 1.119  por EMISSAO   (3.13 GHz) 1.057
+  razao 1.00 <- tem o nucleo      razao 0.58 <- nucleo dividido
+```
+
+A razão entre as duas fontes deixa de ser ruído e passa a ser **o
+instrumento**: ela mede quanto do núcleo esta thread está recebendo. Abaixo de
+0,8 o núcleo está sendo dividido, e o número em nanossegundos publicado sem
+essa qualificação descreve uma condição que o leitor não tem como adivinhar.
+
+> **A generalização, que vale além desta medição.** Qualquer aferição de
+> frequência por trabalho executado — cadeia dependente, laço calibrado,
+> contador de ciclos por amostragem de tempo — mede vazão, não relógio. As
+> duas coincidem enquanto a thread tem o núcleo inteiro, e é por isso que a
+> confusão sobrevive: ela só aparece na condição em que a medida importa.
+
 #### A atribuição ao ASLR não se sustenta
 
 A seção acima atribui os valores **intermediários** (0,262 e 0,270) a viés de

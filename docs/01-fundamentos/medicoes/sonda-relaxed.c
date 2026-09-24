@@ -230,12 +230,51 @@ int main(int argc, char **argv)
                ord[0], med, ord[n - 1]);
         printf("  periodo de clock ao FIM: %.4f ns (%.2f GHz)\n", T1,
                T1 > 0 ? 1.0 / T1 : 0.0);
-        /* OS CICLOS SAO O RESULTADO. Se o modelo estiver certo eles nao mudam
-         * com o modo, com o governor nem com a maquina -- so com a carga no
-         * irmao SMT. */
-        printf("  CICLOS por operacao: %.3f (pelo periodo inicial)"
-               "   %.3f (pelo final)\n", T0 > 0 ? med / T0 : 0.0,
-               T1 > 0 ? med / T1 : 0.0);
+        /* OS CICLOS SAO O RESULTADO, E SAO DOIS NUMEROS DIFERENTES.
+         *
+         * A primeira versao publicava so o periodo empirico, e a coleta de
+         * 24/09 mostrou por que isso nao basta. Com o irmao SMT saturado ela
+         * deu 1,046 ciclos onde o modelo previa 1,818 -- e a previsao estava
+         * certa; errado estava o denominador.
+         *
+         * `periodo_ns()` mede uma cadeia de somas DEPENDENTES, uma por ciclo
+         * em regime. Isso e vazao de emissao DESTA thread, nao frequencia do
+         * nucleo. Quando o irmao SMT disputa as unidades de execucao, as duas
+         * threads emitem cada uma cerca de metade -- e o periodo empirico
+         * dobra junto com a medicao. Numerador e denominador caem juntos, e a
+         * divisao cancela exatamente o efeito que se quer ver.
+         *
+         * O sysfs nao cai: ele le a frequencia do hardware, que nao muda por
+         * haver duas threads no nucleo. Medido em 24/09, com o irmao saturado:
+         * sysfs 5,44 GHz contra 3,12 GHz empirico, divergencia de 1,74x. Sem
+         * carga os dois concordam -- 5,59 contra 5,51.
+         *
+         * Por isso os dois sao publicados, com o nome do que cada um mede:
+         *
+         *   por HARDWARE  quantos periodos de relogio a operacao ocupa. E o
+         *                 numero comparavel entre condicoes, e o que fecha o
+         *                 modelo: 1,824 com irmao saturado contra 1,818
+         *                 medidos em modo grafico.
+         *   por EMISSAO   quantas oportunidades de emissao DESTA thread a
+         *                 operacao consome. Igual ao de cima quando o nucleo
+         *                 esta sozinho; menor sob disputa, e a diferenca entre
+         *                 os dois E a disputa.
+         */
+        const double f_hw = freq_ghz(cpu);
+        printf("  CICLOS por operacao\n");
+        printf("    por HARDWARE (sysfs %.2f GHz):  %.3f\n", f_hw, med * f_hw);
+        printf("    por EMISSAO  (medido %.2f GHz): %.3f\n",
+               T1 > 0 ? 1.0 / T1 : 0.0, T1 > 0 ? med / T1 : 0.0);
+        if (f_hw > 0 && T1 > 0) {
+            const double razao = (1.0 / T1) / f_hw;
+            printf("    razao emissao/hardware: %.2f", razao);
+            /* Abaixo de ~0,8 a thread nao esta recebendo o nucleo inteiro. O
+             * limiar nao e teorico: sem carga a coleta de 24/09 deu 0,99, e
+             * com o irmao saturado, 0,57. */
+            printf("%s\n", razao < 0.8
+                   ? "   <- o nucleo esta sendo dividido"
+                   : "   <- a thread tem o nucleo");
+        }
         free(ord);
     }
 

@@ -421,6 +421,55 @@ Direct verification closes to the fourth decimal: the probe, run cold, measures
 > the measured ratio mixed two effects, which is why it did not match the
 > `1.69×` of the load test exactly.
 
+#### Measuring the clock by a dependency chain measures something else under SMT
+
+The probe published cycles by dividing by the clock period it measures itself —
+a chain of dependent additions, one per cycle in steady state. In text mode,
+with the SMT sibling saturated, it returned **1.046 cycles** where the model
+predicted 1.818.
+
+The prediction was right. The denominator was wrong.
+
+**The mechanism.** A dependency chain measures **this thread's issue
+throughput**, not the core's frequency. When the SMT sibling competes for the
+execution units, each thread issues roughly half — and the measured period
+doubles *along with* the measurement it was supposed to normalise. Numerator
+and denominator fall together, and the division cancels precisely the effect
+one wants to see.
+
+`sysfs` does not fall, because it reads the hardware frequency, which does not
+change because two threads share the core:
+
+| condition | `sysfs` | dependency chain | ratio |
+|---|---:|---:|---:|
+| core alone | 5.59 GHz | 5.51 GHz | 0.99 |
+| SMT sibling saturated | 5.44 GHz | 3.12 GHz | **0.57** |
+
+And by the hardware clock the model closes to the third decimal: 0.3353 ns at
+5.44 GHz gives **1.824 cycles**, against the 1.818 measured in graphical mode.
+
+**The probe now publishes both**, named for what each measures:
+
+```
+  no load                        SMT sibling saturated
+  ----------------------------   ----------------------------
+  by HARDWARE  (5.53 GHz) 1.122  by HARDWARE  (5.39 GHz) 1.822
+  by ISSUE     (5.51 GHz) 1.119  by ISSUE     (3.13 GHz) 1.057
+  ratio 1.00 <- owns the core    ratio 0.58 <- core is shared
+```
+
+The ratio between the two sources stops being noise and becomes **the
+instrument**: it measures how much of the core this thread is getting. Below
+0.8 the core is being shared, and a figure in nanoseconds published without
+that qualification describes a condition the reader has no way to guess.
+
+> **The generalisation, which holds beyond this measurement.** Any frequency
+> reading derived from work performed — a dependency chain, a calibrated loop,
+> a cycle counter sampled against time — measures throughput, not clock. The
+> two coincide while the thread owns the whole core, and that is why the
+> confusion survives: it only shows up in the condition where the measure
+> matters.
+
 #### The attribution to ASLR does not hold
 
 The section above attributes the **intermediate** values (0.262 and 0.270) to
