@@ -22,6 +22,36 @@
 # argumento obrigatorio, vai para o `ambiente.txt` da coleta, e o script recusa
 # `--texto` com sessao grafica viva em vez de avisar e seguir.
 #
+# PRE-REGISTRO DE 24/09/2026 -- O GOVERNOR EM MODO TEXTO
+#
+# `custo-alocacao` e o unico programa do projeto que reporta a frequencia, e
+# ele le duas vezes: antes da primeira coleta e depois da ultima. Em modo
+# texto as seis repeticoes deram `4.33 -> 4.94..5.57 GHz`; em modo grafico,
+# `5.56..5.61` estavel. A rampa acontece DENTRO da medicao.
+#
+# O efeito nao e uniforme: ele depende da POSICAO no programa. O `malloc`, que
+# e medido primeiro, saiu 2,78 ns nas seis repeticoes de modo texto -- sempre
+# no relogio frio. O `sem cache`, medido por ultimo, deu 13,42 ns quando a
+# rampa parou em 4,95 GHz e 11,9 quando chegou a 5,57. Razao medida 1,13,
+# razao dos relogios 1,125.
+#
+#   HIPOTESE. Em modo texto o clock e a variavel dominante dos valores
+#   absolutos, porque nada aquece a CPU entre invocacoes e toda execucao e a
+#   primeira apos ociosidade.
+#
+#   PREVISAO. Com `--fixar-governor`, `f0` e `f1` ficam a menos de 3% um do
+#   outro nas seis repeticoes, e `sem cache` para de alternar entre 11,9 e
+#   13,4.
+#
+#   REFUTADA SE. A rampa persistir com o governor em `performance`, ou se
+#   `malloc` continuar em 2,78 -- o que significaria que a diferenca entre os
+#   dois modos nao e de clock, e a hipotese esta errada.
+#
+#   O QUE ESTA EM JOGO. O `ambiente-medicao.sh` registra, de medicao propria,
+#   que "fixar o governor ajuda pouco". Aquilo foi medido em modo grafico e
+#   esta certo ali. Se a previsao acima se sustentar, aquela conclusao passa a
+#   valer so para o modo em que foi feita, e o registro precisa dizer qual.
+#
 # O EXPERIMENTO QUE ORIGINOU ESTE SCRIPT
 #
 # PRE-REGISTRO -- ESCRITO ANTES DA COLETA, E E POR ISSO QUE ESTE CABECALHO
@@ -113,6 +143,7 @@ cd "$RAIZ"
 # desperdicio -- e tentacao para encurtar o protocolo da proxima vez.
 CONTINUAR=0
 SO_HARDWARE=0
+FIXAR_GOV=0
 MODO=""
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -120,6 +151,7 @@ while [ $# -gt 0 ]; do
         --grafico)      MODO=grafico; shift ;;
         --continuar)    CONTINUAR=1; shift ;;
         --so-hardware)  SO_HARDWARE=1; shift ;;
+        --fixar-governor) FIXAR_GOV=1; shift ;;
         -*) echo "opcao desconhecida: $1" >&2; exit 2 ;;
         *)  break ;;
     esac
@@ -128,7 +160,8 @@ done
 # condicao ser herdada em vez de declarada, e condicao herdada e o defeito que
 # este projeto passou o mes inteiro corrigindo.
 if [ -z "$MODO" ]; then
-    echo "uso: $0 --texto|--grafico [--continuar] [--so-hardware] <configuracao>" >&2
+    echo "uso: $0 --texto|--grafico [--continuar] [--so-hardware]" >&2
+    echo "         [--fixar-governor] <configuracao>" >&2
     echo >&2
     echo "  --texto    servidor ou console. Exige ausencia de sessao grafica." >&2
     echo "             Menor jitter; use para dispersao, p99 e cauda." >&2
@@ -243,6 +276,51 @@ mkdir -p "$SAIDA"
 # falham com "Permission denied" DEPOIS dos dez minutos do osnoise -- que e o
 # pior momento possivel para descobrir.
 chown -R "$DONO" "$SAIDA"
+# --------------------------------------------------------------------------
+# GOVERNOR FIXO, e por que isto e uma FLAG e nao um padrao.
+#
+# O `ambiente-medicao.sh` registra, de medicao propria, que "fixar o governor
+# ajuda pouco; DESCARTAR A PRIMEIRA EXECUCAO ajuda muito". Aquilo foi medido em
+# modo grafico, onde o compositor mantem a CPU quente e so a primeira execucao
+# apos ociosidade e fria.
+#
+# Em modo texto nada aquece a CPU, entao TODA execucao e a primeira apos
+# ociosidade -- e o descarte nao alcanca o problema. A previsao e que ali o
+# governor deixe de "ajudar pouco" e passe a ser a variavel dominante.
+#
+# Previsao contraria a conclusao ja registrada merece intervencao de variavel
+# unica, nao mudanca de padrao. Dai a flag: uma celula com ela, outra sem, e o
+# resto identico.
+GOV_ANTERIOR=""
+restaurar_governor() {
+    [ -n "$GOV_ANTERIOR" ] || return 0
+    for c in /sys/devices/system/cpu/cpu[0-9]*/cpufreq/scaling_governor; do
+        echo "$GOV_ANTERIOR" > "$c" 2>/dev/null || :
+    done
+    echo "==> governor restaurado para $GOV_ANTERIOR"
+    GOV_ANTERIOR=""
+}
+# A restauracao vai no trap, nao no fim do script: campanha interrompida no
+# meio deixaria a maquina com o governor trocado, e a proxima medicao herdaria
+# uma condicao que ninguem declarou.
+trap restaurar_governor EXIT INT TERM
+if [ "$FIXAR_GOV" -eq 1 ]; then
+    GOV_ANTERIOR=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null)
+    if [ -z "$GOV_ANTERIOR" ]; then
+        echo "FALHA: nao li o governor atual; nao troco o que nao sei restaurar." >&2
+        exit 1
+    fi
+    for c in /sys/devices/system/cpu/cpu[0-9]*/cpufreq/scaling_governor; do
+        echo performance > "$c" 2>/dev/null || :
+    done
+    agora=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null)
+    if [ "$agora" != "performance" ]; then
+        echo "FALHA: pedi performance e o governor ficou '$agora'." >&2
+        exit 1
+    fi
+    echo "==> governor: $GOV_ANTERIOR -> performance (restaurado no fim)"
+fi
+
 exec > >(tee -a "$SAIDA/diario.txt") 2>&1
 echo "==> campanha em modo texto  $(date -Is)"
 # CAMINHO RELATIVO, e o motivo nao e estetica. O diario e versionado e o
@@ -257,6 +335,7 @@ echo "    saida: ${SAIDA#$RAIZ/}"
 # --------------------------------------------------------------------------
 {
     echo "modo declarado   : $MODO"
+    echo "governor fixado  : $([ "$FIXAR_GOV" -eq 1 ] && echo "sim (era $GOV_ANTERIOR)" || echo nao)"
     echo "alvo systemd     : $alvo"
     echo "processos grafico: $graficos"
     echo "governor cpu2    : $(cat /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor 2>/dev/null)"
