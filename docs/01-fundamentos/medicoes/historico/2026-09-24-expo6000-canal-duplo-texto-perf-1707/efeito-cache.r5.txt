@@ -1,0 +1,51 @@
+  origin: efeito-cache @ v0.06.00-30-g7e66c68  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-24T17:31:18-0300
+
+Mean latency per access, growing working set
+(cache line = 64 B; each uint32_t = 4 B, so 16 per line)
+
+(9 samples per measurement; times in ns)
+
+  L1d (16 KB)
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+    sequential   (amortised)             0.196  0.196-0.196     0.196-0.198         0.0%   0.4%  
+    random       (amortised)             0.273  0.272-0.273     0.272-0.273         0.1%   0.1%  
+    dependent    (LATENCY)               0.937  0.937-0.938     0.937-0.938         0.0%   0.0%  
+  -> penalty for losing locality: 1.4x   |  accesses in flight: ~3
+
+  L2 (256 KB)
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+    sequential   (amortised)             0.195  0.195-0.195     0.194-0.195         0.0%   0.1%  
+    random       (amortised)             0.335  0.335-0.335     0.285-0.336         0.2%   5.1%  
+    dependent    (LATENCY)                2.68  2.68-2.69       2.67-2.72           0.5%   0.6%  
+  -> penalty for losing locality: 1.7x   |  accesses in flight: ~8
+
+  warning: "  random       (amortised)" has disp 5.0% with 9 samples -- in that band the seal
+           does not decide. Raise it to 20+ before explaining the result.
+  L3 (8192 KB)
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+    sequential   (amortised)             0.190  0.190-0.190     0.188-0.191         0.3%   0.4%  
+    random       (amortised)             0.724  0.700-0.736     0.694-0.781         5.0%   3.7% ~
+    dependent    (LATENCY)                9.65  9.65-9.65       9.62-9.68           0.0%   0.1%  
+  -> penalty for losing locality: 3.8x   |  accesses in flight: ~13
+
+  RAM (262144 KB)
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+    sequential   (amortised)             0.188  0.188-0.188     0.188-0.188         0.1%   0.0%  
+    random       (amortised)              5.80  5.80-5.80       5.79-5.80           0.0%   0.1%  
+    dependent    (LATENCY)               85.90  85.61-86.69     84.05-86.93         1.3%   1.3%  
+  -> penalty for losing locality: 30.8x   |  accesses in flight: ~15
+
+
+  The first two columns are AMORTISED time; the third is
+  LATENCY. Sequential costs nearly the same at any size,
+  because the prefetcher hides the latency. Random degrades, but
+  still amortises: the addresses come from a vector read in order,
+  so several accesses happen at once. Only the dependent
+  chain exposes the full price of ONE access.
+
+  The ratio between the second and third columns is how many accesses
+  the machine keeps in flight. See custo-paralelismo.c.

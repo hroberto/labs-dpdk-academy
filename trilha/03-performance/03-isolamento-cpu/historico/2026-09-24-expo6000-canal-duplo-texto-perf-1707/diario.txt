@@ -1,0 +1,64 @@
+==> campanha em modo texto  2026-09-24T17:07:17-03:00
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-duplo-texto-perf-1707
+    modo declarado   : texto
+    governor fixado  : sim (era powersave)
+    alvo systemd     : graphical.target
+    processos grafico: 0
+    governor cpu2    : performance
+    C3 disable cpu2  : 0
+    cmdline          : BOOT_IMAGE=/boot/vmlinuz-7.0.0-31-generic root=UUID=bdd65119-6069-4cc3-898a-7e0a0beba60b ro quiet splash amd_iommu=on iommu=pt crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M systemd.unit=multi-user.target
+    kernel           : 7.0.0-31-generic
+    uptime           : up 1 minute
+    memoria          : avail 26,82 GiB, swap em uso 0,00 GiB
+    carga            : 0.24 0.11 0.04
+
+==> passos 1 a 4 PULADOS (--so-hardware): nao dependem do perfil de memoria
+
+==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  (17:07:17)
+    hugepage do feed: /mnt/huge-academia (efemera, desmontada no fim)
+CONCLUIDA -> docs/01-fundamentos/medicoes/historico/2026-09-24-expo6000-canal-duplo-texto-perf-1707
+          -> docs/02-runtime-dpdk/medicoes/historico/2026-09-24-expo6000-canal-duplo-texto-perf-1707
+          -> docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-24-expo6000-canal-duplo-texto-perf-1707
+Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medicoes/historico/{outra,2026-09-24-expo6000-canal-duplo-texto-perf-1707}
+    ok
+    feed: 12 arquivos, completo
+    hugepage do feed desmontada
+
+==> 6/6 revisao dos dados do projeto  (17:38:44)
+    rotulos que se moveram mais de 5%: 9
+        custo-espera: atomic relaxed (store+load)                                   0.399           0.255   -36.1%  <<<
+        custo-traducao.regiao32mb: 2 MB hugepages                                  14.920          13.580    -9.0%  <<<
+        custo-traducao.regiao32mb: 4 KB pages                                      32.660          30.640    -6.2%  <<<
+        custo-traducao.regiao64mb: DIFFERENCE attributable to translation           7.450           6.910    -7.2%  <<<
+        custo-traducao.seq16mb: DIFFERENCE attributable to translation              0.106           0.076   -28.3%  <<<
+        custo-traducao.seq32mb: DIFFERENCE attributable to translation              0.040           0.051   +27.5%  <<<
+        custo-traducao.seq8mb: DIFFERENCE attributable to translation               0.049           0.034   -30.6%  <<<
+        custo-init.in-memory: rte_eal_cleanup()               0.095           0.081   -14.7%  <<<
+        custo-init.no-huge: rte_eal_cleanup()                 0.594           0.515   -13.3%  <<<
+    PREVISAO REFUTADA (9 rotulos marcados, previa-se no maximo 5)
+      188 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+      5 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+      3 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+    comparacao completa em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-duplo-texto-perf-1707/comparacao.txt
+
+    portao de qualidade:
+        [ok]    build limpo, zero avisos
+        [1mtudo passou.[0m Pode commitar.
+
+==> CONCLUIDA  2026-09-24T17:39:45-03:00
+
+    O que ficou em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-duplo-texto-perf-1707:
+      ambiente.txt      estado da maquina antes de medir
+      osnoise-hist.txt  distribuicao de ruido, dez minutos
+      isolamento/       20 celulas do stall_probe
+      mempool-tempo/    ns por pacote, prefixos sem estatisticas
+      mempool-cache/    idas ao anel, mesma condicao do tempo
+      comparacao.txt    o que se moveu contra a coleta com sessao grafica
+      portao.txt        portao de qualidade completo
+
+    A campanha de hardware ficou nos historicos dos tres modulos,
+    sob 2026-09-24-expo6000-canal-duplo-texto-perf-1707.
+
+    Para voltar ao modo grafico:
+      sudo systemctl set-default graphical.target && sudo reboot
+==> governor restaurado para powersave

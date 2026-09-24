@@ -1,0 +1,17 @@
+  origin: custo-syscall @ v0.06.00-30-g7e66c68  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-24T17:31:02-0300
+
+Cost per operation (2000000 iterations, 25 samples; times in ns)
+
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  function call (user-space)             0.745  0.718-0.747     0.715-0.750         3.8%   2.0% ~
+  clock_gettime (vDSO, no trap)          15.52  15.51-15.52     15.51-15.60         0.0%   0.1%  
+  real syscall (SYS_getpid)              33.33  33.32-33.33     33.28-33.35         0.0%   0.0%  
+
+  a syscall costs 45x a function call
+
+10 GbE budget with 64 B frames: 67.2 ns per packet
+  syscalls that fit in that budget: 2.02
+
+  The traditional kernel path spends at least one syscall per
+  packet batch, plus interrupt, sk_buff allocation and a copy.
