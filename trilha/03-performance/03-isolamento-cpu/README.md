@@ -524,8 +524,20 @@ medida e porque orienta o próximo instrumento; ela não é proposta como causa.
 
 A última linha é a única variável de pé entre A e C, e ela é dupla: instalar o
 segundo pente exigiu reiniciar, e as duas mudanças não podem ser separadas por
-software. Separá-las exige remover o pente e recoletar — intervenção física,
-registrada aqui como o experimento que falta, não como pendência de redação.
+software.
+
+> **Este experimento não vai acontecer, e a razão é uma decisão, não um
+> bloqueio.** Separá-las exigiria remover o pente e recoletar, e o responsável
+> pela máquina decidiu não fazer essa intervenção. O registro precisa ser esse,
+> e não "falta hardware": a diferença entre **não poder** e **não querer** é o
+> tipo de coisa que, omitida, transforma escolha em impossibilidade aos olhos
+> de quem lê depois.
+>
+> **O custo fica declarado:** a diferença entre as coletas A e C permanece
+> atribuída ao par configuração-de-memória mais reinício, sem separação
+> possível neste material. Quem repetir este tópico noutra máquina, com o
+> segundo pente já instalado desde o início, mede A e C com um reinício em
+> comum e resolve o que aqui ficou aberto — de graça, por ordem de montagem.
 
 **O instrumento que falta é o mesmo em todas as linhas.** Contagem agregada por
 vetor e por processo não atribui **um evento** a **uma fonte**; ela só permite
@@ -587,10 +599,12 @@ classifica, relata a janela, recusa parâmetro inválido com código distinto, e
   por vetor e por processo permite **eliminar** candidatos, que foi o que as
   oito coletas fizeram; não permite **identificar** a causa de uma parada
   individual. Para isso é preciso `osnoise`, que rastreia por evento.
-- **A configuração de memória e o reinício não foram separados.** Instalar o
-  segundo pente exigiu reiniciar, e nenhuma intervenção de software desfaz uma
-  das duas mudanças sem a outra. É a única variável de pé entre as coletas A e
-  C, e separá-la exige remover fisicamente o pente.
+- **A configuração de memória e o reinício não foram separados, e não serão.**
+  Instalar o segundo pente exigiu reiniciar, e nenhuma intervenção de software
+  desfaz uma das duas mudanças sem a outra. É a única variável de pé entre as
+  coletas A e C. Separá-la exigiria remover fisicamente o pente, e essa
+  intervenção foi **recusada** por quem responde pela máquina — decisão, não
+  bloqueio técnico, e registrada como tal na §6.7.
 - **Vinte execuções por braço dão pouco poder.** O braço E produziu p = 0,028
   contra a condição sem pressão e a réplica não confirmou (§6.6.3). Nenhuma
   conclusão deste tópico repousa sobre um único par de coletas.

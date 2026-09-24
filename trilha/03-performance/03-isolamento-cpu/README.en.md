@@ -527,9 +527,21 @@ cause.
 
 The last row is the only variable still standing between A and C, and it is
 double: installing the second stick required a reboot, and the two changes
-cannot be separated by software. Separating them requires removing the stick
-and collecting again — a physical intervention, recorded here as the experiment
-that is missing, not as a drafting backlog item.
+cannot be separated by software.
+
+> **This experiment is not going to happen, and the reason is a decision, not a
+> blocker.** Separating them would require removing the stick and collecting
+> again, and whoever is responsible for the machine decided against that
+> intervention. The record has to say so, rather than "hardware is missing":
+> the difference between **cannot** and **will not** is the kind of thing that,
+> left out, turns a choice into an impossibility in the eyes of a later reader.
+>
+> **The cost is declared:** the difference between collections A and C remains
+> attributed to the pair memory-configuration plus reboot, with no separation
+> possible in this material. Anyone repeating this topic on another machine,
+> with the second stick installed from the start, measures A and C with a
+> reboot in common and settles what stayed open here — for free, by order of
+> assembly.
 
 **The missing instrument is the same on every row.** Aggregate counts per
 vector and per process do not attribute **one event** to **one source**; they
@@ -595,11 +607,13 @@ rejects invalid parameters with a distinct code, and **declares** when
   **eliminated**, which is what the eight collections did; they do not allow
   the cause of an individual stall to be **identified**. That requires
   `osnoise`, which tracks per event.
-- **The memory configuration and the reboot were not separated.** Installing
-  the second stick required a reboot, and no software intervention undoes one
-  of the two changes without the other. It is the only variable still standing
-  between collections A and C, and separating it requires physically removing
-  the stick.
+- **The memory configuration and the reboot were not separated, and will not
+  be.** Installing the second stick required a reboot, and no software
+  intervention undoes one of the two changes without the other. It is the only
+  variable still standing between collections A and C. Separating it would
+  require physically removing the stick, and that intervention was **declined**
+  by whoever answers for the machine — a decision, not a technical blocker, and
+  recorded as such in §6.7.
 - **Twenty runs per arm give little power.** Arm E produced p = 0.028 against
   the no-pressure condition and the replication did not confirm it (§6.6.3). No
   conclusion in this topic rests on a single pair of collections.

@@ -618,7 +618,9 @@ como pendência de conclusão.
 #### O confundimento capacidade+canal continua declarado
 
 Acrescentar o pente mudou capacidade e canal juntos, e **isto não foi
-resolvido** — nenhum desenho viável nesta máquina os separa. O que o desfecho
+resolvido** — nenhum desenho viável nesta máquina os separa sem remover o
+pente, intervenção que o responsável pela máquina recusou. É decisão
+registrada, não bloqueio técnico. O que o desfecho
 acrescenta é que a previsão 3 restringe o espaço: se a capacidade fosse o que
 move o agregado, ela teria de fazê-lo **sem** alterar a latência de uma cadeia
 dependente de 512 MB, que é o que a previsão 3 mediu parada em −1,8%.

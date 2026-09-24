@@ -628,7 +628,9 @@ not as a pending conclusion.
 #### The capacity+channel confound remains declared
 
 Adding the stick changed capacity and channel together, and **that was not
-resolved** — no viable design on this machine separates them. What the outcome
+resolved** — no viable design on this machine separates them without removing
+the stick, an intervention whoever answers for the machine declined. It is a
+recorded decision, not a technical blocker. What the outcome
 adds is that prediction 3 constrains the space: if capacity were what moves the
 aggregate, it would have to do so **without** altering the latency of a
 512 MB dependent chain, which is what prediction 3 measured standing still at
