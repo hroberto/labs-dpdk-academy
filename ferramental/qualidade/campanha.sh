@@ -583,7 +583,7 @@ else
     echo "    PREVISAO REFUTADA ($marcados rotulos marcados, previa-se no maximo 5)"
 fi
 grep -E "rotulo\(s\);" "$SAIDA/comparacao.txt" | sed 's/^/    /'
-echo "    comparacao completa em $SAIDA/comparacao.txt"
+echo "    comparacao completa em ${SAIDA#$RAIZ/}/comparacao.txt"
 
 echo
 echo "    portao de qualidade:"
@@ -594,7 +594,7 @@ grep -E "FALHA|aviso|tudo passou" "$SAIDA/portao.txt" | sed 's/^/      /'
 echo
 echo "==> CONCLUIDA  $(date -Is)"
 echo
-echo "    O que ficou em $SAIDA:"
+echo "    O que ficou em ${SAIDA#$RAIZ/}:"
 echo "      ambiente.txt      estado da maquina antes de medir"
 echo "      osnoise-hist.txt  distribuicao de ruido, dez minutos"
 echo "      isolamento/       20 celulas do stall_probe"

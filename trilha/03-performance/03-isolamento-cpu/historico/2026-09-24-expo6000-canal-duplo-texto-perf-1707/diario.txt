@@ -39,7 +39,7 @@ Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medi
       188 rotulo(s); mediana das medianas, execucao de aquecimento descartada
       5 rotulo(s); mediana das medianas, execucao de aquecimento descartada
       3 rotulo(s); mediana das medianas, execucao de aquecimento descartada
-    comparacao completa em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-duplo-texto-perf-1707/comparacao.txt
+    comparacao completa em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-duplo-texto-perf-1707/comparacao.txt
 
     portao de qualidade:
         [ok]    build limpo, zero avisos
@@ -47,7 +47,7 @@ Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medi
 
 ==> CONCLUIDA  2026-09-24T17:39:45-03:00
 
-    O que ficou em /home/henrique/workspaces/labs_dpdk_academy/trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-duplo-texto-perf-1707:
+    O que ficou em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-expo6000-canal-duplo-texto-perf-1707:
       ambiente.txt      estado da maquina antes de medir
       osnoise-hist.txt  distribuicao de ruido, dez minutos
       isolamento/       20 celulas do stall_probe
