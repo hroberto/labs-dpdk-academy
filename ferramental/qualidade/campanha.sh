@@ -188,7 +188,7 @@ if [ -z "$CONFIG" ]; then
     exit 2
 fi
 
-# CARIMBO `YYYY-MM-DD-HH-MM` NA FRENTE DO NOME.
+# CARIMBO `YYYY-MM-DD-HHMM` NA FRENTE DO NOME.
 #
 # Duas execucoes do mesmo dia colidiam no mesmo diretorio. Quem chegasse
 # segundo ou abortava, ou -- pior -- gravava metade ao lado da metade da
@@ -209,12 +209,12 @@ fi
 # nome novo a cada tentativa seria o oposto de retomar.
 ja_carimbado() {
     case "$1" in
-        [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*) return 0 ;;
+        [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]-*) return 0 ;;
         *) return 1 ;;
     esac
 }
 if [ "$CONTINUAR" -eq 0 ] && ! ja_carimbado "$CONFIG"; then
-    CONFIG="$(date +%Y-%m-%d-%H-%M)-${CONFIG}"
+    CONFIG="$(date +%Y-%m-%d-%H%M)-${CONFIG}"
 fi
 echo "==> coleta: $CONFIG"
 

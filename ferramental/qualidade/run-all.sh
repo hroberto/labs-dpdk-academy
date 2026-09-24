@@ -6,10 +6,10 @@
 #
 # O nome da coleta se monta sozinho:
 #
-#   2026-09-25-10-35-expo6000-canal-duplo
-#   \_____________/ \____________________/
-#    carimbo da          configuracao lida
-#    execucao            do `dmidecode`
+#   2026-09-25-1035-expo6000-canal-duplo
+#   \____________/ \____________________/
+#    carimbo da         configuracao lida
+#    execucao           do `dmidecode`
 #
 # O carimbo vem na frente para que `ls` devolva a ordem cronologica sem
 # ninguem pedir. Passe um nome so quando quiser rotular uma condicao que o
@@ -119,7 +119,7 @@ fi
 # de login escrito no arquivo faz o script funcionar numa maquina so, que e o
 # oposto do que um protocolo versionado serve para ser.
 DONO=${SUDO_USER:-$(stat -c %U "$RAIZ" 2>/dev/null || logname 2>/dev/null || echo root)}
-# O CARIMBO VAI NA FRENTE, e e `YYYY-MM-DD-HH-MM`.
+# O CARIMBO VAI NA FRENTE, e e `YYYY-MM-DD-HHMM`.
 #
 # Ate aqui a hora ia no fim -- `...-canal-duplo-1035` -- e a data no comeco. O
 # nome ficava ordenavel por dia e NAO por execucao: duas coletas do mesmo dia
@@ -129,7 +129,7 @@ DONO=${SUDO_USER:-$(stat -c %U "$RAIZ" 2>/dev/null || logname 2>/dev/null || ech
 # Com o carimbo inteiro na frente, `ls` devolve a ordem cronologica de graca, e
 # e isso que se quer de um historico. O que vem depois descreve a CONFIGURACAO,
 # que e o segundo criterio natural de leitura.
-CARIMBO="$(date +%Y-%m-%d-%H-%M)"
+CARIMBO="$(date +%Y-%m-%d-%H%M)"
 SONDA=build/docs/01-fundamentos/medicoes/sonda-relaxed
 
 # O MODO E DETECTADO, NAO EXIGIDO -- e isso muda o que a coleta pode afirmar.
