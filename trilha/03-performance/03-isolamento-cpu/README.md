@@ -787,23 +787,70 @@ isolado (`K = 1`), que mede latência pura, move −12,6 % com a velocidade.
 - **Natureza do trabalho executado pelo `gfx_off`** durante centenas de
   microssegundos. O rastreamento identifica a função de entrada, não as
   operações internas.
-- **Efeito da desativação do *power gating* — tentada, e sem instrumento nesta
-  máquina.** A intervenção separaria a atribuição "GPU" da atribuição "sessão
-  gráfica", que a medição atual não distingue. Três caminhos foram testados em
-  24/09/2026, e os três fecharam:
+- **Efeito da desativação do *power gating* — intervenção disponível, ainda
+  não executada.** A intervenção separaria a atribuição "GPU" da atribuição
+  "sessão gráfica", que a medição atual não distingue. Dos três caminhos
+  levantados em 24/09/2026, dois fecharam e um está aberto:
 
   | caminho | desfecho |
   |---|---|
   | `amdgpu.pg_mask=0` na linha de boot | **tela preta.** É máscara, e zero apaga também os flags do bloco de display |
-  | máscara com apenas o bit de `GFX_PG` | o valor vive em `amd_shared.h`, que não vem nos `linux-headers` instalados |
-  | `debugfs`, `amdgpu_gfxoff` | `-r--------` nos quatro arquivos; escrita devolve `EINVAL`, com `lockdown` em `[none]` |
+  | máscara com apenas o bit de `GFX_PG` | o valor vive em `amd_shared.h`, e os `linux-headers` instalados trazem apenas `Makefile` e `Kconfig` sob `drivers/` — nenhum cabeçalho |
+  | `debugfs`, `amdgpu_gfxoff` | **aberto.** O arquivo é `-r--------`, mas tem *handler* de escrita; a recusa inicial foi de formato de entrada |
 
-  Neste kernel o `amdgpu_gfxoff` é **status, não controle**. A pergunta
-  continua aberta, e o que mudou é o que ela custa: não é um parâmetro de boot,
-  como esta seção supunha antes de tentar.
+  O modo `0400` não é o impedimento que parece. O processo com `CAP_DAC_OVERRIDE`
+  abre o arquivo para escrita apesar dele, e o `EINVAL` recebido não veio da
+  camada de permissão: veio de dentro do *handler*. A desmontagem do módulo em
+  uso mostra o ponteiro instalado e a primeira decisão que ele toma:
 
-  Os contadores `amdgpu_gfxoff_count` e `amdgpu_gfxoff_residency` também não
-  servem: a leitura não retorna em dois segundos. Isso é consistente com a
+  ```
+  amdgpu_debugfs_gfxoff_fops:  +24 → amdgpu_debugfs_gfxoff_read
+                               +32 → amdgpu_debugfs_gfxoff_write
+
+  amdgpu_debugfs_gfxoff_write:
+      test $0x3,%dl          ← tamanho da escrita
+      jne  <+0x118>             → movq $-22   (-EINVAL)
+      mov  (%rcx),%rax       ← deslocamento
+      and  $0x3,%eax
+      jne  <+0x118>
+      …
+      call __get_user_4      ← lê o buffer em palavras de 4 bytes
+      setne %sil
+      call amdgpu_gfx_off_ctrl
+  ```
+
+  A interface é um vetor de `u32` **binários**, não texto, e rejeita tamanho ou
+  deslocamento que não seja múltiplo de quatro antes de tocar na GPU. A
+  tentativa que produziu o `EINVAL` usou `printf '0'`, que escreve um byte:
+  `1 & 3 = 1`. O kernel está configurado para permitir a operação —
+  `CONFIG_DEBUG_FS_ALLOW_ALL=y`, `lockdown` em `[none]`, sem `debugfs=` na
+  linha de boot —, e o que faltou foi codificar a entrada como o *handler* a
+  espera.
+
+  A lição é sobre leitura de `errno`, e vale além deste driver: `EINVAL` diz
+  "o argumento não serve", não "a operação é proibida". Confundir os dois
+  transforma um erro de chamada em uma conclusão sobre política do sistema —
+  que foi o que aconteceu aqui, e o que fechou cedo demais uma porta aberta.
+
+  A semântica sai da mesma desmontagem: palavra `0` chama
+  `amdgpu_gfx_off_ctrl(adev, false)` e desliga; palavra diferente de zero
+  religa. E `amdgpu_gfx_off_ctrl` não é interruptor, é **contagem de pedidos**
+  (`gfx_off_req_count`): o religamento decrementa, e só ao chegar a zero o
+  driver reenfileira o trabalho atrasado em `system_percpu_wq` — que é
+  exatamente o `amdgpu_device_delay_enable_gfx_off` visto no rastro. Um
+  desligamento exige um religamento, e o desbalanço deixa o estado alterado até
+  o próximo boot.
+
+  O experimento está escrito em `ferramental/qualidade/experimento-gfxoff.sh`,
+  em desenho A-B-A — ligado, desligado, ligado —, com a sessão gráfica viva e o
+  pré-registro no cabeçalho. Falta executá-lo. Há uma ressalva de
+  interpretação: `amdgpu_gfx_off_ctrl` começa com um teste de suporte e retorna
+  sem efeito quando o bit não está presente, de modo que um resultado nulo
+  precisa ser distinguido de "a escrita não fez nada" antes de contar como
+  refutação.
+
+  Os contadores `amdgpu_gfxoff_count` e `amdgpu_gfxoff_residency` continuam sem
+  servir: a leitura não retorna em dois segundos. Isso é consistente com a
   própria hipótese — ler o estado do bloco GFX exige acordá-lo —, mas travar é
   o oposto de medir.
 
@@ -859,8 +906,9 @@ classifica, relata a janela, recusa parâmetro inválido com código distinto, e
   trabalho `amdgpu_device_delay_enable_gfx_off`, executado em *workqueue* por
   CPU (§6.6.5); a supressão da sessão gráfica o elimina nos dois instrumentos
   (§6.6.6). Permanecem indeterminadas as operações executadas pela função
-  durante centenas de microssegundos e a possibilidade de removê-la pela
-  desativação do *power gating*, mantida a sessão gráfica.
+  durante centenas de microssegundos. A remoção pela desativação do *power
+  gating*, mantida a sessão gráfica, tem instrumento
+  (`ferramental/qualidade/experimento-gfxoff.sh`, §6.7) e não foi executada.
 - **As coletas com sessão gráfica estão sujeitas a uma fonte de ruído não
   declarada no protocolo.** A condição "máquina exclusiva, navegador fechado"
   não exclui o compositor, o servidor de display e o driver da GPU. O efeito
