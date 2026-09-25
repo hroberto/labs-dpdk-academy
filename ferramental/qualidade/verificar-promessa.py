@@ -89,6 +89,11 @@ EXTERNAS = {
     "clang-format", "clang-tidy", "google-benchmark", "pkg-config", "ldconfig",
     # pacotes de distribuição
     "dpdk-dev", "dpdk-devel", "rdma-core", "libibverbs1", "ibverbs-providers",
+    # `linux-headers` entra aqui porque o §6.7 do topico de isolamento cita a
+    # AUSENCIA dele: o header `amd_shared.h` nao vem no pacote, e e por isso
+    # que a mascara do GFX_PG nao pode ser montada nesta maquina. Citar um
+    # pacote para dizer que ele nao entrega uma coisa e uso legitimo.
+    "linux-headers",
     # ferramentas do DPDK, instaladas junto com ele
     "dpdk-devbind.py", "dpdk-testpmd", "dpdk-pmdinfo.py", "dpdk-hugepages.py",
     # modulos de kernel e dispositivos virtuais

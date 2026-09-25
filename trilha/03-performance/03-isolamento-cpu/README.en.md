@@ -804,10 +804,26 @@ high ones. The isolated access (`K = 1`), which measures pure latency, moves
 - **The nature of the work performed by `gfx_off`** over hundreds of
   microseconds. Tracing identifies the entry function, not the internal
   operations.
-- **The effect of disabling power gating.** The `amdgpu` driver accepts
-  parameters for this purpose. The intervention would separate the attribution
-  "GPU" from the attribution "graphical session", which the present measurement
-  does not distinguish.
+- **The effect of disabling power gating — attempted, and no instrument on
+  this machine.** The intervention would separate the attribution "GPU" from
+  the attribution "graphical session", which the present measurement does not
+  distinguish. Three paths were tried on 24/09/2026, and all three closed:
+
+  | path | outcome |
+  |---|---|
+  | `amdgpu.pg_mask=0` on the boot line | **black screen.** It is a mask, and zero also clears the display block's flags |
+  | a mask with only the `GFX_PG` bit | the value lives in `amd_shared.h`, which does not ship with the installed `linux-headers` |
+  | `debugfs`, `amdgpu_gfxoff` | `-r--------` on all four files; writing returns `EINVAL`, with `lockdown` at `[none]` |
+
+  On this kernel `amdgpu_gfxoff` is **status, not control**. The question stays
+  open, and what changed is what it costs: not a boot parameter, as this
+  section assumed before trying.
+
+  **What remains is correlation, not intervention.** `amdgpu_gfxoff_count` and
+  `amdgpu_gfxoff_residency` are readable, and a counter read before and after a
+  window measures how many transitions occurred in it. If the number tracks the
+  long stalls, the attribution gains support; if it does not, it falls. Neither
+  outcome proves cause — only the intervention would.
 - **The magnitude of the shift between graphical session and text mode.** The
   comparison was made once, on 24/09: ten of the 198 labels moved by more than
   5%, and the reading of the ten is in §6.7 — seven are artefacts of the metric

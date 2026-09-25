@@ -787,9 +787,26 @@ isolado (`K = 1`), que mede latência pura, move −12,6 % com a velocidade.
 - **Natureza do trabalho executado pelo `gfx_off`** durante centenas de
   microssegundos. O rastreamento identifica a função de entrada, não as
   operações internas.
-- **Efeito da desativação do *power gating*.** O driver `amdgpu` aceita
-  parâmetros para essa finalidade. A intervenção separaria a atribuição "GPU"
-  da atribuição "sessão gráfica", que a medição atual não distingue.
+- **Efeito da desativação do *power gating* — tentada, e sem instrumento nesta
+  máquina.** A intervenção separaria a atribuição "GPU" da atribuição "sessão
+  gráfica", que a medição atual não distingue. Três caminhos foram testados em
+  24/09/2026, e os três fecharam:
+
+  | caminho | desfecho |
+  |---|---|
+  | `amdgpu.pg_mask=0` na linha de boot | **tela preta.** É máscara, e zero apaga também os flags do bloco de display |
+  | máscara com apenas o bit de `GFX_PG` | o valor vive em `amd_shared.h`, que não vem nos `linux-headers` instalados |
+  | `debugfs`, `amdgpu_gfxoff` | `-r--------` nos quatro arquivos; escrita devolve `EINVAL`, com `lockdown` em `[none]` |
+
+  Neste kernel o `amdgpu_gfxoff` é **status, não controle**. A pergunta
+  continua aberta, e o que mudou é o que ela custa: não é um parâmetro de boot,
+  como esta seção supunha antes de tentar.
+
+  **O que sobra é correlação, não intervenção.** `amdgpu_gfxoff_count` e
+  `amdgpu_gfxoff_residency` são legíveis, e contador lido antes e depois de uma
+  janela mede quantas transições houve nela. Se o número acompanhar as paradas
+  longas, a atribuição ganha apoio; se não acompanhar, ela cai. Nenhum dos dois
+  desfechos prova causa — só a intervenção provaria.
 - **Magnitude do deslocamento entre sessão gráfica e modo texto.** A
   comparação foi feita uma vez, em 24/09: dez dos 198 rótulos passaram de 5 %,
   e a leitura dos dez está na §6.7 — sete são artefato da métrica ou do regime
