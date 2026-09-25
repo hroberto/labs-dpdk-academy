@@ -90,6 +90,52 @@ def celulas(path):
     return out
 
 
+CLASSIFICACAO = RAIZ / "ferramental/qualidade/classificacao-numeros.tsv"
+
+
+def classificados():
+    """{numero normalizado: (classe, justificativa)} do indice ao lado.
+
+    E O MESMO ARQUIVO que o `verificar-retratacoes.py` consome, e nao um
+    segundo. Um indice por verificador seria o terceiro lugar onde o mesmo fato
+    e digitado neste repositorio, e os dois primeiros ja custaram um portao cada.
+    """
+    out = {}
+    try:
+        texto = CLASSIFICACAO.read_text(encoding="utf-8")
+    except OSError:
+        return out
+    for l in texto.split("\n"):
+        if not l.strip() or l.lstrip().startswith("#"):
+            continue
+        campos = l.split("\t")
+        if len(campos) >= 2:
+            out[campos[0].strip().replace(",", ".")] = (
+                campos[1].strip(), campos[2].strip() if len(campos) > 2 else "")
+    return out
+
+
+# POR QUE NAO BASTA "O VALOR ESTA ENTRE DOIS ARQUIVADOS"
+#
+# A tentativa obvia de aceitar mediana seria: o valor esta cercado por duas
+# observacoes arquivadas, e portanto e plausivel. Foi medido em 25/09/2026, e
+# nao funciona.
+#
+# O arquivo tem 128 526 numeros distintos. Nessa densidade, QUALQUER valor tem
+# vizinhos apertados: 400 numeros sorteados ao acaso entre 0,5 e 200 deram folga
+# mediana de 0,298% entre o vizinho de baixo e o de cima. A mediana real de uma
+# serie de dez rodadas deu 0,245%. Indistinguiveis.
+#
+# Ou seja, "cercado por arquivados" nao carrega informacao nenhuma -- aceitaria
+# um numero inventado tao prontamente quanto um legitimo. A forca deste
+# verificador esta no casamento LITERAL, e afroux-lo seria destrui-lo.
+#
+# A saida honesta e a que o projeto ja usa para numero que nao case: um indice
+# ao lado, com a classe e a RAZAO escritas. Mediana de N rodadas e MEDIDO, e a
+# justificativa nomeia a serie. A excecao passa a ser declarada em vez de
+# tolerada em silencio.
+
+
 def sustenta(valor, arquivados):
     """O valor existe em coleta? Tenta o literal e as vizinhancas de precisao.
 
@@ -119,15 +165,20 @@ def main():
     if not arquivados:
         print("  nenhuma coleta arquivada: nada a conferir", file=sys.stderr)
         return 0
+    indice = classificados()
     docs = sorted(RAIZ.glob("docs/**/*.md")) + sorted(RAIZ.glob("trilha/**/*.md"))
-    orfas, total = [], 0
+    orfas, total, declarados = [], 0, 0
     for p in docs:
         if "/historico/" in str(p):
             continue
         for linha, valor, texto in celulas(p):
             total += 1
-            if not sustenta(valor, arquivados):
-                orfas.append((p.relative_to(RAIZ), linha, valor, texto))
+            if sustenta(valor, arquivados):
+                continue
+            if valor in indice:
+                declarados += 1
+                continue
+            orfas.append((p.relative_to(RAIZ), linha, valor, texto))
 
     if "--listar" in sys.argv:
         doc = None
@@ -137,8 +188,8 @@ def main():
                 doc = p
             print("    :%-5d %-10s %s" % (linha, valor, texto[:72]))
         print()
-    print("  %d celula(s) de tabela com unidade conferida(s); %d sem lastro em coleta"
-          % (total, len(orfas)))
+    print("  %d celula(s) de tabela com unidade conferida(s); %d declarada(s) no indice; "
+          "%d sem lastro" % (total, declarados, len(orfas)))
     if orfas and "--listar" not in sys.argv:
         print("  detalhe: ./ferramental/qualidade/relatar-tabelas-medidas.py --listar")
     # RELATA, NAO BLOQUEIA -- e a decisao tem razao, nao comodidade.

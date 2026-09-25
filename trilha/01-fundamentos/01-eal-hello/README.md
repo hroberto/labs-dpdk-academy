@@ -92,7 +92,7 @@ várias configurações, por exemplo — tem de validar antes, ou aceitar que a
 tentativa custa um processo.
 
 **E ela não é barata.** Medida com **exatamente a configuração deste tópico**
-(`-l 0 --in-memory --no-huge`), `rte_eal_init()` custa **123 ms** de mediana,
+(`-l 0 --in-memory --no-huge`), `rte_eal_init()` custa **118 ms** de mediana,
 contra **0,30 ms** de [`rte_eal_cleanup()`][apiealclean] — mais de duas ordens de
 grandeza entre nascer e morrer. O número é medido por
 [`docs/02-runtime-dpdk/medicoes/custo-init.c`](../../../docs/02-runtime-dpdk/medicoes/custo-init.c),

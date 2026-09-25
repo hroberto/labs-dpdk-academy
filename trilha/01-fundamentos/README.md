@@ -47,7 +47,7 @@ A divisão não é arbitrária, e explicá-la é parte do conteúdo:
   reúso — fica no L2.
 
 Essa separação tem um custo concreto que vale conhecer: subir a EAL leva
-**123 ms** nesta máquina ([§2 do módulo de runtime](../../docs/02-runtime-dpdk/README.md#2-o-custo-de-existir-quanto-a-eal-leva-para-nascer)).
+**118 ms** nesta máquina ([§2 do módulo de runtime](../../docs/02-runtime-dpdk/README.md#2-o-custo-de-existir-quanto-a-eal-leva-para-nascer)).
 Uma suíte que exigisse o runtime para cada asserção pagaria esse preço em cada
 caso de teste.
 

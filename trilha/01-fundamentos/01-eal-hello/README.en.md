@@ -95,7 +95,7 @@ configurations, for instance — has to validate beforehand, or accept that the
 attempt costs a process.
 
 **And it is not cheap.** Measured with **exactly this topic's configuration**
-(`-l 0 --in-memory --no-huge`), `rte_eal_init()` costs a median of **123 ms**,
+(`-l 0 --in-memory --no-huge`), `rte_eal_init()` costs a median of **118 ms**,
 against **0.30 ms** for [`rte_eal_cleanup()`][apiealclean] — more than two orders of
 magnitude between being born and dying. The number is measured by
 [`docs/02-runtime-dpdk/medicoes/custo-init.c`](../../../docs/02-runtime-dpdk/medicoes/custo-init.c),

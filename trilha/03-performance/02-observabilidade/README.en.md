@@ -62,7 +62,7 @@ The two get confused, and the difference decides which to use:
 | Access | counters the library exports | the whole shared memory |
 | Client | anything that speaks a UNIX socket | a DPDK process with `--proc-type=secondary` |
 | Coupling | none | same DPDK version, same `--file-prefix` |
-| Startup cost | connecting | an entire EAL — 123 ms, measured in [runtime §2](../../../docs/02-runtime-dpdk/README.en.md#2-the-cost-of-existing-how-long-the-eal-takes-to-be-born) |
+| Startup cost | connecting | an entire EAL — 118 ms, measured in [runtime §2](../../../docs/02-runtime-dpdk/README.en.md#2-the-cost-of-existing-how-long-the-eal-takes-to-be-born) |
 | Risk | reading | can write into the primary's memory |
 
 For "how many packets were lost", telemetry. For "I want to read the application's

@@ -27,7 +27,7 @@ citação.
 | Achado | Número | Onde |
 |---|---|---|
 | Uma syscall custa dezenas de chamadas de função | 33,8 ns contra 0,73 ns quente (**46×**) ou 0,92 frio (36×) | [fundamentos §2](../../docs/01-fundamentos/README.md) |
-| Subir a EAL não é grátis | **123 ms** | [runtime §2](../../docs/02-runtime-dpdk/README.md#2-o-custo-de-existir-quanto-a-eal-leva-para-nascer) |
+| Subir a EAL não é grátis | **118 ms** | [runtime §2](../../docs/02-runtime-dpdk/README.md#2-o-custo-de-existir-quanto-a-eal-leva-para-nascer) |
 | Atravessar domínio de cache domina tudo | **4,0 a 4,8×** | [mempool-ring](../01-fundamentos/02-mempool-ring/) |
 | Paralelizar pode piorar | 1 lcore vence 2 em quase toda a tabela | [mempool-ring](../01-fundamentos/02-mempool-ring/) |
 | Contrapressão é a razão pool/fila, não a fila | fronteira em capacidade = 4 095 | [contrapressão §6](../02-pipeline/02-batching-backpressure/) |
@@ -56,7 +56,7 @@ que falta ensinar, o outro domínio vence: o objeto de estudo é o DPDK.
 
 | Abordagem | O que ela custa | O que ela entrega |
 |---|---|---|
-| **DPDK** | hugepages, núcleos dedicados, driver ligado ao processo, 123 ms para subir | menor latência e maior taxa de pacotes |
+| **DPDK** | hugepages, núcleos dedicados, driver ligado ao processo, 118 ms para subir | menor latência e maior taxa de pacotes |
 | **C++23 sobre sockets** | syscall e cópia por pacote | roda em qualquer lugar, sem privilégio |
 | **AF_XDP** | requisitos de driver e de kernel | *bypass* parcial mantendo driver e modelo de segurança do kernel |
 
