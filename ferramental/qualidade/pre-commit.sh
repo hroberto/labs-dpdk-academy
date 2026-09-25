@@ -261,6 +261,31 @@ if [ -x ferramental/qualidade/verificar-retratacoes.py ]; then
     fi
 fi
 
+# ENVELHECIMENTO DE BLOCO: visivel, e fora do veredito.
+#
+# O `verificar-blocos` pergunta se cada linha existe em ALGUMA coleta. Certo
+# contra invencao, cego a envelhecimento: depois de uma coleta nova a linha
+# continua existindo na velha, e o portao segue verde enquanto o documento
+# publica o que a maquina nao produz mais.
+#
+# O `comparar-publicado` faz a pergunta complementar -- a coleta ATUAL
+# contradiz? -- e NAO entra no laco acima porque nao se chama `verificar-*`.
+# Mesma armadilha que deixou o `inventariar-dados` anos fora da barra.
+#
+# FORA DO VEREDITO, e por decisao: a coleta mais nova pode ser um braco de
+# controle, e o documento publicar a de referencia de proposito. Um portao que
+# acusa o certo ensina a ignorar o errado. O que ele nao pode e ficar invisivel.
+if [ -x ferramental/qualidade/comparar-publicado.py ]; then
+    out=$(./ferramental/qualidade/comparar-publicado.py 2>&1 || true)
+    n=$(grep -oE '[0-9]+ com MEDIANA diferente' <<<"$out" | grep -oE '^[0-9]+' || echo 0)
+    if [ "${n:-0}" -gt 0 ]; then
+        aviso "envelhecimento: $n linha(s) publicada(s) com mediana diferente da coleta atual"
+        echo "          detalhe: ./ferramental/qualidade/comparar-publicado.py --so-mediana"
+    else
+        ok "envelhecimento: nenhuma mediana publicada contradiz a coleta atual"
+    fi
+fi
+
 # O inventario de tabelas NAO entra no laco acima porque nao se chama
 # `verificar-*`. Ficou anos fora da barra por causa do nome: ele detecta
 # desatualizacao e sai diferente de zero, mas ninguem o executava. Entrou aqui

@@ -137,6 +137,24 @@ def linhas_de(dirs):
     return literais, por_forma
 
 
+def carimbo_mais_recente():
+    """O carimbo da campanha mais nova, DERIVADO do disco.
+
+    Nao e digitado num arquivo de configuracao: o projeto ja paga um portao por
+    cada fato que alguem precisa lembrar de atualizar. A campanha completa
+    sempre produz uma pasta em `docs/01-fundamentos/medicoes/historico/`, e o
+    carimbo `AAAA-MM-DD-HHMM` no inicio do nome ordena cronologicamente por
+    ordenacao lexicografica -- que e a razao de o carimbo vir na frente.
+
+    Coletas de experimento (gfxoff, topologia) vivem em OUTRAS arvores, entao
+    nao disputam este lugar.
+    """
+    nomes = [d.name for d in RAIZ.glob("docs/01-fundamentos/medicoes/historico/*/")]
+    stamps = {m.group(0) for n in nomes
+              for m in [re.match(r"\d{4}-\d{2}-\d{2}-\d{4}", n)] if m}
+    return max(stamps) if stamps else None
+
+
 def dirs_de_coleta(carimbos):
     todas = sorted(set(RAIZ.glob("docs/*/medicoes/historico/*/")) |
                    set(RAIZ.glob("trilha/**/historico/*/")))
@@ -291,6 +309,10 @@ if __name__ == "__main__":
         sys.exit(1 if autoteste() else 0)
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     if not args:
-        print("uso: comparar-publicado.py <carimbo-da-coleta-atual> [...]", file=sys.stderr)
-        sys.exit(2)
+        auto = carimbo_mais_recente()
+        if auto is None:
+            print("uso: comparar-publicado.py <carimbo-da-coleta-atual> [...]",
+                  file=sys.stderr)
+            sys.exit(2)
+        args = [auto]
     sys.exit(main(args))
