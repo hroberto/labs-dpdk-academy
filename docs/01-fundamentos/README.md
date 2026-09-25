@@ -2171,17 +2171,35 @@ completa, custa **3,76 ns** contra **0,255 ns** da `relaxed`, sem que nenhuma
 delas envolva outra thread. A barreira mais fraca é suficiente para muitas
 garantias, e a diferença sai do orçamento por pacote.
 
-> **A razão entre as duas não é um número estável, e o selo já dizia isso.** A
-> linha da `relaxed` sai marcada `!` nas duas coletas arquivadas — dispersão de
-> 21,9% numa, 27,5% na outra. A mediana dela pulou de **0,410** para **0,205**
-> entre as coletas, e com ela a razão pulou de **9×** para **18×**. A amplitude
-> de cada coleta contém as duas medianas: o valor é bimodal, não ruidoso.
+> **A razão entre as duas era bimodal, e o que alternava era o `governor`.** A
+> seção registrava isso como questão em aberto: o valor da `relaxed` pulava
+> entre duas medianas, o selo `!` marcava a linha, e "fixar o fator exigiria
+> descobrir o que alterna". Dez coletas em modo texto respondem.
 >
-> Publicar "dezoito vezes" ou "nove vezes" como se fosse propriedade da máquina
-> seria ler um número que o próprio programa marca como não confiável. O que a
-> tabela sustenta é a **ordem de grandeza**: uma atômica ordenada custa **uma
-> dezena de vezes** uma relaxada, e as duas continuam abaixo de um décimo do
-> orçamento por pacote. Fixar o fator exigiria descobrir o que alterna entre os
+> | `governor` | `relaxed` | coletas | razão `seq_cst`/`relaxed` |
+> |---|---:|---:|---:|
+> | `powersave` | 0,409–0,411 | 4 | **9,7×** |
+> | `performance` | 0,254–0,256 | 6 | **14,8×** |
+>
+> Cinquenta execuções, separação completa, **nenhuma sobreposição**. Dentro de
+> cada regime o valor é sólido — a amplitude de cada coleta cabe em três
+> milésimos de nanossegundo. Entre regimes ele dobra.
+>
+> A bimodalidade não era propriedade da máquina nem ruído do instrumento: era
+> uma variável de ambiente que as coletas antigas não fixavam. A campanha passou
+> a fixar o `governor` em 24/09, e o `diario.txt` de cada coleta registra qual
+> usou — `governor fixado: sim (era powersave)`. A divisão entre os dois grupos
+> cai exatamente na primeira coleta que o fixou.
+>
+> **O que a tabela publica é o regime `performance`**, que é o da campanha. Em
+> `powersave` a `relaxed` custa 60% a mais e a razão cai para menos de dez; as
+> duas leituras são verdadeiras, sob condições diferentes, e a condição agora
+> está dita.
+>
+> **A leitura conservadora continua valendo, e ganhou piso.** Uma atômica
+> ordenada custa **uma dezena de vezes** uma relaxada em qualquer dos dois
+> regimes, e as duas continuam abaixo de um décimo do orçamento por pacote. O
+> que mudou é que o fator deixou de ser um número que pulava sem explicação.
 > dois modos — que é medição nova, não redação.
 
 **2. No repasse — os mesmos primitivos coordenando duas threads em núcleos

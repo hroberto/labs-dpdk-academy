@@ -201,175 +201,175 @@
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2190,
+      "linha": 2208,
       "secao": "Quanto custa dormir — e o que exatamente é caro",
       "tipo": "bloco_numerico",
       "sha256": "007b4c0eab9362fa9447758d92839052e59d3f1832e010aae1db631f87614192"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2246,
+      "linha": 2264,
       "secao": "Qual primitivo usar, afinal",
       "tipo": "tabela_markdown",
       "sha256": "05593fad0db3fb3c85baeb7fe42372df0ad754ae9edaa80d9e488d1d0a603ffd"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2257,
+      "linha": 2275,
       "secao": "Qual primitivo usar, afinal",
       "tipo": "tabela_markdown",
       "sha256": "19516d46259337531ab221ac48daec7bd68f341dbbaa77f7dbb9bd3c10d9249d"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2323,
+      "linha": 2341,
       "secao": "O preço, dito com todas as letras",
       "tipo": "tabela_markdown",
       "sha256": "12d15778b587c4cecf3773a58f0dae5e7a1b3843a5e2a9078168b640843548b7"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2484,
+      "linha": 2502,
       "secao": "6.1 IOMMU: como entregar DMA a um processo sem abrir o sistema",
       "tipo": "bloco_numerico",
       "sha256": "b40fd20a13db28f7ad50e174d1b80f211328e6a0beb0980ec1de50f40ca41a13"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2510,
+      "linha": 2528,
       "secao": "O IOTLB: o page walk existe do lado do dispositivo também",
       "tipo": "tabela_markdown",
       "sha256": "1d4482635633f718f86b5f56730d1b1f69533cb67117574ffd1dd772a4205d68"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2534,
+      "linha": 2552,
       "secao": "6.2 O barramento também tem orçamento",
       "tipo": "tabela_markdown",
       "sha256": "862fddc39adadd8a1959859225c30586ed8f90d4a42cd5ef1169de45df50b9b5"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2607,
+      "linha": 2625,
       "secao": "Um ponto de comparação: servidor de *market data*",
       "tipo": "tabela_markdown",
       "sha256": "a869ad7d6f461cb1a947bf477153299273e5cef5ab967020dfdcefcf6a0fe3da"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2691,
+      "linha": 2709,
       "secao": "A conta que responde",
       "tipo": "tabela_markdown",
       "sha256": "d2cab1d05b6121da34b78ac7fc379a0502ea210491fe73f93a34354d95740d40"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2697,
+      "linha": 2715,
       "secao": "A conta que responde",
       "tipo": "bloco_numerico",
       "sha256": "7d662f69a8716207e431412e96c54465ec194ef27b736b58582208b7b7bfe57f"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2730,
+      "linha": 2748,
       "secao": "O experimento",
       "tipo": "bloco_numerico",
       "sha256": "e8e931c2d68c088a04aa6bcb2eb559c5b0fb8a29d737bf907dfdb2b8b9653dcc"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2773,
+      "linha": 2791,
       "secao": "E o caminho convencional de socket",
       "tipo": "bloco_numerico",
       "sha256": "25bde874f625c634275ee5a4d930c2b64f1fdd5ef954f09e1a74b9b31a7bd483"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2853,
+      "linha": 2871,
       "secao": "7. Métricas: o vocabulário para não se enganar",
       "tipo": "tabela_markdown",
       "sha256": "5056af522304524c1d9ca9b300c09ec2e5f517fe6a8d1e126e253255f8b3e328"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2883,
+      "linha": 2901,
       "secao": "Média e mediana não são a mesma coisa",
       "tipo": "tabela_markdown",
       "sha256": "692cfc666b6134be5efc39e26fbe6da22645e902123e74efda2e8591e8706a52"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2911,
+      "linha": 2929,
       "secao": "Percentil: o que quer dizer p99",
       "tipo": "bloco_numerico",
       "sha256": "c6c510783fbc2de24cfa4c667757c4964ade0140d6c68d1757e80232fd23df5a"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2954,
+      "linha": 2972,
       "secao": "Por que a média mente",
       "tipo": "bloco_numerico",
       "sha256": "07ee53fde487c6cf213857d75227403d1b99978a5928ecf2b8cf6d1e4d642e7f"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3020,
+      "linha": 3038,
       "secao": "8. Síntese: os dois caminhos lado a lado",
       "tipo": "tabela_markdown",
       "sha256": "f45a3f8eed141b8740a5b0de9445e0ebdfd42204b842fa24654351c16ac1a143"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3081,
+      "linha": 3099,
       "secao": "9.1 As quatro escalas de dispersão, e o que cada uma não alcança",
       "tipo": "tabela_markdown",
       "sha256": "9ec2a04120ebf4d8d085f7e3b9086b2d1259c04cd232720d2f4e333aa07cc14e"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3278,
+      "linha": 3296,
       "secao": "E o que fazer quando a conclusão é \"não há diferença relevante\"",
       "tipo": "tabela_markdown",
       "sha256": "03cdc9a024f3a26103737482bbd13642a8f1214e9fd5e8ce1c9fe01ee08c1f8e"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3344,
+      "linha": 3362,
       "secao": "O ruído de um microbenchmark é unilateral",
       "tipo": "tabela_markdown",
       "sha256": "54eea35977e1d4384041a48300b93e5c682190e957a7dd254d44d9b2e60a099d"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3461,
+      "linha": 3479,
       "secao": "10. Confronto com a literatura",
       "tipo": "tabela_markdown",
       "sha256": "d5051ee8bb98cbc1000d37bc332360a0f6462d661ab59168ad517381e1a90a5a"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3488,
+      "linha": 3506,
       "secao": "Sincronização: confronto com a referência canônica",
       "tipo": "tabela_markdown",
       "sha256": "287476ec4bee755ab953ea0aab40bee13d6601d5ccdb8a7b2743c93cb8081727"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3499,
+      "linha": 3517,
       "secao": "Sincronização: confronto com a referência canônica",
       "tipo": "tabela_markdown",
       "sha256": "1acef406b83c7cc8bf2523c6cdacec9bf0c05d1e4c8f33c733407e32ca6202aa"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3719,
+      "linha": 3737,
       "secao": "11.1 A travessia, medida",
       "tipo": "tabela_markdown",
       "sha256": "27792f387e1e97f20e8f4308cf361d492926411cdcd458ba8d96edb944fd22a4"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3886,
+      "linha": 3904,
       "secao": "13. Referências externas",
       "tipo": "tabela_markdown",
       "sha256": "a89da528537fb8b8265e00a4a17829269f45353e171ab76444543db94a3858ff"

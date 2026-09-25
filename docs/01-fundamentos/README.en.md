@@ -2159,17 +2159,36 @@ not expensive for being a mutex; it is expensive for doing more.
 another thread. The weaker barrier is sufficient for many guarantees, and the difference
 comes out of the per-packet budget.
 
-> **The ratio between the two is not a stable number, and the seal already said so.** The
-> `relaxed` row comes out marked `!` in both archived collections — dispersion of 21.9% in
-> one, 27.5% in the other. Its median jumped from **0.410** to **0.205** between
-> collections, and with it the ratio jumped from **9×** to **18×**. Each collection's range
-> contains both medians: the value is bimodal, not noisy.
+> **The ratio between the two was bimodal, and what alternated was the
+> `governor`.** The section recorded this as an open question: the `relaxed`
+> value jumped between two medians, the `!` seal marked the row, and "pinning the
+> factor down would require finding what alternates". Ten text-mode collections
+> answer it.
 >
-> Publishing "eighteen times" or "nine times" as if it were a property of the machine would
-> be reading a number the program itself marks as untrustworthy. What the table supports is
-> the **order of magnitude**: an ordered atomic costs **about ten times** a relaxed one, and
-> both stay below a tenth of the per-packet budget. Pinning the factor down would require
-> finding what alternates between the two modes — which is new measurement, not editing.
+> | `governor` | `relaxed` | collections | ratio `seq_cst`/`relaxed` |
+> |---|---:|---:|---:|
+> | `powersave` | 0.409–0.411 | 4 | **9.7×** |
+> | `performance` | 0.254–0.256 | 6 | **14.8×** |
+>
+> Fifty runs, complete separation, **no overlap**. Within each regime the value
+> is solid — each collection's range fits in three thousandths of a nanosecond.
+> Between regimes it doubles.
+>
+> The bimodality was neither a property of the machine nor instrument noise: it
+> was an environment variable the older collections did not pin. The campaign
+> started pinning the `governor` on 24/09, and each collection's `diario.txt`
+> records which one it used — `governor fixado: sim (era powersave)`. The split
+> between the two groups falls exactly on the first collection that pinned it.
+>
+> **What the table publishes is the `performance` regime**, which is the
+> campaign's. Under `powersave` the `relaxed` costs 60% more and the ratio drops
+> below ten; both readings are true, under different conditions, and the
+> condition is now stated.
+>
+> **The conservative reading still holds, and gained a floor.** An ordered atomic
+> costs **about ten times** a relaxed one under either regime, and both stay
+> below a tenth of the per-packet budget. What changed is that the factor stopped
+> being a number that jumped without explanation.
 
 **2. In hand-off — the same primitives coordinating two threads on different cores:**
 
