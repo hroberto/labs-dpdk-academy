@@ -122,7 +122,7 @@ back a factor the previous one removed:
 | level | what the test **gives back** | measured (ns/operation) | verdict |
 |---:|---|---|---|
 | 1 | nothing — one core, in memory | DPDK 1.8 · C++ 1.1 | DPDK **1.6× slower** |
-| 2 | + exchange between cores | ring: DPDK 0.371 · C++ 1.037 (batch 128) | DPDK **2.8× faster** |
+| 2 | + exchange between cores | ring: DPDK 0.372 · C++ 0.506 (batch 128, both in bulk) | DPDK **1.4× faster** |
 | 3 | + contention between cores | DPDK 0.42 · `malloc` 12.9 | DPDK **31× faster** |
 | 4 | + real network (DMA, descriptors) | — not measured — | hardware missing |
 
@@ -138,7 +138,7 @@ flowchart LR
     N3 -->|"requires a NIC"| N4
 
     V1["DPDK <b>1.6× slower</b>"]
-    V2["DPDK <b>2.8× faster</b>"]
+    V2["DPDK <b>1.4× faster</b>"]
     V3["DPDK <b>31× faster</b>"]
     V4["not measured on this machine"]
 
@@ -176,15 +176,29 @@ The ring in C++23 now exists: [`SpscRing`](packet.hpp) — atomic indices with
 [`custo-anel-cpp.cpp`](custo-anel-cpp.cpp): one thread, no contention, an
 enqueue+dequeue cycle, 200 000 operations, the same statistics.
 
-| batch | `rte_ring` SP/SC, bulk | `SpscRing` C++23, **single-element** | ratio |
-|---:|---:|---:|---:|
-| 1 | 1.628 ns | 3.117 ns | 1.9× |
-| 8 | 0.527 ns | 1.062 ns | 2.0× |
-| 32 | 0.393 ns | 1.026 ns | 2.6× |
-| 128 | **0.371 ns** | **1.037 ns** | **2.8×** |
+| batch | `rte_ring` SP/SC, bulk | `SpscRing`, **single-element** | `SpscRing`, **bulk** | bulk ÷ bulk | single ÷ bulk |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 1.627 ns | 3.235 ns | 2.699 ns | 1.7× | 2.0× |
+| 8 | 0.531 ns | 1.067 ns | 0.628 ns | 1.2× | 2.0× |
+| 32 | 0.404 ns | 1.031 ns | 0.565 ns | 1.4× | 2.6× |
+| 128 | **0.372 ns** | 1.140 ns | **0.506 ns** | **1.4×** | 3.1× |
 
-Medians of **10 runs per point**. Amplitudes between runs: `rte_ring` 1.626–2.085 at
-batch 1 and 0.367–0.473 at batch 128; `SpscRing` 3.036–3.949 and 1.014–1.194.
+Collected in **text mode**, with no graphical session. Medians between runs:
+`rte_ring` over five (the campaign's, warm-up discarded), `SpscRing` over ten.
+Amplitudes: `rte_ring` 1.627–1.905 at batch 1 and 0.371–0.372 at batch 128;
+`SpscRing` in bulk 2.692–2.728 and 0.504–0.566.
+
+**The bulk column falls with the batch, and that is exactly what the earlier
+version of this text said could not happen.** From 2.699 ns at batch 1 to
+0.506 ns at batch 128: the amortisation exists in the C++ ring because the bulk
+API exists. What did not exist was a program exercising it.
+
+**The distance between the two libraries in the same regime is 1.2× to 1.7×**,
+not the 2.8× published before. Those 2.8× were `rte_ring` in bulk against
+`SpscRing` single-element — the `single ÷ bulk` column above reproduces the old
+values almost exactly (2.0×, 2.0×, 2.6×, 3.1×), which confirms the diagnosis.
+
+<!-- cita-retratado: 1,628 1.628 0,527 0.527 0,393 0.393 3,117 3.117 1,062 1.062 1,026 1.026 1,037 1.037 -->
 
 > **This column used to publish 2,078 and 0,368 ns, and the values do not
 > reproduce.** Ten runs of `custo-anel.c` return 1.628 (amplitude 1.626–2.085) and
@@ -203,48 +217,53 @@ batch 1 and 0.367–0.473 at batch 128; `SpscRing` 3.036–3.949 and 1.014–1.1
 >
 > The practical consequence, and it is worth more than the numbers: **absolute
 > values below 1 ns in this project are fragile to changes that do not touch the
-> measured loop.** The ratios between columns, measured in the same run, hold up —
-> 2.8× against the 2.9× published before.
+> measured loop.** Ratios between columns, measured in the same run, hold up
+> better: the single ÷ bulk ratio at batch 128 gave 2.9×, then 2.8× and now
+> 3.1× — a ±5 % band across three collections, against absolutes that moved
+> more. "Holds up better" is not "is stable", and the number this document
+> publishes as its conclusion is the ratio, not the absolute.
 >
 > <!-- retratado: 2,078 0,687 0,437 0,368 -->
 
-**The difference grows with the batch, and that is where the explanation lies.** At
-batch 1 the two are in the same order of magnitude — it is indeed the same
-algorithm. But `rte_ring` has **bulk** operations: `rte_ring_enqueue_bulk` moves *n*
-pointers with **one** pair of atomic operations, and the left-hand column uses
-them. The middle column does not: it repeats the single-element call *n* times,
-and enqueueing 128 packets costs 128 `release` publications.
+**The difference grows with the batch, and the reason is interface, not
+language.** At batch 1 all three sit in the same order of magnitude — it is
+indeed the same algorithm. What separates the columns from batch 8 on is **how
+many atomic publications** each one pays per object:
 
-That is why the C++ one flattens at ~1.04 ns from batch 8 on — on that path there
-is nothing to amortise — while `rte_ring` keeps falling to 0.371 ns.
+| path | `release` publications per batch of *n* |
+|---|---|
+| `rte_ring_enqueue_bulk` | 1 |
+| `SpscRing::enqueue_burst` | 1 |
+| `SpscRing::enqueue` in a loop | *n* |
 
-> **The published ratio compares different paths, and that has to be said.**
-> `SpscRing` **does** have a bulk API: [`enqueue_burst`](packet.hpp) and
-> `dequeue_burst` take a `std::span` and perform **one** `release` publication per
-> call — exactly the amortisation `rte_ring` performs. The measured column does not
-> exercise it, so the `2.8×` at batch 128 is the ratio between `rte_ring` **in
-> bulk** and `SpscRing` **single-element** — not between the two libraries in the
-> same regime.
+The middle column is the third row of this table. That is why it flattens around
+1 ns from batch 8 on: on that path there is nothing to amortise. The two bulk
+columns fall together — `rte_ring` to 0.372 ns, `SpscRing` to 0.506 ns.
+
+> **What remains between the two, measured in the same regime, is 1.2× to 1.7×.**
+> That is not zero, and it is worth asking where it comes from. Three candidates,
+> none of them measured here: `SpscRing` copies `Packet` by value — 16 bytes —
+> while `rte_ring` moves 8-byte pointers; `rte_ring` keeps the other side's index
+> in a local copy and only re-reads when it must; and `SpscRing`'s copy loop is
+> scalar, with no vectorised `memcpy`. **Separating the three needs a design of
+> its own**, and until then the attribution of the difference stays open.
 >
-> The number is not wrong; the sentence that explained it was. The paired
-> comparison — bulk against bulk — requires a second arm in the program, which
-> [`custo-anel-cpp.cpp`](custo-anel-cpp.cpp) now has, and a text-mode collection
-> that has not been run. Until it exists, **there is no bulk-against-bulk number in
-> this document**, and no conclusion about "how much DPDK wins" can be drawn from
-> this pair.
->
-> The methodological lesson is the same one that brought down the "tie" further
-> down, and it recurs because it is easy: **before comparing two numbers, check
-> whether the two programs make the same call.** Equal unit and different magnitude
-> had already fooled us once here; this time the unit and the magnitude were right,
-> and what differed was the API being exercised.
+> What does **not** explain the difference is the language. Both implementations
+> use the same atomic instructions, and the one structural asymmetry the text
+> asserted — the absence of a bulk API in C++ — did not exist.
 
-> **What remains valid, and is the transferable finding.** `rte_ring` delivers the
-> bulk operation **by default**, and that is what the left-hand number shows:
-> interface design that amortises synchronisation over the batch. That decision is
-> copyable in C++ — `SpscRing` copies it — and it is different from "DPDK is
-> faster". What the middle column measures is the cost of **not** using the
-> interface you already have.
+> **What remains valid, and is the transferable finding.** `rte_ring` delivers
+> the bulk operation **by default**. Whoever uses the library gets the
+> amortisation without asking; whoever writes the ring has to decide to expose
+> it. The middle column measures the cost of **not** using the interface you
+> already have, and that cost — 2× to 3× — is larger than the difference between
+> the two libraries.
+>
+> The methodological lesson is the same one that brought down the "tie" just
+> below, and it recurs because it is easy: **before comparing two numbers, check
+> whether the two programs make the same call.** Equal unit and different
+> magnitude had already fooled us once here; the second time the unit and the
+> magnitude were right, and what differed was the API being exercised.
 
 > **This block used to publish "a tie", with two wrong numbers.**
 >

@@ -118,7 +118,7 @@ devolve um fator que o anterior removia:
 | nível | o que o teste **devolve** | medido (ns/operação) | veredito |
 |---:|---|---|---|
 | 1 | nada — um núcleo, em memória | DPDK 1,8 · C++ 1,1 | DPDK **1,6× mais lento** |
-| 2 | + troca entre núcleos | anel: DPDK 0,371 · C++ 1,037 (lote 128) | DPDK **2,8× mais rápido** |
+| 2 | + troca entre núcleos | anel: DPDK 0,372 · C++ 0,506 (lote 128, ambos em bloco) | DPDK **1,4× mais rápido** |
 | 3 | + disputa entre núcleos | DPDK 0,42 · `malloc` 12,9 | DPDK **31× mais rápido** |
 | 4 | + rede real (DMA, descritores) | — não medido — | falta hardware |
 
@@ -134,7 +134,7 @@ flowchart LR
     N3 -->|"exige NIC"| N4
 
     V1["DPDK <b>1,6× mais lento</b>"]
-    V2["DPDK <b>2,8× mais rápido</b>"]
+    V2["DPDK <b>1,4× mais rápido</b>"]
     V3["DPDK <b>31× mais rápido</b>"]
     V4["não medido nesta máquina"]
 
@@ -172,16 +172,30 @@ Medido com **o mesmo protocolo** de
 por [`custo-anel-cpp.cpp`](custo-anel-cpp.cpp): um thread, sem disputa, ciclo
 enfileirar+desenfileirar, 200 000 operações, mesma estatística.
 
-| lote | `rte_ring` SP/SC, em bloco | `SpscRing` C++23, **unitário** | razão |
-|---:|---:|---:|---:|
-| 1 | 1,628 ns | 3,117 ns | 1,9× |
-| 8 | 0,527 ns | 1,062 ns | 2,0× |
-| 32 | 0,393 ns | 1,026 ns | 2,6× |
-| 128 | **0,371 ns** | **1,037 ns** | **2,8×** |
+| lote | `rte_ring` SP/SC, em bloco | `SpscRing`, **unitário** | `SpscRing`, **em bloco** | bloco ÷ bloco | unitário ÷ bloco |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 1,627 ns | 3,235 ns | 2,699 ns | 1,7× | 2,0× |
+| 8 | 0,531 ns | 1,067 ns | 0,628 ns | 1,2× | 2,0× |
+| 32 | 0,404 ns | 1,031 ns | 0,565 ns | 1,4× | 2,6× |
+| 128 | **0,372 ns** | 1,140 ns | **0,506 ns** | **1,4×** | 3,1× |
 
-Medianas de **10 execuções por ponto**. Amplitudes entre execuções: `rte_ring`
-1,626–2,085 no lote 1 e 0,367–0,473 no lote 128; `SpscRing` 3,036–3,949 e
-1,014–1,194.
+Coleta em **modo texto**, sem sessão gráfica. Medianas entre execuções:
+`rte_ring` com cinco (campanha, descartada a de aquecimento), `SpscRing` com
+dez. Amplitudes: `rte_ring` 1,627–1,905 no lote 1 e 0,371–0,372 no lote 128;
+`SpscRing` em bloco 2,692–2,728 e 0,504–0,566.
+
+**A coluna em bloco cai com o lote, e era exatamente isso que a versão anterior
+deste texto dizia não acontecer.** De 2,699 ns no lote 1 para 0,506 ns no lote
+128: a amortização existe no anel em C++ porque a API de bloco existe. O que
+não existia era um programa que a exercitasse.
+
+**A distância entre as duas bibliotecas no mesmo regime é de 1,2× a 1,7×**, e
+não os 2,8× publicados antes. Aqueles 2,8× eram `rte_ring` em bloco contra
+`SpscRing` unitário — a coluna `unitário ÷ bloco` acima reproduz os valores
+antigos quase exatamente (2,0×, 2,0×, 2,6×, 3,1×), o que confirma o diagnóstico.
+
+<!-- cita-retratado: 1,628 1.628 0,527 0.527 0,393 0.393 3,117 3.117 1,062 1.062 1,026 1.026 1,037 1.037 -->
+<!-- retratado: 1,628 1.628 0,527 0.527 0,393 0.393 3,117 3.117 1,062 1.062 1,026 1.026 1,037 1.037 -->
 
 > **Esta coluna publicava 2,078 e 0,368 ns, e os valores não reproduzem.** Dez
 > execuções de `custo-anel.c` devolvem 1,628 (amplitude 1,626–2,085) e 0,371
@@ -200,49 +214,53 @@ Medianas de **10 execuções por ponto**. Amplitudes entre execuções: `rte_rin
 >
 > A consequência prática, e ela vale mais que os números: **valores absolutos
 > abaixo de 1 ns neste projeto são frágeis a mudanças que não tocam o laço
-> medido.** As razões entre colunas, medidas na mesma execução, resistem — 2,8×
-> contra 2,9× publicado antes.
+> medido.** As razões entre colunas, medidas na mesma execução, resistem melhor:
+> a razão unitário ÷ bloco no lote 128 deu 2,9×, depois 2,8× e agora 3,1× — uma
+> faixa de ±5 % ao longo de três coletas, contra absolutos que se moveram mais.
+> "Resiste melhor" não é "é estável", e o número que este documento publica como
+> conclusão é a razão, não o absoluto.
 >
 > <!-- retratado: 2,078 0,687 0,437 0,368 -->
 
 **A diferença cresce com o lote, e a razão é de interface, não de linguagem.**
-Em lote 1 os dois estão na mesma ordem de grandeza — é de fato o mesmo
-algoritmo. Mas o `rte_ring` tem operações **em bloco**:
-`rte_ring_enqueue_bulk` move *n* ponteiros com **um** par de operações
-atômicas, e a coluna da esquerda as usa. A coluna do meio não: ela repete a
-chamada unitária *n* vezes, e enfileirar 128 pacotes custa 128 publicações
-`release`.
+Em lote 1 os três estão na mesma ordem de grandeza — é de fato o mesmo
+algoritmo. O que separa as colunas a partir do lote 8 é **quantas publicações
+atômicas** cada uma paga por objeto:
 
-Por isso o C++ fica plano em ~1,04 ns a partir do lote 8 — naquele caminho não
-há o que amortizar — enquanto o `rte_ring` continua caindo até 0,371 ns.
+| caminho | publicações `release` por lote de *n* |
+|---|---|
+| `rte_ring_enqueue_bulk` | 1 |
+| `SpscRing::enqueue_burst` | 1 |
+| `SpscRing::enqueue` em laço | *n* |
 
-> **A razão publicada compara caminhos diferentes, e isso precisa estar dito.**
-> O `SpscRing` **tem** API de bloco: [`enqueue_burst`](packet.hpp) e
-> `dequeue_burst` recebem um `std::span` e fazem **uma** publicação `release`
-> por chamada, exatamente a amortização que o `rte_ring` faz. A coluna medida
-> não a exercita, e portanto o `2,8×` do lote 128 é a razão entre
-> `rte_ring` **em bloco** e `SpscRing` **unitário** — não entre as duas
-> bibliotecas no mesmo regime.
+A coluna do meio é a terceira linha desta tabela. É por isso que ela fica plana
+em torno de 1 ns a partir do lote 8: naquele caminho não há o que amortizar. As
+duas colunas em bloco caem juntas — o `rte_ring` até 0,372 ns, o `SpscRing` até
+0,506 ns.
+
+> **O que resta entre as duas, medido no mesmo regime, é de 1,2× a 1,7×.** Não é
+> zero, e vale perguntar de onde vem. Três candidatos, nenhum medido aqui: o
+> `SpscRing` copia `Packet` por valor — 16 bytes — enquanto o `rte_ring` move
+> ponteiros de 8; o `rte_ring` mantém o índice do outro lado em cópia local e só
+> relê quando precisa; e o laço de cópia do `SpscRing` é escalar, sem
+> `memcpy` vetorizado. **Separar os três exige um desenho próprio**, e até lá a
+> atribuição da diferença permanece em aberto.
 >
-> O número não está errado; a frase que o explicava estava. A comparação
-> pareada — bloco contra bloco — exige um segundo braço no programa, que
-> [`custo-anel-cpp.cpp`](custo-anel-cpp.cpp) agora tem, e uma coleta em modo
-> texto que ainda não foi feita. Enquanto ela não existir, **não há número de
-> bloco contra bloco neste documento**, e nenhuma conclusão sobre "quanto o
-> DPDK ganha" pode ser tirada deste par.
->
-> A lição de método é a mesma que derrubou o "empate" mais abaixo, e ela se
-> repete porque é fácil: **antes de comparar dois números, confira se os dois
-> programas fazem a mesma chamada.** Unidade igual e grandeza diferente já
-> tinha enganado uma vez aqui; desta vez a unidade e a grandeza estavam certas,
-> e o que diferia era a API exercitada.
+> O que **não** explica a diferença é a linguagem. As duas implementações usam
+> as mesmas instruções atômicas, e a única assimetria estrutural que o texto
+> afirmava — a ausência de API de bloco em C++ — não existia.
 
 > **O que continua válido, e é o achado transferível.** O `rte_ring` entrega a
-> operação em bloco **por padrão**, e é isso que o número da esquerda mostra:
-> desenho de interface que amortiza a sincronização sobre o lote. Essa decisão
-> é copiável em C++ — o `SpscRing` a copia — e é diferente de "o DPDK é mais
-> rápido". O que a coluna do meio mede é o custo de **não** usar a interface
-> que se tem.
+> operação em bloco **por padrão**. Quem usa a biblioteca recebe a amortização
+> sem pedir; quem escreve o anel precisa decidir expô-la. A coluna do meio mede
+> o custo de **não** usar a interface que se tem, e esse custo — 2× a 3× —
+> é maior que a diferença entre as duas bibliotecas.
+>
+> A lição de método é a mesma que derrubou o "empate" logo abaixo, e ela se
+> repete porque é fácil: **antes de comparar dois números, confira se os dois
+> programas fazem a mesma chamada.** Unidade igual e grandeza diferente já tinha
+> enganado uma vez aqui; da segunda vez a unidade e a grandeza estavam certas, e
+> o que diferia era a API exercitada.
 
 > **Este bloco publicava "empate", com dois números errados.**
 >

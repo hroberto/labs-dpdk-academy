@@ -1,0 +1,23 @@
+
+== The SPSC ring in C++23, measured ==
+
+  ring of 4096 slots; full enqueue+dequeue cycle
+  ONE thread, NO contention: same condition as custo-anel.c, so
+  that the two numbers are comparable
+  samples: 25, each with 200000 operations
+
+  batch    unitary (ns/obj)    bulk (ns/obj)
+  -----    ----------------    -------------
+  1                3.238 ns         2.698 ns
+  8                1.067 ns         0.628 ns
+  32               1.030 ns         0.568 ns
+  128              1.141 ns         0.505 ns
+
+  'unitary' is a loop of n single-element calls: n release
+  stores. 'bulk' is one span call: ONE release store. The C side
+  uses rte_ring_enqueue_bulk, so 'bulk' is the paired column.
+
+  Compare with the same table on the C side, in
+  docs/03-mempool-ring-mbuf/medicoes/custo-anel.c: same condition,
+  same number of operations, same statistic.
+

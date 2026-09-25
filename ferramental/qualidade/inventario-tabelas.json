@@ -8,7 +8,7 @@
     "trilha/04-projeto-final/README.md"
   ],
   "limites": "Tabelas Markdown e blocos numericos nas oito paginas listadas. Nao abrange todos os numeros em prosa nem verifica automaticamente sua origem.",
-  "total": 126,
+  "total": 127,
   "entradas": [
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -813,53 +813,60 @@
       "linha": 118,
       "secao": "Dois dos três fatores voltam sem hardware nenhum",
       "tipo": "tabela_markdown",
-      "sha256": "bbffa27b78e7db7509fc2b778d3204bb97ae899fa09e8c98cf1ae75eec9c4096"
+      "sha256": "76af13557a4f30da5f52a8e2c394b9cf5d7f3974a93adf94bf1044907e2b8a92"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
       "linha": 175,
       "secao": "Dois dos três fatores voltam sem hardware nenhum",
       "tipo": "tabela_markdown",
-      "sha256": "2e11b83d332b25a2182d073705715217c7cf9d4869531396729429366b067ae8"
+      "sha256": "0215e709a686cec010ded2982be5bc8504e3164e7a2944fc1b1acc9e735276f6"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 269,
+      "linha": 230,
+      "secao": "Dois dos três fatores voltam sem hardware nenhum",
+      "tipo": "tabela_markdown",
+      "sha256": "63acb2ffc848f441496a10fe18eb819a70d7a1002d7071af368a4b916ba8033a"
+    },
+    {
+      "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
+      "linha": 287,
       "secao": "Dois dos três fatores voltam sem hardware nenhum",
       "tipo": "tabela_markdown",
       "sha256": "ac8df18160ae9b63b6f3c1f3d88992a36feb99eae542e13bb070654fa5a43052"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 284,
+      "linha": 302,
       "secao": "Dois dos três fatores voltam sem hardware nenhum",
       "tipo": "tabela_markdown",
       "sha256": "b9f3fcee43966eb9ea18dce5aa673d7003333c4d25fcd3dde9f88e08ab606e14"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 345,
+      "linha": 363,
       "secao": "4. Outros eixos de comparação",
       "tipo": "tabela_markdown",
       "sha256": "10ff1ac81624e7808ff33e4e21176bf9b52ca1223c5323cc9b31e72e0eb778a0"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 388,
+      "linha": 406,
       "secao": "5. Implementação e validação",
       "tipo": "tabela_markdown",
       "sha256": "9590d3ca6535e4a61290532ff1f1191054fcbbfa98ffab9e37082fde0f92d150"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 399,
+      "linha": 417,
       "secao": "5. Implementação e validação",
       "tipo": "bloco_numerico",
       "sha256": "b9dfece5bf2de9e80d4e77d2d9a8de4fa061ffac276bbeeec5dd0d31c1c201f1"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 436,
+      "linha": 454,
       "secao": "5.1 O controle, e o que ele impede de concluir",
       "tipo": "tabela_markdown",
       "sha256": "5dc6a2c52a7440906a779ebc54c32edff4345a98dfae3ea0b296ad4383d80b1a"
