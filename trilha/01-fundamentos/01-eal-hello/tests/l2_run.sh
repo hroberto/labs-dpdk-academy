@@ -37,6 +37,20 @@ BIN=${1:?uso: l2_run.sh <caminho-do-binario>}
 EAL_ARGS=${EAL_ARGS:--l 0 --no-huge --file-prefix=academy_eal_$$}
 falhas=0
 
+# PULO PARCIAL: CONTADO E DECLARADO, e nao `exit 77`.
+#
+# O `exit 77` do topico 02 existe porque la o caminho INTEIRO ficava
+# indisponivel -- sem duas CPUs nao ha o que testar, e o teste que saia com zero
+# afirmava ter testado. Aqui o pulo e PARCIAL: algumas verificacoes nao rodam e
+# as demais rodam de verdade. Sair 77 descartaria as que rodaram, e essas sao
+# resultado.
+#
+# O que faltava era o pulo APARECER: um "PULADO" no meio da saida some entre
+# dezenas de linhas verdes, e o resumo final dizia "todos os testes passaram"
+# sem dizer quantos nao foram tentados. Agora o resumo conta.
+pulados=0
+pular() { echo "  PULADO - $1"; pulados=$((pulados + 1)); }
+
 check() { if [ "$2" -eq 0 ]; then echo "  ok    - $1"; else echo "  FALHA - $1"; falhas=$((falhas + 1)); fi; }
 
 # Guarda a ultima saida capturada, para poder mostra-la se algo falhar.
@@ -86,7 +100,7 @@ if ldconfig -p 2>/dev/null | grep -q 'librte_argparse'; then
     check "opcao desconhecida encerra o processo com 234 (nao 1)" "$([ $rc -eq 234 ]; echo $?)"
     grep -q "unknown argument" <<<"$saida"; check "a EAL identifica o argumento desconhecido" $?
 else
-    echo "  PULADO - codigo 234 e mensagem da argparse (DPDK < 24.03 nesta maquina)"
+    pular "codigo 234 e mensagem da argparse (DPDK < 24.03 nesta maquina): 2 verificacoes"
 fi
 check "opcao desconhecida nao sai com sucesso" "$([ $rc -ne 0 ]; echo $?)"
 
@@ -112,10 +126,14 @@ grep -q "Error initialising the EAL" <<<"$saida"
 check "o ramo de erro da APLICACAO executa nesse caso" $?
 
 if [ $falhas -eq 0 ]; then
-    echo "L2: todos os testes passaram"
+    if [ "$pulados" -eq 0 ]; then
+        echo "L2: todos os testes passaram"
+    else
+        echo "L2: todos os testes passaram, com $pulados NAO TENTADO(S)"
+    fi
 else
     mostrar_diagnostico
     echo ""
-    echo "L2: $falhas falha(s)"
+    echo "L2: $falhas falha(s), $pulados pulo(s)"
     exit 1
 fi

@@ -14,6 +14,20 @@ set -u
 BIN=${1:?uso: l2_run.sh <caminho-do-binario>}
 falhas=0
 
+# PULO PARCIAL: CONTADO E DECLARADO, e nao `exit 77`.
+#
+# O `exit 77` do topico 02 existe porque la o caminho INTEIRO ficava
+# indisponivel -- sem duas CPUs nao ha o que testar, e o teste que saia com zero
+# afirmava ter testado. Aqui o pulo e PARCIAL: algumas verificacoes nao rodam e
+# as demais rodam de verdade. Sair 77 descartaria as que rodaram, e essas sao
+# resultado.
+#
+# O que faltava era o pulo APARECER: um "PULADO" no meio da saida some entre
+# dezenas de linhas verdes, e o resumo final dizia "todos os testes passaram"
+# sem dizer quantos nao foram tentados. Agora o resumo conta.
+pulados=0
+pular() { echo "  PULADO - $1"; pulados=$((pulados + 1)); }
+
 check() { if [ "$2" -eq 0 ]; then echo "  ok    - $1"; else echo "  FALHA - $1"; falhas=$((falhas + 1)); fi; }
 
 saida=$("$BIN" -n 10 2>&1); rc=$?
@@ -33,7 +47,7 @@ grep -q "^Batch (burst): 64 " <<<"$saida"; check "n=100000: tamanho de lote apli
 # NUNCA de semantica -- o resultado tem de ser identico ao de um thread.
 CPUS=$(nproc 2>/dev/null || echo 1)
 if [ "$CPUS" -lt 3 ]; then
-    echo "  PULADO - modo de dois nucleos (maquina com $CPUS CPU)"
+    pular "modo de dois nucleos (maquina com $CPUS CPU): a secao inteira"
 else
     saida=$("$BIN" -n 10 -c 2 2>&1); rc=$?
     check "2 threads: codigo de saida 0" "$([ $rc -eq 0 ]; echo $?)"
@@ -67,4 +81,12 @@ fi
 "$BIN" -b 0 >/dev/null 2>&1; check "lote 0 e rejeitado"          "$([ $? -ne 0 ]; echo $?)"
 "$BIN" --x >/dev/null 2>&1;  check "opcao desconhecida e rejeitada" "$([ $? -ne 0 ]; echo $?)"
 
-if [ $falhas -eq 0 ]; then echo "L2: todos os testes passaram"; else echo "L2: $falhas falha(s)"; exit 1; fi
+if [ $falhas -eq 0 ]; then
+    if [ "$pulados" -eq 0 ]; then
+        echo "L2: todos os testes passaram"
+    else
+        echo "L2: todos os testes passaram, com $pulados NAO TENTADO(S)"
+    fi
+else
+    echo "L2: $falhas falha(s), $pulados pulo(s)"; exit 1
+fi

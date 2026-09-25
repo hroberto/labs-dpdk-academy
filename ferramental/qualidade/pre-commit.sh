@@ -261,6 +261,29 @@ if [ -x ferramental/qualidade/verificar-retratacoes.py ]; then
     fi
 fi
 
+# CELULA DE TABELA SEM LASTRO: visivel, e fora do veredito.
+#
+# Tabela Markdown nao e bloco de cerca, entao o `verificar-blocos` nao a ve. Em
+# 25/09/2026 eram 141 linhas de tabela com numero medido em 10 documentos, sem
+# quem as conferisse -- e foi por ai que o modulo 02 passou a publicar 117,8 ms
+# e 122,4 ms para a MESMA configuracao, no mesmo documento.
+#
+# Fora do veredito porque a maioria das celulas sem lastro pede CAMPANHA ou
+# DECISAO editorial: o valor e calculado da taxa de linha, citado de outra
+# maquina, ou vem de coleta que o projeto descartou de proposito. Vermelho que
+# ninguem consegue limpar ensina a passar `--no-verify`.
+if [ -x ferramental/qualidade/relatar-tabelas-medidas.py ]; then
+    out=$(./ferramental/qualidade/relatar-tabelas-medidas.py 2>&1 || true)
+    n=$(grep -oE '[0-9]+ sem lastro' <<<"$out" | grep -oE '^[0-9]+' || echo 0)
+    if [ "${n:-0}" -gt 0 ]; then
+        aviso "tabelas: $n celula(s) com unidade sem lastro em coleta arquivada"
+        echo "          detalhe: ./ferramental/qualidade/relatar-tabelas-medidas.py --listar"
+        echo "          triagem: temp/pendencias-tabelas-medidas.md"
+    else
+        ok "tabelas: toda celula com unidade tem lastro em coleta"
+    fi
+fi
+
 # ENVELHECIMENTO DE BLOCO: visivel, e fora do veredito.
 #
 # O `verificar-blocos` pergunta se cada linha existe em ALGUMA coleta. Certo

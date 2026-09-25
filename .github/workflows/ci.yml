@@ -43,6 +43,15 @@ jobs:
       # Para atualizar dentro do mesmo major:
       #   gh api repos/actions/checkout/git/ref/tags/v7 --jq '.object.sha'
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        # HISTORICO COMPLETO, e nao o clone raso do padrao.
+        #
+        # O `vcs_tag` do Meson grava `git describe` no `academy_version.h`, e e
+        # dele que sai a linha de proveniencia de todo numero medido. Num clone
+        # raso nao ha tags, `git describe` falha, e o binario do CI passa a
+        # dizer que nao sabe de que versao veio -- justamente o campo que o
+        # projeto exige de qualquer coleta.
+        with:
+          fetch-depth: 0
 
       # DPDK e dependencia de AMBIENTE (bibliotecas + hugepages + drivers), por
       # isso vem da distribuicao e nao de um gerenciador de pacotes C++.
@@ -50,7 +59,11 @@ jobs:
       - name: Instalar DPDK e ferramentas de build
         run: |
           sudo apt-get update
-          sudo apt-get install -y dpdk-dev pkg-config ninja-build python3-pip g++-14
+          # `cppcheck` entra aqui porque o `pre-commit.sh` ja o invoca: sem o
+          # pacote, `analise-estatica.sh` imprime PULADO e o CI fica verde SEM
+          # analise estatica. Verificador ausente nao pode parecer verificador
+          # que passou.
+          sudo apt-get install -y dpdk-dev pkg-config ninja-build python3-pip g++-14 cppcheck
           # GCC 14 e o minimo para <print>/<expected>, que check-env.sh exige.
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
@@ -116,3 +129,57 @@ jobs:
           DPDK_ACADEMY_AMOSTRAS: "3"
           DPDK_ACADEMY_RODADAS: "20000"
         run: meson test -C build --suite l3 --print-errorlogs
+
+  # ----------------------------------------------------------------------
+  # SANITIZADORES: o que o compilador nao ve e os testes sozinhos nao pegam.
+  #
+  # A suite verifica CONTRATO -- codigo de saida, contagem, invariante do pool.
+  # Ela passa com um acesso fora de limites que por acaso nao corrompe nada, e
+  # com comportamento indefinido que o otimizador ainda nao explorou. O
+  # `b_sanitize=address,undefined` instrumenta os dois.
+  #
+  # JOB SEPARADO, e nao uma etapa do principal: o binario instrumentado NAO e o
+  # de producao -- ASan muda leiaute e custo --, entao ele nao pode ser o mesmo
+  # que roda os programas de medicao. Misturar os dois faria a barra medir o
+  # instrumentado.
+  #
+  # L3 fica de fora: ela exige hugetlbfs e dois dominios de L3, que o runner nao
+  # tem, e o esperado la e PULAR. Sanitizar o que nao roda nao acrescenta nada.
+  #
+  # Conferido localmente em 25/09/2026 antes de entrar aqui: L1 e L2 passam com
+  # zero achado, e o build sai com zero aviso.
+  sanitizers:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+
+      - name: Instalar DPDK e ferramentas de build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpdk-dev pkg-config ninja-build python3-pip g++-14
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          python3 -m pip install --upgrade meson
+
+      - name: Configurar com ASan e UBSan
+        run: meson setup build-san -Db_sanitize=address,undefined
+
+      - name: Compilar
+        run: meson compile -C build-san
+
+      # `halt_on_error=1` e deliberado: sem ele o ASan imprime o achado e segue,
+      # o teste termina com zero e o job fica VERDE com o defeito na saida.
+      # `detect_leaks=0` porque a EAL nao libera tudo por desenho, e vazamento
+      # dela nao e achado deste projeto -- a posse de objeto do mempool, que E,
+      # ja tem verificacao propria no invariante do pool.
+      - name: Testes L1 e L2 sob sanitizadores
+        env:
+          DPDK_ACADEMY_AMOSTRAS: "3"
+          DPDK_ACADEMY_RODADAS: "20000"
+          ASAN_OPTIONS: "halt_on_error=1:detect_leaks=0"
+          UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1"
+        run: |
+          meson test -C build-san --suite l1 --print-errorlogs
+          meson test -C build-san --suite l2 --print-errorlogs

@@ -3650,13 +3650,13 @@ nível. `ρ = serviço / orçamento`, com o serviço medido **em saturação** �
 
 | Trabalho | Serviço | ρ | Perdidos | Latência mediana | Latência p99 |
 |---:|---:|---:|---:|---:|---:|
-| 8 | 33,5 ns | 0,50 | 0,0 % | 32 ns | 2 426 ns |
-| 16 | 35,3 ns | 0,52 | 0,0 % | 33 ns | 55 ns |
-| 24 | 41,0 ns | 0,61 | 0,0 % | 39 ns | 60 ns |
-| 32 | 46,6 ns | 0,69 | 0,0 % | 47 ns | 1 822 ns |
-| 40 | 52,5 ns | 0,78 | 0,0 % | 50 ns | 7 443 ns |
-| 64 | 70,7 ns | **1,05** | **1,5 %** | **38 762 ns** | 44 595 ns |
-| 96 | 105,9 ns | 1,58 | 22,5 % | 51 830 ns | 56 412 ns |
+| 8 | 32,3 ns | 0,48 | 0,0 % | 30 ns | 381 ns |
+| 16 | 35,3 ns | 0,53 | 0,0 % | 34 ns | 50 ns |
+| 24 | 41,0 ns | 0,61 | 0,0 % | 36 ns | 58 ns |
+| 32 | 46,9 ns | 0,70 | 0,0 % | 38 ns | 60 ns |
+| 40 | 52,5 ns | 0,78 | 0,0 % | 52 ns | 188 ns |
+| 64 | 69,7 ns | **1,04** | **1,2 %** | **38 253 ns** | 39 650 ns |
+| 96 | 92,6 ns | 1,38 | 19,2 % | 50 648 ns | 52 067 ns |
 
 ### 11.2 Três leituras
 
@@ -3665,21 +3665,49 @@ aparece depois de 1. Não existe regime estável de "levemente sobrecarregado":
 passando de 1, o excesso é cumulativo, e a fila não se recupera enquanto a
 chegada não parar.
 
-**2. A latência mediana muda de grandeza na travessia.** De 50 ns para
-38 762 ns — cerca de 775 vezes — entre ρ = 0,78 e ρ = 1,05. Não é a mesma
+**2. A latência mediana muda de grandeza na travessia.** De 52 ns para
+38 253 ns — cerca de 736 vezes — entre ρ = 0,78 e ρ = 1,04. Não é a mesma
 variável ficando maior: antes da travessia a latência **é** o tempo de serviço;
 depois, é a profundidade da fila. Um gráfico de latência que atravesse esse
 ponto está mostrando duas coisas diferentes com o mesmo eixo.
 
-**3. A cauda degrada primeiro — e este é o achado operacional.** Em ρ = 0,78 a
-perda ainda é 0,0 % e a mediana ainda é 50 ns, mas o p99 já está em 7 443 ns:
-**149 vezes a mediana**. Quem monitora média e utilização média não vê nada,
-porque as duas continuam saudáveis. O percentil alto é o único indicador que
-avisa **antes** do dano.
+**3. A cauda NÃO avisa antes — e é isso que delimita o achado.** Abaixo de
+ρ = 1 o p99 fica a um pequeno múltiplo da mediana: 1,4× em ρ = 0,78, 1,6× em
+ρ = 0,70. Na travessia os dois saltam **juntos** — 38 253 ns de mediana contra
+39 650 de p99, razão 1,0×. Quem esperasse o percentil alto como alarme
+antecipado não teria aviso nenhum neste experimento.
 
-É a mesma tese da [§7](#7-métricas-o-vocabulário-para-não-se-enganar) —
-desempenho não é previsibilidade — agora com o mecanismo à vista: a fila começa
-a formar antes de transbordar, e formar fila aparece primeiro na cauda.
+E isso não é surpresa, é a teoria da subseção seguinte aplicada a este
+programa: `orcamento-estourado.c` simula chegada **por prazo fixo**, e chegada
+determinística tem `ca² ≈ 0`. Por Kingman a espera abaixo de ρ = 1 é
+praticamente zero — não há fila se formando para aparecer primeiro na cauda.
+
+> **Esta leitura publicava o contrário, e a coleta limpa a derrubou.** O texto
+> afirmava que em ρ = 0,78 o p99 já estava em 7 443 ns, **149 vezes a mediana**,
+> e tirava dali um "achado operacional". Esse valor não aparece em nenhuma das
+> dez repetições das duas coletas em modo texto: o p99 daquela linha fica entre
+> 70 e 213 ns. A coluna inteira estava contaminada — as linhas de 8 e 32 passos
+> publicavam 2 426 e 1 822 ns, e na coleta limpa dão 381 e 60.
+>
+> O que se media era **ruído do ambiente**, não formação de fila, e a afirmação
+> contradizia a teoria que o próprio documento enuncia quatro parágrafos abaixo.
+> Um percentil alto num sistema com chegada regular mede a interferência da
+> máquina; foi preciso tirar a sessão gráfica do caminho para ver isso.
+>
+> A tese da [§7](#7-métricas-o-vocabulário-para-não-se-enganar) — desempenho não
+> é previsibilidade — continua de pé, e ganha uma condição: **a cauda avisa
+> antes quando a chegada é irregular**, que é o caso da
+> [§6.3](#63-quantos-descritores-e-o-que-eles-não-compram), onde a mesma carga
+> em rajada perde 26,5 % enquanto cadenciada não perde nada. Com chegada regular
+> ela não avisa, e monitorar p99 esperando aviso seria esperar de um instrumento
+> o que a distribuição não oferece.
+
+> **Uma exceção na tabela, e ela não é fila.** A linha de 8 passos dá p99 de
+> ~376 ns contra mediana de 30 — 12,5×, a maior razão da tabela, e estável nas
+> cinco repetições (373 a 392 ns). Não pode ser fila: ρ = 0,48 é o ponto mais
+> folgado. É um custo fixo ocasional — uma interrupção, uma falta de cache — que
+> pesa **relativamente** mais justamente onde a mediana é menor. Razão entre
+> percentis exige olhar a escala absoluta antes de virar conclusão.
 
 #### O que a teoria diz, e onde ela diverge desta medição
 

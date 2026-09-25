@@ -3572,13 +3572,13 @@ everything the loop pays per packet, not only the synthetic work:
 
 | Work | Service | ρ | Lost | Median latency | p99 latency |
 |---:|---:|---:|---:|---:|---:|
-| 8 | 33.5 ns | 0.50 | 0.0 % | 32 ns | 2 426 ns |
-| 16 | 35.3 ns | 0.52 | 0.0 % | 33 ns | 55 ns |
-| 24 | 41.0 ns | 0.61 | 0.0 % | 39 ns | 60 ns |
-| 32 | 46.6 ns | 0.69 | 0.0 % | 47 ns | 1 822 ns |
-| 40 | 52.5 ns | 0.78 | 0.0 % | 50 ns | 7 443 ns |
-| 64 | 70.7 ns | **1.05** | **1.5 %** | **38 762 ns** | 44 595 ns |
-| 96 | 105.9 ns | 1.58 | 22.5 % | 51 830 ns | 56 412 ns |
+| 8 | 32.3 ns | 0.48 | 0.0 % | 30 ns | 381 ns |
+| 16 | 35.3 ns | 0.53 | 0.0 % | 34 ns | 50 ns |
+| 24 | 41.0 ns | 0.61 | 0.0 % | 36 ns | 58 ns |
+| 32 | 46.9 ns | 0.70 | 0.0 % | 38 ns | 60 ns |
+| 40 | 52.5 ns | 0.78 | 0.0 % | 52 ns | 188 ns |
+| 64 | 69.7 ns | **1.04** | **1.2 %** | **38 253 ns** | 39 650 ns |
+| 96 | 92.6 ns | 1.38 | 19.2 % | 50 648 ns | 52 067 ns |
 
 ### 11.2 Three readings
 
@@ -3586,19 +3586,48 @@ everything the loop pays per packet, not only the synthetic work:
 after 1. There is no stable regime of "mildly overloaded": past 1, the excess is cumulative,
 and the queue does not recover while arrivals continue.
 
-**2. The median latency changes magnitude at the crossing.** From 50 ns to 38 762 ns — about
-775 times — between ρ = 0.78 and ρ = 1.05. It is not the same variable getting larger: before
+**2. The median latency changes magnitude at the crossing.** From 52 ns to 38 253 ns — about
+736 times — between ρ = 0.78 and ρ = 1.04. It is not the same variable getting larger: before
 the crossing the latency **is** the service time; afterwards, it is the queue's depth. A
 latency chart that crosses that point is showing two different things on the same axis.
 
-**3. The tail degrades first — and this is the operational finding.** At ρ = 0.78 the loss is
-still 0.0 % and the median is still 50 ns, but the p99 is already 7 443 ns: **149 times the
-median**. Anyone monitoring the mean and average utilisation sees nothing, because both remain
-healthy. The high percentile is the only indicator that warns **before** the damage.
+**3. The tail does NOT warn in advance — and that is what bounds the finding.** Below ρ = 1
+the p99 stays within a small multiple of the median: 1.4× at ρ = 0.78, 1.6× at ρ = 0.70. At
+the crossing the two jump **together** — 38 253 ns median against 39 650 p99, a ratio of
+1.0×. Anyone expecting the high percentile as an early alarm would get no warning at all in
+this experiment.
 
-It is the same thesis as [§7](#7-metrics-the-vocabulary-for-not-fooling-yourself) —
-performance is not predictability — now with the mechanism in view: the queue begins to form
-before it overflows, and forming a queue appears first in the tail.
+And that is no surprise, it is the theory of the next subsection applied to this program:
+`orcamento-estourado.c` simulates arrival **on a fixed deadline**, and deterministic arrival
+has `ca² ≈ 0`. By Kingman the wait below ρ = 1 is practically zero — there is no queue forming
+to show up first in the tail.
+
+> **This reading published the opposite, and the clean collection brought it down.** The text
+> claimed that at ρ = 0.78 the p99 was already 7 443 ns, **149 times the median**, and drew an
+> "operational finding" from it. That value appears in none of the ten repetitions of the two
+> text-mode collections: the p99 on that row sits between 70 and 213 ns. The whole column was
+> contaminated — the 8- and 32-step rows published 2 426 and 1 822 ns, and the clean
+> collection gives 381 and 60.
+>
+> What was being measured was **environment noise**, not queue formation, and the claim
+> contradicted the theory this very document states four paragraphs below. A high percentile
+> in a system with regular arrival measures the machine's interference; it took removing the
+> graphical session to see that.
+>
+> The thesis of [§7](#7-metrics-the-vocabulary-for-not-fooling-yourself) — performance is not
+> predictability — still stands, and gains a condition: **the tail warns in advance when
+> arrival is irregular**, which is the case in
+> [§6.3](#63-how-many-descriptors-and-what-they-do-not-buy), where the same load in bursts
+> loses 26.5% while cadenced it loses nothing. With regular arrival it does not warn, and
+> monitoring p99 expecting a warning would be asking an instrument for what the distribution
+> does not offer.
+
+> **One exception in the table, and it is not a queue.** The 8-step row gives a p99 of
+> ~376 ns against a median of 30 — 12.5×, the largest ratio in the table, and stable across
+> the five repetitions (373 to 392 ns). It cannot be a queue: ρ = 0.48 is the slackest point.
+> It is an occasional fixed cost — an interrupt, a cache miss — that weighs **relatively**
+> more precisely where the median is smallest. A ratio between percentiles needs the absolute
+> scale looked at before it becomes a conclusion.
 
 #### What theory says, and where it diverges from this measurement
 
