@@ -983,7 +983,7 @@ se aplica ao seu caso.
 **E o preço está no segundo painel**, que põe as duas grandezas no mesmo eixo de
 nanossegundos. Em K = 1 elas **coincidem**: sem lote, o acesso e o conjunto são a
 mesma coisa. A partir daí a azul despenca e a laranja não — e é essa separação
-que mostra que 3,44 ns nunca foram o tempo de resposta da memória. São 94 ns
+que mostra que 3,19 ns nunca foram o tempo de resposta da memória. São 86 ns
 divididos por 27 acessos sobrepostos.
 
 **Os dois eixos desse painel são logarítmicos, e isso não é preferência de
@@ -3343,7 +3343,7 @@ revelou um viés que nenhuma estatística interna detectaria.
 | Latência entre núcleos, CCDs distintos | 83–102 ns entre execuções | 180–200 ns antes; 75–95 ns depois do AGESA 1.2.0.2 ([Tom's][th], [TechSpot][ts]) | **intermediário — ver abaixo** |
 | Falta de TLB / *page walk* | 10,01 ns (512 MB, pareado) | 8,80 ns em Core Duo T2600; 18,17 ns em Athlon 64 ([Gorman][lwntlb]) | **entre os dois — concorda** |
 | Custo de uma syscall | ~33 ns | centenas de ns; < 100 ns nos melhores casos ([Gregg][gregg], [Stoll][syscalls]) | **abaixo — explicado** |
-| Latência de memória (acesso disperso) | ~100 ns | ~70 ns em 9950X ([ChipsAndCheese][cc]); 139,5 ns em Opteron 844 ([McKenney][perfbook]) | **entre os dois — explicado** |
+| Latência de memória (acesso disperso) | ~89 ns | ~70 ns em 9950X ([ChipsAndCheese][cc]); 139,5 ns em Opteron 844 ([McKenney][perfbook]) | **entre os dois — explicado** |
 | Acordar thread bloqueada | ~1300 ns | ordem de µs; caminho lento por projeto ([futex][futex]) | concorda |
 
 ### Sincronização: confronto com a referência canônica
@@ -3492,7 +3492,7 @@ A comparação parece desfavorável até se olhar a metodologia. O número da
 ChipsAndCheese isola a latência de memória; o meu é um percurso disperso por
 512 MB que **inclui as faltas de TLB**. E esse custo eu medi separadamente na
 [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço): ~10 ns de
-*page walk*, que somem com hugepages. Descontando os ~10 ns de page walk, restam ~95 ns, ainda acima dos ~70
+*page walk*, que somem com hugepages. Descontando os ~10 ns de page walk, restam ~79 ns, ainda acima dos ~70
 — diferença compatível com configuração de memória diferente (velocidade e
 timings do DDR5 não são os mesmos).
 

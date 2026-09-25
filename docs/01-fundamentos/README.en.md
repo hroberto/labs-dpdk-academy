@@ -981,8 +981,8 @@ conclusion applies to your case.
 **And the price is in the second panel**, which puts both quantities on the same
 nanosecond axis. At K = 1 they **coincide**: with no batch, the access and the set
 are the same thing. From there the blue collapses and the orange does not — and it
-is that separation which shows 3.44 ns was never memory's response time. It is
-94 ns divided by 27 overlapping accesses.
+is that separation which shows 3.19 ns was never memory's response time. It is
+86 ns divided by 27 overlapping accesses.
 
 **Both axes of that panel are logarithmic, and that is not a drawing
 preference.** Since `batch = K × ns per access`, if concurrency were free the cost
@@ -3280,7 +3280,7 @@ internal statistic would detect.
 | Core-to-core latency, distinct CCDs | 83–102 ns across runs | 180–200 ns before; 75–95 ns after AGESA 1.2.0.2 ([Tom's][th], [TechSpot][ts]) | **intermediate — see below** |
 | TLB miss / *page walk* | 10.01 ns (512 MB, paired) | 8.80 ns on a Core Duo T2600; 18.17 ns on an Athlon 64 ([Gorman][lwntlb]) | **between the two — agrees** |
 | Cost of a syscall | ~33 ns | hundreds of ns; < 100 ns in the best cases ([Gregg][gregg], [Stoll][syscalls]) | **below — explained** |
-| Memory latency (scattered access) | ~100 ns | ~70 ns on a 9950X ([ChipsAndCheese][cc]); 139,5 ns on an Opteron 844 ([McKenney][perfbook]) | **between the two — explained** |
+| Memory latency (scattered access) | ~89 ns | ~70 ns on a 9950X ([ChipsAndCheese][cc]); 139,5 ns on an Opteron 844 ([McKenney][perfbook]) | **between the two — explained** |
 | Waking a blocked thread | ~1300 ns | on the order of µs; a slow path by design ([futex][futex]) | agrees |
 
 ### Synchronisation: comparison with the canonical reference
@@ -3415,10 +3415,10 @@ case most favourable to me.
 The comparison looks unfavourable until you look at the methodology. ChipsAndCheese's number
 isolates memory latency; mine is a scattered walk over 512 MB that **includes the TLB misses**.
 And that cost I measured separately in
-[§4.1](#41-virtual-memory-what-translating-an-address-means): ~12 ns of *page walk*, which
-vanish with hugepages. Subtracting the ~10 to 18 ns of page walk, 83 to 91 ns remain, still
-above the ~70 — a difference compatible with a different memory configuration (DDR5 speed and
-timings are not the same).
+[§4.1](#41-virtual-memory-what-translating-an-address-means): ~10 ns of *page walk*, which
+vanish with hugepages. Subtracting the ~10 ns of page walk, ~79 ns remain, still above the
+~70 — a difference compatible with a different memory configuration (DDR5 speed and timings
+are not the same).
 
 That is: the two numbers measure different things, and it is the comparison that reveals it.
 Without it, I might have presented ~98 ns as "RAM latency".
