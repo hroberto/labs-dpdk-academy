@@ -182,7 +182,7 @@ jeito. **O número do encerramento não existe sem a configuração ao lado.**
 > **E o valor continua retratado — por pouco.** Uma execução avulsa desta
 > release, com a máquina sob carga, mediu 0,082 ms e por um momento pareceu
 > ressuscitar o número. A campanha arquivada, com a máquina ociosa e cinco
-> repetições, mede 0,094 a 0,102 ms com dispersão de 5 a 9% e selo `~`. A
+> repetições, mede 0,081 a 0,094 ms com dispersão de 3 a 9% e selo `~`. A
 > execução avulsa tinha **47% de dispersão**: era ela a medição ruim, não a
 > campanha. O valor retratado não voltou, e o episódio é mais uma aparição da
 > dispersão entre estados de máquina — a mesma que a seção 4 do módulo 01

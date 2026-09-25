@@ -108,7 +108,7 @@ line explains where the gain comes from.
 
 A mempool has two layers ([mempool guide][guiamempool]): a common, shared ring, and a **per-lcore cache** acting as
 a buffer. Creating the same pool with `cache_size = 0`, the operation goes from
-**1.25 ns to 13.27 ns** — ten times more expensive, and five times more expensive
+**1.28 ns to 10.45 ns** — eight times more expensive, and almost five times more expensive
 than `malloc()`.
 
 The reading matters more than the number: **without the per-lcore cache, the mempool
@@ -166,7 +166,7 @@ This is the section's main result, and it appears in no published comparison:
 ```
 
 Asking for more objects at once **cheapens** each object in the mempool
-(1.85 → 0.44 ns) and **makes it more expensive** in `malloc` (2.74 → 19.61 ns). The
+(1.84 → 0.44 ns) and **makes it more expensive** in `malloc` (2.75 → 19.67 ns). The
 ratio between the two goes from 1.5× to 45.0×.
 
 That is decisive because the data plane **is** batch processing.

@@ -111,8 +111,8 @@ linha explica de onde vem o ganho.
 
 Um mempool tem duas camadas ([guia do mempool][guiamempool]): um anel comum,
 compartilhado, e um **cache por lcore** que serve de amortecedor. Criando o mesmo pool com `cache_size = 0`, a
-operação passa de **1,25 ns para 13,27 ns** — dez vezes mais cara, e cinco vezes
-mais cara que o `malloc()`.
+operação passa de **1,28 ns para 10,45 ns** — oito vezes mais cara, e quase cinco
+vezes mais cara que o `malloc()`.
 
 A leitura importa mais que o número: **sem o cache por lcore, o mempool perde
 para a biblioteca padrão.** O que ele oferece não é uma estrutura de dados
@@ -169,8 +169,8 @@ publicada:
   128              19.67 ns       0.437 ns      45.0x
 ```
 
-Pedir mais objetos de uma vez **barateia** cada objeto no mempool (1,85 → 0,44 ns)
-e **encarece** no `malloc` (2,74 → 19,61 ns). A razão entre os dois vai de 1,5×
+Pedir mais objetos de uma vez **barateia** cada objeto no mempool (1,84 → 0,44 ns)
+e **encarece** no `malloc` (2,75 → 19,67 ns). A razão entre os dois vai de 1,5×
 para 45,0×.
 
 Isso é decisivo porque o plano de dados **é** processamento em lote. A
