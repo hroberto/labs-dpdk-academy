@@ -200,17 +200,33 @@
 # COMO USAR
 #
 #   1. sudo systemctl set-default multi-user.target
-#   2. sudo systemctl reboot -i
+#   2. systemctl reboot -i        (sem sudo -- ver a nota abaixo)
 #
-# `systemctl reboot -i`, E NAO `reboot`. Com a sessao grafica aberta o
-# `gnome-session` registra um inibidor e o `reboot` RECUSA:
+# DOIS COMANDOS, E SO O PRIMEIRO LEVA `sudo`.
+#
+#   sudo grub-reboot modo-texto     escreve em /boot/grub/grubenv, que e de
+#                                   root -- este exige privilegio
+#   systemctl reboot -i             SEM sudo, como o usuario da sessao
+#
+# POR QUE O SEGUNDO NAO LEVA SUDO. Com a sessao grafica aberta, `reboot` recusa:
 #
 #   Operation inhibited by "henrique" (PID ... "gnome-session-s"),
 #   reason is "user session inhibited".
 #
-# O `-i` ignora inibidores. E seguro aqui porque a maquina esta dedicada a
-# medicao por decisao -- nao ha sessao de trabalho a preservar --, e porque o
-# proprio protocolo exige que nada mais esteja rodando.
+# O `-i` ignora inibidores, e a politica do polkit decide quem pode usa-lo:
+#
+#   org.freedesktop.login1.reboot                 implicit active: yes
+#   org.freedesktop.login1.reboot-ignore-inhibit  implicit active: auth_admin_keep
+#
+# "active" e a sessao local em uso -- `loginctl show-session -p Active` diz
+# `yes`. Dela, o desktop abre o dialogo de senha e o reinicio acontece. Sob
+# `sudo` o terminal nao tem agente de polkit para abrir esse dialogo.
+#
+# O `-i` e seguro neste protocolo: a maquina esta dedicada a medicao por
+# decisao, nao ha sessao de trabalho a preservar, e o proprio protocolo exige
+# que nada mais esteja rodando. Vale saber quem inibe -- `systemd-inhibit
+# --list`; num desktop tipico sao o gnome-shell, o unattended-upgrades e o
+# editor aberto.
 #   3. entrar no console e rodar, NOMEANDO a configuracao medida:
 #        sudo ferramental/qualidade/campanha.sh 2026-09-24-expo6000-canal-duplo-texto
 #
@@ -218,8 +234,14 @@
 #      passo de hardware -- os passos 1 a 4 nao dependem da BIOS:
 #        sudo ferramental/qualidade/campanha.sh --so-hardware \
 #             2026-09-24-jedec4800-canal-duplo-texto
-#   4. ao terminar:
-#        sudo systemctl set-default graphical.target && sudo systemctl reboot -i
+#   4. ao terminar, JA EM MODO TEXTO:
+#        sudo systemctl set-default graphical.target && sudo reboot
+#
+#      Aqui o `-i` nao faz falta: nao ha sessao grafica para inibir o
+#      desligamento. Ele so e preciso no passo 2, que sai DE um desktop.
+#      Ja o `set-default` e necessario nos dois sentidos, porque e
+#      persistente -- diferente do `grub-reboot` do `run-all.sh`, que vale
+#      para um boot so.
 #
 # O passo 4 esta impresso no fim da execucao, para nao depender de memoria.
 set -u
@@ -771,4 +793,6 @@ echo "    A campanha de hardware ficou nos historicos dos tres modulos,"
 echo "    sob $CONF."
 echo
 echo "    Para voltar ao modo grafico:"
-echo "      sudo systemctl set-default graphical.target && sudo systemctl reboot -i"
+echo "      sudo systemctl set-default graphical.target && sudo reboot"
+echo "      (aqui e modo texto: nao ha sessao grafica inibindo, entao -i nao"
+echo "       faz falta. O set-default SIM: ele e persistente.)"

@@ -17,17 +17,34 @@
 # acrescentado de qualquer jeito.
 #
 # Para a condicao limpa, antes:
-#   sudo grub-reboot modo-texto && sudo systemctl reboot -i
+#   sudo grub-reboot modo-texto
+#   systemctl reboot -i
 #
-# `systemctl reboot -i`, E NAO `reboot`. Com a sessao grafica aberta o
-# `gnome-session` registra um inibidor e o `reboot` RECUSA:
+# DOIS COMANDOS, E SO O PRIMEIRO LEVA `sudo`.
+#
+#   sudo grub-reboot modo-texto     escreve em /boot/grub/grubenv, que e de
+#                                   root -- este exige privilegio
+#   systemctl reboot -i             SEM sudo, como o usuario da sessao
+#
+# POR QUE O SEGUNDO NAO LEVA SUDO. Com a sessao grafica aberta, `reboot` recusa:
 #
 #   Operation inhibited by "henrique" (PID ... "gnome-session-s"),
 #   reason is "user session inhibited".
 #
-# O `-i` ignora inibidores. E seguro aqui porque a maquina esta dedicada a
-# medicao por decisao -- nao ha sessao de trabalho a preservar --, e porque o
-# proprio protocolo exige que nada mais esteja rodando.
+# O `-i` ignora inibidores, e a politica do polkit decide quem pode usa-lo:
+#
+#   org.freedesktop.login1.reboot                 implicit active: yes
+#   org.freedesktop.login1.reboot-ignore-inhibit  implicit active: auth_admin_keep
+#
+# "active" e a sessao local em uso -- `loginctl show-session -p Active` diz
+# `yes`. Dela, o desktop abre o dialogo de senha e o reinicio acontece. Sob
+# `sudo` o terminal nao tem agente de polkit para abrir esse dialogo.
+#
+# O `-i` e seguro neste protocolo: a maquina esta dedicada a medicao por
+# decisao, nao ha sessao de trabalho a preservar, e o proprio protocolo exige
+# que nada mais esteja rodando. Vale saber quem inibe -- `systemd-inhibit
+# --list`; num desktop tipico sao o gnome-shell, o unattended-upgrades e o
+# editor aberto.
 #
 # POR QUE UM SO SCRIPT
 #
@@ -475,8 +492,10 @@ echo
 echo "=========================================================="
 echo "  run-all CONCLUIDO  $(date -Is)   (campanha rc=$rc)"
 echo
-echo "  Para voltar ao modo grafico:"
-echo "    sudo systemctl set-default graphical.target && sudo systemctl reboot -i"
-echo "  (ou so reinicie: o boot unico ja expirou)"
+echo "  Para voltar ao modo grafico: reinicie."
+echo "    sudo reboot"
+echo '  O grub-reboot e de BOOT UNICO -- a entrada de modo texto ja expirou,'
+echo "  e nao ha sessao grafica aqui inibindo o desligamento. Sem -i, sem"
+echo "  set-default: os dois so fazem falta no sentido contrario."
 echo "=========================================================="
 exit "$rc"
