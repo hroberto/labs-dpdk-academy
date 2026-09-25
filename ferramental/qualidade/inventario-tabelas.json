@@ -22,7 +22,7 @@
       "linha": 114,
       "secao": "2. A fronteira user-space / kernel-space",
       "tipo": "bloco_numerico",
-      "sha256": "8f75c2898e963850dbe344ce7cdcd83d6c39f6f9f561cb1f08477420731a93b7"
+      "sha256": "155856fb6f587a2358072afeb7a3e8ae9cc7f79f8ddfeed87359329e1dfb7ece"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -106,7 +106,7 @@
       "linha": 997,
       "secao": "A concorrência é a alavanca, e ela tem preço",
       "tipo": "bloco_numerico",
-      "sha256": "00e263f28615931d39419c31204f8a6e077b235fa024fb331ac211524f3f3e5e"
+      "sha256": "33db0b80c9a056dec5a4c6f9127338c66b0b8b91fe8bad754a7fb6ffa600c61f"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -124,252 +124,252 @@
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 1419,
+      "linha": 1426,
       "secao": "Onde a memória realmente é alocada: a política de primeiro toque",
       "tipo": "bloco_numerico",
       "sha256": "e3bcd29e5ec81e111f8d9a608c0fc12240f2d0beb900dc14dd9fc3a25c0753c1"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 1502,
+      "linha": 1509,
       "secao": "O que muda no plano de dados",
       "tipo": "tabela_markdown",
       "sha256": "3a3ceb92e5cf82d6836a7b6bf8f7263546daa1152f12687fc145db687700168a"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 1549,
+      "linha": 1556,
       "secao": "Uma armadilha real desta máquina",
       "tipo": "tabela_markdown",
       "sha256": "576e76e264383e2254f7f6f4a8537ec8732c2d7f98da919cd4e79d787eb6d7c0"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 1627,
+      "linha": 1634,
       "secao": "E numa máquina de um soquete, dá para ver algum efeito de topologia?",
       "tipo": "bloco_numerico",
-      "sha256": "e770811cb2bf66e1fa9affd156e32d0a3c0a336fa07034cd75b6cfede6a7a733"
+      "sha256": "4dc26b9af85a2b20216eb782285f91849131e74daa774dc1e4cde20fc24e2213"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 1672,
+      "linha": 1680,
       "secao": "4.4 Mapa de decisão: o que ajustar, e o que isso cobra",
       "tipo": "tabela_markdown",
       "sha256": "f9aa26948d96e8eab5e7d25fd0ffc79bc15470ed52ab9e4d0a45953ffb67977d"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 1700,
+      "linha": 1708,
       "secao": "4.4 Mapa de decisão: o que ajustar, e o que isso cobra",
       "tipo": "tabela_markdown",
       "sha256": "cfcddbc2c28016d6297ba4ca6f5b99861f40df3602c75fec5f05f215f990ffec"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 1750,
+      "linha": 1758,
       "secao": "5.1 Afinidade de CPU",
       "tipo": "tabela_markdown",
       "sha256": "c50cbb3439458732f95a6c74a5dca8aaab8694aab539d27982677ef7a28c9e23"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 1812,
+      "linha": 1820,
       "secao": "5.1.1 SMT: duas CPUs lógicas não são dois núcleos",
       "tipo": "bloco_numerico",
       "sha256": "2e77bf1a13e6206101530c275a9a1cd1268e10a57356afedb472f124b0b9f220"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 1877,
+      "linha": 1885,
       "secao": "E quanto os dois irmãos rendem JUNTOS",
       "tipo": "bloco_numerico",
-      "sha256": "38372fae8c894f83f023c4b76cc9d8d645b5aa935ca5335e5214f9951ba57fca"
+      "sha256": "c802f0f94a52eb578635e8d834d4d5d623fc0a511d0f03b2424472bfb1b5706f"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 1974,
+      "linha": 1982,
       "secao": "Quanto custa dormir — e o que exatamente é caro",
       "tipo": "tabela_markdown",
       "sha256": "3815ea9deaa2e6d522edbb056407a03e083ec3f25fbbb12b15278c2850f2ffbb"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2005,
+      "linha": 2013,
       "secao": "Quanto custa dormir — e o que exatamente é caro",
       "tipo": "bloco_numerico",
       "sha256": "ebcb44cddba64ff79d9e3c0a3e2b3cbf47848a0cc5bebfff9e49137cea6bb804"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2114,
+      "linha": 2122,
       "secao": "Quanto custa dormir — e o que exatamente é caro",
       "tipo": "bloco_numerico",
-      "sha256": "3179d553e4f788f2d4a2ecfa7774090f56fa98ac2a1fe485045cf046dce9fd2c"
+      "sha256": "2c09eb9753f0d60bf31351adf0fa7f0cc4f1f8584d14b5b56ecfcd86faf1c90b"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2170,
+      "linha": 2178,
       "secao": "Qual primitivo usar, afinal",
       "tipo": "tabela_markdown",
       "sha256": "05593fad0db3fb3c85baeb7fe42372df0ad754ae9edaa80d9e488d1d0a603ffd"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2181,
+      "linha": 2189,
       "secao": "Qual primitivo usar, afinal",
       "tipo": "tabela_markdown",
       "sha256": "19516d46259337531ab221ac48daec7bd68f341dbbaa77f7dbb9bd3c10d9249d"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2247,
+      "linha": 2255,
       "secao": "O preço, dito com todas as letras",
       "tipo": "tabela_markdown",
       "sha256": "12d15778b587c4cecf3773a58f0dae5e7a1b3843a5e2a9078168b640843548b7"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2408,
+      "linha": 2416,
       "secao": "6.1 IOMMU: como entregar DMA a um processo sem abrir o sistema",
       "tipo": "bloco_numerico",
       "sha256": "b40fd20a13db28f7ad50e174d1b80f211328e6a0beb0980ec1de50f40ca41a13"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2434,
+      "linha": 2442,
       "secao": "O IOTLB: o page walk existe do lado do dispositivo também",
       "tipo": "tabela_markdown",
       "sha256": "1d4482635633f718f86b5f56730d1b1f69533cb67117574ffd1dd772a4205d68"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2458,
+      "linha": 2466,
       "secao": "6.2 O barramento também tem orçamento",
       "tipo": "tabela_markdown",
       "sha256": "862fddc39adadd8a1959859225c30586ed8f90d4a42cd5ef1169de45df50b9b5"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2531,
+      "linha": 2539,
       "secao": "Um ponto de comparação: servidor de *market data*",
       "tipo": "tabela_markdown",
       "sha256": "a869ad7d6f461cb1a947bf477153299273e5cef5ab967020dfdcefcf6a0fe3da"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2615,
+      "linha": 2623,
       "secao": "A conta que responde",
       "tipo": "tabela_markdown",
       "sha256": "d2cab1d05b6121da34b78ac7fc379a0502ea210491fe73f93a34354d95740d40"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2621,
+      "linha": 2629,
       "secao": "A conta que responde",
       "tipo": "bloco_numerico",
       "sha256": "7d662f69a8716207e431412e96c54465ec194ef27b736b58582208b7b7bfe57f"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2654,
+      "linha": 2662,
       "secao": "O experimento",
       "tipo": "bloco_numerico",
       "sha256": "e8e931c2d68c088a04aa6bcb2eb559c5b0fb8a29d737bf907dfdb2b8b9653dcc"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2697,
+      "linha": 2705,
       "secao": "E o caminho convencional de socket",
       "tipo": "bloco_numerico",
       "sha256": "25bde874f625c634275ee5a4d930c2b64f1fdd5ef954f09e1a74b9b31a7bd483"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2777,
+      "linha": 2785,
       "secao": "7. Métricas: o vocabulário para não se enganar",
       "tipo": "tabela_markdown",
       "sha256": "5056af522304524c1d9ca9b300c09ec2e5f517fe6a8d1e126e253255f8b3e328"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2807,
+      "linha": 2815,
       "secao": "Média e mediana não são a mesma coisa",
       "tipo": "tabela_markdown",
       "sha256": "692cfc666b6134be5efc39e26fbe6da22645e902123e74efda2e8591e8706a52"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2835,
+      "linha": 2843,
       "secao": "Percentil: o que quer dizer p99",
       "tipo": "bloco_numerico",
       "sha256": "c6c510783fbc2de24cfa4c667757c4964ade0140d6c68d1757e80232fd23df5a"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2878,
+      "linha": 2886,
       "secao": "Por que a média mente",
       "tipo": "bloco_numerico",
       "sha256": "07ee53fde487c6cf213857d75227403d1b99978a5928ecf2b8cf6d1e4d642e7f"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 2944,
+      "linha": 2952,
       "secao": "8. Síntese: os dois caminhos lado a lado",
       "tipo": "tabela_markdown",
       "sha256": "f45a3f8eed141b8740a5b0de9445e0ebdfd42204b842fa24654351c16ac1a143"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3005,
+      "linha": 3013,
       "secao": "9.1 As quatro escalas de dispersão, e o que cada uma não alcança",
       "tipo": "tabela_markdown",
       "sha256": "9ec2a04120ebf4d8d085f7e3b9086b2d1259c04cd232720d2f4e333aa07cc14e"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3202,
+      "linha": 3210,
       "secao": "E o que fazer quando a conclusão é \"não há diferença relevante\"",
       "tipo": "tabela_markdown",
       "sha256": "03cdc9a024f3a26103737482bbd13642a8f1214e9fd5e8ce1c9fe01ee08c1f8e"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3268,
+      "linha": 3276,
       "secao": "O ruído de um microbenchmark é unilateral",
       "tipo": "tabela_markdown",
       "sha256": "54eea35977e1d4384041a48300b93e5c682190e957a7dd254d44d9b2e60a099d"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3385,
+      "linha": 3393,
       "secao": "10. Confronto com a literatura",
       "tipo": "tabela_markdown",
       "sha256": "d5051ee8bb98cbc1000d37bc332360a0f6462d661ab59168ad517381e1a90a5a"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3412,
+      "linha": 3420,
       "secao": "Sincronização: confronto com a referência canônica",
       "tipo": "tabela_markdown",
       "sha256": "287476ec4bee755ab953ea0aab40bee13d6601d5ccdb8a7b2743c93cb8081727"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3423,
+      "linha": 3431,
       "secao": "Sincronização: confronto com a referência canônica",
       "tipo": "tabela_markdown",
       "sha256": "1acef406b83c7cc8bf2523c6cdacec9bf0c05d1e4c8f33c733407e32ca6202aa"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3643,
+      "linha": 3651,
       "secao": "11.1 A travessia, medida",
       "tipo": "tabela_markdown",
       "sha256": "e86f0631b44b8671c5e622540f75d6b5b327e176f9663f0a95f069e85eb9c423"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3782,
+      "linha": 3790,
       "secao": "13. Referências externas",
       "tipo": "tabela_markdown",
       "sha256": "a89da528537fb8b8265e00a4a17829269f45353e171ab76444543db94a3858ff"
@@ -386,7 +386,7 @@
       "linha": 136,
       "secao": "2. O custo de existir: quanto a EAL leva para nascer",
       "tipo": "bloco_numerico",
-      "sha256": "b28534b67d4d4776a51f2f376188d1f1f321158abb14b4b4b4ece6c575560aa9"
+      "sha256": "c393b8a26dec9bb48a7e5f2b281f311a58dd31dc14117f920b3cfd5935295885"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
@@ -435,7 +435,7 @@
       "linha": 677,
       "secao": "4.6 Quanto custa atravessar a fronteira",
       "tipo": "bloco_numerico",
-      "sha256": "cfb1a2d7969e3f1ba697f0587f9b54fd6e9ab75c7e5c0d2795b0fd209aca7c8d"
+      "sha256": "5e87051fa7a8bbd663f2db4dd07e3cd4310daa0cb4a0bf09e44742ce8b59e1f3"
     },
     {
       "arquivo": "docs/02-runtime-dpdk/README.md",
@@ -533,7 +533,7 @@
       "linha": 193,
       "secao": "1.3 O lote muda de sinal entre os dois",
       "tipo": "bloco_numerico",
-      "sha256": "1b3a4f76faec2378024c1ce790588be30affaf305fb416d2cd93e0d21dd24949"
+      "sha256": "c9a1afafa6c96af99d90053bdef8eeb92811938534b70e275eed5c18270e1a16"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
@@ -624,7 +624,7 @@
       "linha": 843,
       "secao": "3. O anel: o preço da generalidade",
       "tipo": "bloco_numerico",
-      "sha256": "b068a593dbaa484280e37d5f3f6d79bf822a1d6a4bb2d64263130aeb132be2fb"
+      "sha256": "2d479d10d896d5afab2e44f203b4a2346b0ebb12128d795ccf002788db843fed"
     },
     {
       "arquivo": "docs/03-mempool-ring-mbuf/README.md",
@@ -729,7 +729,7 @@
       "linha": 217,
       "secao": "4. Implementação",
       "tipo": "bloco_numerico",
-      "sha256": "2fc01a53c8bcef976d48d11f965bec3e69169d6e92c47d26800c097618ca9a51"
+      "sha256": "e876bf824c3ad68cd2b3f92708cbb529c35f843252804d61e759bd0befa576a6"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
@@ -771,7 +771,7 @@
       "linha": 488,
       "secao": "6.2 O experimento",
       "tipo": "bloco_numerico",
-      "sha256": "0f8f6b6633c33d3c7387e0e0aec3f7316edf1a7f1c71b48b66d305fe275aea57"
+      "sha256": "8fea83f36463bf51dded9b0e07a17d16b6271e870749161de38e5fba4c6907a7"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
@@ -862,7 +862,7 @@
       "linha": 417,
       "secao": "5. Implementação e validação",
       "tipo": "bloco_numerico",
-      "sha256": "b9dfece5bf2de9e80d4e77d2d9a8de4fa061ffac276bbeeec5dd0d31c1c201f1"
+      "sha256": "46e0373113e5a89999ddd0d883106541b8088dccde377d99e6c53acb2bb7eb23"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",

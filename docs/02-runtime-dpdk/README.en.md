@@ -142,21 +142,21 @@ times it and returns the result through a *pipe*; the parent only aggregates.
   configuration measured: -l 0 --in-memory
   samples: 11 (one per process; rte_eal_init is not reentrant)
 
-  warning: "rte_eal_cleanup()" has disp 7.9% with 11 samples -- in that band the seal
+  warning: "rte_eal_cleanup()" has disp 7.6% with 11 samples -- in that band the seal
            does not decide. Raise it to 20+ before explaining the result.
   values in MILLISECONDS
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  rte_eal_init()                         117.6  117.3-117.7     116.9-117.9         0.4%   0.3%
-  rte_eal_cleanup()                      0.083  0.078-0.085     0.064-0.101         7.9%  11.1% ~
+  rte_eal_init()                         117.8  117.6-117.9     117.5-117.9         0.2%   0.1%
+  rte_eal_cleanup()                      0.093  0.088-0.095     0.081-0.113         7.6%   9.2% ~
 
   Reading:
     At 10 GbE with 64 B frames one packet arrives every 67.2 ns.
     The 118 ms initialisation window is worth 2 million packets
 ```
 
-Bringing the EAL up costs **123 ms**; shutting it down costs **0.12 ms** — three
+Bringing the EAL up costs **118 ms**; shutting it down costs **0.09 ms** — three
 orders of magnitude less. The asymmetry is the first relevant fact: being born is
 expensive, dying is cheap.
 
@@ -170,8 +170,9 @@ measurement, with the memory mode of the EAL as the only difference:
   -l 0 --no-huge        121.9 ms         0.577 ms  ~  5%     211x
 ```
 
-Initialisation does not move — 122.4 against 122.5 ms. Shutdown changes by a factor
-of **5.5**, and with it the ratio goes from three orders of magnitude to two. That
+Initialisation barely moves — 118.8 against 121.9 ms, a 2.6% difference. Shutdown
+changes by a factor of **6.1**, and with it the ratio goes from three orders of
+magnitude to two. That
 makes sense: shutting down gives back what was mapped, and `--no-huge` maps it
 differently. **The shutdown number does not exist without the configuration next to
 it.**
@@ -671,11 +672,11 @@ Two hundred thousand ticks, producer on lcore 0 and consumer on lcore 1:
   ------------------------------ --------- --------- --------- ---------  -------
   publication -> observation         10.02     20.04     30.06     40.07   200000
 
-    instrument resolution: 14.2 ns (one consumer poll).
+    instrument resolution: 13.9 ns (one consumer poll).
     degenerate samples: 0 of 200000 (TSC aligned across the two cores)
     The values above are an UPPER BOUND: between two polls the
     consumer is blind, so the real traversal fits inside the
-    last step. Differences smaller than 14.2 ns are not measurable here.
+    last step. Differences smaller than 13.9 ns are not measurable here.
 ```
 
 **Ten nanoseconds in the best case, one hundred and ten at this run's p99.** For
@@ -1051,7 +1052,7 @@ it:
 
 ```c
 rte_memzone_free(mz);
-rte_eal_cleanup();
+  rte_eal_cleanup()                      0.093  0.088-0.095     0.081-0.113         7.6%   9.2% ~
 ```
 
 Inverting that is using memory already returned. In an application with configured

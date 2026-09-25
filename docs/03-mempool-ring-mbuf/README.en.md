@@ -187,10 +187,10 @@ This is the section's main result, and it appears in no published comparison:
 
   batch         malloc/free   mempool bulk      ratio
   -----         -----------   ------------      -----
-  1                 2.75 ns       1.839 ns       1.5x
-  8                 2.28 ns       0.634 ns       3.6x
-  32               12.53 ns       0.467 ns      26.8x
-  128              19.67 ns       0.437 ns      45.0x
+  1                 2.57 ns       1.810 ns       1.4x
+  8                 2.44 ns       0.629 ns       3.9x
+  32               12.36 ns       0.483 ns      25.6x
+  128              19.58 ns       0.433 ns      45.2x
 ```
 
 Asking for more objects at once **cheapens** each object in the mempool
@@ -839,10 +839,10 @@ a single lcore, with no contention at all**:
 ```
   batch      SP/SC (ns/obj)   MP/MC (ns/obj) MP/MC cost
   -----      --------------   -------------- -----------
-  1                1.636 ns         8.237 ns       404%
-  8                0.539 ns         1.283 ns       138%
-  32               0.405 ns         0.485 ns        20%
-  128              0.372 ns         0.302 ns       -19%
+  1                1.905 ns         8.242 ns       333%
+  8                0.546 ns         1.282 ns       135%
+  32               0.404 ns         0.484 ns        20%
+  128              0.371 ns         0.302 ns       -19%
 ```
 
 **The cost does not depend on contention existing.** With a single producer, MP/MC

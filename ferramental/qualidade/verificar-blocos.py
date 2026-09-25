@@ -79,6 +79,20 @@ def coletas():
                   set(RAIZ.glob("trilha/**/historico/*/")))
     for d in dirs:
         for f in d.glob("*.txt"):
+            # A REPETICAO r0 NAO E PROCEDENCIA, e a propria campanha diz isso:
+            # `campanha-hardware.sh` a rotula `aquecimento(descartado)` no
+            # diario. Enquanto ela entrava aqui, um bloco tirado do aquecimento
+            # passava neste portao -- e em 25/09/2026 havia 22 linhas
+            # publicadas nessa condicao, incluindo a razao `3.42` entre dominios,
+            # que nenhuma repeticao valida de nenhuma coleta reproduz (o minimo
+            # e 3.73).
+            #
+            # A primeira execucao apos ociosidade e justamente a que o proprio
+            # projeto documentou como diferente: e o achado do governor, na
+            # §6.6.6 do topico de isolamento. Aceita-la como procedencia era
+            # aceitar a condicao que o desenho exclui.
+            if f.name.endswith(".r0.txt"):
+                continue
             for l in f.read_text(errors="replace").split("\n"):
                 literais.add(l.rstrip())
                 formas.add(forma(l))

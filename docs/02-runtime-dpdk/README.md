@@ -139,21 +139,21 @@ cronometra e devolve o resultado por um *pipe*; o pai apenas agrega.
   configuration measured: -l 0 --in-memory
   samples: 11 (one per process; rte_eal_init is not reentrant)
 
-  warning: "rte_eal_cleanup()" has disp 7.9% with 11 samples -- in that band the seal
+  warning: "rte_eal_cleanup()" has disp 7.6% with 11 samples -- in that band the seal
            does not decide. Raise it to 20+ before explaining the result.
   values in MILLISECONDS
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  rte_eal_init()                         117.6  117.3-117.7     116.9-117.9         0.4%   0.3%
-  rte_eal_cleanup()                      0.083  0.078-0.085     0.064-0.101         7.9%  11.1% ~
+  rte_eal_init()                         117.8  117.6-117.9     117.5-117.9         0.2%   0.1%
+  rte_eal_cleanup()                      0.093  0.088-0.095     0.081-0.113         7.6%   9.2% ~
 
   Reading:
     At 10 GbE with 64 B frames one packet arrives every 67.2 ns.
     The 118 ms initialisation window is worth 2 million packets
 ```
 
-Subir a EAL custa **119 ms**; encerrá-la custa **0,09 ms** — três ordens de
+Subir a EAL custa **118 ms**; encerrá-la custa **0,09 ms** — três ordens de
 grandeza menos. A assimetria é o primeiro fato relevante: nascer é caro, morrer
 é barato.
 
@@ -681,11 +681,11 @@ mil ticks, produtor no lcore 0 e consumidor no lcore 1:
   ------------------------------ --------- --------- --------- ---------  -------
   publication -> observation         10.02     20.04     30.06     40.07   200000
 
-    instrument resolution: 14.2 ns (one consumer poll).
+    instrument resolution: 13.9 ns (one consumer poll).
     degenerate samples: 0 of 200000 (TSC aligned across the two cores)
     The values above are an UPPER BOUND: between two polls the
     consumer is blind, so the real traversal fits inside the
-    last step. Differences smaller than 14.2 ns are not measurable here.
+    last step. Differences smaller than 13.9 ns are not measurable here.
 ```
 
 **Dez nanossegundos no melhor caso, cento e dez no p99 desta execução.** Para
@@ -1061,7 +1061,7 @@ chamado.
 
 ```c
 rte_memzone_free(mz);
-rte_eal_cleanup();
+  rte_eal_cleanup()                      0.093  0.088-0.095     0.081-0.113         7.6%   9.2% ~
 ```
 
 Inverter é usar memória já devolvida. Numa aplicação com portas configuradas, o

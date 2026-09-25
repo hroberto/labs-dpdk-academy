@@ -223,7 +223,7 @@ Largest batch actually moved: enqueued 10, dequeued 10
 Mode: 1 lcore (0), producer and consumer interleaved
 Free objects in the pool at the end: 4095 of 4095
 mempool cache stats: UNAVAILABLE (DPDK built without RTE_LIBRTE_MEMPOOL_STATS)
-Mean time: 39.1 ns/packet  <- NOT A MEASUREMENT
+Mean time: 51.1 ns/packet  <- NOT A MEASUREMENT
   10 packets are far too few: the cost of reading the clock is of the same
   order as the work measured. Use -n 10000 or more for a defensible number.
 ```
@@ -495,7 +495,7 @@ Largest batch actually moved: enqueued 256, dequeued 256
 Mode: 2 lcores (producer 0, consumer 2)
 Free objects in the pool at the end: 1534 of 4095
 mempool cache stats: UNAVAILABLE (DPDK built without RTE_LIBRTE_MEMPOOL_STATS)
-Mean time: 2.4 ns/packet
+Mean time: 2.3 ns/packet
 Frequency of lcore 0: 5.60 GHz (the time above varies with it)
 ```
 

@@ -111,9 +111,9 @@ machine ([`custo-syscall.c`](medicoes/custo-syscall.c)):
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  function call (user-space)             0.720  0.717-0.724     0.716-0.778         1.0%   2.0%
-  clock_gettime (vDSO, no trap)          15.52  15.51-15.52     15.51-15.55         0.0%   0.1%
-  real syscall (SYS_getpid)              33.31  33.30-33.31     33.29-33.36         0.0%   0.0%
+  function call (user-space)             0.726  0.719-0.727     0.718-0.828         1.1%   2.9%
+  clock_gettime (vDSO, no trap)          15.52  15.51-15.52     15.51-15.67         0.1%   0.3%
+  real syscall (SYS_getpid)              33.32  33.31-33.33     33.27-33.39         0.1%   0.1%
 
   a syscall costs 46x a function call
 
@@ -996,21 +996,21 @@ The two panels are the same table, and together they are the decision:
 ```
    K   ns/access   M accesses/s   batch of K ready in   throughput gain
   ---  ---------   -----------   ---------------------   --------------
-    1      76.35        13.1                76 ns            1.0x
-    2      37.70        26.5                75 ns            2.0x
-    4      20.55        48.7                82 ns            3.7x
-    8      10.75        93.0                86 ns            7.1x
-   12       7.38       135.6                89 ns           10.3x
-   16       5.63       177.5                90 ns           13.6x
-   32       3.20       312.7               102 ns           23.9x
-   64       2.44       410.6               156 ns           31.3x
+    1      77.37        12.9                77 ns            1.0x
+    2      38.18        26.2                76 ns            2.0x
+    4      20.67        48.4                83 ns            3.7x
+    8      10.83        92.4                87 ns            7.1x
+   12       7.42       134.8                89 ns           10.4x
+   16       5.67       176.3                91 ns           13.6x
+   32       3.21       311.7               103 ns           24.1x
+   64       2.44       409.3               156 ns           31.7x
 ```
 
-**Latency does not change on any row.** It stays between 76 and 90 ns up to
+**Latency does not change on any row.** It stays between 76 and 91 ns up to
 K = 16 — what changes is how many accesses happen at once. The `ns/access`
-column falls **31.5×** without a single access having become faster.
+column falls **31.7×** without a single access having become faster.
 
-**At K = 1 this machine does not reach 10 GbE.** That is 13.0 million accesses per
+**At K = 1 this machine does not reach 10 GbE.** That is 12.9 million accesses per
 second against the 14.9 million packets per second of
 [§1](#1-the-budget-how-much-time-exists-per-packet). A single dependent access
 per packet — chasing a pointer, consulting a chained flow table — **already
@@ -1195,7 +1195,15 @@ signature of something competing for bandwidth.
 > collection. That is why phase 2 collects 21 samples, and phase 1, with low
 > dispersion, keeps seven. The full reasoning is in
 > [`statistics.h`](medicoes/statistics.h).
-<!-- retratado: 8.63 10.93 15.32 24.99 38.50 115.9 65.3 26.0 183.0 261.0 320.1 311.7 17.1 14.2 91.5 -->
+<!-- retratado: 8.63 10.93 15.32 24.99 38.50 115.9 65.3 26.0 183.0 261.0 320.1 17.1 14.2 91.5 -->
+<!-- `311.7` left this list on 25/09/2026, and not because the retraction
+     stopped holding: the text-mode collection now produces 311.7 as
+     M accesses/s at K=32 in the `custo-paralelismo` table, which is a
+     different quantity. The marker matches a BARE NUMBER, with no context,
+     so a value dead in one section comes back when it legitimately appears
+     in another. Keeping it here would make the gate flag a valid
+     measurement -- and a gate that flags the right thing teaches people to
+     ignore it when it flags the wrong one. -->
 
 > **Design consequence, and this is the most expensive one to find out late:**
 > sizing a data plane from the measurement of **one** lcore overestimates the
@@ -1618,18 +1626,18 @@ measuring the time for a cache line to travel from one core to another:
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  within domain 0 (cpu 0 <-> 2)          23.80  22.95-24.00     21.59-24.22         4.4%   3.3% ~
-  BETWEEN domains (cpu 0 <-> 6)          81.42  81.41-81.44     81.40-81.55         0.0%   0.1%
-  RATIO between/within (paired)           3.42  3.40-3.55       3.36-3.77           4.5%   3.4% ~
+  within domain 0 (cpu 0 <-> 2)          21.82  21.72-22.52     18.45-24.10         3.7%   5.0% ~
+  BETWEEN domains (cpu 0 <-> 6)          81.39  81.39-81.41     81.37-81.52         0.0%   0.0%
+  RATIO between/within (paired)           3.73  3.61-3.75       3.38-4.41           3.6%   5.4% ~
 ```
 
-**Crossing the interconnect costs about 4.5 times more — and that is 121% of the budget
+**Crossing the interconnect costs about 3.7 times more — and that is 121% of the budget
 of a 64 B packet on 10 GbE.** A single hand-off between badly placed cores already blows
 the entire budget, before any useful work.
 
 <!-- retratado: 6.3 6,3 14.4 14,4 82.99 82,99 17.50 17,50 -->
 
-The local crossing is the one with moderate dispersion (`disp` of 6.5%), and that is
+The local crossing is the one with moderate dispersion (`disp` of 3.7%), and that is
 information too: a hand-off between two cores in the same L3 block varies more, in relative
 terms, than one crossing the interconnect — because the value is four times smaller and the
 same absolute noise weighs four times as much.
@@ -1638,7 +1646,7 @@ That result has a direct and immediate consequence in the project: the
 [topic 02](../../trilha/01-fundamentos/02-mempool-ring/) passes objects between producer
 and consumer through an [`rte_ring`][guiaring], and each hand-off makes exactly that trip.
 Choosing `-l 0,2` or `-l 0,6` in the EAL is not a configuration detail — it is the
-difference between 18 ns and 81 ns per crossing.
+difference between 22 ns and 81 ns per crossing.
 
 > **Answering the question directly:** it is not worth enabling the BIOS option. It would
 > announce a *memory* asymmetry that does not exist on this machine, while the
@@ -1866,9 +1874,9 @@ to finish:
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  1 thread  on 1 physical core (cpu 0)    1863.9  1860.9-1864.3   1854.2-2029.0       0.2%   1.9%
-  2 threads on 2 physical cores (cpu 0,2)    3715.2  3713.5-3716.6   3703.3-3726.7       0.1%   0.1%
-  2 threads on 2 SMT siblings (cpu 0,12)    1927.6  1927.3-1927.9   1923.1-1928.3       0.0%   0.1%
+  1 thread  on 1 physical core (cpu 0)    1862.3  1861.7-1862.6   1854.9-2021.7       0.0%   1.9%
+  2 threads on 2 physical cores (cpu 0,2)    3716.5  3715.1-3718.9   3675.0-3728.9       0.1%   0.3%
+  2 threads on 2 SMT siblings (cpu 0,12)    1928.4  1927.8-1928.6   1924.0-1928.7       0.0%   0.1%
 
   two physical cores yield 1.99x one core
   two SMT siblings    yield 1.03x one core
@@ -2041,8 +2049,8 @@ of them.** By the median, the mutex is the slowest of the five: 8.53 ns, against
 the semaphore, 4.50 ns for the spinlock and 0.255 ns for the `relaxed` atomic. It is also the
 usual suspect, the one the cost of synchronising tends to be blamed on. If **the most expensive
 row in the table, and precisely the accused one, costs 8.5 ns**, the other four need no
-separate defence — the argument covers them. To give that number scale: it is **8.5 of the
-67.2 ns of one packet's budget — 12.8%**, into which the mutex fits almost eight times.
+separate defence — the argument covers them. To give that number scale: it is **8.52 of the
+67.2 ns of one packet's budget — 12.7%**, into which the mutex fits almost eight times.
 
 What buys that price is the futex's fast path: an uncontended mutex settles everything in user
 space, with no system call. That is not an implementation accident: it is the stated
@@ -2071,7 +2079,7 @@ any real concurrent program.
 
 Two details of the table deserve a note.
 
-**The mutex costs 2.3 times a `seq_cst` atomic** (8.53 against 3.76 ns), and the reason is
+**The mutex costs 2.3 times a `seq_cst` atomic** (8.52 against 3.75 ns), and the reason is
 arithmetic: locking executes an atomic read-modify-write, unlocking executes another, plus
 the check that nobody is waiting. That is two locked operations against one. The mutex is
 not expensive for being a mutex; it is expensive for doing more.
@@ -2098,15 +2106,20 @@ comes out of the per-packet budget.
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  atomic + busy wait (does not sleep)     17.61  17.58-17.96     17.58-18.46         2.1%   1.4%
-  mutex + busy wait (does not sleep)     90.95  90.78-91.43     90.20-93.04         0.7%   0.7%
-  mutex + condvar (SLEEPS)              1275.2  1255.4-1277.2   1238.7-1337.6       1.7%   1.9%
-  POSIX semaphore (SLEEPS)              1217.0  1209.5-1223.4   1184.6-1342.8       1.1%   3.2%
+  atomic + busy wait (does not sleep)     17.56  17.50-17.86     17.49-18.45         2.1%   1.7%
+  mutex + busy wait (does not sleep)     96.43  96.25-97.69     95.11-99.24         1.5%   1.1%
+  mutex + condvar (SLEEPS)              1265.6  1256.0-1280.6   1212.7-1314.3       1.9%   2.1%
+  POSIX semaphore (SLEEPS)              1216.2  1209.5-1224.1   1171.5-1316.7       1.2%   2.5%
 ```
+<!-- cita-retratado: 17.50 -->
+<!-- NOT a citation of the retracted value: the `17.50` above is the lower bound
+     of the IQR of `atomic + busy wait`, a measurement unrelated to the
+     inter-CCD cost that was retracted. A digit collision -- the checker matches
+     the sequence, not the claim. -->
 
 **The decisive comparison is the two middle lines: it is the same mutex.** The only
 difference is that in the second the thread really sleeps, waiting to be woken by a
-condition variable. That multiplies the cost by **15**.
+condition variable. That multiplies the cost by **13**.
 
 That is: the problem was never the mutex, nor the semaphore, nor the atomic. **The problem
 is sleeping.** When the thread blocks, the system's scheduler comes in — a system call,
@@ -2116,12 +2129,12 @@ than a thousand nanoseconds.
 **In the data plane's budget:**
 
 ```
-    busy-wait fits 3.8 times into one packet's budget
-    sleeping spends 19.0 whole budgets
+    busy waiting fits 3.8 times in it
+    sleeping spends 18.8 whole budgets
 ```
 
-Waking a thread consumes the equivalent of **20 packets of 10 GbE**. In the time to be
-woken, twenty packets would have arrived — and been dropped for lack of a buffer. There
+Waking a thread consumes the equivalent of **19 packets of 10 GbE**. In the time to be
+woken, nineteen packets would have arrived — and been dropped for lack of a buffer. There
 is no budget for sleeping, and that, not a taste for micro-optimisation, is why the data
 plane polls.
 
