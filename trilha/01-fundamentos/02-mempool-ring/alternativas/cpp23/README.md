@@ -172,7 +172,7 @@ Medido com **o mesmo protocolo** de
 por [`custo-anel-cpp.cpp`](custo-anel-cpp.cpp): um thread, sem disputa, ciclo
 enfileirar+desenfileirar, 200 000 operações, mesma estatística.
 
-| lote | `rte_ring` SP/SC | `SpscRing` C++23 | razão |
+| lote | `rte_ring` SP/SC, em bloco | `SpscRing` C++23, **unitário** | razão |
 |---:|---:|---:|---:|
 | 1 | 1,628 ns | 3,117 ns | 1,9× |
 | 8 | 0,527 ns | 1,062 ns | 2,0× |
@@ -205,20 +205,44 @@ Medianas de **10 execuções por ponto**. Amplitudes entre execuções: `rte_rin
 >
 > <!-- retratado: 2,078 0,687 0,437 0,368 -->
 
-**A diferença cresce com o lote, e é aí que está a explicação.** Em lote 1 os
-dois estão na mesma ordem de grandeza — é de fato o mesmo algoritmo. Mas o
-`rte_ring` tem operações **em bloco**: `rte_ring_enqueue_bulk` move *n* ponteiros
-com **um** par de operações atômicas. O `SpscRing` como está escrito não tem API
-de bloco: enfileirar 128 pacotes custa 128 publicações atômicas.
+**A diferença cresce com o lote, e a razão é de interface, não de linguagem.**
+Em lote 1 os dois estão na mesma ordem de grandeza — é de fato o mesmo
+algoritmo. Mas o `rte_ring` tem operações **em bloco**:
+`rte_ring_enqueue_bulk` move *n* ponteiros com **um** par de operações
+atômicas, e a coluna da esquerda as usa. A coluna do meio não: ela repete a
+chamada unitária *n* vezes, e enfileirar 128 pacotes custa 128 publicações
+`release`.
 
-Por isso o C++ fica plano em ~1,04 ns a partir do lote 8 — ele não tem o que
-amortizar — enquanto o `rte_ring` continua caindo até 0,371 ns.
+Por isso o C++ fica plano em ~1,04 ns a partir do lote 8 — naquele caminho não
+há o que amortizar — enquanto o `rte_ring` continua caindo até 0,371 ns.
 
-> **Isto não é uma vantagem da linguagem.** Um anel em C++ com API de bloco
-> teria o mesmo comportamento; o que falta é a API, não o compilador. O que o
-> DPDK entrega aqui é **desenho de interface** — a decisão de expor
-> `enqueue_bulk` em vez de só `enqueue`. É uma vantagem real e transferível, e
-> é diferente de "o DPDK é mais rápido".
+> **A razão publicada compara caminhos diferentes, e isso precisa estar dito.**
+> O `SpscRing` **tem** API de bloco: [`enqueue_burst`](packet.hpp) e
+> `dequeue_burst` recebem um `std::span` e fazem **uma** publicação `release`
+> por chamada, exatamente a amortização que o `rte_ring` faz. A coluna medida
+> não a exercita, e portanto o `2,8×` do lote 128 é a razão entre
+> `rte_ring` **em bloco** e `SpscRing` **unitário** — não entre as duas
+> bibliotecas no mesmo regime.
+>
+> O número não está errado; a frase que o explicava estava. A comparação
+> pareada — bloco contra bloco — exige um segundo braço no programa, que
+> [`custo-anel-cpp.cpp`](custo-anel-cpp.cpp) agora tem, e uma coleta em modo
+> texto que ainda não foi feita. Enquanto ela não existir, **não há número de
+> bloco contra bloco neste documento**, e nenhuma conclusão sobre "quanto o
+> DPDK ganha" pode ser tirada deste par.
+>
+> A lição de método é a mesma que derrubou o "empate" mais abaixo, e ela se
+> repete porque é fácil: **antes de comparar dois números, confira se os dois
+> programas fazem a mesma chamada.** Unidade igual e grandeza diferente já
+> tinha enganado uma vez aqui; desta vez a unidade e a grandeza estavam certas,
+> e o que diferia era a API exercitada.
+
+> **O que continua válido, e é o achado transferível.** O `rte_ring` entrega a
+> operação em bloco **por padrão**, e é isso que o número da esquerda mostra:
+> desenho de interface que amortiza a sincronização sobre o lote. Essa decisão
+> é copiável em C++ — o `SpscRing` a copia — e é diferente de "o DPDK é mais
+> rápido". O que a coluna do meio mede é o custo de **não** usar a interface
+> que se tem.
 
 > **Este bloco publicava "empate", com dois números errados.**
 >

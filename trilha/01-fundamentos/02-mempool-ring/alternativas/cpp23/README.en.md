@@ -176,7 +176,7 @@ The ring in C++23 now exists: [`SpscRing`](packet.hpp) — atomic indices with
 [`custo-anel-cpp.cpp`](custo-anel-cpp.cpp): one thread, no contention, an
 enqueue+dequeue cycle, 200 000 operations, the same statistics.
 
-| batch | `rte_ring` SP/SC | `SpscRing` C++23 | ratio |
+| batch | `rte_ring` SP/SC, bulk | `SpscRing` C++23, **single-element** | ratio |
 |---:|---:|---:|---:|
 | 1 | 1.628 ns | 3.117 ns | 1.9× |
 | 8 | 0.527 ns | 1.062 ns | 2.0× |
@@ -211,17 +211,40 @@ batch 1 and 0.367–0.473 at batch 128; `SpscRing` 3.036–3.949 and 1.014–1.1
 **The difference grows with the batch, and that is where the explanation lies.** At
 batch 1 the two are in the same order of magnitude — it is indeed the same
 algorithm. But `rte_ring` has **bulk** operations: `rte_ring_enqueue_bulk` moves *n*
-pointers with **one** pair of atomic operations. `SpscRing` as written has no bulk
-API: enqueueing 128 packets costs 128 atomic publications.
+pointers with **one** pair of atomic operations, and the left-hand column uses
+them. The middle column does not: it repeats the single-element call *n* times,
+and enqueueing 128 packets costs 128 `release` publications.
 
-That is why the C++ one flattens at ~1.04 ns from batch 8 on — it has nothing to
-amortise — while `rte_ring` keeps falling to 0.371 ns.
+That is why the C++ one flattens at ~1.04 ns from batch 8 on — on that path there
+is nothing to amortise — while `rte_ring` keeps falling to 0.371 ns.
 
-> **This is not an advantage of the language.** A ring in C++ with a bulk API would
-> have the same behaviour; what is missing is the API, not the compiler. What DPDK
-> delivers here is **interface design** — the decision to expose `enqueue_bulk`
-> instead of only `enqueue`. It is a real and transferable advantage, and it is
-> different from "DPDK is faster".
+> **The published ratio compares different paths, and that has to be said.**
+> `SpscRing` **does** have a bulk API: [`enqueue_burst`](packet.hpp) and
+> `dequeue_burst` take a `std::span` and perform **one** `release` publication per
+> call — exactly the amortisation `rte_ring` performs. The measured column does not
+> exercise it, so the `2.8×` at batch 128 is the ratio between `rte_ring` **in
+> bulk** and `SpscRing` **single-element** — not between the two libraries in the
+> same regime.
+>
+> The number is not wrong; the sentence that explained it was. The paired
+> comparison — bulk against bulk — requires a second arm in the program, which
+> [`custo-anel-cpp.cpp`](custo-anel-cpp.cpp) now has, and a text-mode collection
+> that has not been run. Until it exists, **there is no bulk-against-bulk number in
+> this document**, and no conclusion about "how much DPDK wins" can be drawn from
+> this pair.
+>
+> The methodological lesson is the same one that brought down the "tie" further
+> down, and it recurs because it is easy: **before comparing two numbers, check
+> whether the two programs make the same call.** Equal unit and different magnitude
+> had already fooled us once here; this time the unit and the magnitude were right,
+> and what differed was the API being exercised.
+
+> **What remains valid, and is the transferable finding.** `rte_ring` delivers the
+> bulk operation **by default**, and that is what the left-hand number shows:
+> interface design that amortises synchronisation over the batch. That decision is
+> copyable in C++ — `SpscRing` copies it — and it is different from "DPDK is
+> faster". What the middle column measures is the cost of **not** using the
+> interface you already have.
 
 > **This block used to publish "a tie", with two wrong numbers.**
 >
