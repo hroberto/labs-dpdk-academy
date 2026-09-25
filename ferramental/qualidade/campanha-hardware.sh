@@ -136,7 +136,19 @@ corre3() { # <rodada>
     for n in custo-alocacao anatomia-mbuf custo-anel pool-esgotado; do
         "$B3/$n" -l 0 --no-huge --file-prefix="camp_${n}_$1" > "$D3/$n.r$1.txt" 2>&1
     done
-    "$B3/custo-contencao" -l 0-5 --no-huge --file-prefix="camp_cont_$1" > "$D3/custo-contencao.r$1.txt" 2>&1
+    # A MAQUINA INTEIRA, e nao seis lcores.
+    #
+    # `n` dobra ate `rte_lcore_count()`: com `-l 0-5` a tabela parava em 4
+    # threads, e o cpp23 publicava uma linha de 8 que o ferramental NAO
+    # CONSEGUIA PRODUZIR -- numero sem programa, que e o que este projeto
+    # proibe. Com os 24 lcores ela vai a 16.
+    #
+    # Em modo texto nao ha com quem disputar, entao usar tudo e o que a
+    # validacao pede. O custo e que as linhas passam a atravessar fronteiras --
+    # CCD em n=8, SMT em n=16 --, e por isso o programa agora DECLARA qual
+    # fronteira cada linha cruza, em vez de deixar a curva parecer funcao so do
+    # numero de threads.
+    "$B3/custo-contencao" -l 0-23 --no-huge --file-prefix="camp_cont_$1" > "$D3/custo-contencao.r$1.txt" 2>&1
 }
 
 ./scripts/ambiente.sh > "$D/ambiente.txt"
