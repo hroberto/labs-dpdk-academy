@@ -198,6 +198,26 @@ static int consumer_loop(void *arg)
  * Publicar o tempo sem publicar a frequência convida a comparação inválida:
  * com governor "powersave" e turbo, ela varia entre execuções, e os valores
  * absolutos vão junto. */
+/* Primeira CPU do cpuset de um lcore.
+ *
+ * `rte_lcore_id()` devolve o identificador de lcore da EAL, que NAO e um numero
+ * de CPU: a identidade entre os dois so vale quando o comando usa `-l` com uma
+ * lista que coincide, e quebra em silencio com `--lcores` remapeando. Passar o
+ * lcore direto a `freq_ghz` leria a frequencia de outro nucleo -- ou de nenhum,
+ * e o zero de "sysfs nao expoe" e indistinguivel do zero de "CPU errada".
+ *
+ * Nao se usa `rte_lcore_to_cpu_id()`: ela e descrita de formas incompativeis
+ * entre a documentacao e a implementacao conforme a release. O cpuset e o
+ * contrato estavel. Mesmo criterio de custo-contencao.c. */
+static unsigned cpu_do_lcore(unsigned lcore)
+{
+    rte_cpuset_t cs = rte_lcore_cpuset(lcore);
+    for (unsigned c = 0; c < CPU_SETSIZE; c++)
+        if (CPU_ISSET(c, &cs))
+            return c;
+    return lcore; /* sem cpuset legivel, o lcore e o melhor palpite disponivel */
+}
+
 static double freq_ghz(unsigned cpu)
 {
     char path[128];
@@ -510,7 +530,7 @@ int main(int argc, char **argv)
             printf("raw timing: cycles=%" PRIu64 " tsc_hz=%" PRIu64
                    " packets=%" PRIu64 "\n",
                    cycles, rte_get_tsc_hz(), r.packets);
-        const double f = freq_ghz(rte_lcore_id());
+        const double f = freq_ghz(cpu_do_lcore(rte_lcore_id()));
         if (f > 0.0)
             printf("Frequency of lcore %u: %.2f GHz (the time above varies with it)\n",
                    rte_lcore_id(), f);

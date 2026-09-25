@@ -90,6 +90,26 @@ static void *ruido(void *arg)
 /* Frequência corrente do núcleo que mede, em GHz, ou 0 se o sistema não a
  * expuser. Não é firula: os valores absolutos desta tabela variam com ela, e
  * publicar o número sem publicar a frequência convida a comparação inválida. */
+/* Primeira CPU do cpuset de um lcore.
+ *
+ * `rte_lcore_id()` devolve o identificador de lcore da EAL, que NAO e um numero
+ * de CPU: a identidade entre os dois so vale quando o comando usa `-l` com uma
+ * lista que coincide, e quebra em silencio com `--lcores` remapeando. Passar o
+ * lcore direto a `freq_ghz` leria a frequencia de outro nucleo -- ou de nenhum,
+ * e o zero de "sysfs nao expoe" e indistinguivel do zero de "CPU errada".
+ *
+ * Nao se usa `rte_lcore_to_cpu_id()`: ela e descrita de formas incompativeis
+ * entre a documentacao e a implementacao conforme a release. O cpuset e o
+ * contrato estavel. Mesmo criterio de custo-contencao.c. */
+static unsigned cpu_do_lcore(unsigned lcore)
+{
+    rte_cpuset_t cs = rte_lcore_cpuset(lcore);
+    for (unsigned c = 0; c < CPU_SETSIZE; c++)
+        if (CPU_ISSET(c, &cs))
+            return c;
+    return lcore; /* sem cpuset legivel, o lcore e o melhor palpite disponivel */
+}
+
 static double freq_ghz(unsigned cpu)
 {
     char caminho[128];
@@ -272,7 +292,7 @@ int main(int argc, char **argv)
     printf("   noise thread malloc would measure a cost no real server pays)\n\n");
 
     printf("  --- one object at a time, in NANOSECONDS PER OBJECT ---\n\n");
-    const double f0 = freq_ghz(rte_lcore_id());
+    const double f0 = freq_ghz(cpu_do_lcore(rte_lcore_id()));
     print_header();
     const struct statistics e_malloc = collect(m_malloc_unitario, n);
     const struct statistics e_cache = collect(m_pool_com_cache, n);
@@ -288,7 +308,7 @@ int main(int argc, char **argv)
     print_row("malloc/free", e_malloc);
     print_row("mempool get/put, with cache", e_cache);
     print_row("mempool get/put, NO cache", e_sem);
-    const double f1 = freq_ghz(rte_lcore_id());
+    const double f1 = freq_ghz(cpu_do_lcore(rte_lcore_id()));
 
     /* AS RAZOES SAO O RESULTADO; os nanossegundos sao circunstancia.
      *
