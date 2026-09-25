@@ -74,18 +74,46 @@ on the same machine, with the same methodology as the project's other programs.
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  malloc/free                             2.18  2.17-2.19       2.15-2.19           0.7%   0.6%
-  mempool get/put, with cache             1.28  1.28-1.28       1.27-1.28           0.1%   0.2%
-  mempool get/put, NO cache              10.45  10.45-10.48     10.44-10.55         0.3%   0.3%
+  malloc/free                             2.18  2.17-2.19       2.15-2.19           0.9%   0.6%
+  mempool get/put, with cache             1.27  1.27-1.28       1.27-1.28           0.3%   0.3%
+  mempool get/put, NO cache              10.45  10.44-10.49     10.44-10.68         0.4%   0.5%
 ```
 
 ```
-  frequency of core 0 during the measurement: 5.59 -> 5.56 GHz
+  frequency of core 0 during the measurement: 5.58 -> 5.56 GHz
   ratios, which do NOT depend on frequency:
-    mempool with cache is 2.11x faster than malloc
-    the per-lcore cache is worth 10.1x (with cache against without)
+    mempool with cache is 1.71x faster than malloc
+    the per-lcore cache is worth 8.2x (with cache against without)
     without the cache, the mempool is 4.8x SLOWER than malloc
 ```
+
+> **These two blocks came from different runs, and the arithmetic gave it away.**
+> The table published `with cache 1.28` and the ratio line published `2.11x
+> faster than malloc`. With `malloc` at 2.18 ns, 2.18 ÷ 1.28 = **1.70** — not
+> 2.11. Getting 2.11 requires a denominator of 1.03 ns, which is the value from
+> **another** repetition of the same campaign.
+>
+> The cause is that the measurement was **bimodal**. In the 24/09 collection,
+> `with cache` alternated between ~0.99 ns and ~1.28 ns *within a single run*:
+> the per-repetition ranges were `0.988–1.279`, `1.28–1.28`, `0.99–1.28`,
+> `1.28–1.28`, `0.986–0.991`. Three of the five repetitions spanned both modes.
+> Whoever assembled the blocks took the table from a repetition in the high mode
+> and the ratios from one in the low mode, and no gate saw it: `verificar-blocos`
+> checks whether each line exists literally in **some** archived collection, and
+> both did.
+>
+> **This is a verification gap, and it is declared here.** Neither
+> `verificar-blocos` nor Gate B checks coherence *between blocks of the same
+> document* — the first compares line against file, the second prose against
+> block. Block against block has no owner.
+>
+> In the 25/09 collection the bimodality does not reproduce: all five
+> repetitions give `1.27–1.28`, and the two blocks above come from the same one.
+> **What produced the low mode remains undetermined** — the declared condition
+> (text mode, `performance` governor, EXPO 6000, dual channel) is the same in
+> both collections, and what changed between them was the code of other
+> programs, not of this one.
+> <!-- cita-retratado: 2,11 2.11 0,99 0.99 1,03 1.03 -->
 
 > **Why the program publishes ratios, and not only nanoseconds.** Without pinning the
 > processor's frequency — and this project does not pin it, as its

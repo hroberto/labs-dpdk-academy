@@ -76,18 +76,50 @@ dois na mesma máquina, com a mesma metodologia dos demais programas do projeto.
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  malloc/free                             2.18  2.17-2.19       2.15-2.19           0.7%   0.6%
-  mempool get/put, with cache             1.28  1.28-1.28       1.27-1.28           0.1%   0.2%
-  mempool get/put, NO cache              10.45  10.45-10.48     10.44-10.55         0.3%   0.3%
+  malloc/free                             2.18  2.17-2.19       2.15-2.19           0.9%   0.6%
+  mempool get/put, with cache             1.27  1.27-1.28       1.27-1.28           0.3%   0.3%
+  mempool get/put, NO cache              10.45  10.44-10.49     10.44-10.68         0.4%   0.5%
 ```
 
 ```
-  frequency of core 0 during the measurement: 5.59 -> 5.56 GHz
+  frequency of core 0 during the measurement: 5.58 -> 5.56 GHz
   ratios, which do NOT depend on frequency:
-    mempool with cache is 2.11x faster than malloc
-    the per-lcore cache is worth 10.1x (with cache against without)
+    mempool with cache is 1.71x faster than malloc
+    the per-lcore cache is worth 8.2x (with cache against without)
     without the cache, the mempool is 4.8x SLOWER than malloc
 ```
+
+> **Estes dois blocos vinham de execuções diferentes, e a aritmética denunciava.**
+> A tabela publicava `with cache 1.28` e a linha de razões publicava `2.11x
+> faster than malloc`. Com `malloc` em 2,18 ns, 2,18 ÷ 1,28 = **1,70** — não
+> 2,11. O 2,11 exige um denominador de 1,03 ns, que é o valor de **outra**
+> repetição da mesma campanha.
+>
+> A causa é que a medição era **bimodal**. Na coleta de 24/09, `with cache`
+> alternava entre ~0,99 ns e ~1,28 ns *dentro de uma mesma execução*: as faixas
+> por repetição eram `0,988–1,279`, `1,28–1,28`, `0,99–1,28`, `1,28–1,28`,
+> `0,986–0,991`. Três das cinco repetições cobriam os dois modos. Quem montou os
+> blocos pegou a tabela de uma repetição no modo alto e as razões de uma no modo
+> baixo, e nenhum portão viu: o `verificar-blocos` confere se cada linha existe
+> literalmente em **alguma** coleta arquivada, e as duas existiam.
+>
+> **Esta é uma lacuna de verificação, e ela fica declarada.** Nem o
+> `verificar-blocos` nem o Portão B conferem coerência *entre blocos do mesmo
+> documento* — o primeiro olha linha contra arquivo, o segundo prosa contra
+> bloco. Bloco contra bloco não tem dono.
+>
+> Na coleta de 25/09 a bimodalidade não se reproduz: as cinco repetições dão
+> `1,27–1,28`, e os dois blocos acima vêm da mesma. **O que produzia o modo
+> baixo permanece indeterminado** — a condição declarada (modo texto, governor
+> `performance`, EXPO 6000, canal duplo) é a mesma nas duas coletas, e o que
+> mudou entre elas foi o código de outros programas, não o deste.
+> <!-- cita-retratado: 2,11 2.11 0,99 0.99 1,03 1.03 -->
+
+<!-- retratado: 2,11 2.11 -->
+<!-- O `10,1x` da razão antiga NÃO entra aqui: a marca casa número nu, e
+     `10.1` bate com a seção "### 10.1" do módulo 02. Uma marca que produz
+     falso positivo noutro documento ensina a ignorar o portão. O valor está
+     declarado morto no texto acima, que é onde um leitor o procura. -->
 
 > **Por que o programa publica razões, e não só nanossegundos.** Sem fixar a
 > frequência do processador — e este projeto não a fixa, como suas
