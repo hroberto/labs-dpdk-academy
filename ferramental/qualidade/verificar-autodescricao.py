@@ -287,6 +287,19 @@ def verificar(raiz="."):
         # só à contagem de arquivos. É o mesmo documento noutra língua.
         if doc.endswith(".en.md"):
             continue
+        # NOTA DENTRO DE UMA COLETA NAO E UM DOCUMENTO DO MATERIAL.
+        #
+        # `historico/README.md` E documento: ele explica o diretorio e o leitor
+        # o procura. Ja um arquivo dentro de `historico/<coleta>/` viaja com os
+        # dados daquela execucao -- e o lugar certo para dizer por que aquela
+        # coleta e parcial, ou o que ela nao responde.
+        #
+        # Sem esta distincao o censo sobe a cada coleta anotada, e a alternativa
+        # -- nao anotar -- e pior: deixa um diretorio de numeros sem quem diga o
+        # que eles valem.
+        rel = os.path.relpath(doc, raiz).split(os.sep)
+        if "historico" in rel and rel.index("historico") < len(rel) - 2:
+            continue
         docs += 1
         try:
             texto = open(doc, encoding="utf-8").read()
