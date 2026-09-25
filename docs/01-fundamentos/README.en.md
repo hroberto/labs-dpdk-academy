@@ -859,10 +859,10 @@ Measuring the effect ([`efeito-cache.c`](medicoes/efeito-cache.c)):
 ```
   fits in       size   sequential     random      dependent    accesses   disp of
                        (amortised)   (amortised)  (LATENCY)    in flight  dependent
-  L1d          16 KB     0.189 ns      0.260 ns      0.891 ns     ~3        0.1%
-  L2          256 KB     0.186 ns      0.331 ns       2.68 ns     ~8        0.0%
-  L3         8192 KB     0.187 ns      0.741 ns       9.67 ns    ~13        0.2%
-  RAM      262144 KB     0.187 ns      5.81 ns       86.59 ns    ~15        0.4%
+  L1d          16 KB     0.180 ns      0.180 ns      0.894 ns     ~5        0.2%
+  L2          256 KB     0.179 ns      0.216 ns       2.68 ns    ~12        0.4%
+  L3         8192 KB     0.180 ns      0.462 ns       9.66 ns    ~21        0.2%
+  RAM      262144 KB     0.181 ns      3.07 ns       87.18 ns    ~28        0.6%
 ```
 
 > **Amortized is not latency, and telling them apart takes an instrument.** The
@@ -874,19 +874,53 @@ Measuring the effect ([`efeito-cache.c`](medicoes/efeito-cache.c)):
 > swapped.** The chain construction lives in [`cadeia.h`](medicoes/cadeia.h), with
 > its combinatorial property verified in
 > [`tests/test_l1_cadeia.cpp`](medicoes/tests/test_l1_cadeia.cpp).
-<!-- retratado: 0.193 0,193 0.244 0,244 0.297 0.202 0,202 7.68 38.1 24.5 24,5 0.227 0,227 0.248 0,248 -->
+<!-- retratado: 0.193 0,193 0.244 0,244 0.297 0.202 0,202 7.68 38.1 24.5 24,5 0.227 0,227 0.248 0,248 0.260 0,260 0.331 0,331 0.741 0,741 5.81 5,81 86.59 86,59 -->
 
-> **Loop alignment moves three of these cells.** The sub-nanosecond ones depend
-> on the address the compiler puts the loop at, and `meson.build` pins
-> `-falign-loops=64` so that two builds of the same source agree. Five runs of
-> each binary, disjoint ranges: `aleatorio` in L1d goes from 0.218–0.226 to
-> 0.259–0.261; in L2, from 0.254–0.263 to 0.331–0.332.
+> **These numbers replace those of 24/09, and the cause is an instrument defect
+> — but not the defect that was expected.** The accumulator in
+> [`efeito-cache.c`](medicoes/efeito-cache.c) was `volatile`, which forces a
+> store and a load on the stack for every element. `objdump` showed the measured
+> loop as `mov (%rsp),… ; mov (%rdx),… ; add ; mov …,(%rsp)`.
+>
+> The prediction was that this would inflate the **sequential** column, turning
+> it into a loop ceiling rather than a measure of memory. That is not what
+> happened: the sequential column fell by 4 % and no more. In that column the
+> prefetcher already delivers more than the loop consumes, so adding a link to
+> the chain does not move the bottleneck.
+>
+> **The one paying was the random column, and by a different mechanism.** There
+> the accesses are independent and the processor can keep several in flight —
+> provided nothing serialises the iterations. The `store → load` chain through
+> the stack was exactly that serialiser. Removing it frees the overlap, and the
+> gain grows with the depth of the level, because the further away the data is
+> the more there is to overlap:
+>
+> | level | random before | after | change |
+> |---|---:|---:|---:|
+> | L1d | 0.260 ns | 0.180 ns | −31 % |
+> | L2 | 0.331 ns | 0.216 ns | −35 % |
+> | L3 | 0.741 ns | 0.462 ns | −38 % |
+> | RAM | 5.81 ns | 3.07 ns | **−47 %** |
+>
+> The `dependent` column does not move at any level (86.59 → 87.18 ns in RAM),
+> and that confirms the mechanism: it measures a chain that was already serial
+> by construction, so there was no parallelism for the `volatile` to suppress.
+>
+> The consequence reaches the derived number: **accesses in flight in RAM go
+> from ~15 to ~28**. What the earlier version measured was not how many the
+> machine can keep in flight, but how many it managed to keep *in spite of* a
+> dependency the instrument introduced.
+> <!-- cita-retratado: 0,260 0.260 0,331 0.331 0,741 0.741 5,81 5.81 86,59 86.59 -->
+
+> **Loop alignment moves the sub-nanosecond cells.** They depend on the address
+> the compiler puts the loop at, and `meson.build` pins `-falign-loops=64` so
+> that two builds of the same source agree.
 >
 > **The `dependente` column does not move at any level** — and it is the one
 > that supports this section's argument, because an access waiting on memory is
-> not front-end bound. Pinning alignment does not make everything quiet either:
-> L1d's `sequencial` now alternates between 0.186 and 0.243 and carries a `!`.
-> The flag buys **agreement between builds**, not stability.
+> not front-end bound. The flag buys **agreement between builds**, not
+> stability: the sub-nanosecond cells stay sensitive to changes that never touch
+> the measured loop, and §9 covers that class of fragility.
 
 
 The table now has three readings, and the third one is new.
@@ -915,8 +949,10 @@ DRAM. RAM latency still exists — it is merely hidden.
 > [L2 test](medicoes/tests/l2_efeito_cache.sh) fails if the column stops being
 > flat, because then it measures something else and this text stops holding.
 >
-> The `random` and `dependent` columns do not have this problem: both sit
-> orders of magnitude below the loop's ceiling, and therefore measure memory.
+> The `dependent` column does not have this problem at any level: it sits
+> orders of magnitude below the loop's ceiling, and therefore measures memory.
+> The `random` one measures memory from L2 down, and **in L1d it hits the same
+> ceiling** — see the caveat further on, in the reading of that column.
 
 **The dependent column is the real latency**, and it is the one that grows 97×
 between L1d and RAM. It is the only one of the three that measures *one* access:
@@ -925,8 +961,19 @@ and nothing overlaps.
 
 **The random column sits in between, and the in-between is the subject.** With
 no predictable pattern the prefetcher does not help — but the addresses come
-from an array read in order, so the processor still keeps about a dozen accesses
-in flight. The 5.81 ns are 86.59 ns divided by ~15.
+from an array read in order, so the processor still keeps nearly thirty accesses
+in flight. The 3.07 ns are 87.18 ns divided by ~28.
+
+> **In L1d the reading above stops holding, and the table shows where.** There
+> `random` (0.180 ns) ties with `sequential` (0.180 ns): both hit the loop's
+> issue ceiling of roughly one element per cycle. When memory delivers faster
+> than the loop consumes, the column stops measuring memory — and the "~5
+> accesses in flight" on that row is the ratio between latency and **the
+> ceiling**, not a measure of concurrency.
+>
+> The boundary is visible in the table itself: from L2 down, `random` separates
+> from `sequential` (0.216 against 0.179) and goes back to measuring what it
+> promises.
 
 #### Concurrency is the lever, and it has a price
 

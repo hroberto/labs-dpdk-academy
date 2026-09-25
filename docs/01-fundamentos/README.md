@@ -865,10 +865,10 @@ Medindo o efeito ([`efeito-cache.c`](medicoes/efeito-cache.c)):
 ```
   cabe em    tamanho   sequencial    aleatorio    dependente   acessos   disp do
                        (amortizado)  (amortizado) (LATENCIA)   em voo    dependente
-  L1d          16 KB     0.189 ns      0.260 ns      0.891 ns     ~3        0.1%
-  L2          256 KB     0.186 ns      0.331 ns       2.68 ns     ~8        0.0%
-  L3         8192 KB     0.187 ns      0.741 ns       9.67 ns    ~13        0.2%
-  RAM      262144 KB     0.187 ns      5.81 ns       86.59 ns    ~15        0.4%
+  L1d          16 KB     0.180 ns      0.180 ns      0.894 ns     ~5        0.2%
+  L2          256 KB     0.179 ns      0.216 ns       2.68 ns    ~12        0.4%
+  L3         8192 KB     0.180 ns      0.462 ns       9.66 ns    ~21        0.2%
+  RAM      262144 KB     0.181 ns      3.07 ns       87.18 ns    ~28        0.6%
 ```
 
 > **Amortizado não é latência, e a distinção precisa de instrumento.** A coluna
@@ -880,19 +880,52 @@ Medindo o efeito ([`efeito-cache.c`](medicoes/efeito-cache.c)):
 > dois nomes.** A construção da cadeia mora em [`cadeia.h`](medicoes/cadeia.h),
 > com a propriedade combinatória verificada em
 > [`tests/test_l1_cadeia.cpp`](medicoes/tests/test_l1_cadeia.cpp).
-<!-- retratado: 0.193 0,193 0.244 0,244 0.297 0.202 0,202 7.68 38.1 24.5 24,5 0.227 0,227 0.248 0,248 -->
+<!-- retratado: 0.193 0,193 0.244 0,244 0.297 0.202 0,202 7.68 38.1 24.5 24,5 0.227 0,227 0.248 0,248 0.260 0,260 0.331 0,331 0.741 0,741 5.81 5,81 86.59 86,59 -->
 
-> **O alinhamento de laço muda três destas células.** As sub-nanossegundo
-> dependem do endereço em que o compilador põe o laço, e o `meson.build` fixa
-> `-falign-loops=64` para que duas compilações do mesmo fonte concordem. Cinco
-> execuções de cada binário, faixas disjuntas: `aleatorio` na L1d vai de
-> 0,218–0,226 para 0,259–0,261; na L2, de 0,254–0,263 para 0,331–0,332.
+> **Estes números substituem os de 24/09, e a causa é um defeito do
+> instrumento — mas não o defeito que se esperava.** O acumulador de
+> [`efeito-cache.c`](medicoes/efeito-cache.c) era `volatile`, o que obriga um
+> *store* e um *load* na pilha a cada elemento. O `objdump` mostrava o laço
+> medido como `mov (%rsp),… ; mov (%rdx),… ; add ; mov …,(%rsp)`.
+>
+> A previsão era que isso inflasse a coluna **sequencial**, tornando-a um teto
+> do laço em vez de uma medida de memória. Não foi o que aconteceu: a coluna
+> sequencial caiu 4 % e nada mais. Nessa coluna o *prefetcher* já entrega mais
+> do que o laço consome, então acrescentar um elo à cadeia não muda o gargalo.
+>
+> **Quem pagava era a coluna aleatória, e por um mecanismo diferente.** Ali os
+> acessos são independentes e o processador pode manter vários em voo — desde
+> que nada serialize as iterações. A cadeia `store → load` pela pilha era
+> exatamente esse serializador. Removê-la libera a sobreposição, e o ganho
+> cresce com a profundidade do nível, porque quanto mais longe está o dado mais
+> há o que sobrepor:
+>
+> | nível | aleatório antes | depois | variação |
+> |---|---:|---:|---:|
+> | L1d | 0,260 ns | 0,180 ns | −31 % |
+> | L2 | 0,331 ns | 0,216 ns | −35 % |
+> | L3 | 0,741 ns | 0,462 ns | −38 % |
+> | RAM | 5,81 ns | 3,07 ns | **−47 %** |
+>
+> A coluna `dependente` não se move em nível nenhum (86,59 → 87,18 ns na RAM), e
+> é a confirmação de que o mecanismo é esse: ela mede uma cadeia que já era
+> serial por construção, então não havia paralelismo para o `volatile` suprimir.
+>
+> A consequência atinge o número derivado: **os acessos em voo na RAM passam de
+> ~15 para ~28**. O que a versão anterior media não era quanto a máquina
+> consegue manter em voo, e sim quanto ela conseguia manter *apesar* de uma
+> dependência que o instrumento introduzia.
+> <!-- cita-retratado: 0,260 0.260 0,331 0.331 0,741 0.741 5,81 5.81 86,59 86.59 -->
+
+> **O alinhamento de laço muda as células sub-nanossegundo.** Elas dependem do
+> endereço em que o compilador põe o laço, e o `meson.build` fixa
+> `-falign-loops=64` para que duas compilações do mesmo fonte concordem.
 >
 > **A coluna `dependente` não se mexe em nível nenhum** — e é ela que sustenta
 > o argumento desta seção, porque acesso que espera memória não é limitado pelo
-> front-end. Fixar o alinhamento também não deixa tudo quieto: o `sequencial`
-> da L1d passou a alternar entre 0,186 e 0,243 e leva `!`. A flag compra
-> **acordo entre compilações**, não estabilidade.
+> front-end. A flag compra **acordo entre compilações**, não estabilidade: as
+> células sub-nanossegundo continuam sensíveis a mudanças que não tocam o laço
+> medido, e a §9 trata dessa classe de fragilidade.
 
 
 A tabela tem agora três leituras, e a terceira é nova.
@@ -920,8 +953,10 @@ latência da RAM continua existindo — ela é apenas escondida.
 > [teste L2](medicoes/tests/l2_efeito_cache.sh) falha se a coluna deixar de ser
 > plana, porque aí ela passa a medir outra coisa e este texto deixa de valer.
 >
-> As colunas `aleatorio` e `dependente` não têm esse problema: as duas ficam
-> ordens de grandeza abaixo do teto do laço, e por isso medem a memória.
+> A coluna `dependente` não tem esse problema em nível nenhum: fica ordens de
+> grandeza abaixo do teto do laço, e por isso mede a memória. A `aleatorio`
+> mede a memória da L2 para baixo, e **na L1d bate no mesmo teto** — ver a
+> ressalva adiante, na leitura daquela coluna.
 
 **A coluna dependente é a latência real**, e é ela que cresce 97× entre a L1d e
 a RAM. É a única das três que mede *um* acesso: cada passo da cadeia só descobre
@@ -929,8 +964,18 @@ o próximo endereço depois que o dado chega, e nada se sobrepõe.
 
 **A coluna aleatória fica no meio, e o meio é o assunto.** Sem padrão
 previsível, o prefetcher não ajuda — mas os endereços vêm de um vetor lido em
-ordem, então o processador ainda consegue manter uma dúzia de acessos em voo. Os
-5,81 ns são 86,59 ns divididos por ~15.
+ordem, então o processador ainda consegue manter quase trinta acessos em voo.
+Os 3,07 ns são 87,18 ns divididos por ~28.
+
+> **Na L1d a leitura acima deixa de valer, e a tabela mostra onde.** Ali o
+> `aleatorio` (0,180 ns) empata com o `sequencial` (0,180 ns): os dois bateram
+> no teto de emissão do laço, de cerca de um elemento por ciclo. Quando a
+> memória entrega mais rápido do que o laço consome, a coluna para de medir
+> memória — e o "~5 acessos em voo" daquela linha é a razão entre a latência e
+> **o teto**, não uma medida de concorrência.
+>
+> A fronteira é visível na própria tabela: da L2 para baixo o `aleatorio` se
+> descola do `sequencial` (0,216 contra 0,179) e volta a medir o que promete.
 
 #### A concorrência é a alavanca, e ela tem preço
 
