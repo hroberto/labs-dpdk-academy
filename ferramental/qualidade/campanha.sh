@@ -200,7 +200,17 @@
 # COMO USAR
 #
 #   1. sudo systemctl set-default multi-user.target
-#   2. sudo reboot
+#   2. sudo systemctl reboot -i
+#
+# `systemctl reboot -i`, E NAO `reboot`. Com a sessao grafica aberta o
+# `gnome-session` registra um inibidor e o `reboot` RECUSA:
+#
+#   Operation inhibited by "henrique" (PID ... "gnome-session-s"),
+#   reason is "user session inhibited".
+#
+# O `-i` ignora inibidores. E seguro aqui porque a maquina esta dedicada a
+# medicao por decisao -- nao ha sessao de trabalho a preservar --, e porque o
+# proprio protocolo exige que nada mais esteja rodando.
 #   3. entrar no console e rodar, NOMEANDO a configuracao medida:
 #        sudo ferramental/qualidade/campanha.sh 2026-09-24-expo6000-canal-duplo-texto
 #
@@ -208,7 +218,8 @@
 #      passo de hardware -- os passos 1 a 4 nao dependem da BIOS:
 #        sudo ferramental/qualidade/campanha.sh --so-hardware \
 #             2026-09-24-jedec4800-canal-duplo-texto
-#   4. ao terminar:  sudo systemctl set-default graphical.target && sudo reboot
+#   4. ao terminar:
+#        sudo systemctl set-default graphical.target && sudo systemctl reboot -i
 #
 # O passo 4 esta impresso no fim da execucao, para nao depender de memoria.
 set -u
@@ -760,4 +771,4 @@ echo "    A campanha de hardware ficou nos historicos dos tres modulos,"
 echo "    sob $CONF."
 echo
 echo "    Para voltar ao modo grafico:"
-echo "      sudo systemctl set-default graphical.target && sudo reboot"
+echo "      sudo systemctl set-default graphical.target && sudo systemctl reboot -i"

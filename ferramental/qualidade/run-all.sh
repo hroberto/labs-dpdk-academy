@@ -17,7 +17,17 @@
 # acrescentado de qualquer jeito.
 #
 # Para a condicao limpa, antes:
-#   sudo grub-reboot modo-texto && sudo reboot
+#   sudo grub-reboot modo-texto && sudo systemctl reboot -i
+#
+# `systemctl reboot -i`, E NAO `reboot`. Com a sessao grafica aberta o
+# `gnome-session` registra um inibidor e o `reboot` RECUSA:
+#
+#   Operation inhibited by "henrique" (PID ... "gnome-session-s"),
+#   reason is "user session inhibited".
+#
+# O `-i` ignora inibidores. E seguro aqui porque a maquina esta dedicada a
+# medicao por decisao -- nao ha sessao de trabalho a preservar --, e porque o
+# proprio protocolo exige que nada mais esteja rodando.
 #
 # POR QUE UM SO SCRIPT
 #
@@ -466,7 +476,7 @@ echo "=========================================================="
 echo "  run-all CONCLUIDO  $(date -Is)   (campanha rc=$rc)"
 echo
 echo "  Para voltar ao modo grafico:"
-echo "    sudo systemctl set-default graphical.target && sudo reboot"
+echo "    sudo systemctl set-default graphical.target && sudo systemctl reboot -i"
 echo "  (ou so reinicie: o boot unico ja expirou)"
 echo "=========================================================="
 exit "$rc"
