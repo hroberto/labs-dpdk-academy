@@ -683,6 +683,126 @@ work than one alternating between idleness and activity — which reduces the
 frequency of power-gating re-enablement and, consequently, the probe's exposure
 to the phenomenon.
 
+#### 6.6.7 Intervention: disabling power gating with the graphical session live
+
+§6.6.6 suppresses the whole graphical session and observes the high mode
+disappear. That does not separate two explanations: the re-enabling of power
+gating for the GFX block, or the graphical session producing the effect by some
+other path — in which case the `gfx_off` named by the trace would be a symptom,
+not a cause.
+
+The intervention that separates them is to disable GFXOFF while **keeping the
+graphical session active**. It is done at runtime, with no reboot, by writing a
+32-bit word to `/sys/kernel/debug/dri/*/amdgpu_gfxoff`: a zero word calls
+`amdgpu_gfx_off_ctrl(adev, false)` and disables; a non-zero word re-enables.
+
+> **The interface takes four binary bytes, not text.**
+> `amdgpu_debugfs_gfxoff_write` rejects, before touching the GPU, any write
+> whose size or offset is not a multiple of four — `test $0x3,%dl` followed by
+> `movq $-22`. A one-byte write returns `EINVAL`, and reading that `EINVAL` as
+> "the file is read-only" is the mistake that kept this section open for a day.
+> The `0400` mode is no obstacle either: `CAP_DAC_OVERRIDE` opens the file, and
+> that is why the refusal came from inside the handler.
+>
+> `amdgpu_gfx_off_ctrl` is a request count (`gfx_off_req_count`), not a switch:
+> each disable requires exactly one re-enable, and only when the count reaches
+> zero does the driver requeue the delayed work on `system_percpu_wq`.
+
+##### Design
+
+Alternating **on / off** pairs of 30 s on the same CPU, repeated — not a
+before-and-after. Each off window has an on window immediately before it and
+another after, so drift in temperature or load hits both arms in the same
+interval. Two collections, eight pairs in total.
+
+Program: `ferramental/qualidade/experimento-gfxoff.sh`, with the
+pre-registration in its header. Analysis:
+`ferramental/qualidade/analisar-gfxoff.py`.
+
+##### Attribution by function, closed
+
+With the `workqueue:workqueue_execute_start` event enabled, the trace of the on
+state names the function and matches it to the noise:
+
+```
+kworker/2:3-446 [002] .....  8044.528193: workqueue_execute_start:
+    function amdgpu_device_delay_enable_gfx_off [amdgpu]
+kworker/2:3-446 [002] d..2.  8044.528640: thread_noise: kworker/2:3:446
+    start 8044.528192820 duration 446878 ns
+```
+
+The thread noise begins at the instant the function starts, in the same
+`kworker`. In the off state, **no event ≥ 300 µs in 120 s** of active graphical
+session.
+
+> **The event has to be asked for.** `rtla` enables only its own events —
+> `irq_noise`, `softirq_noise`, `thread_noise`, `sample_threshold` — and a trace
+> without `workqueue:workqueue_execute_start` shows that a `kworker` occupied
+> the CPU without saying what it was running. An earlier capture held 696 606 ns
+> of `kworker/2:3` and zero occurrences of `gfx` in 31 127 lines: that measures
+> the absence of the event, not of the function.
+
+##### Quantitative result
+
+| collection | cycle | on | off |
+|---|---:|---:|---:|
+| 00:15 | 1 | 762 µs | 26 µs |
+| 00:15 | 2 | 849 µs | 25 µs |
+| 00:15 | 3 | 586 µs | 24 µs |
+| 00:27 | 1 | 310 µs | 22 µs |
+| 00:27 | 2 | 482 µs | 25 µs |
+| 00:27 | 3 | 38 µs | 102 µs |
+| 00:27 | 4 | 25 µs | 20 µs |
+| 00:27 | 5 | 117 µs | 98 µs |
+
+| measure | value |
+|---|---|
+| sign test, 8 pairs | 7 in favour, p = 0.0703 |
+| windows with an event ≥ 300 µs, on | 5 of 8 |
+| windows with an event ≥ 300 µs, off | 0 of 8 |
+| Fisher exact, two-sided | **p = 0.0256** |
+| largest observed, on | 849 µs |
+| largest observed, off | 102 µs |
+
+##### Why the published outcome is dichotomous, and not the median
+
+Three of the five on cells in the second collection gave 38, 25 and 117 µs — the
+high mode did not appear in them. **The cell did not fail; the event did not
+happen in it.** Re-enabling power gating is a rare, large event: the driver
+schedules it only after a period of GPU use, and a 30 s window with no
+transition measures whatever other noise is around.
+
+It follows that `Max Single` over a short window **is not a stable quantity**,
+and that comparing medians between the arms dilutes the effect with the windows
+in which there was nothing to suppress. The outcome that matches the mechanism
+is whether the window had an event of the order of hundreds of microseconds —
+and by that outcome the separation is complete: five of eight against zero of
+eight.
+
+The first collection, on its own, would give three of three with a thirtyfold
+separation. The second overlaps between the arms, and two off cells (98 and
+102 µs) sit above two on cells. Both are included; publishing only the one that
+confirms would be choosing the result.
+
+##### What this establishes, and what it does not
+
+It establishes, **by intervention**, that the high mode comes from the
+re-enabling of power gating for the GFX block, and not from the graphical
+session by another path: the session stayed alive in both arms, and only GFXOFF
+changed.
+
+It does not establish the magnitude of the effect with precision — eight pairs,
+small `n`, and the outcome is a rate of occurrence that would depend on how much
+the GPU is used within the window, a quantity this design does not control. Nor
+does it generalise to another platform: one machine, integrated AMD GPU,
+`amdgpu` driver.
+
+One caveat of interpretation remains, which the positive result makes moot but
+which is worth recording: `amdgpu_gfx_off_ctrl` opens with a support test and
+returns without effect when the bit is absent. On a platform where that test
+failed, the off arm would be indistinguishable from the on arm — and the outcome
+to report would be "no observable effect", not "hypothesis refuted".
+
 ### 6.7 Summary of candidates and remaining limitations
 
 | Candidate | Outcome | Evidence |
@@ -804,80 +924,28 @@ high ones. The isolated access (`K = 1`), which measures pure latency, moves
 - **The nature of the work performed by `gfx_off`** over hundreds of
   microseconds. Tracing identifies the entry function, not the internal
   operations.
-- **The effect of disabling power gating — intervention available, not yet
-  run.** The intervention would separate the attribution "GPU" from the
-  attribution "graphical session", which the present measurement does not
-  distinguish. Of the three paths surveyed on 24/09/2026, two closed and one is
-  open:
+- **The magnitude of the power-gating effect.** The intervention was run
+  (§6.6.7) and it separates the attribution "GPU" from the attribution
+  "graphical session": with the session alive, disabling GFXOFF eliminates the
+  windows holding events of hundreds of microseconds — five of eight against
+  zero of eight, Fisher exact p = 0.0256. What remains undetermined is the
+  **magnitude**: eight pairs, and the outcome is a rate of occurrence that
+  depends on how much the GPU is used within the window, which this design does
+  not control.
+
+  Two of the three disabling paths surveyed on 24/09/2026 remain closed, and
+  they are kept on record because each failure is informative:
 
   | path | outcome |
   |---|---|
   | `amdgpu.pg_mask=0` on the boot line | **black screen.** It is a mask, and zero also clears the display block's flags |
   | a mask with only the `GFX_PG` bit | the value lives in `amd_shared.h`, and the installed `linux-headers` ship only `Makefile` and `Kconfig` under `drivers/` — no headers at all |
-  | `debugfs`, `amdgpu_gfxoff` | **open.** The file is `-r--------`, but it has a write handler; the initial refusal was about input format |
-
-  The `0400` mode is not the impediment it looks like. A process holding
-  `CAP_DAC_OVERRIDE` opens the file for writing in spite of it, and the
-  `EINVAL` received did not come from the permission layer: it came from inside
-  the handler. Disassembling the module in use shows the installed pointer and
-  the first decision it makes:
-
-  ```
-  amdgpu_debugfs_gfxoff_fops:  +24 → amdgpu_debugfs_gfxoff_read
-                               +32 → amdgpu_debugfs_gfxoff_write
-
-  amdgpu_debugfs_gfxoff_write:
-      test $0x3,%dl          ← size of the write
-      jne  <+0x118>             → movq $-22   (-EINVAL)
-      mov  (%rcx),%rax       ← offset
-      and  $0x3,%eax
-      jne  <+0x118>
-      …
-      call __get_user_4      ← reads the buffer in 4-byte words
-      setne %sil
-      call amdgpu_gfx_off_ctrl
-  ```
-
-  The interface is an array of **binary** `u32`, not text, and it rejects any
-  size or offset that is not a multiple of four before touching the GPU. The
-  attempt that produced the `EINVAL` used `printf '0'`, which writes one byte:
-  `1 & 3 = 1`. The kernel is configured to permit the operation —
-  `CONFIG_DEBUG_FS_ALLOW_ALL=y`, `lockdown` at `[none]`, no `debugfs=` on the
-  boot line — and what was missing was encoding the input the way the handler
-  expects it.
-
-  The lesson is about reading `errno`, and it generalises beyond this driver:
-  `EINVAL` says "the argument will not do", not "the operation is forbidden".
-  Conflating the two turns a call-site mistake into a conclusion about system
-  policy — which is what happened here, and what closed an open door too early.
-
-  The semantics come from the same disassembly: word `0` calls
-  `amdgpu_gfx_off_ctrl(adev, false)` and disables; a non-zero word re-enables.
-  And `amdgpu_gfx_off_ctrl` is not a switch, it is a **request count**
-  (`gfx_off_req_count`): re-enabling decrements it, and only when it reaches
-  zero does the driver requeue the delayed work on `system_percpu_wq` — which
-  is precisely the `amdgpu_device_delay_enable_gfx_off` seen in the trace. One
-  disable requires one re-enable, and an imbalance leaves the state altered
-  until the next boot.
-
-  The experiment is written in `ferramental/qualidade/experimento-gfxoff.sh`,
-  in an A-B-A design — on, off, on — with the graphical session alive and the
-  pre-registration in its header. It remains to be run. One caveat of
-  interpretation applies: `amdgpu_gfx_off_ctrl` opens with a support test and
-  returns without effect when the bit is absent, so a null result must be
-  distinguished from "the write did nothing" before it counts as refutation.
+  | `debugfs`, `amdgpu_gfxoff` | **this is the one that worked.** See §6.6.7 |
 
   The counters `amdgpu_gfxoff_count` and `amdgpu_gfxoff_residency` still do not
   serve: the read does not return within two seconds. That is consistent with
   the hypothesis itself — reading the GFX block's state requires waking it —
-  but hanging is the opposite of measuring.
-
-  **The correlation, however, is already measured, and did not need
-  `debugfs`.** The §6.6.5 table is exactly that: `osnoise` with a threshold
-  counts the function's executions and sums their durations, and the function
-  appears twelve times in thirteen seconds with a graphical session and not
-  once without one. What is missing is not evidence of association; it is the
-  intervention that would separate association from cause.
+  but hanging is the opposite of measuring. The intervention did not need them.
 - **The magnitude of the shift between graphical session and text mode.** The
   comparison was made once, on 24/09: ten of the 198 labels moved by more than
   5%, and the reading of the ten is in §6.7 — seven are artefacts of the metric
@@ -924,13 +992,13 @@ rejects invalid parameters with a distinct code, and **declares** when
   text-mode collection (§6.6.6).
 - **The probe measures one CPU at a time.** Noise correlated across CPUs, which
   matters in a multi-lcore pipeline, does not appear.
-- **The source of the high mode is identified but not exhausted.** It is the
-  work item `amdgpu_device_delay_enable_gfx_off`, executed in a per-CPU
-  workqueue (§6.6.5); suppressing the graphical session eliminates it on both
-  instruments (§6.6.6). What the function performs over hundreds of
-  microseconds remains undetermined. Whether disabling power gating removes it with the graphical
-  session retained now has an instrument
-  (`ferramental/qualidade/experimento-gfxoff.sh`, §6.7) and has not been run.
+- **The source of the high mode is established; what it does is not.** It is
+  the work item `amdgpu_device_delay_enable_gfx_off`, executed in a per-CPU
+  workqueue (§6.6.5). Suppressing the graphical session eliminates it on both
+  instruments (§6.6.6), and disabling power gating with the graphical session
+  **retained** eliminates it too (§6.6.7) — which closes the attribution by
+  intervention. What the function performs over hundreds of microseconds remains
+  undetermined: tracing names the entry function, not the internal work.
 - **Collections with a graphical session are subject to a noise source not
   declared in the protocol.** The condition "exclusive machine, browser closed"
   does not exclude the compositor, the display server and the GPU driver. The

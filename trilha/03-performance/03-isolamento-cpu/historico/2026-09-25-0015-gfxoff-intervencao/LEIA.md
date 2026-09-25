@@ -33,7 +33,7 @@ O lado desligado é informativo por si: em dois minutos de sessão gráfica ativ
 nenhuma parada atingiu o limiar. Isso é consistente com a fase 1 e com a
 hipótese.
 
-O lado ligado capturou o evento — um `kworker` ocupando a CPU por 697 µs, que é
+O lado ligado capturou o evento — um `kworker` ocupando a CPU por 696 606 ns, que é
 a assinatura descrita na §6.6.5 — mas **não nomeou a função**. O `rtla` habilita
 apenas os próprios eventos (`irq_noise`, `softirq_noise`, `thread_noise`,
 `sample_threshold`); o nome vive em `workqueue:workqueue_execute_start`, que

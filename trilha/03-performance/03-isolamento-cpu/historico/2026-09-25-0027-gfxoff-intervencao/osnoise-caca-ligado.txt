@@ -1,0 +1,6 @@
+  Saving trace to trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-0027-gfxoff-intervencao/trace-ligado.txt
+                                          Operating System Noise                                                                          
+duration:   0 00:01:00 | time is in us
+CPU Period       Runtime        Noise  % CPU Aval   Max Noise   Max Single          HW          NMI          IRQ      Softirq       Thread
+  2 #59         59000000        17818    99.96980         650          109           0            7       117994         4265          495
+osnoise hit stop tracing
