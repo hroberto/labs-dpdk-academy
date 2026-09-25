@@ -151,6 +151,7 @@ jobs:
   sanitizers:
     runs-on: ubuntu-24.04
     steps:
+      # Corresponde a v7, o mesmo pin do job principal.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
@@ -183,3 +184,87 @@ jobs:
         run: |
           meson test -C build-san --suite l1 --print-errorlogs
           meson test -C build-san --suite l2 --print-errorlogs
+
+  # ----------------------------------------------------------------------
+  # AS RELEASES QUE O MATERIAL PUBLICA, e nao a que o `apt` oferece.
+  #
+  # O job principal usa `dpdk-dev` do Ubuntu 24.04, que e 23.11. O material
+  # publica numeros de 25.11 e de 26.07 -- e o estudo do cache do mempool
+  # compara as duas. Um defeito que so exista numa delas passava.
+  #
+  # O `preparar-dpdk.sh` ja sabe construir e instalar num prefixo; aqui ele e
+  # invocado com `--minimo`, que compila so os drivers que o estudo usa. Sem
+  # isso a construcao passa de vinte minutos por celula.
+  #
+  # O CACHE E O QUE TORNA ISTO VIAVEL. A chave inclui a versao e o hash do
+  # script: mudou o script, reconstroi; nao mudou, reaproveita. Sem cache,
+  # cada push pagaria duas construcoes do DPDK.
+  #
+  # SO L1 E L2. A L3 exige hugetlbfs e dois dominios de L3, que o runner nao
+  # tem -- e o esperado la e PULAR, o que o job principal ja verifica.
+  #
+  # NAO VALIDADO LOCALMENTE. Este job constroi o DPDK do fonte no runner, e nao
+  # ha como executa-lo na maquina de desenvolvimento. A primeira execucao e o
+  # teste dele; se falhar, falha aqui e nao no material.
+  releases-dpdk:
+    runs-on: ubuntu-24.04
+    strategy:
+      # `fail-fast: false`: se o 25.11 quebrar, ainda se quer saber do 26.07.
+      # O interesse e justamente a DIFERENCA entre as duas.
+      fail-fast: false
+      matrix:
+        versao: ['25.11', '26.07']
+    steps:
+      # Corresponde a v7, o mesmo pin do job principal.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+
+      - name: Ferramentas de build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config ninja-build python3-pip g++-14 \
+                                  libnuma-dev libpcap-dev
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          python3 -m pip install --upgrade meson pyelftools
+
+      - name: Cache do DPDK ${{ matrix.versao }}
+        id: cache-dpdk
+        # Fixada por SHA, como a do checkout. Corresponde a v4; para atualizar:
+        #   gh api repos/actions/cache/git/ref/tags/v4 --jq '.object.sha'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/opt/dpdk-${{ matrix.versao }}
+          key: dpdk-${{ matrix.versao }}-${{ runner.os }}-${{ hashFiles('scripts/preparar-dpdk.sh') }}
+
+      - name: Construir o DPDK ${{ matrix.versao }}
+        if: steps.cache-dpdk.outputs.cache-hit != 'true'
+        run: ./scripts/preparar-dpdk.sh --minimo ${{ matrix.versao }}
+
+      - name: Conferir o prefixo
+        run: ./scripts/preparar-dpdk.sh --conferir ${{ matrix.versao }}
+
+      # `$HOME` resolvido no `run`, e nao caminho absoluto no `env`.
+      #
+      # Um caminho absoluto aqui presumiria o nome do usuario do runner, que e
+      # detalhe da imagem e nao contrato. O portao de caminho absoluto acusa
+      # isso, e faz certo: o mesmo bloco falharia num runner proprio.
+      #
+      # `lib/*/pkgconfig`: o meson instala num subdiretorio por arquitetura, e
+      # fixar `x86_64-linux-gnu` amarraria o job a uma.
+      - name: Configurar e compilar contra ${{ matrix.versao }}
+        run: |
+          export PKG_CONFIG_PATH="$(echo "$HOME/opt/dpdk-${{ matrix.versao }}"/lib/*/pkgconfig)"
+          pkg-config --modversion libdpdk
+          meson setup build-${{ matrix.versao }}
+          meson compile -C build-${{ matrix.versao }}
+
+      - name: Testes L1 e L2 contra ${{ matrix.versao }}
+        env:
+          DPDK_ACADEMY_AMOSTRAS: "3"
+          DPDK_ACADEMY_RODADAS: "20000"
+        run: |
+          export PKG_CONFIG_PATH="$(echo "$HOME/opt/dpdk-${{ matrix.versao }}"/lib/*/pkgconfig)"
+          meson test -C build-${{ matrix.versao }} --suite l1 --print-errorlogs
+          meson test -C build-${{ matrix.versao }} --suite l2 --print-errorlogs

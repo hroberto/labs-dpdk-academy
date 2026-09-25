@@ -145,10 +145,17 @@ if [ -f .github/workflows/ci.yml ]; then
     # depende de rede e de `gh`, e um pre-commit que exige os dois nao roda em
     # aviao nem em maquina de terceiros.
     if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-        while read -r acao sha; do
+        # O MAJOR VEM DO COMENTARIO MAIS PROXIMO ACIMA DO PIN, e nao do
+        # primeiro do arquivo.
+        #
+        # A versao anterior fazia `grep ... | head -1`: com uma acao so, ela
+        # acertava; ao entrar a segunda (`actions/cache@v4`), passou a comparar
+        # o SHA dela contra `v7` do checkout e acusar divergencia que nao
+        # existia. Verificador que erra quando o arquivo cresce nao protege o
+        # arquivo crescido.
+        while read -r acao sha major; do
             [ -n "$sha" ] || continue
-            major=$(grep -oE "# *Corresponde a v[0-9]+" .github/workflows/ci.yml | grep -oE 'v[0-9]+' | head -1)
-            [ -n "$major" ] || { aviso "pin de $acao sem 'Corresponde a vN' no comentario"; continue; }
+            [ -n "$major" ] || { aviso "pin de $acao sem 'Corresponde a vN' num comentario acima"; continue; }
             esperado=$(timeout 20 gh api "repos/$acao/git/ref/tags/$major" --jq '.object.sha' 2>/dev/null || echo "")
             if [ -z "$esperado" ]; then
                 aviso "nao consegui resolver $acao@$major (offline?)"
@@ -159,8 +166,12 @@ if [ -f .github/workflows/ci.yml ]; then
                 printf '          fixado:  %s\n          %s hoje: %s\n' "$sha" "$major" "$esperado"
                 printf '          Se veio de um PR do Dependabot, confira se e salto de major.\n'
             fi
-        done < <(grep -oE 'uses: [a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+@[0-9a-f]{40}' .github/workflows/ci.yml \
-                 | sed 's/uses: //' | tr '@' ' ')
+        done < <(awk '
+            /^[[:space:]]*#.*Corresponde a v[0-9]+/ { match($0, /v[0-9]+/); m = substr($0, RSTART, RLENGTH) }
+            match($0, /uses: [a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+@[0-9a-f]{40}/) {
+                t = substr($0, RSTART + 6, RLENGTH - 6)
+                split(t, p, "@"); print p[1], p[2], m; m = "" }
+        ' .github/workflows/ci.yml)
     else
         aviso "gh ausente ou nao autenticado: versao do SHA fixado nao verificada"
     fi
