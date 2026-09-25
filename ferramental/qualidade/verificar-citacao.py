@@ -21,6 +21,17 @@ que MUDAM sozinhas, sem que ninguém reabra o arquivo:
     license         <- o SPDX declarado precisa bater com o LICENSE de fato
     repository-code <- a URL muda se o repositório for renomeado ou recriado
 
+A QUINTA ENTROU DEPOIS, PORQUE A DIVERGÊNCIA SOBREVIVEU A DUAS RELEASES
+
+    meson.build     <- a `version` do projeto Meson, que aparece no banner do
+                       build e é o número que o leitor vê ao compilar
+
+O `meson.build` declarava `1.02.01` enquanto o `.cff` e a tag diziam `0.0x`.
+Ninguém consome `meson.project_version()` no projeto, então nada quebrava -- e é
+justamente por isso que a divergência atravessou a 0.06.00 e a 0.07.00 sem ser
+notada. Um número que só é lido por humanos não tem quem o confira, a menos que
+alguém escreva a conferência.
+
 A QUARTA É A QUE JUSTIFICA O ARQUIVO INTEIRO
 
 Um metadado de citação com URL errada é pior que a ausência dele: ele manda o
@@ -120,6 +131,22 @@ def verificar(raiz="."):
             print(f"  CITATION.cff: date-released '{d['date-released']}' != data de {tag} ({data})")
             problemas += 1
 
+    # A `version` do Meson contra a mesma fonte de verdade. Ela é comparada com o
+    # `.cff`, e não com a tag: numa release em andamento os dois já estão à
+    # frente da tag, e cobrar a tag aqui produziria a MESMA divergência esperada
+    # duas vezes, o que ensina a ignorar o portão.
+    mb = os.path.join(raiz, "meson.build")
+    if os.path.exists(mb):
+        texto = open(mb, encoding="utf-8").read()
+        m = re.search(r"^\s*version\s*:\s*['\"]([^'\"]+)['\"]", texto, re.M)
+        if m is None:
+            print("  meson.build: não achei a `version` do projeto")
+            problemas += 1
+        elif m.group(1) != str(d["version"]):
+            print(f"  meson.build: version '{m.group(1)}' != CITATION.cff "
+                  f"('{d['version']}')")
+            problemas += 1
+
     spdx = None
     lic = os.path.join(raiz, "LICENSE")
     if os.path.exists(lic):
@@ -139,7 +166,7 @@ def verificar(raiz="."):
             problemas += 1
 
     print(f"\n  CITATION.cff: {len(OBRIGATORIOS)} campo(s) obrigatório(s), "
-          f"versão/data/licença/URL conferidas, {problemas} divergência(s)")
+          f"versão/data/licença/URL/meson conferidas, {problemas} divergência(s)")
     return problemas
 
 
@@ -163,7 +190,8 @@ date-released: "%s"
 """
     falhas = 0
 
-    def repo(cff, tag="v1.02.01", licenca="MIT License\n", remoto="git@github.com:dono/nome.git"):
+    def repo(cff, tag="v1.02.01", licenca="MIT License\n", remoto="git@github.com:dono/nome.git",
+             meson=None):
         d = tempfile.mkdtemp()
         amb = dict(os.environ, GIT_AUTHOR_NAME="T", GIT_COMMITTER_NAME="T",
                    GIT_AUTHOR_EMAIL="t@x", GIT_COMMITTER_EMAIL="t@x")
@@ -171,6 +199,9 @@ date-released: "%s"
         open(os.path.join(d, "LICENSE"), "w").write(licenca)
         if cff is not None:
             open(os.path.join(d, "CITATION.cff"), "w").write(cff)
+        if meson is not None:
+            open(os.path.join(d, "meson.build"), "w").write(
+                "project('t', 'c',\n  version : '%s',\n)\n" % meson)
         subprocess.run(["git", "-C", d, "add", "-A"], capture_output=True)
         subprocess.run(["git", "-C", d, "commit", "-q", "-m", "x"], env=amb, capture_output=True)
         if tag:
@@ -226,6 +257,15 @@ date-released: "%s"
     #    pergunta para a qual ele existe.
     caso(6, "CITATION.cff sem authors passou",
          repo(re.sub(r"authors:\n  - given-names: A\n    family-names: B\n", "", bom)), 1)
+
+    # 6b/6c. A `version` do Meson. A do `.cff` no BASE é 1.02.01, então um
+    #        meson.build com outro número tem de acusar, e com o mesmo tem de
+    #        passar. Sem o segundo caso, um verificador que acusasse SEMPRE
+    #        passaria no primeiro.
+    caso("6b", "meson.build com version divergente passou",
+         repo(bom, meson="9.99.99"), 1)
+    caso("6c", "meson.build alinhado acusado",
+         repo(bom, meson="1.02.01"), 0)
 
     # 7. A ORDENAÇÃO DAS TAGS. `--sort=-creatordate` daria v1.00.00 aqui, porque
     #    ela foi RECRIADA depois -- e foi o que de fato aconteceu neste
