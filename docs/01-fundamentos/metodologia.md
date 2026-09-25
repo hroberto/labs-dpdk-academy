@@ -62,7 +62,7 @@ regime**.
 > 33,8/0,73 = 46.
 >
 > **O argumento desta seção não muda**, porque ele nunca dependeu da razão: sai de
-> 33,8 ns contra 67,2 ns de orçamento, e a chamada de função não entra na conta.
+> 33,3 ns contra 67,2 ns de orçamento, e a chamada de função não entra na conta.
 > Mas a razão é a frase que as pessoas repetem, e ela estava 22% baixa.
 >
 > Reproduza: rode `custo-syscall` uma vez depois de alguns minutos de máquina
@@ -76,7 +76,7 @@ regime**.
 | 36× contra 46× | a medição estava certa, o regime não estava declarado | diga se mediu a frio ou em regime |
 
 E uma observação que vale para o documento inteiro: **nenhuma das duas mudou a
-conclusão do §2**. Ela sai de 33,8 ns contra 67,2 ns de orçamento, e a chamada
+conclusão do §2**. Ela sai de 33,3 ns contra 67,2 ns de orçamento, e a chamada
 de função não entra nessa conta. O que as duas atingiram foi a **razão**, que é
 a frase de efeito — exatamente a parte que as pessoas repetem, e por isso a que
 mais precisa estar certa.
@@ -254,7 +254,7 @@ descartado — a razão é metodológica, e é das mais instrutivas do módulo.
 ## 4. §10 — o estado de PTI desta máquina
 
 A [§10](README.md#por-que-a-syscall-aqui-é-tão-barata) afirma que o PTI não
-está ativo nesta máquina, e que por isso os 33,8 ns de syscall não são um custo
+está ativo nesta máquina, e que por isso os 33,3 ns de syscall não são um custo
 universal. A afirmação é **medida**, não inferida da arquitetura — ser AMD não
 implica PTI desligado, porque a mitigação é configurável por parâmetro de boot.
 

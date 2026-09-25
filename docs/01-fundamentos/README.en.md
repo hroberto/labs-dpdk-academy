@@ -151,7 +151,7 @@ The central result: **about two system calls fit in one packet's budget.** And
 `getpid()` is the cheapest syscall there is — it does no I/O, touches no user memory,
 does not sleep. A real `recvmsg()` costs far more.
 
-Note that this result **did not depend** on the wrong number: it comes from 33.8 ns
+Note that this result **did not depend** on the wrong number: it comes from 33.3 ns
 against a 67.2 ns budget, and the function call does not enter the account. What the
 correction changed was the syscall/call ratio — from "294×" to the 36× to 46× range
 depending on the measurement regime, handled in the warning above — which is a
@@ -1966,18 +1966,32 @@ is in [§9](#9-validation-reproduce-it-on-your-machine).
 > the other side of the ramp.
 >
 > Measuring the same primitive in two positions of the group, with 60 ms it
-> gives 0.26 and 0.20 ns depending on position; from 200 ms on, the two agree at
-> 0.20. It is the same 29% ramp that
+> gives 0.26 and 0.20 ns depending on position; from 200 ms on, the two agree.
+> It is the same ramp that
 > [§5.1.1](#511-smt-two-logical-cpus-are-not-two-cores) isolates, and **the
 > shortest measurement in the table is the only one that sees it**.
 >
-> One caveat for whoever reproduces it: this row's `CV` still rises to 10–15% in
-> some runs, with a clean `disp`. It is one isolated sample out of the 25 — the
-> division of labour between the two columns.
+> **And 400 ms is not enough either, measured on 24/09.** A dedicated probe
+> ([`sonda-relaxed.c`](medicoes/sonda-relaxed.c)) measures the clock period
+> after the warm-up and again at the end: 0.2182 ns right after the 400 ms —
+> 4.58 GHz — against 0.1814 ns after a few seconds of load, 5.51 GHz. The
+> warm-up takes the collection out of start-up; it does not put it at the top
+> of the ramp.
+>
+> In a campaign this does not show, because the programs run back to back and
+> the CPU already arrives warm at the fifth of them. In an isolated run it does
+> — and that is why the value published here, 0.255 ns, is larger than the 0.20
+> of this note. Both are **1.125 cycles**; the frequency is what changes, and
+> [§5.1 of the methodology](metodologia.en.md#51-the-0397-is-1818--f-and-the-0205-is-1125--f)
+> shows the arithmetic.
+>
+> One caveat for whoever reproduces it: this row's `CV` rises in some runs, with
+> a clean `disp`. It is one isolated sample out of the 25 — the division of
+> labour between the two columns.
 
 **None of these primitives is expensive — and the honest way to show it is through the worst
-of them.** By the median, the mutex is the slowest of the five: 8.59 ns, against 8.46 ns for
-the semaphore, 4.49 ns for the spinlock and 0.205 ns for the `relaxed` atomic. It is also the
+of them.** By the median, the mutex is the slowest of the five: 8.53 ns, against 8.37 ns for
+the semaphore, 4.50 ns for the spinlock and 0.255 ns for the `relaxed` atomic. It is also the
 usual suspect, the one the cost of synchronising tends to be blamed on. If **the most expensive
 row in the table, and precisely the accused one, costs 8.5 ns**, the other four need no
 separate defence — the argument covers them. To give that number scale: it is **8.5 of the
@@ -2010,13 +2024,13 @@ any real concurrent program.
 
 Two details of the table deserve a note.
 
-**The mutex costs 2.3 times a `seq_cst` atomic** (8.59 against 3.68 ns), and the reason is
+**The mutex costs 2.3 times a `seq_cst` atomic** (8.53 against 3.76 ns), and the reason is
 arithmetic: locking executes an atomic read-modify-write, unlocking executes another, plus
 the check that nobody is waiting. That is two locked operations against one. The mutex is
 not expensive for being a mutex; it is expensive for doing more.
 
 **Memory ordering has its own price.** The `seq_cst` atomic, with a full barrier, costs
-**3.68 ns** against **0.205 ns** for the `relaxed` one, without either of them involving
+**3.76 ns** against **0.255 ns** for the `relaxed` one, without either of them involving
 another thread. The weaker barrier is sufficient for many guarantees, and the difference
 comes out of the per-packet budget.
 
@@ -2925,9 +2939,27 @@ the collection, §5.2), `custo-syscall`'s function call (between runs, §2), the
 SMT ratio (between builds, §5.1.1) and the core-to-core crossing (between
 machine states, below).
 
+> **The first example lost its force, and the reason is itself a lesson.** The
+> `relaxed atomic` was chosen as the within-collection dispersion case when it
+> published 27.5% and an `!` seal. In the 24/09 collection, in text mode and
+> with the governor pinned, the same measurement publishes **4.8% and a `~`
+> seal** — still within-collection dispersion, but no longer the most unruly
+> row in the table.
+>
+> What changed was not the measurement; it was the condition.
+> [§5.1 of the methodology](metodologia.en.md#51-the-0397-is-1818--f-and-the-0205-is-1125--f)
+> shows that the figure is worth 1.125 cycles in any environment, and that the
+> 27.5% was the clock moving during the collection — not the primitive moving.
+>
+> **The scale still exists**; what was lost is its extreme example. Anyone
+> wanting one today finds 20.6% in `2 MB hugepages` over the 32 MB region, and
+> there the cause is different: contention for the second-level TLB, which §4.1
+> describes.
+
 #### The fourth, and why it is the easiest to mistake for the others
 
-`custo-comunicacao` varied from 17.7 to 27.2 ns between collections. The source
+`custo-comunicacao` varies from 16.9 to 23.8 ns between collections — the range
+measured across the six text-mode collections the project archives. The source
 comment blamed the frequency ramp and declared the problem solved by a clock
 accommodation — **and the accommodation did not take**. The protocol that found
 out why alternates 30 s of idleness with measurement:
@@ -3371,7 +3403,7 @@ amortised and the ratio falls. How much exactly depends on CPU, generation, PCID
 version and which mitigations are active — this document measures none of that, and does not
 claim what it did not measure.
 
-**The practical consequence, and it is the one that matters:** the **33.8 ns** measured here
+**The practical consequence, and it is the one that matters:** the **33.3 ns** measured here
 are not "the cost of a syscall". They are the cost *on this CPU, this kernel, with the
 mitigations actually active on this machine*. A reader on another configuration will measure
 something else, and will be equally right. What does **not** change is the argument's

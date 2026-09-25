@@ -62,7 +62,7 @@ the regime**.
 > and so the ratio came out **low**: 33,5/0,92 = 36, against 33,8/0,73 = 46.
 >
 > **This section's argument does not change**, because it never depended on the ratio:
-> it comes from 33.8 ns against a 67.2 ns budget, and the function call does not enter
+> it comes from 33.3 ns against a 67.2 ns budget, and the function call does not enter
 > the account. But the ratio is the sentence people repeat, and it was 22% low.
 >
 > Reproduce it: run `custo-syscall` once after a few minutes of an idle machine, and
@@ -76,7 +76,7 @@ the regime**.
 | 36× against 46× | the measurement was right, the regime was undeclared | say whether you measured cold or in steady state |
 
 And an observation that holds for the whole document: **neither changed §2's
-conclusion**. It comes from 33.8 ns against a 67.2 ns budget, and the function
+conclusion**. It comes from 33.3 ns against a 67.2 ns budget, and the function
 call does not enter that account. What both hit was the **ratio**, which is the
 soundbite — exactly the part people repeat, and therefore the part that most
 needs to be right.
@@ -256,7 +256,7 @@ instructive in the module.
 ## 4. §10 — this machine's PTI state
 
 [§10](README.en.md#why-the-syscall-is-so-cheap-here) states that PTI is not
-active on this machine, and that the 33.8 ns syscall is therefore not a
+active on this machine, and that the 33.3 ns syscall is therefore not a
 universal cost. The statement is **measured**, not inferred from the
 architecture — being AMD does not imply PTI is off, because the mitigation is
 configurable by boot parameter.

@@ -153,7 +153,7 @@ O resultado central: **cabem cerca de duas chamadas de sistema no orçamento de
 um pacote.** E `getpid()` é a syscall mais barata que existe — não faz I/O, não
 toca em memória do usuário, não dorme. Uma `recvmsg()` real custa muito mais.
 
-Repare que esse resultado **não dependia** do número errado: ele sai de 33,8 ns
+Repare que esse resultado **não dependia** do número errado: ele sai de 33,3 ns
 contra 67,2 ns de orçamento, e a chamada de função não entra na conta. O que a
 correção mudou foi a razão syscall/chamada — de "294×" para a faixa de 36× a 46×
 conforme o regime de medição, tratada no aviso acima —, que é uma frase de
@@ -1980,17 +1980,30 @@ juntas está na [§9](#9-validação-reproduza-na-sua-máquina).
 > da rampa.
 >
 > Medindo o mesmo primitivo em duas posições do grupo, com 60 ms ele dá 0,26 e
-> 0,20 ns conforme a posição; a partir de 200 ms as duas concordam em 0,20. É
-> a mesma rampa de 29% que a [§5.1.1](#511-smt-duas-cpus-lógicas-não-são-dois-núcleos)
-> isola, e **a medição mais curta da tabela é a única que a enxerga**.
+> 0,20 ns conforme a posição; a partir de 200 ms as duas concordam. É a mesma
+> rampa que a [§5.1.1](#511-smt-duas-cpus-lógicas-não-são-dois-núcleos) isola,
+> e **a medição mais curta da tabela é a única que a enxerga**.
 >
-> Uma ressalva de quem for reproduzir: o `CV` desta linha ainda sobe a 10–15%
-> em algumas execuções, com `disp` limpa. É uma amostra isolada entre as 25 —
-> a divisão de trabalho entre as duas colunas.
+> **E 400 ms também não bastam, medido em 24/09.** Uma sonda dedicada
+> ([`sonda-relaxed.c`](medicoes/sonda-relaxed.c)) mede o período de clock
+> depois do aquecimento e de novo ao fim: 0,2182 ns logo após os 400 ms —
+> 4,58 GHz — contra 0,1814 ns depois de alguns segundos de carga, 5,51 GHz. O
+> aquecimento tira a coleta do arranque; ele não a põe no topo da rampa.
+>
+> Numa campanha isso não aparece, porque os programas correm em sequência e a
+> CPU já chega quente ao quinto deles. Numa execução isolada, aparece — e é por
+> isso que o valor publicado aqui, 0,255 ns, é maior que os 0,20 desta nota.
+> Os dois são **1,125 ciclos**; muda a frequência, e a
+> [§5.1 da metodologia](metodologia.md#51-o-0397-é-1818--f-e-o-0205-é-1125--f)
+> mostra a conta.
+>
+> Uma ressalva de quem for reproduzir: o `CV` desta linha sobe em algumas
+> execuções, com `disp` limpa. É uma amostra isolada entre as 25 — a divisão de
+> trabalho entre as duas colunas.
 
 **Nenhum desses primitivos é caro — e a forma honesta de mostrar isso é pelo
-pior deles.** Pela mediana, o mutex é o mais lento dos cinco: 8,59 ns, contra
-8,46 ns do semáforo, 4,49 ns do spinlock e 0,205 ns da atômica `relaxed`. E é
+pior deles.** Pela mediana, o mutex é o mais lento dos cinco: 8,53 ns, contra
+8,37 ns do semáforo, 4,50 ns do spinlock e 0,255 ns da atômica `relaxed`. E é
 também o réu habitual, aquele a quem o custo de sincronizar costuma ser
 atribuído. Se **o mais caro da tabela, e justamente o acusado, custa 8,5 ns**,
 os outros quatro não precisam de defesa separada — o argumento os cobre. Para
@@ -2026,14 +2039,14 @@ Todas as medições rodam **com outra thread presente no processo**, que
 
 Dois detalhes da tabela merecem nota.
 
-**O mutex custa 2,3 vezes uma atômica `seq_cst`** (8,59 contra 3,68 ns), e a
+**O mutex custa 2,3 vezes uma atômica `seq_cst`** (8,53 contra 3,76 ns), e a
 razão é aritmética: travar executa uma operação atômica de leitura-modificação-
 escrita, destravar executa outra, mais a verificação de que ninguém espera. São
 duas operações travadas contra uma. O mutex não é caro por ser mutex; é caro por
 fazer mais.
 
 **A ordenação de memória tem preço próprio.** A atômica `seq_cst`, com barreira
-completa, custa **3,68 ns** contra **0,205 ns** da `relaxed`, sem que nenhuma
+completa, custa **3,76 ns** contra **0,255 ns** da `relaxed`, sem que nenhuma
 delas envolva outra thread. A barreira mais fraca é suficiente para muitas
 garantias, e a diferença sai do orçamento por pacote.
 
@@ -2985,12 +2998,30 @@ e os quatro casos estão publicados: a `atomica relaxed` (dentro da coleta, a
 de SMT (entre compilações, a §5.1.1) e a travessia entre núcleos (entre estados
 da máquina, abaixo).
 
+> **O primeiro exemplo perdeu força, e a razão é ela própria uma lição.** A
+> `atomica relaxed` foi escolhida como caso de dispersão dentro da coleta
+> quando publicava 27,5% e selo `!`. Na coleta de 24/09, em modo texto e com
+> governor fixo, a mesma medição publica **4,8% e selo `~`** — continua sendo
+> dispersão dentro da coleta, mas deixou de ser a mais indisciplinada da
+> tabela.
+>
+> O que mudou não foi a medição; foi a condição. A
+> [§5.1 da metodologia](metodologia.md#51-o-0397-é-1818--f-e-o-0205-é-1125--f)
+> mostra que aquele número vale 1,125 ciclos em qualquer ambiente, e que os
+> 27,5% eram o relógio variando durante a coleta — não o primitivo variando.
+>
+> **A escala continua existindo**; o que se perdeu foi o exemplo extremo dela.
+> Quem quiser um hoje encontra 20,6% em `2 MB hugepages` na região de 32 MB,
+> e ali a causa é outra: a competição por TLB de segundo nível, que a §4.1
+> descreve.
+
 #### A quarta, e por que ela é a mais fácil de confundir com as outras
 
-O `custo-comunicacao` variava de 17,7 a 27,2 ns entre coletas. O comentário do
-fonte atribuía isso à rampa de frequência e declarava o problema resolvido por
-uma acomodação de clock — **e a acomodação não pegou**. O protocolo que
-descobriu por quê alterna 30 s de ócio com medição:
+O `custo-comunicacao` varia de 16,9 a 23,8 ns entre coletas — faixa medida
+nas seis coletas de modo texto que o projeto arquiva. O comentário do fonte
+atribuía isso à rampa de frequência e declarava o problema resolvido por uma
+acomodação de clock — **e a acomodação não pegou**. O protocolo que descobriu
+por quê alterna 30 s de ócio com medição:
 
 ```
   apos 30 s de ociosidade   23,12  25,17  25,42  25,23
@@ -3448,7 +3479,7 @@ razão cai. Quanto exatamente depende de CPU, geração, PCID, versão de kernel
 de quais mitigações estão ativas — este documento não mede nada disso, e não
 afirma o que não mediu.
 
-**Consequência prática, e é ela que importa:** os **33,8 ns** medidos aqui não
+**Consequência prática, e é ela que importa:** os **33,3 ns** medidos aqui não
 são "o custo de uma syscall". São o custo *nesta CPU, neste kernel, com as
 mitigações efetivamente ativas nesta máquina*. Um leitor em outra configuração
 medirá outra coisa, e estará igualmente certo. O que **não** muda é a conclusão
