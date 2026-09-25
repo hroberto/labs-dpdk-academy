@@ -1,0 +1,11 @@
+--- 01-fundamentos ---
+  medicao                                                            2026-09-25-151  2026-09-25-154   delta
+  ---------------------------------------------------------------------------------------------------------
+
+  145 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+--- 02-runtime-dpdk ---
+  nada reconhecido em docs/02-runtime-dpdk/medicoes/historico/2026-09-25-1512-jedec4800-canal-duplo (10 arquivo(s) .txt)
+  a campanha pode estar em curso: r1 em diante e que contam, r0 e aquecimento
+--- 03-mempool-ring-mbuf ---
+  nada reconhecido em docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-25-1512-jedec4800-canal-duplo (6 arquivo(s) .txt)
+  a campanha pode estar em curso: r1 em diante e que contam, r0 e aquecimento

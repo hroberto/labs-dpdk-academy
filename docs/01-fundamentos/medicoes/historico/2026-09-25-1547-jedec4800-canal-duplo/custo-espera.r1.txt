@@ -1,0 +1,38 @@
+  origin: custo-espera @ v0.07.00-25-g836c47a  |  dskhmartins Linux 7.0.0-34-generic  |  gcc 15.2.0  |  2026-09-25T16:16:10-0300
+
+Cost of waiting for work
+(25 samples per measurement, after 400 ms of warm-up; times in ns)
+(CV = coefficient of variation;  ~ = moderate dispersion,  ! = unstable)
+
+GROUP 1 - UNCONTENDED: nobody else wants the same primitive
+          (process with another thread present, which is the real regime
+           of any concurrent program -- see the note in the source)
+
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  atomic relaxed (store+load)            0.254  0.254-0.255     0.232-0.258         0.5%   2.7%  
+  atomic seq_cst (store+load)             3.80  3.76-3.81       3.75-3.84           1.4%   0.8%  
+  mutex lock+unlock                       8.62  8.59-8.65       8.56-8.68           0.7%   0.4%  
+  spinlock lock+unlock                    4.50  4.50-4.52       4.49-4.58           0.6%   0.6%  
+  semaphore post+wait                     8.45  8.43-8.47       8.38-8.50           0.5%   0.4%  
+
+GROUP 2 - HANDOFF: two threads coordinating (cpu 0 <-> cpu 2)
+
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  atomic + busy wait (does not sleep)     19.77  19.76-19.80     18.04-20.28         0.2%   2.8%  
+  mutex + busy wait (does not sleep)     97.80  97.15-98.05     95.31-100.25        0.9%   1.0%  
+  mutex + condvar (SLEEPS)              1271.7  1254.8-1278.2   1245.6-1332.4       1.8%   1.6%  
+  POSIX semaphore (SLEEPS)              1223.9  1216.9-1228.9   1185.9-1324.2       1.0%   3.2%  
+
+Reading:
+  The primitive is not the problem: an uncontended mutex costs a few ns.
+  The SAME mutex costs 98 ns without sleeping and 1272 ns with a condvar --
+  13x of difference, and the only variable changed was sleeping or not.
+
+  Budget of a 64 B packet at 10 GbE: 67.2 ns
+    busy waiting fits 3.4 times in it
+    sleeping spends 18.9 whole budgets
+
+  That is why the data plane polls: there is no time to sleep.
+  The price is occupying 100% of the core even with no traffic at all.

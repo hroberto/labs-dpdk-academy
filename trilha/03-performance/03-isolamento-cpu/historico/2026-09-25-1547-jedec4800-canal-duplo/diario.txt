@@ -1,0 +1,119 @@
+==> campanha em modo texto  2026-09-25T15:47:53-03:00
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1547-jedec4800-canal-duplo
+    modo declarado   : texto
+    governor fixado  : sim (era powersave)
+    alvo systemd     : graphical.target
+    processos grafico: 0
+    governor cpu2    : performance
+    C3 disable cpu2  : 0
+    cmdline          : BOOT_IMAGE=/boot/vmlinuz-7.0.0-34-generic root=UUID=bdd65119-6069-4cc3-898a-7e0a0beba60b ro quiet splash amd_iommu=on iommu=pt crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M systemd.unit=multi-user.target
+    kernel           : 7.0.0-34-generic
+    uptime           : up 2 minutes
+    memoria          : avail 26,78 GiB, swap em uso 0,00 GiB
+    carga            : 0.95 0.26 0.08
+
+==> 1/6 osnoise hist, 10 min na CPU 2  (15:47:53)
+    ok
+    over:         0 
+    count:    43093 
+    min:          1 
+    avg:       2.13 
+    max:         22 
+
+==> 2/6 campanha de isolamento, 4 celulas x 5 repeticoes  (15:57:54)
+==> campanha de isolamento: CPU 2 (irmao SMT 14), outra CPU 4
+    4 celulas x 5 repeticoes x 30s
+    repeticao 1 de 5 concluida
+    repeticao 2 de 5 concluida
+    repeticao 3 de 5 concluida
+    repeticao 4 de 5 concluida
+    repeticao 5 de 5 concluida
+==> 20 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1547-jedec4800-canal-duplo/isolamento/isolamento.csv
+    ok
+
+==> 3/6 campanha de tempo do mempool  (16:07:54)
+==> campanha B4-tempo: 2 versoes x 2 topologias
+    x 10 tamanhos de cache x 21 repeticoes
+    prefixos SEM RTE_LIBRTE_MEMPOOL_STATS, metrica em ns/pacote
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1547-jedec4800-canal-duplo/mempool-tempo/mempool-tempo.csv
+    repeticao 1 de 21 concluida
+    repeticao 2 de 21 concluida
+    repeticao 3 de 21 concluida
+    repeticao 4 de 21 concluida
+    repeticao 5 de 21 concluida
+    repeticao 6 de 21 concluida
+    repeticao 7 de 21 concluida
+    repeticao 8 de 21 concluida
+    repeticao 9 de 21 concluida
+    repeticao 10 de 21 concluida
+    repeticao 11 de 21 concluida
+    repeticao 12 de 21 concluida
+    repeticao 13 de 21 concluida
+    repeticao 14 de 21 concluida
+    repeticao 15 de 21 concluida
+    repeticao 16 de 21 concluida
+    repeticao 17 de 21 concluida
+    repeticao 18 de 21 concluida
+    repeticao 19 de 21 concluida
+    repeticao 20 de 21 concluida
+    repeticao 21 de 21 concluida
+==> 840 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1547-jedec4800-canal-duplo/mempool-tempo/mempool-tempo.csv
+    ok
+
+==> 4/6 campanha de miss do mempool  (16:09:46)
+==> campanha B4: 2 versoes x 2 topologias
+    x 9 tamanhos de cache x 6 repeticoes
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1547-jedec4800-canal-duplo/mempool-cache/mempool-cache.csv
+    repeticao 1 de 6 concluida
+    repeticao 2 de 6 concluida
+    repeticao 3 de 6 concluida
+    repeticao 4 de 6 concluida
+    repeticao 5 de 6 concluida
+    repeticao 6 de 6 concluida
+==> 240 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1547-jedec4800-canal-duplo/mempool-cache/mempool-cache.csv
+    ok
+
+==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  (16:10:18)
+    referencia para comparar: 2026-09-25-1512-jedec4800-canal-duplo
+    hugepage do feed: /mnt/huge-academia (efemera, desmontada no fim)
+CONCLUIDA -> docs/01-fundamentos/medicoes/historico/2026-09-25-1547-jedec4800-canal-duplo
+          -> docs/02-runtime-dpdk/medicoes/historico/2026-09-25-1547-jedec4800-canal-duplo
+          -> docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-25-1547-jedec4800-canal-duplo
+Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medicoes/historico/{outra,2026-09-25-1547-jedec4800-canal-duplo}
+    ok
+    feed: 12 arquivos, completo
+    hugepage do feed desmontada
+
+==> 6/6 revisao dos dados do projeto  (16:44:41)
+    rotulos que se moveram mais de 5%: 0
+    dos 0 marcados, 0 sao mudanca de codigo declarada
+    PREVISAO SUSTENTADA (0 rotulo(s) nao explicado(s), <= 8)
+      145 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+    comparacao completa em trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1547-jedec4800-canal-duplo/comparacao.txt
+
+    portao de qualidade:
+        [aviso] 8 numero(s) arredondados SEM CLASSIFICACAO (triagem: --arredondados)
+        [aviso] envelhecimento: 57 linha(s) publicada(s) com mediana diferente da coleta atual
+        [ok]    build limpo, zero avisos
+        2 aviso(s) — não bloqueiam
+        [1mtudo passou.[0m Pode commitar.
+
+==> CONCLUIDA  2026-09-25T16:45:47-03:00
+
+    O que ficou em trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1547-jedec4800-canal-duplo:
+      ambiente.txt      estado da maquina antes de medir
+      osnoise-hist.txt  distribuicao de ruido, dez minutos
+      isolamento/       20 celulas do stall_probe
+      mempool-tempo/    ns por pacote, prefixos sem estatisticas
+      mempool-cache/    idas ao anel, mesma condicao do tempo
+      comparacao.txt    o que se moveu contra a coleta com sessao grafica
+      portao.txt        portao de qualidade completo
+
+    A campanha de hardware ficou nos historicos dos tres modulos,
+    sob 2026-09-25-1547-jedec4800-canal-duplo.
+
+    Para voltar ao modo grafico:
+      sudo systemctl set-default graphical.target && sudo reboot
+      (aqui e modo texto: nao ha sessao grafica inibindo, entao -i nao
+       faz falta. O set-default SIM: ele e persistente.)
+==> governor restaurado para powersave

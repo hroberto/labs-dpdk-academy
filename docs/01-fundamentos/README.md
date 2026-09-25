@@ -953,6 +953,26 @@ latência da RAM continua existindo — ela é apenas escondida.
 > [teste L2](medicoes/tests/l2_efeito_cache.sh) falha se a coluna deixar de ser
 > plana, porque aí ela passa a medir outra coisa e este texto deixa de valer.
 >
+> **E a coluna também não responde à frequência da memória, o que é a
+> confirmação mais direta de tudo isto.** Oito coletas de canal duplo, em duas
+> velocidades:
+>
+> | MT/s | medianas observadas |
+> |---|---|
+> | 4800 | 0,190 · 0,184 |
+> | 6000 | 0,188 · 0,188 · 0,188 · 0,181 · 0,181 · 0,196 |
+>
+> As faixas se sobrepõem. Uma coluna que medisse memória teria separado as duas
+> velocidades — o `dependente` separa, e cai 11 % de 4800 para 6000. Esta não
+> separa nada, porque o gargalo é o laço.
+>
+> **Uma das oito destoa, e fica registrada sem explicação.** A coleta de
+> 25/09 17:20 deu amplitude de 14 % (0,182 a 0,207) onde as outras sete ficam
+> em 0 a 5 %. Não é a frequência: duas outras coletas de 6000 no mesmo dia, com
+> o mesmo binário e o mesmo kernel, ficam em 1 %. Foi a última campanha de um
+> dia de medições seguidas, e a hipótese térmica é a primeira que ocorre — mas
+> hipótese que ocorre não é hipótese testada, e nada aqui a testou.
+>
 > A coluna `dependente` não tem esse problema em nível nenhum: fica ordens de
 > grandeza abaixo do teto do laço, e por isso mede a memória. A `aleatorio`
 > mede a memória da L2 para baixo, e **na L1d bate no mesmo teto** — ver a
@@ -1128,6 +1148,31 @@ instrumento nos dois lados da comparação:
 | 4800 → 6000 MT/s, com 2 pentes | −11,0% | −26,3% | 2,4× |
 | 1 → 2 pentes, a 4800 MT/s | **−8,4%** | **−44,6%** | **5,3×** |
 | 1 → 2 pentes, a 6000 MT/s | **−7,7%** | **−42,8%** | **5,6×** |
+
+> **A linha de dois pentes foi replicada em 25/09, e a replicação é de outro
+> kernel.** As quatro células do fatorial vêm das coletas de 24/09, em
+> `7.0.0-31`. Em 25/09 a máquina passou a `7.0.0-34` e o contraste de frequência
+> com dois pentes foi refeito, com o mesmo binário nos dois lados:
+>
+> | | 24/09 · `7.0.0-31` | 25/09 · `7.0.0-34` |
+> |---|---:|---:|
+> | 1 núcleo | 6,560 → 5,840 = **−11,0 %** | 6,550 → 5,830 = **−11,0 %** |
+> | 12 núcleos | 17,180 → 12,660 = **−26,3 %** | 17,180 → 12,670 = **−26,3 %** |
+>
+> As variações batem na primeira casa decimal, e o ponto de partida de doze
+> núcleos é **o mesmo número** — 17,180 ns nas duas. Uma replicação que cruza
+> versão de kernel vale mais que a repetição dentro da mesma coleta: ela testa
+> o resultado contra uma variável que ninguém controlou de propósito.
+>
+> **Os dois outros contrastes não foram replicados**, e não por escolha: eles
+> exigem um pente só, o que significa abrir a máquina. Ficam com a medição de
+> 24/09.
+>
+> Fora do `custo-paralelismo`, a comparação marcou 31 rótulos, e **todos são de
+> memória** — `custo-traducao` e a coluna `RAM` do `efeito-cache`. Nenhum
+> rótulo de sincronização, de chamada de sistema ou de anel se moveu. É o que a
+> intervenção deveria produzir, e serve de controle negativo: mexer na
+> frequência da memória move o que depende de memória, e só.
 
 **Cada fator foi medido nos dois níveis do outro**, e é isso que sustenta a
 leitura: o efeito da frequência é o mesmo com um pente ou com dois, e o do

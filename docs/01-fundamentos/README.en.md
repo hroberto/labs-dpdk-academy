@@ -949,6 +949,27 @@ DRAM. RAM latency still exists — it is merely hidden.
 > [L2 test](medicoes/tests/l2_efeito_cache.sh) fails if the column stops being
 > flat, because then it measures something else and this text stops holding.
 >
+> **And the column does not respond to memory frequency either, which is the
+> most direct confirmation of all this.** Eight dual-channel collections, at two
+> speeds:
+>
+> | MT/s | observed medians |
+> |---|---|
+> | 4800 | 0.190 · 0.184 |
+> | 6000 | 0.188 · 0.188 · 0.188 · 0.181 · 0.181 · 0.196 |
+>
+> The ranges overlap. A column measuring memory would have separated the two
+> speeds — `dependent` does, and falls 11% from 4800 to 6000. This one separates
+> nothing, because the bottleneck is the loop.
+>
+> **One of the eight stands out, and it is recorded without an explanation.**
+> The 25/09 17:20 collection gave a 14% spread (0.182 to 0.207) where the other
+> seven sit between 0 and 5%. It is not the frequency: two other 6000
+> collections from the same day, with the same binary and the same kernel, sit
+> at 1%. It was the last campaign of a day of back-to-back measurements, and the
+> thermal hypothesis is the first that comes to mind — but a hypothesis that
+> comes to mind is not a hypothesis tested, and nothing here tested it.
+>
 > The `dependent` column does not have this problem at any level: it sits
 > orders of magnitude below the loop's ceiling, and therefore measures memory.
 > The `random` one measures memory from L2 down, and **in L1d it hits the same
@@ -1130,6 +1151,31 @@ with the same instrument on both sides of the comparison:
 | 4800 → 6000 MT/s, with 2 sticks | −11.0% | −26.3% | 2.4× |
 | 1 → 2 sticks, at 4800 MT/s | **−8.4%** | **−44.6%** | **5.3×** |
 | 1 → 2 sticks, at 6000 MT/s | **−7.7%** | **−42.8%** | **5.6×** |
+
+> **The two-DIMM row was replicated on 25/09, and the replication comes from a
+> different kernel.** The four factorial cells come from the 24/09 collections,
+> on `7.0.0-31`. On 25/09 the machine moved to `7.0.0-34` and the frequency
+> contrast with two DIMMs was redone, with the same binary on both sides:
+>
+> | | 24/09 · `7.0.0-31` | 25/09 · `7.0.0-34` |
+> |---|---:|---:|
+> | 1 core | 6.560 → 5.840 = **−11.0%** | 6.550 → 5.830 = **−11.0%** |
+> | 12 cores | 17.180 → 12.660 = **−26.3%** | 17.180 → 12.670 = **−26.3%** |
+>
+> The changes agree to the first decimal, and the twelve-core starting point is
+> **the same number** — 17.180 ns in both. A replication that crosses a kernel
+> version is worth more than repetition inside the same collection: it tests the
+> result against a variable nobody controlled on purpose.
+>
+> **The other two contrasts were not replicated**, and not by choice: they
+> require a single DIMM, which means opening the machine. They keep the 24/09
+> measurement.
+>
+> Outside `custo-paralelismo`, the comparison marked 31 labels, and **all of
+> them are memory** — `custo-traducao` and the `RAM` column of `efeito-cache`.
+> No synchronisation, syscall or ring label moved. That is what the intervention
+> should produce, and it serves as a negative control: changing the memory
+> frequency moves what depends on memory, and nothing else.
 
 **Each factor was measured at both levels of the other**, and that is what
 supports the reading: the frequency effect is the same with one stick or two,
