@@ -98,6 +98,20 @@ derivar_config() {
     printf '%s-%s' "$perfil" "$canal"
 }
 
+# `--so-ruido` ATRAVESSA ATE A CAMPANHA, e existe para experimento de fonte.
+#
+# Uma intervencao sobre o que TOMA a CPU -- desligar o power gating da GPU, por
+# exemplo -- precisa da procedencia e dos passos de ruido, e nao e afetada pelo
+# resto. Rodar as quatro etapas para responder isso custaria uma hora em vez de
+# vinte minutos, e a diferenca vira desculpa para nao repetir.
+#
+# A ETAPA 1 NAO E PULADA NEM AQUI, e e a razao principal de passar pelo
+# `run-all` em vez de chamar a campanha direto: e ela que grava a linha de boot
+# do kernel, e `amdgpu.pg_mask=0` vive exatamente ali. Experimento cuja
+# intervencao nao esta no arquivo e anedota.
+SO_RUIDO=0
+if [ "${1:-}" = "--so-ruido" ]; then SO_RUIDO=1; shift; fi
+
 CONFIG="${1:-}"
 if [ -z "$CONFIG" ]; then
     CONFIG=$(derivar_config) || {
@@ -221,7 +235,9 @@ echo "    saida: $SAIDA_AMB"
 SAIDA_SONDA="docs/01-fundamentos/medicoes/historico/$CARIMBO-$CONFIG-sonda"
 echo
 echo "==> ETAPA 2/4  sonda atomic relaxed  ($(date +%T))"
-if [ ! -x "$SONDA" ]; then
+if [ "$SO_RUIDO" -eq 1 ]; then
+    echo "    PULADA (--so-ruido): a sonda mede custo, nao ruido"
+elif [ ! -x "$SONDA" ]; then
     echo "    PULADO: $SONDA ausente; rode ./scripts/build-all.sh"
 else
     mkdir -p "$SAIDA_SONDA"
@@ -330,7 +346,10 @@ echo "==> ETAPA 3/4  campanha completa  ($(date +%T))"
 # O NOME VAI JA CARIMBADO. A campanha detecta o carimbo e nao aplica outro --
 # sem isso ela usaria o horario de QUANDO ELA comeca, que e minutos depois das
 # etapas anteriores, e a mesma execucao apareceria sob dois nomes.
-./ferramental/qualidade/campanha.sh "--$MODO" --fixar-governor "$CARIMBO-$CONFIG"
+EXTRA=""
+[ "$SO_RUIDO" -eq 1 ] && EXTRA="--so-ruido"
+# shellcheck disable=SC2086
+./ferramental/qualidade/campanha.sh "--$MODO" $EXTRA --fixar-governor "$CARIMBO-$CONFIG"
 rc=$?
 
 # --------------------------------------------------------------------------
@@ -352,6 +371,14 @@ rc=$?
 # --------------------------------------------------------------------------
 echo
 echo "==> ETAPA 4/4  invocacoes unicas da trilha  ($(date +%T))"
+if [ "$SO_RUIDO" -eq 1 ]; then
+    echo "    PULADA (--so-ruido)"
+    echo
+    echo "=========================================================="
+    echo "  run-all CONCLUIDO  $(date -Is)"
+    echo "=========================================================="
+    exit 0
+fi
 T02=trilha/01-fundamentos/02-mempool-ring
 SAIDA_T02="$T02/historico/$CARIMBO-$CONFIG"
 SAIDA_CPP="$T02/alternativas/cpp23/historico/$CARIMBO-$CONFIG"

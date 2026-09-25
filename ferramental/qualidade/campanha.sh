@@ -22,6 +22,42 @@
 # argumento obrigatorio, vai para o `ambiente.txt` da coleta, e o script recusa
 # `--texto` com sessao grafica viva em vez de avisar e seguir.
 #
+# PRE-REGISTRO -- A GPU OU A SESSAO GRAFICA? (`amdgpu.pg_mask=0`)
+#
+# A §6.7 do topico de isolamento registra como aberta a pergunta que separa as
+# duas atribuicoes. O rastro do `osnoise` nomeia
+# `amdgpu_device_delay_enable_gfx_off` -- a reativacao do power gating -- e a
+# intervencao de modo texto remove a sessao grafica INTEIRA, entao ela confirma
+# "e alguma coisa da sessao" sem distinguir o que.
+#
+# `amdgpu.pg_mask=0` remove UMA das duas e mantem a outra: o power gating sai,
+# o compositor, o servidor de display e o driver ficam.
+#
+#   HIPOTESE. O modo alto vem da reativacao do power gating do bloco GFX, nao
+#   da sessao grafica por outro caminho.
+#
+#   PREVISAO, celula `sem-pg` (grafico, pg desligado). A funcao
+#   `amdgpu_device_delay_enable_gfx_off` nao aparece no rastro do `osnoise`, e
+#   a mediana da maior parada fica abaixo de 40 us -- faixa das coletas de modo
+#   texto, nao os 24,9 a 515,5 us das coletas com sessao grafica.
+#
+#   REFUTADA SE. O modo alto persistir com frequencia comparavel a das coletas
+#   com sessao grafica. Isso significaria que a sessao produz o efeito por um
+#   caminho que nao passa pelo power gating, e o rastro que nomeou a funcao
+#   estaria apontando para um sintoma, nao para a causa.
+#
+#   CONTROLE NEGATIVO, celula `sem-pg-texto` (texto, pg desligado). Sem sessao
+#   grafica o power gating nao tem o que reativar, entao desliga-lo NAO PODE
+#   mudar nada: a coleta tem de ficar indistinguivel de `2026-09-24-1917`. Se
+#   mudar, o modelo esta errado, e nenhuma leitura da celula de cima vale.
+#
+#   O controle existe pela mesma razao que o `custo-comunicacao` existe no
+#   pre-registro do segundo pente: um instrumento que responde onde deve e fica
+#   quieto onde deve e a unica evidencia de que ele mede o que diz medir.
+#
+# As duas celulas correm com `--so-ruido`: os passos 3 a 6 medem custo, e
+# nenhuma das duas perguntas e sobre custo.
+
 # PRE-REGISTRO DE 24/09/2026 -- O GOVERNOR EM MODO TEXTO
 #
 # `custo-alocacao` e o unico programa do projeto que reporta a frequencia, e
@@ -143,6 +179,7 @@ cd "$RAIZ"
 # desperdicio -- e tentacao para encurtar o protocolo da proxima vez.
 CONTINUAR=0
 SO_HARDWARE=0
+SO_RUIDO=0
 FIXAR_GOV=0
 MODO=""
 while [ $# -gt 0 ]; do
@@ -151,6 +188,7 @@ while [ $# -gt 0 ]; do
         --grafico)      MODO=grafico; shift ;;
         --continuar)    CONTINUAR=1; shift ;;
         --so-hardware)  SO_HARDWARE=1; shift ;;
+        --so-ruido)     SO_RUIDO=1; shift ;;
         --fixar-governor) FIXAR_GOV=1; shift ;;
         -*) echo "opcao desconhecida: $1" >&2; exit 2 ;;
         *)  break ;;
@@ -160,8 +198,8 @@ done
 # condicao ser herdada em vez de declarada, e condicao herdada e o defeito que
 # este projeto passou o mes inteiro corrigindo.
 if [ -z "$MODO" ]; then
-    echo "uso: $0 --texto|--grafico [--continuar] [--so-hardware]" >&2
-    echo "         [--fixar-governor] <configuracao>" >&2
+    echo "uso: $0 --texto|--grafico [--continuar]" >&2
+    echo "         [--so-hardware | --so-ruido] [--fixar-governor] <configuracao>" >&2
     echo >&2
     echo "  --texto    servidor ou console. Exige ausencia de sessao grafica." >&2
     echo "             Menor jitter; use para dispersao, p99 e cauda." >&2
@@ -406,6 +444,25 @@ if [ -x build/trilha/03-performance/03-isolamento-cpu/stall_probe ]; then
         && echo "    ok" || echo "    FALHA"
 else
     echo "    PULADO: stall_probe ausente; rode scripts/build-all.sh antes"
+fi
+
+# --------------------------------------------------------------------------
+# `--so-ruido` PARA AQUI, e o motivo e de desenho experimental.
+#
+# Os passos 1 e 2 medem RUIDO: quem toma a CPU da tarefa, e por quanto tempo.
+# Os passos 3 a 6 medem CUSTO: quanto uma operacao leva. Uma intervencao sobre
+# a fonte de ruido -- desligar o power gating da GPU, por exemplo -- precisa
+# dos dois primeiros e nao e afetada pelos outros.
+#
+# Rodar os seis para responder uma pergunta dos dois primeiros custaria 55 min
+# em vez de 20, e a diferenca vira desculpa para nao repetir o experimento.
+if [ "$SO_RUIDO" -eq 1 ]; then
+    echo
+    echo "==> passos 3 a 6 PULADOS (--so-ruido)"
+    echo
+    echo "==> CONCLUIDA  $(date -Is)"
+    echo "    saida: ${SAIDA#$RAIZ/}"
+    exit 0
 fi
 
 # --------------------------------------------------------------------------
