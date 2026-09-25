@@ -54,6 +54,7 @@ It combines:
 - `scripts/` — build and test automation
 - `subprojects/` — test dependencies pinned by hash (`.wrap` files)
 - `ROADMAP.md` — overview of the project's evolution plan
+- `PADROES.md` — the bar the material is held to, and the gates that enforce it
 - `LICENSE` — licence for the project's content
 
 Every topic in the trail is **self-contained**: document, code, tests and, where
@@ -99,6 +100,7 @@ the progression:
 | [docs/plano-estudo-dpdk.md](docs/plano-estudo-dpdk.en.md) | **the study order**, in ten levels — what the modules cite |
 | [trilha/README.md](trilha/README.en.md) | index of what exists in code and tests, with each topic's state |
 | [ROADMAP.md](ROADMAP.en.md) | the **build** order of the material — not a reading order |
+| [PADROES.md](PADROES.en.md) | the criterion that separates a publishable number from an anecdote here |
 
 The ten levels, and where each one is:
 

@@ -39,6 +39,7 @@ Ele combina:
 - `scripts/` — automação de build e testes
 - `subprojects/` — dependências de teste fixadas por hash (arquivos `.wrap`)
 - `ROADMAP.md` — visão geral do plano evolutivo do projeto
+- `PADROES.md` — a régua que o material segue, e os portões que a aplicam
 - `LICENSE` — licença do conteúdo do projeto
 
 Cada tópico da trilha é **autocontido**: documento, código, testes e, quando
@@ -84,6 +85,7 @@ progressão:
 | [docs/plano-estudo-dpdk.md](docs/plano-estudo-dpdk.md) | **a ordem de estudo**, em dez níveis — é o que os módulos citam |
 | [trilha/README.md](trilha/README.md) | índice do que existe em código e teste, com o estado de cada tópico |
 | [ROADMAP.md](ROADMAP.md) | ordem de **construção** do material — não é ordem de leitura |
+| [PADROES.md](PADROES.md) | o critério que separa aqui um número publicável de uma anedota |
 
 Os dez níveis, e onde cada um está:
 
