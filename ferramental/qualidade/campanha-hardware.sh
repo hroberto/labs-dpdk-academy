@@ -109,6 +109,19 @@ cat "$D/diario.txt.tmp" >> "$D/diario.txt" 2>/dev/null; rm -f "$D/diario.txt.tmp
 corre2() { # <rodada>
     "$B2/custo-init"    -l 0 --in-memory                    > "$D2/custo-init.in-memory.r$1.txt" 2>&1
     "$B2/custo-init"    -l 0 --no-huge                      > "$D2/custo-init.no-huge.r$1.txt"   2>&1
+
+    # A VARREDURA DE CONFIGURACOES DA §2.1, que ate 25/09/2026 nao tinha
+    # programa. A tabela estava no documento em Markdown, e tabela de prosa nao
+    # e conferida pelo `verificar-blocos` -- que olha bloco de cerca. O
+    # resultado: a §2 publicava 117,8 ms para `-l 0 --in-memory` e a §2.1
+    # publicava 122,4 ms para a MESMA configuracao, no mesmo documento.
+    #
+    # O argumento da secao -- que o custo e piso fixo, e portanto espera e nao
+    # trabalho -- depende de as quatro celulas concordarem entre si, e nao do
+    # valor absoluto. Por isso as quatro correm na mesma rodada, aqui.
+    "$B2/custo-init" -l 0 --in-memory --no-pci          > "$D2/custo-init.in-memory-no-pci.r$1.txt" 2>&1
+    "$B2/custo-init" -l 0 --no-huge --in-memory --no-pci > "$D2/custo-init.no-huge-no-pci.r$1.txt"  2>&1
+    "$B2/custo-init" -l 0-3 --in-memory                  > "$D2/custo-init.4lcores.r$1.txt"         2>&1
     "$B2/estado-lcore"  -l 0-3 --in-memory                  > "$D2/estado-lcore.r$1.txt"         2>&1
     # A SEGUNDA INVOCACAO existe porque o documento publica as DUAS.
     #
