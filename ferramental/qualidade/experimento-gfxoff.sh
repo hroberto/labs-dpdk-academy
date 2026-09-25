@@ -80,7 +80,13 @@
 # EXIGE MÁQUINA DEDICADA e SESSÃO GRÁFICA VIVA.
 #
 #   uso:  sudo bash ferramental/qualidade/experimento-gfxoff.sh [saida]
-#         CICLOS=5 JANELA=30 sudo -E bash ferramental/qualidade/experimento-gfxoff.sh
+#         sudo CICLOS=5 bash ferramental/qualidade/experimento-gfxoff.sh
+#
+# A VARIAVEL VAI DEPOIS DO `sudo`, e nao antes. `CICLOS=5 sudo -E ...` nao
+# funciona: o `sudo` desta distribuicao recusa `-E` com "preserving the entire
+# environment is not supported" e segue em frente com o padrao -- o script roda,
+# o aviso passa despercebido, e a coleta sai com um numero de ciclos que ninguem
+# pediu. Por isso o script ECOA o plano antes de comecar.
 set -uo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -160,18 +166,25 @@ max_single() { # <rotulo>  -> us, ou vazio
 
 # FASE 2 -- caca ao rastro. COM limiar de parada, que e a unica forma de o
 # `-t` gravar arquivo. A sessao termina no primeiro evento >= LIMIAR.
+# `-e workqueue:workqueue_execute_start` E O QUE NOMEIA A FUNCAO.
+#
+# Sem ele o `rtla` habilita so os proprios eventos -- irq_noise, softirq_noise,
+# thread_noise, sample_threshold -- e o rastro mostra que um `kworker` ocupou a
+# CPU por centenas de microssegundos SEM dizer o que ele executava. Foi o que
+# aconteceu na captura de 00:19: 696 606 ns de `kworker/2:3`, e ZERO ocorrencias
+# de `gfx` em 31 127 linhas. O evento do workqueue e o que casa o kworker com a
+# funcao, e e o que a §6.6.5 usou ao nomea-la pela primeira vez.
 cacar() { # <rotulo>
     local arq="$SAIDA/trace-$1.txt"
     rm -f "$arq"
     rtla osnoise top -c "$CPU" -d "${CACA}s" -a "$LIMIAR" -t "$arq" -q \
+        -e workqueue:workqueue_execute_start \
         > "$SAIDA/osnoise-caca-$1.txt" 2>&1 || true
     if [ ! -s "$arq" ]; then
         echo "SEM RASTRO (nenhum evento >= ${LIMIAR}us em ${CACA}s)"
-    elif grep -qi 'gfx_off\|gfxoff' "$arq"; then
-        echo "NOMEIA gfx_off -> $(grep -oim1 '[a-z_]*gfx_off[a-z_]*' "$arq")"
-    else
-        echo "rastro gravado, SEM gfx_off -> $(grep -oim1 'function [a-z_0-9]*' "$arq" || echo 'funcao nao identificada')"
+        return
     fi
+    ./ferramental/qualidade/analisar-rastro-osnoise.py "$arq"
 }
 
 {
@@ -239,10 +252,15 @@ def ms(rotulo):
         pass
     return None
 lig, des = [], []
-for f in sorted(glob.glob(os.path.join(saida, "osnoise-c*-ligado.txt"))):
+# `osnoise-c[0-9]*`, e NAO `osnoise-c*`: o segundo casa tambem
+# `osnoise-caca-ligado.txt`, que e uma janela INTERROMPIDA no primeiro evento
+# grande. Misturar as duas poe no mesmo vetor uma medida de 30 s com outra que
+# terminou quando quis -- e foi o que aconteceu na execucao de 00:15, cujo
+# resumo anunciou n=4 por arm quando so havia 3 janelas comparaveis.
+for f in sorted(glob.glob(os.path.join(saida, "osnoise-c[0-9]*-ligado.txt"))):
     v = ms(os.path.basename(f)[8:-4])
     if v is not None: lig.append(v)
-for f in sorted(glob.glob(os.path.join(saida, "osnoise-c*-desligado.txt"))):
+for f in sorted(glob.glob(os.path.join(saida, "osnoise-c[0-9]*-desligado.txt"))):
     v = ms(os.path.basename(f)[8:-4])
     if v is not None: des.append(v)
 print("    Max Single, us")
