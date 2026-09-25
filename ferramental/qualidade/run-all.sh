@@ -209,6 +209,28 @@ echo "=========================================================="
 SAIDA_AMB="docs/01-fundamentos/medicoes/historico/$CARIMBO-$CONFIG-ambiente"
 echo
 echo "==> ETAPA 1/4  procedencia da maquina  ($(date +%T))"
+
+# RECONSTRUIR ANTES DE MEDIR, E NAO SO CONFERIR QUE O BINARIO EXISTE.
+#
+# Ate aqui o script so perguntava se o executavel estava no lugar. Um `build/`
+# de tres dias atras passa nessa pergunta, e a coleta inteira sai com o codigo
+# antigo enquanto a linha de procedencia aponta para o commit de hoje -- a pior
+# combinacao possivel, porque o arquivo parece integro.
+#
+# `meson compile` e no-op quando nada mudou, entao o custo disto e alguns
+# segundos; o custo de nao fazer e uma campanha de uma hora que mede outro
+# programa. Se a compilacao falhar, NAO se coleta: binario que nao compila hoje
+# nao produz numero publicavel hoje.
+echo "    reconstruindo (no-op se nada mudou)"
+if ! sudo -u "$DONO" -H ./scripts/build-all.sh > "/tmp/run-all-build.$$.log" 2>&1; then
+    echo "FALHA: a compilacao nao passou. A coleta NAO comeca." >&2
+    tail -20 "/tmp/run-all-build.$$.log" >&2
+    exit 1
+fi
+grep -cE '^\[[0-9]+/[0-9]+\]' "/tmp/run-all-build.$$.log" 2>/dev/null \
+    | sed 's/^/    alvos recompilados: /'
+rm -f "/tmp/run-all-build.$$.log"
+
 mkdir -p "$SAIDA_AMB"
 chown "$DONO" .ambiente-memoria 2>/dev/null   # o cache ja foi refeito ao derivar o nome
 {
@@ -408,6 +430,27 @@ else
         > "$SAIDA_T02/pipeline_ring_vazado.2m-b256.txt" 2>&1
     sudo -u "$DONO" -H "$PKT" -n 10 \
         > "$SAIDA_CPP/packet_pipeline.n10.txt" 2>&1
+
+    # A EXCECAO DESTA ETAPA, E ELA E DECLARADA.
+    #
+    # Esta etapa e de invocacao unica, e `custo-anel-cpp` nao cabe nessa regra:
+    # o nivel 2 do README do cpp23 publica MEDIANAS DE 10 EXECUCOES por ponto.
+    # Uma invocacao so nao sustenta esse bloco, e ate agora nada no projeto
+    # produzia as dez -- a tabela existia sem coleta que a refizesse.
+    #
+    # Sao dez saidas numeradas, no mesmo formato `*.r<N>.txt` que a campanha
+    # usa, para que o mesmo apurador as leia.
+    ANELCPP=build/$T02/alternativas/cpp23/custo-anel-cpp
+    if [ -x "$ANELCPP" ]; then
+        echo "    custo-anel-cpp: 10 execucoes (o README publica medianas de 10)"
+        for r in $(seq 1 10); do
+            sudo -u "$DONO" -H "$ANELCPP" > "$SAIDA_CPP/custo-anel-cpp.r$r.txt" 2>&1
+        done
+        n=$(ls "$SAIDA_CPP"/custo-anel-cpp.r*.txt 2>/dev/null | wc -l)
+        echo "    custo-anel-cpp: $n de 10 saidas"
+    else
+        echo "    PULADO: custo-anel-cpp ausente em $ANELCPP"
+    fi
 
     for f in "$SAIDA_T02"/pipeline_ring*.txt "$SAIDA_CPP"/packet_pipeline*.txt; do
         [ -s "$f" ] && printf "    %-42s %s bytes\n" "$(basename "$f")" "$(stat -c %s "$f")" \
