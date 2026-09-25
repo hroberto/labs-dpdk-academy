@@ -819,11 +819,17 @@ high ones. The isolated access (`K = 1`), which measures pure latency, moves
   open, and what changed is what it costs: not a boot parameter, as this
   section assumed before trying.
 
-  **What remains is correlation, not intervention.** `amdgpu_gfxoff_count` and
-  `amdgpu_gfxoff_residency` are readable, and a counter read before and after a
-  window measures how many transitions occurred in it. If the number tracks the
-  long stalls, the attribution gains support; if it does not, it falls. Neither
-  outcome proves cause — only the intervention would.
+  The counters `amdgpu_gfxoff_count` and `amdgpu_gfxoff_residency` do not serve
+  either: the read does not return within two seconds. That is consistent with
+  the hypothesis itself — reading the GFX block's state requires waking it —
+  but hanging is the opposite of measuring.
+
+  **The correlation, however, is already measured, and did not need
+  `debugfs`.** The §6.6.5 table is exactly that: `osnoise` with a threshold
+  counts the function's executions and sums their durations, and the function
+  appears twelve times in thirteen seconds with a graphical session and not
+  once without one. What is missing is not evidence of association; it is the
+  intervention that would separate association from cause.
 - **The magnitude of the shift between graphical session and text mode.** The
   comparison was made once, on 24/09: ten of the 198 labels moved by more than
   5%, and the reading of the ten is in §6.7 — seven are artefacts of the metric

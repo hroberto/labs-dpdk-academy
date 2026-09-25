@@ -802,11 +802,16 @@ isolado (`K = 1`), que mede latência pura, move −12,6 % com a velocidade.
   continua aberta, e o que mudou é o que ela custa: não é um parâmetro de boot,
   como esta seção supunha antes de tentar.
 
-  **O que sobra é correlação, não intervenção.** `amdgpu_gfxoff_count` e
-  `amdgpu_gfxoff_residency` são legíveis, e contador lido antes e depois de uma
-  janela mede quantas transições houve nela. Se o número acompanhar as paradas
-  longas, a atribuição ganha apoio; se não acompanhar, ela cai. Nenhum dos dois
-  desfechos prova causa — só a intervenção provaria.
+  Os contadores `amdgpu_gfxoff_count` e `amdgpu_gfxoff_residency` também não
+  servem: a leitura não retorna em dois segundos. Isso é consistente com a
+  própria hipótese — ler o estado do bloco GFX exige acordá-lo —, mas travar é
+  o oposto de medir.
+
+  **A correlação, porém, já está medida, e não precisou do `debugfs`.** A
+  tabela da §6.6.5 é exatamente ela: `osnoise` com limiar conta as execuções da
+  função e soma suas durações, e a função aparece doze vezes em treze segundos
+  com sessão gráfica e nenhuma vez sem ela. O que falta não é evidência de
+  associação; é a intervenção que separaria associação de causa.
 - **Magnitude do deslocamento entre sessão gráfica e modo texto.** A
   comparação foi feita uma vez, em 24/09: dez dos 198 rótulos passaram de 5 %,
   e a leitura dos dez está na §6.7 — sete são artefato da métrica ou do regime
