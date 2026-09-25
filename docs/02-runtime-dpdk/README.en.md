@@ -142,14 +142,14 @@ times it and returns the result through a *pipe*; the parent only aggregates.
   configuration measured: -l 0 --in-memory
   samples: 11 (one per process; rte_eal_init is not reentrant)
 
-  warning: "rte_eal_cleanup()" has disp 7.6% with 11 samples -- in that band the seal
+  warning: "rte_eal_cleanup()" has disp 3.4% with 11 samples -- in that band the seal
            does not decide. Raise it to 20+ before explaining the result.
   values in MILLISECONDS
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  rte_eal_init()                         117.8  117.6-117.9     117.5-117.9         0.2%   0.1%
-  rte_eal_cleanup()                      0.093  0.088-0.095     0.081-0.113         7.6%   9.2% ~
+  rte_eal_init()                         117.7  117.3-117.7     116.8-117.8         0.4%   0.3%
+  rte_eal_cleanup()                      0.080  0.078-0.081     0.068-0.082         3.4%   6.0% ~
 
   Reading:
     At 10 GbE with 64 B frames one packet arrives every 67.2 ns.
@@ -1068,7 +1068,7 @@ it:
 
 ```c
 rte_memzone_free(mz);
-  rte_eal_cleanup()                      0.093  0.088-0.095     0.081-0.113         7.6%   9.2% ~
+  rte_eal_cleanup()                      0.080  0.078-0.081     0.068-0.082         3.4%   6.0% ~
 ```
 
 Inverting that is using memory already returned. In an application with configured

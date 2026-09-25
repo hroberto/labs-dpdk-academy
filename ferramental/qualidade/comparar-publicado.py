@@ -41,6 +41,41 @@ CERCA = "```"
 MIN_CHARS = 24
 
 
+# O PROGRAMA DIZ QUANDO O NUMERO NAO E MEDICAO, E ISSO E PARA SER RESPEITADO.
+#
+# `pipeline_ring -n 10` imprime `Mean time: 51.1 ns/packet  <- NOT A MEASUREMENT`
+# e, na linha seguinte, a razao: dez pacotes nao medem nada porque o custo de
+# ler o relogio e da ordem do trabalho. O valor varia 29% entre campanhas, e
+# variar e exatamente o que ele deveria fazer.
+#
+# Acusar essa linha como "mediana envelhecida" e cobrar reprodutibilidade de um
+# numero que o proprio programa declara irreprodutivel. Pior: enche a lista de
+# trabalho com o unico item que nunca vai sair dela, e lista que nao esvazia
+# ensina a nao olhar.
+#
+# A marca vem do PROGRAMA, e nao de uma lista de excecao neste arquivo. Quem
+# escreve o `printf` e quem sabe se aquilo e medida; uma lista aqui seria um
+# segundo lugar para manter a mesma informacao.
+NAO_E_MEDICAO = re.compile(r"NOT A MEASUREMENT|NAO E MEDICAO", re.I)
+
+# O SELO `!` TAMBEM VEM DO PROGRAMA, e diz dispersao alta.
+#
+# `statistics.h` marca com `!` a linha cuja dispersao passa do limite que o
+# proprio projeto declara confiavel. Para essas, um bloco de execucao unica e
+# instavel POR CONSTRUCAO: o `RATIO between/within` varia de 3,87 a 4,59 dentro
+# de UMA coleta, e a §4.2 publica a execucao mais proxima da mediana de 40 --
+# escolha deliberada, documentada no texto ao lado.
+#
+# Cobrar dessa linha que ela case com a coleta mais nova seria cobrar
+# reprodutibilidade de um numero que o programa marcou como disperso, e a
+# acusacao voltaria em toda campanha sem nunca indicar defeito.
+#
+# Como no caso do `NOT A MEASUREMENT`, a marca vem de quem mede. O que o texto
+# afirma sobre esses rotulos nao sai de um bloco: sai do conjunto das coletas, e
+# a prosa diz de quantas.
+SELO_DISPERSO = re.compile(r"\s!\s*$")
+
+
 def forma(l):
     return re.sub(r"\d", "#", l.rstrip())
 
@@ -184,6 +219,8 @@ def main(carimbos):
                 continue
             for l in uteis:
                 l = l.rstrip()
+                if NAO_E_MEDICAO.search(l) or SELO_DISPERSO.search(l):
+                    continue
                 f = forma(l)
                 if f not in forma_atual:
                     continue              # fora do escopo: a coleta atual nao tem essa forma
@@ -275,6 +312,18 @@ def autoteste():
     caso("3b", "a mediana mudou -> mediana",
          classificar("  x  1.28  1.27-1.28  0.1%", "  x  1.03  1.27-1.28  0.1%")[0],
          "mediana")
+
+    # 3f. A LINHA QUE O PROGRAMA DECLARA NAO SER MEDICAO fica fora da lista.
+    caso("3f", "reconhece a marca do programa",
+         bool(NAO_E_MEDICAO.search("Mean time: 51.1 ns/packet  <- NOT A MEASUREMENT")), True)
+    caso("3g", "linha normal nao e confundida",
+         bool(NAO_E_MEDICAO.search("Mean time: 2.3 ns/packet")), False)
+
+    # 3h. O SELO `!` do proprio programa tambem exclui a linha.
+    caso("3h", "reconhece o selo de dispersao alta",
+         bool(SELO_DISPERSO.search("  RATIO   4.16  3.89-4.34   3.87-4.59   10.9%   5.8% !")), True)
+    caso("3i", "linha sem selo nao e confundida",
+         bool(SELO_DISPERSO.search("  BETWEEN  81.47  81.44-81.49  81.43-81.61  0.1%  0.1%")), False)
 
     # 3c. A MAGNITUDE. Sem ela 10,24 -> 10,25 aparece com o mesmo peso que
     #     3,42 -> 3,99, e a lista deixa de ordenar o trabalho.

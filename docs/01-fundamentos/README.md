@@ -714,10 +714,10 @@ desenho pareado ([`custo-traducao.c`](medicoes/custo-traducao.c)):
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  4 KB pages                             89.26  89.12-90.09     88.98-90.88         1.1%   0.7%
-  2 MB hugepages                         79.08  79.02-80.04     78.37-80.47         1.3%   0.8%
+  4 KB pages                             90.75  90.18-90.86     89.59-91.37         0.8%   0.5%
+  2 MB hugepages                         80.07  79.84-80.17     78.95-80.72         0.4%   0.6%
 
-  DIFFERENCE attributable to translation     10.24  IQR 10.02 to 10.47   range 9.80 to 10.86   21/21 pairs
+  DIFFERENCE attributable to translation     10.64  IQR 10.47 to 10.80   range 9.46 to 11.73   21/21 pairs
 ```
 
 Os ~80 ns comuns às duas medições são a latência da RAM, que hugepage nenhuma
@@ -801,10 +801,10 @@ Um acerto de L3 custa de 9 a 10 ns nesta máquina. A diferença medida entre
 4 KB e 2 MB foi **10,24 ns**:
 
 ```
-  4 KB pages                             89.26  89.12-90.09     88.98-90.88         1.1%   0.7%
-  2 MB hugepages                         79.08  79.02-80.04     78.37-80.47         1.3%   0.8%
+  4 KB pages                             90.75  90.18-90.86     89.59-91.37         0.8%   0.5%
+  2 MB hugepages                         80.07  79.84-80.17     78.95-80.72         0.4%   0.6%
 
-  page walk cost: 10.24 ns  (11.5% of the 4 KB access)
+  page walk cost: 10.64 ns  (11.7% of the 4 KB access)
 ```
 
 Os números são **compatíveis** com a explicação: neste conjunto de trabalho o
@@ -1679,18 +1679,41 @@ medindo o tempo de uma linha de cache viajar de um núcleo para outro:
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  within domain 0 (cpu 0 <-> 2)          21.82  21.72-22.52     18.45-24.10         3.7%   5.0% ~
-  BETWEEN domains (cpu 0 <-> 6)          81.39  81.39-81.41     81.37-81.52         0.0%   0.0%
-  RATIO between/within (paired)           3.73  3.61-3.75       3.38-4.41           3.6%   5.4% ~
+  within domain 0 (cpu 0 <-> 2)          19.57  18.77-20.96     17.72-21.08        11.2%   5.7% !
+  BETWEEN domains (cpu 0 <-> 6)          81.47  81.44-81.49     81.43-81.61         0.1%   0.1%
+  RATIO between/within (paired)           4.16  3.89-4.34       3.87-4.59          10.9%   5.8% !
 ```
 
-**Atravessar a interconexão custa cerca de 3,7 vezes mais — e são 121% do
+> **O bloco é uma execução; a razão é de quarenta.** A travessia local é o
+> rótulo de maior dispersão do módulo, e o selo `!` na linha diz isso antes de
+> qualquer prosa: dentro de **uma** coleta o `RATIO` varia de 3,87 a 4,59.
+> Publicar o valor de uma execução e chamá-lo de "a razão" seria escolher um
+> ponto de uma nuvem.
+>
+> Juntando as **oito coletas de canal duplo em modo texto**, 40 execuções:
+>
+> | | mediana | faixa |
+> |---|---:|---|
+> | dentro do domínio | 19,71 ns | 16,87–22,70 |
+> | entre domínios | 81,43 ns | 81,36–81,95 |
+> | razão | **4,13** | 3,59–4,83 |
+>
+> A amplitude da razão é de 35 % — e ela vem toda do denominador. A travessia
+> **entre** domínios varia 0,7 %; a **local** varia 35 %. Faz sentido: o mesmo
+> ruído absoluto pesa quatro vezes mais sobre um valor quatro vezes menor.
+>
+> **O bloco acima publicava 3,73**, que é o terceiro menor dos 40 — uma
+> execução no pé da distribuição, apresentada como o resultado. Foi trocado pela
+> execução mais próxima da mediana agregada, e o número que o texto afirma
+> passou a ser o das 40.
+
+**Atravessar a interconexão custa cerca de 4,1 vezes mais — e são 121% do
 orçamento de um pacote de 64 B em 10 GbE.** Um único repasse entre núcleos mal
 posicionados já estoura o orçamento inteiro, antes de qualquer trabalho útil.
 
 <!-- retratado: 6.3 6,3 14.4 14,4 82.99 82,99 17.50 17,50 -->
 
-A travessia local é a de dispersão moderada (`disp` de 3,7%), e isso
+A travessia local é a de dispersão alta (`disp` de 11,2%, e o selo `!`), e isso
 também é informação: um repasse entre dois núcleos do mesmo bloco de L3 varia
 mais, em termos relativos, do que um que atravessa a interconexão — porque o
 valor é quase quatro vezes menor e o mesmo ruído absoluto pesa quase quatro
@@ -1700,7 +1723,7 @@ Esse resultado tem consequência direta e imediata no projeto: o
 [tópico 02](../../trilha/01-fundamentos/02-mempool-ring/) passa objetos entre
 produtor e consumidor por um [`rte_ring`][guiaring], e cada repasse faz exatamente essa
 viagem. Escolher `-l 0,2` ou `-l 0,6` na EAL não é detalhe de configuração — é a
-diferença entre 22 ns e 81 ns por travessia.
+diferença entre 20 ns e 81 ns por travessia.
 
 > **Respondendo à pergunta de forma direta:** não vale ativar a opção de BIOS. Ela
 > anunciaria uma assimetria de *memória* que não existe nesta máquina, enquanto a
@@ -1930,12 +1953,12 @@ largada, cronômetro parando na última a terminar:
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  1 thread  on 1 physical core (cpu 0)    1862.3  1861.7-1862.6   1854.9-2021.7       0.0%   1.9%
-  2 threads on 2 physical cores (cpu 0,2)    3716.5  3715.1-3718.9   3675.0-3728.9       0.1%   0.3%
-  2 threads on 2 SMT siblings (cpu 0,12)    1928.4  1927.8-1928.6   1924.0-1928.7       0.0%   0.1%
+  1 thread  on 1 physical core (cpu 0)    1852.9  1852.3-1853.1   1849.2-2058.4       0.0%   2.4%
+  2 threads on 2 physical cores (cpu 0,2)    3696.3  3695.1-3696.6   3656.8-3698.2       0.0%   0.3%
+  2 threads on 2 SMT siblings (cpu 0,12)    1918.3  1917.6-1918.9   1914.3-1919.4       0.1%   0.1%
 
   two physical cores yield 1.99x one core
-  two SMT siblings    yield 1.03x one core
+  two SMT siblings    yield 1.04x one core
 ```
 
 **Dois núcleos físicos rendem 1,99×. Dois irmãos SMT rendem 1,04×.** O par de
@@ -2167,10 +2190,10 @@ diferentes:**
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  atomic + busy wait (does not sleep)     17.56  17.50-17.86     17.49-18.45         2.1%   1.7%
-  mutex + busy wait (does not sleep)     96.43  96.25-97.69     95.11-99.24         1.5%   1.1%
-  mutex + condvar (SLEEPS)              1265.6  1256.0-1280.6   1212.7-1314.3       1.9%   2.1%
-  POSIX semaphore (SLEEPS)              1216.2  1209.5-1224.1   1171.5-1316.7       1.2%   2.5%
+  atomic + busy wait (does not sleep)     17.91  17.67-18.09     17.65-18.26         2.4%   1.2%
+  mutex + busy wait (does not sleep)     94.95  94.52-95.48     92.49-97.24         1.0%   1.2%
+  mutex + condvar (SLEEPS)              1269.8  1260.8-1292.9   1221.0-1356.0       2.5%   2.2%
+  POSIX semaphore (SLEEPS)              1208.4  1200.6-1220.7   1135.1-1285.1       1.7%   2.6%
 ```
 <!-- cita-retratado: 17,50 17.50 — NAO e citacao do valor retratado. O `17.50`
      acima e o limite inferior do IQR de `atomic + busy wait`, medicao sem
@@ -2190,7 +2213,7 @@ contexto — e é isso que custa mais de mil nanossegundos.
 
 ```
     busy waiting fits 3.8 times in it
-    sleeping spends 18.8 whole budgets
+    sleeping spends 18.9 whole budgets
 ```
 
 Acordar uma thread consome o equivalente a **19 pacotes de 10 GbE**. No tempo de

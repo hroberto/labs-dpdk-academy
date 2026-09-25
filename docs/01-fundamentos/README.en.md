@@ -708,10 +708,10 @@ paired design ([`custo-traducao.c`](medicoes/custo-traducao.c)):
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  4 KB pages                             89.26  89.12-90.09     88.98-90.88         1.1%   0.7%
-  2 MB hugepages                         79.08  79.02-80.04     78.37-80.47         1.3%   0.8%
+  4 KB pages                             90.75  90.18-90.86     89.59-91.37         0.8%   0.5%
+  2 MB hugepages                         80.07  79.84-80.17     78.95-80.72         0.4%   0.6%
 
-  DIFFERENCE attributable to translation     10.24  IQR 10.02 to 10.47   range 9.80 to 10.86   21/21 pairs
+  DIFFERENCE attributable to translation     10.64  IQR 10.47 to 10.80   range 9.46 to 11.73   21/21 pairs
 ```
 
 The ~80 ns common to both measurements are RAM latency, which no hugepage eliminates.
@@ -795,10 +795,10 @@ An L3 hit costs 9 to 10 ns on this machine. The measured difference between
 4 KB and 2 MB was **10.24 ns**:
 
 ```
-  4 KB pages                             89.26  89.12-90.09     88.98-90.88         1.1%   0.7%
-  2 MB hugepages                         79.08  79.02-80.04     78.37-80.47         1.3%   0.8%
+  4 KB pages                             90.75  90.18-90.86     89.59-91.37         0.8%   0.5%
+  2 MB hugepages                         80.07  79.84-80.17     78.95-80.72         0.4%   0.6%
 
-  page walk cost: 10.24 ns  (11.5% of the 4 KB access)
+  page walk cost: 10.64 ns  (11.7% of the 4 KB access)
 ```
 
 The numbers are **consistent** with the explanation: in this working set the
@@ -1672,18 +1672,42 @@ measuring the time for a cache line to travel from one core to another:
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  within domain 0 (cpu 0 <-> 2)          21.82  21.72-22.52     18.45-24.10         3.7%   5.0% ~
-  BETWEEN domains (cpu 0 <-> 6)          81.39  81.39-81.41     81.37-81.52         0.0%   0.0%
-  RATIO between/within (paired)           3.73  3.61-3.75       3.38-4.41           3.6%   5.4% ~
+  within domain 0 (cpu 0 <-> 2)          19.57  18.77-20.96     17.72-21.08        11.2%   5.7% !
+  BETWEEN domains (cpu 0 <-> 6)          81.47  81.44-81.49     81.43-81.61         0.1%   0.1%
+  RATIO between/within (paired)           4.16  3.89-4.34       3.87-4.59          10.9%   5.8% !
 ```
 
-**Crossing the interconnect costs about 3.7 times more — and that is 121% of the budget
+> **The block is one run; the ratio comes from forty.** The local crossing is
+> the module's highest-dispersion label, and the `!` seal on the line says so
+> before any prose: within a **single** collection the `RATIO` ranges from 3.87
+> to 4.59. Publishing one run's value and calling it "the ratio" would be
+> picking a point out of a cloud.
+>
+> Pooling the **eight dual-channel text-mode collections**, 40 runs:
+>
+> | | median | range |
+> |---|---:|---|
+> | within the domain | 19.71 ns | 16.87–22.70 |
+> | between domains | 81.43 ns | 81.36–81.95 |
+> | ratio | **4.13** | 3.59–4.83 |
+>
+> The ratio's spread is 35% — and all of it comes from the denominator. The
+> crossing **between** domains varies by 0.7%; the **local** one varies by 35%.
+> That follows: the same absolute noise weighs four times more on a value four
+> times smaller.
+>
+> **The block above used to publish 3.73**, the third lowest of the 40 — a run
+> from the foot of the distribution, presented as the result. It was replaced by
+> the run closest to the pooled median, and the number the text asserts is now
+> the one from the 40.
+
+**Crossing the interconnect costs about 4.1 times more — and that is 121% of the budget
 of a 64 B packet on 10 GbE.** A single hand-off between badly placed cores already blows
 the entire budget, before any useful work.
 
 <!-- retratado: 6.3 6,3 14.4 14,4 82.99 82,99 17.50 17,50 -->
 
-The local crossing is the one with moderate dispersion (`disp` of 3.7%), and that is
+The local crossing is the one with high dispersion (`disp` of 11.2%, carrying the `!` seal), and that is
 information too: a hand-off between two cores in the same L3 block varies more, in relative
 terms, than one crossing the interconnect — because the value is four times smaller and the
 same absolute noise weighs four times as much.
@@ -1692,7 +1716,7 @@ That result has a direct and immediate consequence in the project: the
 [topic 02](../../trilha/01-fundamentos/02-mempool-ring/) passes objects between producer
 and consumer through an [`rte_ring`][guiaring], and each hand-off makes exactly that trip.
 Choosing `-l 0,2` or `-l 0,6` in the EAL is not a configuration detail — it is the
-difference between 22 ns and 81 ns per crossing.
+difference between 20 ns and 81 ns per crossing.
 
 > **Answering the question directly:** it is not worth enabling the BIOS option. It would
 > announce a *memory* asymmetry that does not exist on this machine, while the
@@ -1920,12 +1944,12 @@ to finish:
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  1 thread  on 1 physical core (cpu 0)    1862.3  1861.7-1862.6   1854.9-2021.7       0.0%   1.9%
-  2 threads on 2 physical cores (cpu 0,2)    3716.5  3715.1-3718.9   3675.0-3728.9       0.1%   0.3%
-  2 threads on 2 SMT siblings (cpu 0,12)    1928.4  1927.8-1928.6   1924.0-1928.7       0.0%   0.1%
+  1 thread  on 1 physical core (cpu 0)    1852.9  1852.3-1853.1   1849.2-2058.4       0.0%   2.4%
+  2 threads on 2 physical cores (cpu 0,2)    3696.3  3695.1-3696.6   3656.8-3698.2       0.0%   0.3%
+  2 threads on 2 SMT siblings (cpu 0,12)    1918.3  1917.6-1918.9   1914.3-1919.4       0.1%   0.1%
 
   two physical cores yield 1.99x one core
-  two SMT siblings    yield 1.03x one core
+  two SMT siblings    yield 1.04x one core
 ```
 
 **Two physical cores yield 1.99×. Two SMT siblings yield 1.04×.** The sibling pair
@@ -2152,10 +2176,10 @@ comes out of the per-packet budget.
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  atomic + busy wait (does not sleep)     17.56  17.50-17.86     17.49-18.45         2.1%   1.7%
-  mutex + busy wait (does not sleep)     96.43  96.25-97.69     95.11-99.24         1.5%   1.1%
-  mutex + condvar (SLEEPS)              1265.6  1256.0-1280.6   1212.7-1314.3       1.9%   2.1%
-  POSIX semaphore (SLEEPS)              1216.2  1209.5-1224.1   1171.5-1316.7       1.2%   2.5%
+  atomic + busy wait (does not sleep)     17.91  17.67-18.09     17.65-18.26         2.4%   1.2%
+  mutex + busy wait (does not sleep)     94.95  94.52-95.48     92.49-97.24         1.0%   1.2%
+  mutex + condvar (SLEEPS)              1269.8  1260.8-1292.9   1221.0-1356.0       2.5%   2.2%
+  POSIX semaphore (SLEEPS)              1208.4  1200.6-1220.7   1135.1-1285.1       1.7%   2.6%
 ```
 <!-- cita-retratado: 17.50 -->
 <!-- NOT a citation of the retracted value: the `17.50` above is the lower bound
@@ -2176,7 +2200,7 @@ than a thousand nanoseconds.
 
 ```
     busy waiting fits 3.8 times in it
-    sleeping spends 18.8 whole budgets
+    sleeping spends 18.9 whole budgets
 ```
 
 Waking a thread consumes the equivalent of **19 packets of 10 GbE**. In the time to be

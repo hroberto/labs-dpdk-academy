@@ -419,7 +419,7 @@ rc=$?
 # `verificar-blocos.py` acusa.
 # --------------------------------------------------------------------------
 echo
-echo "==> ETAPA 4/4  invocacoes unicas da trilha  ($(date +%T))"
+echo "==> ETAPA 4/4  blocos da trilha, com repeticoes  ($(date +%T))"
 if [ "$SO_RUIDO" -eq 1 ]; then
     echo "    PULADA (--so-ruido)"
     echo
@@ -449,14 +449,39 @@ else
     # demonstrar o vazamento e o sinaliza pela saida. Tratar rc != 0 como falha
     # faria o script "consertar" o unico programa que esta certo em falhar. O
     # que se confere e a SAIDA ter conteudo, que e o que vira procedencia.
-    sudo -u "$DONO" -H "$PR"  -l 0   --no-huge --file-prefix=topico02 -- -n 10 \
-        > "$SAIDA_T02/pipeline_ring.n10.txt" 2>&1
-    sudo -u "$DONO" -H "$PR"  -l 0,2 --no-huge --file-prefix=topico02 -- -n 2000000 -b 256 \
-        > "$SAIDA_T02/pipeline_ring.2m-b256.txt" 2>&1
-    sudo -u "$DONO" -H "$PRV" -l 0,2 --no-huge --file-prefix=topico02 -- -n 2000000 -b 256 \
-        > "$SAIDA_T02/pipeline_ring_vazado.2m-b256.txt" 2>&1
-    sudo -u "$DONO" -H "$PKT" -n 10 \
-        > "$SAIDA_CPP/packet_pipeline.n10.txt" 2>&1
+    # REPETICOES, E NAO INVOCACAO UNICA.
+    #
+    # Ate 25/09/2026 estas quatro rodavam UMA vez cada, e a etapa se chamava
+    # "invocacoes unicas". O efeito aparecia toda campanha: o `Mean time` do
+    # `-n 10` se movia 29% entre coletas, e o do `-n 2000000` uns 4%. Republicar
+    # a cada campanha era trabalho sem fim, e o numero publicado nao carregava
+    # dispersao nenhuma -- ou seja, nao dizia o quanto valia.
+    #
+    # E PARA O `-n 10` A REPETICAO E O PROPRIO ARGUMENTO. O programa imprime
+    # `<- NOT A MEASUREMENT` ao lado daquele numero, porque dez pacotes nao
+    # medem: o custo de ler o relogio e da ordem do trabalho. Uma execucao so
+    # mostra um valor qualquer; dez execucoes mostram a AMPLITUDE, e a amplitude
+    # e o que demonstra a afirmacao do programa em vez de so repeti-la.
+    #
+    # O BLOCO PUBLICADO CONTINUA SENDO UMA EXECUCAO. O `verificar-blocos` casa
+    # linha literal contra arquivo, e mediana entre rodadas nao existe em rodada
+    # nenhuma -- a r1 e a que vai ao documento. As demais sustentam a prosa que
+    # fala de faixa.
+    for r in $(seq 1 10); do
+        sudo -u "$DONO" -H "$PR"  -l 0   --no-huge --file-prefix=topico02 -- -n 10 \
+            > "$SAIDA_T02/pipeline_ring.n10.r$r.txt" 2>&1
+        sudo -u "$DONO" -H "$PKT" -n 10 \
+            > "$SAIDA_CPP/packet_pipeline.n10.r$r.txt" 2>&1
+    done
+    # Cinco para as de 2 milhoes: cada uma leva segundos, e a dispersao delas ja
+    # e pequena -- dez seriam minutos comprados por casa decimal que nao muda
+    # leitura nenhuma.
+    for r in $(seq 1 5); do
+        sudo -u "$DONO" -H "$PR"  -l 0,2 --no-huge --file-prefix=topico02 -- -n 2000000 -b 256 \
+            > "$SAIDA_T02/pipeline_ring.2m-b256.r$r.txt" 2>&1
+        sudo -u "$DONO" -H "$PRV" -l 0,2 --no-huge --file-prefix=topico02 -- -n 2000000 -b 256 \
+            > "$SAIDA_T02/pipeline_ring_vazado.2m-b256.r$r.txt" 2>&1
+    done
 
     # A EXCECAO DESTA ETAPA, E ELA E DECLARADA.
     #
@@ -479,10 +504,16 @@ else
         echo "    PULADO: custo-anel-cpp ausente em $ANELCPP"
     fi
 
-    for f in "$SAIDA_T02"/pipeline_ring*.txt "$SAIDA_CPP"/packet_pipeline*.txt; do
-        [ -s "$f" ] && printf "    %-42s %s bytes\n" "$(basename "$f")" "$(stat -c %s "$f")" \
-                    || printf "    %-42s VAZIO\n" "$(basename "$f")"
+    for pref in pipeline_ring.n10 pipeline_ring.2m-b256 pipeline_ring_vazado.2m-b256; do
+        n=$(ls "$SAIDA_T02/$pref".r*.txt 2>/dev/null | wc -l)
+        faixa=$(grep -h 'Mean time' "$SAIDA_T02/$pref".r*.txt 2>/dev/null \
+                | grep -oE '[0-9]+\.[0-9]+' | sort -n | sed -n '1p;$p' | paste -sd'-')
+        printf "    %-34s %2s saida(s)   Mean time: %s ns\n" "$pref" "$n" "${faixa:-?}"
     done
+    n=$(ls "$SAIDA_CPP"/packet_pipeline.n10.r*.txt 2>/dev/null | wc -l)
+    faixa=$(grep -h 'Mean time' "$SAIDA_CPP"/packet_pipeline.n10.r*.txt 2>/dev/null \
+            | grep -oE '[0-9]+\.[0-9]+' | sort -n | sed -n '1p;$p' | paste -sd'-')
+    printf "    %-34s %2s saida(s)   Mean time: %s ns\n" "packet_pipeline.n10" "$n" "${faixa:-?}"
     chown -R "$DONO" "$SAIDA_T02" "$SAIDA_CPP"
     echo "    saida: $SAIDA_T02"
     echo "           $SAIDA_CPP"
