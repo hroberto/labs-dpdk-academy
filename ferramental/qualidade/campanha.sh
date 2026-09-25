@@ -130,17 +130,60 @@
 # metodologia. Enquanto isso nao for medido, o argumento de que "a mediana
 # resiste" e expectativa.
 #
-#   HIPOTESE. As medianas publicadas quase nao se movem, porque a fonte da
-#   sessao grafica e rara e o projeto publica mediana com dispersao.
+# O PRE-REGISTRO ORIGINAL FOI RESPONDIDO, E POR ISSO FOI APOSENTADO.
 #
-#   PREVISAO. O `comparar-hardware.py` marca com `<<<` todo rotulo que se move
-#   mais de 5%. Confrontando modo texto contra a coleta de canal duplo com
-#   sessao grafica, no maximo 5 dos 198 rotulos recebem a marca. Para
-#   calibrar: entre canal unico e canal duplo, 30 receberam.
+# Ele previa que, confrontando modo texto contra a coleta de canal duplo COM
+# SESSAO GRAFICA, no maximo 5 dos 198 rotulos se moveriam mais de 5%. Essa
+# comparacao foi feita em 24/09, e o desfecho levou ao rebase de todas as
+# coletas para modo texto. A coleta grafica que era o outro lado dela foi
+# apagada, entao a previsao nao tem mais como ser avaliada -- nem precisa.
 #
-#   REFUTADA SE. Mais de 5 receberem, ou se algum se mover mais que o mesmo
-#   rotulo se moveu entre canal unico e canal duplo -- o que significaria que o
-#   projeto vinha atribuindo a hardware um efeito que era da sessao grafica.
+# O QUE O PASSO 6 COMPARA AGORA e outra coisa, e a pergunta mudou junto: a
+# referencia passou a ser DERIVADA do disco (a campanha anterior que existe), e
+# o confronto virou campanha contra campanha na MESMA condicao. Isso nao mede
+# efeito de sessao grafica; mede REPRODUTIBILIDADE.
+#
+#   HIPOTESE. Duas campanhas na mesma condicao -- modo texto, mesmo hardware,
+#   mesmo governor -- concordam nas medianas publicadas, porque o protocolo
+#   removeu a fonte que as movia.
+#
+#   CALIBRACAO, e ela vem ANTES da previsao de proposito. Entre as duas
+#   campanhas em modo texto ja existentes -- 24/09 e 25/09 --, doze rotulos
+#   passaram de 5%:
+#
+#     4  colunas `random` do `efeito-cache`, de -31% a -47%. Sao a correcao do
+#        acumulador `volatile` em 0907f57: mudanca de CODIGO, explicada.
+#     2  travessia local do `custo-comunicacao`, +7,2% e -6,8%. A §4.2 declara
+#        esse rotulo como o de maior dispersao do modulo.
+#     4  `DIFFERENCE attributable to translation` nas regioes pequenas. Ver a
+#        limitacao do limiar, abaixo: sao artefato, nao movimento.
+#     2  `custo-traducao.regiao32mb`, +5,6% e +15,0%.
+#
+#   PREVISAO. No maximo 8 rotulos nao explicados por mudanca de codigo recebem
+#   a marca.
+#
+#   O NUMERO 8 E O OBSERVADO, E ISSO PRECISA ESTAR DITO. Ele nao foi escolhido
+#   por ser folgado: e exatamente quantos apareceram no unico par de campanhas
+#   comparaveis que existe. Uma previsao calibrada no proprio dado que a
+#   testaria nao seria previsao -- seria descricao. Por isso ela vale a partir
+#   da PROXIMA campanha, e esta e a primeira vez que ela corre sem conhecer o
+#   resultado.
+#
+#   REFUTADA SE. Mais de 8 rotulos NAO EXPLICADOS por mudanca de codigo
+#   receberem a marca. Nesse caso a hipotese de que o protocolo de modo texto
+#   estabilizou as medianas nao se sustenta, e o que sobra e descobrir o que
+#   ainda se move.
+#
+# UMA LIMITACAO DO LIMIAR, DECLARADA PORQUE ELA JA DISPAROU.
+#
+# `abs(d) > 5%` e relativo, e a `DIFFERENCE attributable to translation` e uma
+# DIFERENCA entre duas medidas -- perto de zero nas regioes pequenas. Entre as
+# duas campanhas ela foi de 0,008 para 0,013 ns e recebeu +62%: um passo
+# ABSOLUTO de 0,005 ns, abaixo de qualquer resolucao que este projeto reivindica.
+#
+# Marca relativa sobre grandeza proxima de zero nao informa nada, e os quatro
+# rotulos de `seq*` que aparecem na lista sao esse artefato. Quem ler a saida
+# precisa olhar a coluna dos valores, e nao so a marca.
 #
 # A campanha de mempool-cache tambem corre aqui, e nao por completude: as
 # contagens de ida ao anel foram coletadas com sessao grafica e o tempo foi
@@ -510,9 +553,30 @@ fi   # fim dos passos 1 a 4
 echo
 echo "==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  ($(date +%T))"
 CONF="$CONFIG"
-# A coleta de referencia serve a dois passos: gabarito de completude aqui, e
-# o outro lado da comparacao no passo 6.
-REF="2026-09-23-expo6000-canal-duplo"
+# A COLETA DE REFERENCIA E DERIVADA DO DISCO, e nao digitada.
+#
+# Ela serve a dois passos: gabarito de completude aqui, e o outro lado da
+# comparacao no passo 6.
+#
+# Estava fixa em `2026-09-23-expo6000-canal-duplo` -- uma coleta que o projeto
+# APAGOU em 24/09 ao adotar o protocolo de modo texto. O efeito nao era um erro
+# visivel: `completa()` passava a devolver "incompleta" sempre, e o passo 6
+# imprimia "sem par para comparar". A campanha rodaria a hora inteira e
+# entregaria a comparacao VAZIA -- que e o passo pelo qual ela existe.
+#
+# Agora e a coleta mais recente que EXISTE e que nao e a desta execucao. O
+# carimbo `AAAA-MM-DD-HHMM` na frente do nome faz `sort` ordenar por tempo, que
+# e a razao de ele vir na frente.
+REF=$(ls -d docs/01-fundamentos/medicoes/historico/*/ 2>/dev/null \
+      | sed 's:.*/\([^/]*\)/$:\1:' \
+      | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}' \
+      | grep -v -- "-ambiente\$" | grep -v -- "-sonda\$" \
+      | grep -vF "$CONF" | sort | tail -1)
+if [ -z "$REF" ]; then
+    echo "    AVISO: nenhuma coleta anterior no historico; o passo 6 nao tera par."
+else
+    echo "    referencia para comparar: $REF"
+fi
 ./scripts/ambiente.sh --cachear-memoria >/dev/null 2>&1 \
     && chown "$DONO" .ambiente-memoria 2>/dev/null
 
@@ -649,10 +713,27 @@ if [ "$marcados" -gt 0 ]; then
 fi
 # O PRE-REGISTRO E CONFERIDO AQUI, e nao na leitura posterior: previsao que so
 # e avaliada depois vira interpretacao do resultado.
-if [ "$marcados" -le 5 ]; then
-    echo "    PREVISAO SUSTENTADA (<= 5 rotulos marcados)"
+#
+# O VEREDITO CONTA SO O QUE A PREVISAO COBRE. Ela fala dos rotulos NAO
+# explicados por mudanca de codigo; jogar os explicados na mesma conta faria a
+# campanha anunciar refutacao toda vez que um programa medido fosse corrigido
+# -- e corrigir programa e o trabalho normal deste repositorio.
+#
+# A lista de exclusao vai NO ARQUIVO, e nao na cabeca de quem le: cada entrada
+# nomeia o rotulo e o commit que o explica. Entrada sem explicacao escrita nao
+# entra, porque ai a exclusao viraria a porta de saida do veredito.
+EXPLICADOS_RE='efeito-cache: (L1d|L2|L3|RAM) random'
+#   efeito-cache: * random -- acumulador `volatile` trocado por registrador em
+#   0907f57. A cadeia store->load pela pilha limitava o paralelismo de memoria,
+#   e removê-la move a coluna `random` de -31% a -47%. Esperado e documentado
+#   na §4.2 do modulo 01.
+explicados=$(grep '<<<' "$SAIDA/comparacao.txt" | grep -cE "$EXPLICADOS_RE" || true)
+nao_explicados=$(( marcados - explicados ))
+echo "    dos $marcados marcados, $explicados sao mudanca de codigo declarada"
+if [ "$nao_explicados" -le 8 ]; then
+    echo "    PREVISAO SUSTENTADA ($nao_explicados rotulo(s) nao explicado(s), <= 8)"
 else
-    echo "    PREVISAO REFUTADA ($marcados rotulos marcados, previa-se no maximo 5)"
+    echo "    PREVISAO REFUTADA ($nao_explicados nao explicados, previa-se no maximo 8)"
 fi
 grep -E "rotulo\(s\);" "$SAIDA/comparacao.txt" | sed 's/^/    /'
 echo "    comparacao completa em ${SAIDA#$RAIZ/}/comparacao.txt"
