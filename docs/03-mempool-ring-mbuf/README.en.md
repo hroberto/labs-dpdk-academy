@@ -809,7 +809,7 @@ a single lcore, with no contention at all**:
 ```
 
 **The cost does not depend on contention existing.** With a single producer, MP/MC
-mode still costs 406% more at batch 1 — because the atomic instruction is executed
+mode still costs 404% more at batch 1 — because the atomic instruction is executed
 anyway. What you pay for is not the contention; it is the *possibility* of it.
 
 And batching solves it — more than solves it. At 128 objects per call the difference
@@ -933,7 +933,7 @@ measures.
 
 #### Why the atomic costs with nobody contending
 
-The 406% at batch 1 were measured **on a single lcore**. There is no second
+The 404% at batch 1 were measured **on a single lcore**. There is no second
 producer, the CAS never fails, and the loop runs once.
 
 What remains is the cost of the instruction. The `f0` prefix that `objdump`
@@ -1041,7 +1041,7 @@ is architectural:
          ↓
     does the measured gain justify it?
 
-The last question has no general answer, and the §3 table shows why: 406% at
+The last question has no general answer, and the §3 table shows why: 404% at
 batch 1, 22% at batch 32. **If the application already works in large batches,
 the invariant costs a lot and yields little.** If it processes object by
 object, the account inverts.

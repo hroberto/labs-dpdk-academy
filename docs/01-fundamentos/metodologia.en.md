@@ -605,7 +605,7 @@ confirmation, with a different intervention on the same quantity.
 
 ### And a confirmation §4.1 declared it did not have
 
-[§4.1](README.en.md#why-the-difference-is-11-ns-and-not-three-trips-to-ram)
+[§4.1](README.en.md#why-the-difference-is-10-ns-and-not-three-trips-to-ram)
 explains that the extra translation cost is served by the L3, and labels the
 explanation *"consistent, not demonstrated"* — because demonstrating it would
 require a hardware counter.

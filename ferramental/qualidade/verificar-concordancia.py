@@ -65,6 +65,11 @@ NUM = re.compile(rf"(\d+(?:[.,]\d+)?)\s*{UNI}(?![\w/])")
 # Dentro de bloco e de tabela a unidade vive no cabecalho, nao no numero.
 NUM_NU = re.compile(r"(?<![\w.,])(\d+(?:[.,]\d+)?)(?![\w.,])")
 TEM_FONTE = re.compile(r"\]\[[^\]]+\]|\]\(https?:")
+# URL e definicao de referencia nao sao prosa: o `9950` de
+# `chipsandcheese.com/p/amds-ryzen-9950x-zen-5-on-desktop` e nome de produto, e
+# a vizinhanca de 2% o casava com um `10000` de bloco sem relacao nenhuma. Uma
+# linha que E um endereco sai inteira do escopo.
+SO_URL = re.compile(r"^\s*(\[[^\]]+\]:\s*)?(https?|ftp)://\S+\s*$")
 # Valor que o documento JA declara retratado e cita de proposito. Sem isto, o
 # paragrafo mais honesto do material -- aquele que diz "esta tabela publicava
 # 0,924 ns e o valor nao reproduz" -- e o que mais aparece na lista, porque o
@@ -100,7 +105,7 @@ def numeros(texto):
                 bloco.add(m.group(1).replace(",", "."))
             for m in NUM.finditer(ln):
                 bloco.add(m.group(1).replace(",", "."))
-        elif not TEM_FONTE.search(ln):
+        elif not TEM_FONTE.search(ln) and not SO_URL.match(ln):
             for m in NUM.finditer(ln):
                 t = m.group(1).replace(",", ".")
                 if t in retratados:
@@ -202,6 +207,9 @@ def autoteste():
          "```\nuso  26.5\n```", "Ficou em 26,6%.", 1)
     caso("sem unidade a prosa nao e medicao",
          "```\nrazao  1.03\n```", "Veja a secao 1,04 adiante.", 0)
+    caso("URL nao e prosa",
+         "```\nrazao  10000\n```",
+         "[cc]: https://chipsandcheese.com/p/amds-ryzen-9950x-zen-5", 0)
     caso("valor declarado retratado nao entra na lista",
          "```\nrazao  1.03\n```\n<!-- retratado: 1,04 1.04 -->",
          "A tabela publicava 1,04× e o valor nao reproduz.", 0)

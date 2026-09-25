@@ -76,21 +76,21 @@
     {
       "arquivo": "docs/01-fundamentos/README.md",
       "linha": 770,
-      "secao": "Por que a diferença é ~11 ns, e não três acessos à RAM",
+      "secao": "Por que a diferença é ~10 ns, e não três acessos à RAM",
       "tipo": "tabela_markdown",
       "sha256": "ca20c4a4dc649c7d1f35425e3e690b3707b1ac8df70d68071cad6e2e7b80ccc7"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
       "linha": 791,
-      "secao": "Por que a diferença é ~11 ns, e não três acessos à RAM",
+      "secao": "Por que a diferença é ~10 ns, e não três acessos à RAM",
       "tipo": "bloco_numerico",
       "sha256": "9bd20947b1310b1c56407b4d9ad7c18a9f9f07df633b7adc942cc0dbfdbab731"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
       "linha": 803,
-      "secao": "Por que a diferença é ~11 ns, e não três acessos à RAM",
+      "secao": "Por que a diferença é ~10 ns, e não três acessos à RAM",
       "tipo": "bloco_numerico",
       "sha256": "46b60dab5daffdb70b1ee8cece1c8580d43551b646c99124050fb847ef98aebc"
     },
@@ -239,7 +239,7 @@
       "linha": 2389,
       "secao": "O IOTLB: o page walk existe do lado do dispositivo também",
       "tipo": "tabela_markdown",
-      "sha256": "5d6c9b14f7d21036b6db70e7cb7de6e040272d60245d05e391ab4690f4fa2fcb"
+      "sha256": "1d4482635633f718f86b5f56730d1b1f69533cb67117574ffd1dd772a4205d68"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",

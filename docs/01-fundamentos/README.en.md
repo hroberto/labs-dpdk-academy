@@ -411,7 +411,7 @@ walks up to four levels before the data you actually wanted is read. On this mac
 > *paging-structure caches* — which the [Intel SDM][intelsdm] describes in **§5.10, *Caching
 > Translation Information***, alongside the TLB — and by the ordinary cache hierarchy. The
 > effective cost is measured further down, in
-> [why the difference is ~11 ns](#why-the-difference-is-11-ns-and-not-three-trips-to-ram), and
+> [why the difference is ~10 ns](#why-the-difference-is-10-ns-and-not-three-trips-to-ram), and
 > it is **one** extra access, not four.
 
 #### The TLB: the cache that makes this viable
@@ -743,7 +743,7 @@ useful work.
 > between 10.1 and 11.7 ns.
 <!-- retratado: 18.2 18,2 15.2 15,2 -->
 
-#### Why the difference is ~11 ns, and not three trips to RAM
+#### Why the difference is ~10 ns, and not three trips to RAM
 
 The *page walk* diagram shows four memory accesses, and RAM on this machine
 answers in ~80 ns. If every TLB miss really cost four trips to RAM, the difference
@@ -807,7 +807,7 @@ hierarchy, in the range this machine's L3 answers in.
 
 > **Consistent is not demonstrated, and the difference is worth saying.** This
 > experiment observes no page walk at all: it measures total time and compares
-> two regimes. That ~11 ns coincides with the L3 latency measured alongside, and
+> two regimes. That ~10 ns coincides with the L3 latency measured alongside, and
 > that the megabyte of PTEs fits in L3 and not in L2, makes the explanation
 > plausible and arithmetically coherent — not proven. **Proving it would need
 > hardware counters** (`dtlb_load_misses.walk_*` and the page walk's data-source
@@ -830,7 +830,7 @@ competing with the rest of the machine, not from the method.
 > which in a data plane is the traffic itself — all enter. The defensible
 > statement is that **the probability of the terminal PTE having to be fetched
 > beyond the LLC grows substantially**, and with it the page walk's average cost
-> walks from ~11 ns towards RAM latency.
+> walks from ~10 ns towards RAM latency.
 >
 > The shape of the argument survives intact, and it is what decides design:
 > **the problem with 4 KB pages is not that they are slow, it is that they get
@@ -2356,7 +2356,7 @@ The symmetry is exact, and the consequence is important:
 |---|---|---|
 | Translates | MMU | IOMMU |
 | Translation cache | TLB | **IOTLB** |
-| Cost of a miss | a page walk (§4.1: ~11 ns on this machine, with the tables in cache) | a page walk served by the IOMMU, on the DMA path |
+| Cost of a miss | a page walk (§4.1: ~10 ns on this machine, with the tables in cache) | a page walk served by the IOMMU, on the DMA path |
 | Reach | entries × page size | entries × page size |
 
 An IOTLB miss is worse than a TLB miss, because the walk happens **on the DMA path**: the

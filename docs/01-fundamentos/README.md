@@ -418,7 +418,7 @@ níveis; CPUs mais recentes com `la57` usam cinco.
 > o [Intel SDM][intelsdm] descreve no **§5.10, *Caching Translation
 > Information***, ao lado da TLB — e pela hierarquia de cache comum. O custo
 > efetivo é medido mais adiante, em
-> [por que a diferença é ~11 ns](#por-que-a-diferença-é-11-ns-e-não-três-acessos-à-ram),
+> [por que a diferença é ~10 ns](#por-que-a-diferença-é-10-ns-e-não-três-acessos-à-ram),
 > e ele é de **um** acesso extra, não quatro.
 
 #### A TLB: a cache que torna isso viável
@@ -750,7 +750,7 @@ pacote de 64 B em 10 GbE, gastos antes de qualquer trabalho útil.
 > entre 10,1 e 11,7 ns.
 <!-- retratado: 18.2 18,2 15.2 15,2 -->
 
-#### Por que a diferença é ~11 ns, e não três acessos à RAM
+#### Por que a diferença é ~10 ns, e não três acessos à RAM
 
 O diagrama do *page walk* mostra quatro acessos à memória, e a RAM desta máquina
 responde em ~80 ns. Se cada falta de TLB custasse mesmo quatro idas à RAM, a
@@ -813,7 +813,7 @@ hierarquia de cache, na faixa que o L3 desta máquina responde.
 
 > **Compatível não é demonstrado, e a diferença vale ser dita.** Este
 > experimento não observa *page walk* nenhum: ele mede tempo total e compara
-> dois regimes. Que ~11 ns coincida com a latência de L3 medida ao lado, e que
+> dois regimes. Que ~10 ns coincida com a latência de L3 medida ao lado, e que
 > o megabyte de PTEs caiba no L3 e não no L2, torna a explicação plausível e
 > aritmeticamente coerente — não a prova. **Provar exigiria contador de
 > hardware** (`dtlb_load_misses.walk_*` e os eventos de origem de dados do
@@ -835,7 +835,7 @@ da disputa com o resto da máquina, não do método.
 > as *paging-structure caches*, e a disputa da LLC com o resto do programa — que
 > num plano de dados é justamente o tráfego. O enunciado defensável é que **a
 > probabilidade de a PTE terminal precisar ser buscada além da LLC cresce
-> substancialmente**, e com ela o custo médio do *page walk* caminha dos ~11 ns
+> substancialmente**, e com ela o custo médio do *page walk* caminha dos ~10 ns
 > em direção à latência da RAM.
 >
 > A forma do argumento sobrevive inteira, e é ela que decide projeto: **o
@@ -2390,7 +2390,7 @@ A simetria é exata, e a consequência é importante:
 |---|---|---|
 | Traduz | MMU | IOMMU |
 | Cache de traduções | TLB | **IOTLB** |
-| Custo da falta | page walk (§4.1: ~11 ns nesta máquina, com as tabelas em cache) | page walk servido pela IOMMU, no caminho do DMA |
+| Custo da falta | page walk (§4.1: ~10 ns nesta máquina, com as tabelas em cache) | page walk servido pela IOMMU, no caminho do DMA |
 | Alcance | entradas × tamanho de página | entradas × tamanho de página |
 
 Uma falta de IOTLB é pior que uma falta de TLB, porque a caminhada acontece
@@ -3491,8 +3491,8 @@ A tese sobrevive ao caso mais favorável a mim.
 A comparação parece desfavorável até se olhar a metodologia. O número da
 ChipsAndCheese isola a latência de memória; o meu é um percurso disperso por
 512 MB que **inclui as faltas de TLB**. E esse custo eu medi separadamente na
-[§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço): ~11 ns de
-*page walk*, que somem com hugepages. Descontando os ~11 ns de page walk, restam ~94 ns, ainda acima dos ~70
+[§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço): ~10 ns de
+*page walk*, que somem com hugepages. Descontando os ~10 ns de page walk, restam ~95 ns, ainda acima dos ~70
 — diferença compatível com configuração de memória diferente (velocidade e
 timings do DDR5 não são os mesmos).
 

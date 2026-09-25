@@ -594,7 +594,7 @@ independente, com outra intervenção sobre a mesma grandeza.
 
 ### E uma confirmação que a §4.1 declarava não ter
 
-A [§4.1](README.md#por-que-a-diferença-é-11-ns-e-não-três-acessos-à-ram) explica
+A [§4.1](README.md#por-que-a-diferença-é-10-ns-e-não-três-acessos-à-ram) explica
 que o custo extra de tradução é servido pelo L3, e classifica a explicação como
 *"compatível, não demonstrado"* — porque demonstrar exigiria contador de
 hardware.

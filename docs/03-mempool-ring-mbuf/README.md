@@ -809,7 +809,7 @@ O programa [`medicoes/custo-anel.c`](medicoes/custo-anel.c) mede os dois modos
 ```
 
 **O custo não depende de haver disputa.** Com um produtor só, o modo MP/MC ainda
-custa 406% a mais no lote 1 — porque a instrução atômica é executada de qualquer
+custa 404% a mais no lote 1 — porque a instrução atômica é executada de qualquer
 forma. O que se paga não é a contenção; é a *possibilidade* dela.
 
 E o lote resolve — mais do que resolve. A 128 objetos por chamada a diferença não
@@ -933,7 +933,7 @@ mede.
 
 #### Por que o atômico custa sem ninguém disputando
 
-Os 406% do lote 1 foram medidos **num lcore só**. Não há segundo produtor, o
+Os 404% do lote 1 foram medidos **num lcore só**. Não há segundo produtor, o
 CAS nunca falha e o laço roda uma vez.
 
 O que resta é o custo da instrução. O prefixo `f0` que o `objdump` mostra é o
@@ -1039,7 +1039,7 @@ arquitetural:
          ↓
     o ganho medido justifica?
 
-A última pergunta não tem resposta geral, e a tabela da §3 mostra por quê: 406%
+A última pergunta não tem resposta geral, e a tabela da §3 mostra por quê: 404%
 no lote 1, 22% no lote 32. **Se a aplicação já trabalha em lotes grandes, a
 invariante custa caro e rende pouco.** Se processa objeto a objeto, a conta
 inverte.
