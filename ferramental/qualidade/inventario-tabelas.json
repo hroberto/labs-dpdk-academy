@@ -782,7 +782,7 @@
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/README.md",
-      "linha": 591,
+      "linha": 616,
       "secao": "Códigos de saída",
       "tipo": "tabela_markdown",
       "sha256": "8d2fe43b6dd11f29e32297129535dc3b9e09f1998a2bd57ee3c314051ce9ef25"

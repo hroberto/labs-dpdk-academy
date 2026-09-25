@@ -572,10 +572,35 @@ produtor não constitui espera limitada: transfere o bloqueio para a linha
 seguinte.
 
 **A terminação é pedida, não imposta.** `struct consumer_context` contém o campo
-`volatile int parar`, escrito pelo produtor e lido pelo consumidor a cada
+`_Atomic int parar`, escrito pelo produtor e lido pelo consumidor a cada
 iteração. O produtor o afirma **antes** de entrar na espera. Na sua ausência, a
 desistência por prazo deixaria o consumidor a iterar em busca de um alvo
 inalcançável.
+
+> **Por que `_Atomic` e não `volatile`, que é o que se vê com mais frequência.**
+> `volatile` impede o compilador de eliminar a releitura, e não faz mais que
+> isso: não torna o acesso indivisível nem o ordena contra o modelo de memória.
+> Para C11, um objeto lido por uma thread enquanto outra o escreve é **corrida
+> de dados** — comportamento indefinido, independentemente de a arquitetura, na
+> prática, não rasgar um `int` alinhado. O que quebra código "que funcionava"
+> não é o processador: é a licença que o compilador tem para supor que a corrida
+> não existe.
+>
+> A ordenação usada é `memory_order_relaxed` nos dois sentidos, e a escolha tem
+> critério: o campo **não publica outro dado**. É um sinal isolado, e o que se
+> exige dele é atomicidade e visibilidade eventual, não ordenação. Um
+> `release`/`acquire` aqui pagaria por uma garantia sem consumidor. Onde há dado
+> a publicar — o anel, o *mempool* — a ordenação é da biblioteca, e não deste
+> campo.
+>
+> O mesmo vale para o campo `progresso`, que o cão de guarda consulta. Ele é
+> deliberadamente **separado** de `r.packets`: aquele é o contador do caminho
+> quente, escrito e lido apenas pelo consumidor, e torná-lo atômico mudaria o
+> que o programa mede. `progresso` é escrito uma vez por lote, não por pacote.
+>
+> A verificação é o `ThreadSanitizer`: com `_Atomic`, zero corridas; revertendo
+> os dois campos a `volatile`, ele acusa a escrita e a leitura concorrentes pelo
+> endereço.
 
 **O anel é drenado antes do relato.** Os objetos retidos no anel no momento da
 desistência pertencem ao pool e ainda não retornaram a ele. Sem a drenagem, o

@@ -87,9 +87,6 @@ static void *ruido(void *arg)
     return NULL;
 }
 
-/* Frequência corrente do núcleo que mede, em GHz, ou 0 se o sistema não a
- * expuser. Não é firula: os valores absolutos desta tabela variam com ela, e
- * publicar o número sem publicar a frequência convida a comparação inválida. */
 /* Primeira CPU do cpuset de um lcore.
  *
  * `rte_lcore_id()` devolve o identificador de lcore da EAL, que NAO e um numero
@@ -110,6 +107,9 @@ static unsigned cpu_do_lcore(unsigned lcore)
     return lcore; /* sem cpuset legivel, o lcore e o melhor palpite disponivel */
 }
 
+/* Frequência corrente do núcleo que mede, em GHz, ou 0 se o sistema não a
+ * expuser. Não é firula: os valores absolutos desta tabela variam com ela, e
+ * publicar o número sem publicar a frequência convida a comparação inválida. */
 static double freq_ghz(unsigned cpu)
 {
     char caminho[128];

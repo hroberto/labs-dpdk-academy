@@ -35,6 +35,7 @@
 
 #include <getopt.h>
 #include <inttypes.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -159,9 +160,31 @@ struct consumer_context {
     unsigned burst;
     uint64_t target;
     struct summary r;
+    /* OS DOIS CAMPOS ABAIXO SAO LIDOS POR UM LCORE E ESCRITOS POR OUTRO.
+     *
+     * `volatile` nao serve para isso, e a distincao nao e academica: ele impede
+     * o compilador de eliminar o acesso, e NAO torna o acesso indivisivel nem
+     * ordena nada contra o modelo de memoria. Um `uint64_t` lido enquanto outro
+     * nucleo o escreve e corrida de dados -- comportamento indefinido em C11,
+     * independentemente de x86-64 na pratica devolver o valor inteiro. O
+     * compilador tem licenca para supor que a corrida nao existe, e e por essa
+     * licenca que otimizacao quebra codigo que "funcionava".
+     *
+     * `memory_order_relaxed` nos dois: nenhum deles publica OUTRO dado. Sao
+     * sinais isolados -- "pare" e "estou avancando" --, e o que se exige deles e
+     * atomicidade e visibilidade eventual, nao ordenacao. Um `acquire`/`release`
+     * aqui seria custo sem consumidor. Isso NAO e licenca geral: o anel e o
+     * mempool publicam dados, e la a ordenacao e da biblioteca. */
+
     /* Pedido de parada, escrito pelo produtor e lido pelo consumidor. A
      * terminacao e pedida, nao imposta. Ver README.md secao 6.5 "Terminacao sob falha". */
-    volatile int parar;
+    _Atomic int parar;
+    /* Progresso do consumidor, para o cao de guarda do produtor.
+     *
+     * Separado de `r.packets` de proposito: aquele e o contador do caminho
+     * quente, lido e escrito so pelo consumidor, e torna-lo atomico mudaria o
+     * que o programa mede. Este e escrito UMA vez por lote, nao por pacote. */
+    _Atomic uint64_t progresso;
     /* Maior lote REALMENTE desenfileirado de uma vez. O parametro ecoado nao
      * e evidencia de uso. Ver README.md secao 5.2 "O contrato e o codigo de saida, nao a mensagem". */
     unsigned maior_deq;
@@ -177,13 +200,16 @@ static int consumer_loop(void *arg)
     struct packet *burst[BURST_MAX];
 #endif
 
-    while (c->r.packets < c->target && !c->parar) {
+    while (c->r.packets < c->target && !atomic_load_explicit(&c->parar, memory_order_relaxed)) {
 #ifndef DPDK_ACADEMY_INJECT_PAUSE
         const unsigned deq = rte_ring_dequeue_burst(c->ring, (void **)burst, c->burst, NULL);
         if (deq > c->maior_deq) c->maior_deq = deq;
         if (deq > 0) {
             packet_process_burst(burst, deq, &c->r);
             rte_mempool_put_bulk(c->pool, (void *const *)burst, deq);
+            /* Uma escrita por LOTE. O cao de guarda so precisa saber que o
+             * numero anda, nao qual e. */
+            atomic_store_explicit(&c->progresso, c->r.packets, memory_order_relaxed);
         }
 #else
         /* CONSUMIDOR PARADO DE PROPOSITO, compilado so na variante de teste.
@@ -194,10 +220,6 @@ static int consumer_loop(void *arg)
     return 0;
 }
 
-/* Frequência corrente do núcleo, em GHz, ou 0 se o sistema não a expuser.
- * Publicar o tempo sem publicar a frequência convida a comparação inválida:
- * com governor "powersave" e turbo, ela varia entre execuções, e os valores
- * absolutos vão junto. */
 /* Primeira CPU do cpuset de um lcore.
  *
  * `rte_lcore_id()` devolve o identificador de lcore da EAL, que NAO e um numero
@@ -218,6 +240,10 @@ static unsigned cpu_do_lcore(unsigned lcore)
     return lcore; /* sem cpuset legivel, o lcore e o melhor palpite disponivel */
 }
 
+/* Frequência corrente do núcleo, em GHz, ou 0 se o sistema não a expuser.
+ * Publicar o tempo sem publicar a frequência convida a comparação inválida:
+ * com governor "powersave" e turbo, ela varia entre execuções, e os valores
+ * absolutos vão junto. */
 static double freq_ghz(unsigned cpu)
 {
     char path[128];
@@ -373,6 +399,8 @@ int main(int argc, char **argv)
         ctx.burst = cfg.burst;
         ctx.target = cfg.num_packets;
         ctx.r.packets = 0;
+        atomic_store_explicit(&ctx.progresso, 0, memory_order_relaxed);
+        atomic_store_explicit(&ctx.parar, 0, memory_order_relaxed);
         ctx.r.bytes = 0;
         /* O retorno importa, e a falha mais provável é instrutiva: -EBUSY
          * significa que o lcore NÃO está em WAIT — ou seja, já recebeu trabalho
@@ -452,10 +480,15 @@ int main(int argc, char **argv)
          * bloquear e `rte_eal_wait_lcore`, nao o laco do produtor.
          * Ver README.md secao 6.5 "Terminacao sob falha". */
         if (prazo_ciclos && !sem_progresso) {
-            uint64_t visto = ctx.r.packets, desde = rte_rdtsc();
-            while (ctx.r.packets < cfg.num_packets) {
-                if (ctx.r.packets != visto) {
-                    visto = ctx.r.packets;
+            uint64_t visto = atomic_load_explicit(&ctx.progresso, memory_order_relaxed);
+            uint64_t desde = rte_rdtsc();
+            for (;;) {
+                const uint64_t agora_visto =
+                    atomic_load_explicit(&ctx.progresso, memory_order_relaxed);
+                if (agora_visto >= cfg.num_packets)
+                    break;
+                if (agora_visto != visto) {
+                    visto = agora_visto;
                     desde = rte_rdtsc();
                 } else if (rte_rdtsc() - desde > prazo_ciclos) {
                     sem_progresso = 1;
@@ -466,7 +499,7 @@ int main(int argc, char **argv)
         }
         /* Pede a parada ANTES de esperar. Ver README.md secao 6.5 "Terminacao sob falha". */
         if (sem_progresso)
-            ctx.parar = 1;
+            atomic_store_explicit(&ctx.parar, 1, memory_order_relaxed);
         rte_eal_wait_lcore(lcore_consumer);
         r = ctx.r;
     }

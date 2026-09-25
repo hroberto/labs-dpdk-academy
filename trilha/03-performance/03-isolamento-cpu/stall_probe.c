@@ -54,6 +54,7 @@
 #include <sys/mman.h>
 #include <inttypes.h>
 #include <stdint.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -80,7 +81,17 @@ static inline uint64_t agora_ns(void)
  * TLB nas demais CPUs deste processo. Ver o cabecalho e o README secao 2.1. */
 struct provocador {
     int cpu;
-    volatile int parar;
+    /* Escrito pela thread principal, lido pela provocadora.
+     *
+     * `volatile` impede o compilador de eliminar a releitura e nao faz mais que
+     * isso: nao torna o acesso indivisivel nem ordena nada contra o modelo de
+     * memoria de C11, que continua chamando isto de corrida de dados. Em x86-64
+     * um `int` alinhado de fato nao rasga, mas a licenca que o compilador tem
+     * para supor que a corrida nao existe e o que quebra codigo sob otimizacao.
+     *
+     * `relaxed` basta: o sinalizador nao publica outro dado, e o que se exige
+     * dele e atomicidade e visibilidade eventual. */
+    _Atomic int parar;
 };
 
 static void *provocar(void *arg)
@@ -92,7 +103,7 @@ static void *provocar(void *arg)
     if (sched_setaffinity(0, sizeof set, &set) != 0)
         return NULL;
     const size_t bytes = 8u * 1024u * 1024u;
-    while (!pv->parar) {
+    while (!atomic_load_explicit(&pv->parar, memory_order_relaxed)) {
         void *p = mmap(NULL, bytes, PROT_READ | PROT_WRITE,
                        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         if (p == MAP_FAILED)
@@ -244,7 +255,7 @@ int main(int argc, char **argv)
     }
 
     if (tem_provocador) {
-        pv.parar = 1;
+        atomic_store_explicit(&pv.parar, 1, memory_order_relaxed);
         pthread_join(th, NULL);
     }
 
