@@ -273,6 +273,24 @@ one variable decides.
 | **E** | same as C + global pressure: swap 2.19 GiB, available 5.08 GiB | 153.9 µs | 11/20 |
 | **E″** | same as E: swap 2.51 GiB, available 4.87 GiB | 24.0 µs | 1/20 |
 
+> **Rows A and E come from collections the project discarded, and are marked as
+> such.** Both ran with a **graphical session**, before 24/09, and the
+> collections were removed when the text-mode protocol was adopted. Neither
+> number is recollectable without undoing hardware decisions — A requires
+> removing a module, E requires reproducing the same swap state.
+>
+> **And A has already been superseded.** Single channel WAS measured in text
+> mode, in `2026-09-24-0955-jedec4800-canal-unico-texto`: a median of
+> **22.1 µs**, with **1/20** above the threshold — indistinguishable from dual
+> channel. The 515.5 µs of row A were not the channel; they were the graphical
+> session, and the subsection on the memory-versus-reboot confound measures that
+> at p = 0.433.
+>
+> Both rows stay because the table is the **record of the path**: it is what
+> made the confound visible. Rewriting them with today's numbers would erase the
+> reason the investigation existed.
+> <!-- cita-retratado: 515,5 515.5 153,9 153.9 -->
+
 > **Collection E′ was planned as a pressure arm and ran with none.** The memory
 > consumer's stop condition was absolute — "allocate until 2 GiB sit in swap" —
 > and swap was already at that level, left over from the previous collection.

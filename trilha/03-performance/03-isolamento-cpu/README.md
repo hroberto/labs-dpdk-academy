@@ -263,6 +263,23 @@ variável decide.
 | **E″** | idem E: swap 2,51 GiB, disponível 4,87 GiB | 24,0 µs | 1/20 |
 | **T** | **sem sessão gráfica** — boot em `multi-user.target` | **21,5 µs** | **1/20** |
 
+> **As linhas A e E vêm de coletas que o projeto descartou, e ficam marcadas.**
+> As duas correram com **sessão gráfica**, antes de 24/09, e as coletas foram
+> removidas ao adotar o protocolo de modo texto. Os dois números não são
+> recoletáveis sem desfazer decisões de hardware — a A exige remover um módulo,
+> a E exige reproduzir o mesmo estado de swap.
+>
+> **E a A já foi superada.** O canal único FOI medido em modo texto, em
+> `2026-09-24-0955-jedec4800-canal-unico-texto`: mediana de **22,1 µs**, com
+> **1/20** acima do limiar — indistinguível do canal duplo. Os 515,5 µs da linha
+> A não eram o canal; eram a sessão gráfica, e a subseção *"O confundimento
+> entre memória e reinício, resolvido"* mede isso com p = 0,433.
+>
+> As duas linhas ficam porque a tabela é o **registro do percurso**: foi ela que
+> tornou o confundimento visível. Reescrevê-las com números de hoje apagaria a
+> razão de a investigação ter existido.
+> <!-- cita-retratado: 515,5 515.5 153,9 153.9 -->
+
 > **A coleta E′ foi planejada como braço com pressão e correu sem nenhuma.** A
 > condição de parada do consumidor de memória era absoluta — "alocar até haver
 > 2 GiB em swap" — e o swap já estava nesse patamar por resíduo da coleta

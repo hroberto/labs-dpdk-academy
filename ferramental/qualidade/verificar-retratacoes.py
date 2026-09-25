@@ -259,7 +259,17 @@ def fora_de_retratacao(texto):
 
 # Unidade logo depois do número. Sem esta exigência, o arredondado `18` casa em
 # datas, contagens e números de seção, e o relatório vira ruído ilegível.
-UNIDADE = r"\s*(?:ns|µs|us|ms|s|%|×|x|GB/s|MB/s|MB|KB|GB|GHz|MHz|ciclos|pacotes)\b"
+# A SETA CONTA COMO UNIDADE, e a razao e um ponto cego medido.
+#
+# O padrao exigia unidade LOGO APOS o numero. Num bloco de antes-e-depois --
+# `RAM dependente   88,00 -> 86,38 ns` -- so o SEGUNDO valor carrega a unidade,
+# entao um valor retratado no lado esquerdo sobrevivia em silencio.
+#
+# O grupo externo e obrigatorio: sem ele a alternancia divide no topo e o
+# segundo ramo passa a casar qualquer `->` do documento, o que faria o
+# verificador acusar tudo. Foi o que a primeira tentativa fez.
+UNIDADE = (r"(?:\s*(?:ns|µs|us|ms|s|%|×|x|GB/s|MB/s|MB|KB|GB|GHz|MHz|ciclos|pacotes)\b"
+           r"|\s*(?:->|→))")
 
 
 # Quão perto uma grafia curta tem de estar para ser O MESMO número dito de

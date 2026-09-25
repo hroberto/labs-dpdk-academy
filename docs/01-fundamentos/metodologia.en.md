@@ -536,13 +536,35 @@ The published text says, about the ~21 GB/s twelve cores reach together:
 > saturates it alone; eight scattered cores have to join forces for that."*
 
 EXPO gave the first hint against the second sentence. It raised the per-channel
-rate by 25%, and the sequential access of **one** core did not move:
+rate by 25%, and the sequential access of **one** core did not move.
 
-| RAM, one core | before EXPO | after | change |
+The contrast was redone on 25/09/2026, with both collections in **text mode**,
+dual channel, the same kernel and the same binary on both sides —
+`4800 → 6000 MT/s`, which is the same 25% step:
+
+| RAM, one core | 4800 MT/s | 6000 MT/s | change |
 |---|---:|---:|---:|
-| `sequential` (amortised) | 0.200 ns | **0.195 ns** | **−2.5%** |
-| `random` (amortised) | 7.09 ns | 6.45 ns | −9.0% |
-| `dependent` (latency) | 98.73 ns | 88.00 ns | −10.9% |
+| `sequential` (amortised) | 0.184 ns | **0.196 ns** | **+6.5%** |
+| `random` (amortised) | 3.33 ns | 3.06 ns | −8.1% |
+| `dependent` (latency) | 96.64 ns | 86.02 ns | −11.0% |
+
+> **The original measurement did not survive, and the replacement is stronger.**
+> The table published `98.73 → 88.00 ns` for latency, from a collection made in
+> September before the text-mode protocol — and that collection was **discarded**
+> on 24/09 along with the other fifteen. The "before EXPO" state is not
+> recollectable without reverting the BIOS, so those two numbers would stay
+> without provenance forever.
+>
+> The 25/09 contrast measures **the same thing** — 25% more per-channel rate —
+> with an archived collection on both sides. And it reaches the same number:
+> `−11.0%` against the earlier `−10.9%`. The argument never depended on that
+> collection; it depended on the contrast, and the contrast reproduces.
+>
+> **The sign of `sequential` flipped, and that does not weaken the reading — it
+> strengthens it.** Where the old measurement gave −2.5% (near nothing), the new
+> one gives +6.5%: faster memory with a *worse* result. Neither is compatible
+> with "memory-bound", and the second is incompatible more obviously.
+> <!-- cita-retratado: 98,73 98.73 88,00 88.00 0,200 0.200 0,195 0.195 7,09 7.09 6,45 6.45 -->
 
 Latency fell 11%, scattered access 9% — and sequential barely moved. A number that does not respond to faster memory **is not limited by
 memory**.
@@ -614,12 +636,12 @@ EXPO produced the evidence by another route. If the penalty is served by the
 L3, faster memory **should not** make it cheaper:
 
 ```
-  L3 dependent                   9.71 ->  9.73 ns    +0.2%
-  translation DIFFERENCE        10.65 -> 10.94 ns    +2.7%
-  RAM dependent                 98.73 -> 88.00 ns   -10.9%
+  L3 dependent                   9.69 ->  9.69 ns    +0.0%
+  translation DIFFERENCE        10.32 -> 10.64 ns    +3.1%
+  RAM dependent                 96.64 -> 86.02 ns   -11.0%
 ```
 
-DRAM improved 11%, the L3 stayed at 0.2%, and translation **followed the L3** at 2.7%. It
+DRAM improved 11%, the L3 did not move, and translation **followed the L3** at 3.1%. It
 is not the hardware counter the section asks for, and it does not prove the
 path taken; but it is a risky prediction that held, and the original experiment
 could not produce it.
@@ -709,9 +731,20 @@ variable: the number of channels.
   1 core, sequential          0.195 -> 0.187 ns/access    -4.1%   <- instrument
   12 cores, aggregate         21.27 -> 12.66 ns/access   -40.5%
                               564.2 -> 947.9 M accesses/s +68.0%
-  RAM dependent               88.00 -> 86.38 ns           -1.8%
+  RAM dependent               88.00 -> 86.38 ns           -1.8%   <- historical
   1 core, custo-paralelismo    6.20 ->  5.85 ns/access    -5.6%   <- replacement
 ```
+
+> **This block is a RECORD, not a current measurement.** The left-hand column's
+> values come from the September collection discarded on 24/09, when the
+> text-mode protocol was adopted. It stays because it is what the
+> pre-registration predicted and what was measured **at the time** — rewriting it
+> with today's numbers would falsify the record, which is precisely what a
+> pre-registration exists to prevent.
+>
+> The `88.00` carries the `<- historical` mark on its line. The equivalent
+> contrast, measured with an archived collection, is in the `4800 → 6000 MT/s`
+> table above.
 
 > **Prediction 1 could not fail, and therefore does not count.** The
 > `efeito-cache` `sequential` column is limited by the loop that measures it,

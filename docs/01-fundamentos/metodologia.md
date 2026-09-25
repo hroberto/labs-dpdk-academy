@@ -526,17 +526,41 @@ O texto publicado diz, sobre os ~21 GB/s que doze núcleos alcançam juntos:
 > a satura sozinho; oito núcleos dispersos precisam se juntar para isso."*
 
 O EXPO deu o primeiro indício contra a segunda frase. Ele elevou a taxa por
-canal em 25%, e o acesso sequencial de **um** núcleo não se mexeu:
+canal em 25%, e o acesso sequencial de **um** núcleo não se mexeu.
 
-| RAM, um núcleo | antes do EXPO | depois | variação |
+O contraste foi refeito em 25/09/2026, com as duas coletas em **modo texto**,
+canal duplo, mesmo kernel e mesmo binário dos dois lados — `4800 → 6000 MT/s`,
+que é o mesmo salto de 25%:
+
+| RAM, um núcleo | 4800 MT/s | 6000 MT/s | variação |
 |---|---:|---:|---:|
-| `sequencial` (amortizado) | 0,200 ns | **0,195 ns** | **−2,5%** |
-| `aleatorio` (amortizado) | 7,09 ns | 6,45 ns | −9,0% |
-| `dependente` (latência) | 98,73 ns | 88,00 ns | −10,9% |
+| `sequencial` (amortizado) | 0,184 ns | **0,196 ns** | **+6,5%** |
+| `aleatorio` (amortizado) | 3,33 ns | 3,06 ns | −8,1% |
+| `dependente` (latência) | 96,64 ns | 86,02 ns | −11,0% |
 
-Latência caiu 11%, o acesso disperso 9% — e o sequencial praticamente não se
-mexeu. Um número que não responde a memória mais rápida **não está limitado
-pela memória**.
+Latência caiu 11%, o acesso disperso 8% — e o sequencial **subiu**. Um número
+que não responde a memória mais rápida não está limitado pela memória; um que
+responde na direção errada está medindo outra coisa, e a §4.2 diz qual: o teto
+de emissão do laço.
+
+> **A medição original não sobreviveu, e a substituição é mais forte.** A tabela
+> publicava `98,73 → 88,00 ns` para a latência, de uma coleta feita em setembro
+> antes do protocolo de modo texto — e essa coleta foi **descartada** em 24/09
+> junto com as outras quinze. O estado "antes do EXPO" não é recoletável sem
+> reverter a BIOS, então aqueles dois números ficariam para sempre sem
+> procedência.
+>
+> O contraste de 25/09 mede **a mesma coisa** — 25% a mais de taxa por canal —
+> com coleta arquivada dos dois lados. E chega ao mesmo número: `−11,0%` contra
+> os `−10,9%` de antes. O argumento não dependia daquela coleta; dependia do
+> contraste, e o contraste se reproduz.
+>
+> **O sinal do `sequencial` mudou, e isso não enfraquece a leitura — reforça.**
+> Onde a medição antiga dava −2,5% (quase nada), a nova dá +6,5%: memória mais
+> rápida com resultado *pior*. Nenhuma das duas é compatível com "limitado pela
+> memória", e a segunda é incompatível de forma mais evidente.
+> <!-- cita-retratado: 98,73 98.73 88,00 88.00 0,200 0.200 0,195 0.195 7,09 7.09 6,45 6.45 -->
+> <!-- retratado: 98,73 88,00 7,09 6,45 -->
 
 ### As previsões, e o que refuta cada uma
 
@@ -603,12 +627,12 @@ O EXPO produziu a evidência por outro caminho. Se a penalidade é servida pelo
 L3, memória mais rápida **não deve** baratea-la:
 
 ```
-  L3 dependente                  9,71 ->  9,73 ns    +0,2%
-  DIFERENCA de traducao         10,65 -> 10,94 ns    +2,7%
-  RAM dependente                98,73 -> 88,00 ns   -10,9%
+  L3 dependente                  9,69 ->  9,69 ns    +0,0%
+  DIFERENCA de traducao         10,32 -> 10,64 ns    +3,1%
+  RAM dependente                96,64 -> 86,02 ns   -11,0%
 ```
 
-A DRAM melhorou 11%, o L3 ficou em 0,2%, e a tradução **acompanhou o L3** com 2,7%. Não é
+A DRAM melhorou 11%, o L3 não se mexeu, e a tradução **acompanhou o L3** com 3,1%. Não é
 o contador de hardware que a seção pede, e não prova o caminho percorrido; mas
 é uma predição arriscada que se confirmou, e o experimento original não
 conseguia produzi-la.
@@ -697,9 +721,18 @@ descartada. Uma variável: o número de canais.
   1 nucleo, sequencial        0,195 -> 0,187 ns/acesso    -4,1%   <- instrumento
   12 nucleos, agregado        21,27 -> 12,66 ns/acesso   -40,5%
                               564,2 -> 947,9 M acessos/s +68,0%
-  RAM dependente              88,00 -> 86,38 ns           -1,8%
+  RAM dependente              88,00 -> 86,38 ns           -1,8%   <- historico
   1 nucleo, custo-paralelismo  6,20 ->  5,85 ns/acesso    -5,6%   <- substituta
 ```
+
+> **Este bloco é REGISTRO, e não medição corrente.** Os valores da coluna
+> esquerda vêm da coleta de setembro que foi descartada em 24/09, ao adotar o
+> protocolo de modo texto. Ele fica porque é o que o pré-registro previu e o que
+> foi medido **na época** — reescrevê-lo com números de hoje falsificaria o
+> registro, que é justamente o que um pré-registro existe para impedir.
+>
+> O `88,00` leva a marca `<- historico` na linha. O contraste equivalente,
+> medido com coleta arquivada, está na tabela de `4800 → 6000 MT/s` acima.
 
 > **A previsão 1 não podia falhar, e por isso não conta.** A coluna
 > `sequencial` do `efeito-cache` é limitada pelo laço que a mede, não pela
