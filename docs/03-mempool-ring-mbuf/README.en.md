@@ -201,10 +201,19 @@ larger. The guidance accompanying the change is that, in applications where one
 lcore only gets and another only puts, it is worth **doubling** the configured
 cache.
 
-The question this experiment asks is not "did 26.07 get faster". It is:
+The question this experiment asks is not "did 26.07 get faster" — and it is not
+about performance either, because **nothing here measures time**. It is:
 
-> Does the change alter the relationship between `cache_size` and performance
-> **differently** depending on the execution model?
+> Does the change alter the relationship between `cache_size` and **traffic to
+> the common ring** differently depending on the execution model?
+
+Swapping "performance" for "traffic to the common ring" is not editorial
+fussiness. Going to the common ring is the event the cache exists to avoid, and
+counting it is what this campaign can do without a PMU. How much of it turns
+into nanoseconds is a **separate** question, and it has its own section:
+*[The link between the count and time, measured](#the-link-between-the-count-and-time-measured)*,
+with prefixes built without `RTE_LIBRTE_MEMPOOL_STATS` precisely so the counter
+is not on the timed path.
 
 #### The design
 
@@ -219,7 +228,7 @@ alternate on the same lcore and both operations hit the same cache; with
 | inner sweep | `cache_size` ∈ {16, 24, 32, 48, 64, 96, 128, 256, 512} |
 | control | `cache_size` = 0, which **disables** the cache rather than sizing it |
 | repetitions | 6 per cell, 240 runs |
-| metric | cache miss rate, a library counter |
+| metric | trips to the common ring per million packets, a library counter (**not** the miss rate — see below) |
 
 **The collection is interleaved**, and that is a validity condition, not style:
 the two versions of a given cell run adjacent to each other, and the cell order

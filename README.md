@@ -125,9 +125,13 @@ A lista completa, com o que é ensinado e o que não é, está em
 
   | Release | Estado |
   |---|---|
-  | 25.11 | máquina de referência — todos os números publicados vêm dela |
+  | 25.11 | máquina de referência — a maior parte dos números publicados vem dela |
+  | 26.07 | usada no estudo comparativo do cache do mempool ([módulo 03 §1.4](docs/03-mempool-ring-mbuf/README.md)), que publica números das **duas** |
   | 23.11 | CI (Ubuntu 24.04); suíte passa |
   | < 23.11 | não testado; o `meson setup` recusa |
+
+  Cada bloco publicado carrega a *release* que o produziu na própria linha de
+  procedência; a tabela diz onde procurar, não substitui a leitura dela.
 
   A faixa não é decorativa: a diferença entre 23.11 e 25.11 já produziu dois
   defeitos que só aparecem em uma das duas — `--in-memory --no-huge` juntos, e

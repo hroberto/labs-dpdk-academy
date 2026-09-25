@@ -141,9 +141,13 @@ The full list, with what is taught and what is not, is in
 
   | Release | State |
   |---|---|
-  | 25.11 | reference machine — every published number comes from it |
+  | 25.11 | reference machine — most published numbers come from it |
+  | 26.07 | used in the mempool-cache comparison ([module 03 §1.4](docs/03-mempool-ring-mbuf/README.en.md)), which publishes numbers from **both** |
   | 23.11 | CI (Ubuntu 24.04); the suite passes |
   | < 23.11 | untested; `meson setup` refuses |
+
+  Every published block carries the *release* that produced it on its own
+  provenance line; the table says where to look, it does not replace reading it.
 
   The range is not decorative: the difference between 23.11 and 25.11 has
   already produced two defects that show up in only one of them —

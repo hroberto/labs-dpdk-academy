@@ -133,8 +133,13 @@ Temas:
 
 Temas de **descarregamento para a NIC** (*offload*) — o trabalho que não chega
 a custar ciclo de CPU porque a placa já o fez:
-- RSS (*Receive Side Scaling*): múltiplas filas de hardware alimentadas por
-  hash de 5-tupla, uma por lcore, sem coordenação em software
+- RSS (*Receive Side Scaling*): múltiplas filas de hardware, distribuídas por
+  um hash sobre campos do cabeçalho — a 5-tupla é o conjunto mais comum, mas
+  quais campos entram é configurável por `rte_eth_rss_conf`, e placas diferentes
+  suportam conjuntos diferentes. Mapear **uma fila por lcore** é a configuração
+  usual, não uma propriedade do RSS: o número de filas e o de lcores são
+  independentes, e é a ausência de fila compartilhada — não o RSS em si — que
+  dispensa coordenação em software
 - descarregamento de soma de verificação (RX e TX)
 - TSO (*TCP Segmentation Offload*) e LRO (*Large Receive Offload*)
 - [`rte_flow`][guiaflow]: programar regras de classificação, filtragem, espelhamento e
@@ -312,12 +317,25 @@ atravessando a fronteira usuário/kernel em vez de núcleos.
 
 | Critério | DPDK | AF_XDP |
 |---|---|---|
-| Relação com o kernel | ignora completamente | caminho rápido dentro dele |
+| Relação com o kernel | contorna a pilha de rede; **quanto do dispositivo ele toma depende do PMD** (ver nota) | caminho rápido dentro dele |
 | Driver | PMD exclusivo em user-space | driver padrão do Linux |
 | A NIC no sistema | some (`vfio-pci`) | continua visível e administrável |
 | Tráfego não crítico | a aplicação trata **tudo** | eBPF filtra; o resto segue para a pilha nativa |
 | Ferramental | perde `tcpdump`, `iproute2` no caminho de dados | `ip`/`ethtool` continuam; ver ressalva |
 | Curva de aprendizado | alta: hugepages, NUMA, binding | média: API de sockets |
+
+> **"Ignora o kernel" é verdade para o modelo de driver mais comum, não para
+> todos.** Com `vfio-pci` o dispositivo sai do kernel e a linha acima vale
+> literalmente. Mas há PMDs **bifurcados** — o `mlx5` é o caso — em que kernel e
+> DPDK gerenciam o mesmo dispositivo: não se usa `vfio-pci`, a interface continua
+> visível ao `ip`, e o DPDK opera sobre `rdma-core`. As três linhas seguintes da
+> tabela ("Driver", "A NIC no sistema", "Ferramental") mudam de valor nesse
+> modelo, e o [ROADMAP](../ROADMAP.md) registra que a placa prevista para os
+> módulos de RX/TX é justamente uma dessas.
+>
+> O contraste com o AF_XDP continua válido, e fica mais nítido quando dito com
+> precisão: a diferença não é "kernel sim ou não", é **onde fica o caminho de
+> dados** e **quem mantém o driver**.
 | Teto de desempenho | maior | menor, mas próximo com zero-copy |
 
 Duas ressalvas que a tabela sozinha esconde:

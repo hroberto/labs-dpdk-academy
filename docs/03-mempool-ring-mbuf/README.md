@@ -204,10 +204,19 @@ cerca de 50% maior. A orientação que acompanha a mudança é que, em aplicaç�
 onde um lcore só obtém e outro só devolve, convém **dobrar** o cache
 configurado.
 
-A pergunta que este experimento faz não é "o 26.07 ficou mais rápido". É:
+A pergunta que este experimento faz não é "o 26.07 ficou mais rápido" — e
+também não é sobre desempenho, porque **nada aqui mede tempo**. É:
 
-> A mudança altera a relação entre `cache_size` e desempenho de forma
-> **diferente** conforme o modelo de execução?
+> A mudança altera a relação entre `cache_size` e o **tráfego ao anel comum**
+> de forma **diferente** conforme o modelo de execução?
+
+A troca de "desempenho" por "tráfego ao anel comum" não é preciosismo de
+redação. Ir ao anel comum é o evento que o cache existe para evitar, e contá-lo
+é o que esta campanha sabe fazer sem PMU. Quanto disso vira nanossegundo é uma
+pergunta **distinta**, e ela tem seção própria: *[O elo entre a contagem e o
+tempo, medido](#o-elo-entre-a-contagem-e-o-tempo-medido)*, com prefixos
+construídos sem `RTE_LIBRTE_MEMPOOL_STATS` justamente para que o contador não
+esteja no caminho cronometrado.
 
 #### O desenho
 
@@ -222,7 +231,7 @@ se alternam no mesmo lcore e as duas operações incidem sobre o mesmo cache; co
 | varredura interna | `cache_size` ∈ {16, 24, 32, 48, 64, 96, 128, 256, 512} |
 | controle | `cache_size` = 0, que **desliga** o cache em vez de dimensioná-lo |
 | repetições | 6 por célula, 240 execuções |
-| métrica | taxa de miss do cache, contador da biblioteca |
+| métrica | idas ao anel comum por milhão de pacotes, contador da biblioteca (**não** a taxa de miss — ver abaixo) |
 
 **A coleta é intercalada**, e isso é condição de validade, não estilo: as duas
 versões de uma mesma célula correm adjacentes e a ordem das células é permutada
