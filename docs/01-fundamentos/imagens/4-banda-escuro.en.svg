@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 250" width="880" height="250" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">The bandwidth you get is the one your access pattern allows</title>
-<desc id="d">Horizontal bar chart of the effective bandwidth of one core over the same RAM: 11.0 GB/s for random access with independent addresses and 0.74 GB/s when each address depends on the previous one — a 15-fold difference between the two patterns memory actually limits.</desc>
+<desc id="d">Horizontal bar chart of the effective bandwidth of one core over the same RAM: 20.8 GB/s for random access with independent addresses and 0.7 GB/s when each address depends on the previous one — a 28-fold difference between the two patterns memory actually limits.</desc>
 <rect width="880" height="250" fill="#1a1a19"/>
 <text x="28.0" y="34.0" fill="#ffffff" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">The bandwidth you get is the one your access pattern allows</text>
 <text x="28.0" y="55.0" fill="#c3c2b7" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">one core, the same 256 MB region in the same RAM — efeito-cache.c</text>
@@ -22,10 +22,10 @@
 <text x="752.0" y="192.0" fill="#898781" font-size="12" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">21</text>
 <text x="526.0" y="212.0" fill="#898781" font-size="12" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">gigabytes per second</text>
 <text x="284.0" y="91.0" fill="#ffffff" font-size="13" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">random, independent addresses</text>
-<path d="M300.0,72.0 H533.1 Q537.1,72.0 537.1,76.0 V96.0 Q537.1,100.0 533.1,100.0 H300.0 Z" fill="#3987e5"/>
-<text x="547.1" y="91.0" fill="#ffffff" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">11.0 GB/s</text>
+<path d="M300.0,72.0 H744.7 Q748.7,72.0 748.7,76.0 V96.0 Q748.7,100.0 744.7,100.0 H300.0 Z" fill="#3987e5"/>
+<text x="758.7" y="91.0" fill="#ffffff" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">20.8 GB/s</text>
 <text x="284.0" y="141.0" fill="#ffffff" font-size="13" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">random, chained addresses</text>
-<path d="M300.0,122.0 H311.9 Q315.9,122.0 315.9,126.0 V146.0 Q315.9,150.0 311.9,150.0 H300.0 Z" fill="#3987e5"/>
-<text x="325.9" y="141.0" fill="#ffffff" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">0.7 GB/s</text>
-<text x="28.0" y="232.0" fill="#ffffff" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">15× difference — same machine, same memory, same core.</text>
+<path d="M300.0,122.0 H311.8 Q315.8,122.0 315.8,126.0 V146.0 Q315.8,150.0 311.8,150.0 H300.0 Z" fill="#3987e5"/>
+<text x="325.8" y="141.0" fill="#ffffff" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">0.7 GB/s</text>
+<text x="28.0" y="232.0" fill="#ffffff" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">28× difference — same machine, same memory, same core.</text>
 </svg>

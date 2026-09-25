@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 368" width="880" height="368" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">Um acesso à memória contra o orçamento de um pacote</title>
-<desc id="d">Gráfico de barras horizontais com a latência de um acesso dependente por nível da hierarquia: 0,89 ns na L1d, 2,68 ns na L2, 9,67 ns na L3 e 86,6 ns na RAM. Uma linha tracejada marca o orçamento de 67,2 ns por pacote; só a barra da RAM já o ultrapassa, em 19,4 ns.</desc>
+<desc id="d">Gráfico de barras horizontais com a latência de um acesso dependente por nível da hierarquia: 0,89 ns na L1d, 2,68 ns na L2, 9,7 ns na L3 e 87,2 ns na RAM. Uma linha tracejada marca o orçamento de 67,2 ns por pacote; só a barra da RAM já o ultrapassa, em 20,0 ns.</desc>
 <rect width="880" height="368" fill="#fcfcfb"/>
 <text x="28.0" y="34.0" fill="#0b0b0b" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">Um acesso à memória contra o orçamento de um pacote</text>
 <text x="28.0" y="55.0" fill="#52514e" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">latência de um acesso dependente, por nível da hierarquia — efeito-cache.c</text>
@@ -23,19 +23,19 @@
 <text x="435.0" y="82.0" fill="#52514e" font-size="12" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">orçamento: 67,2 ns por pacote</text>
 <text x="94.0" y="126.0" fill="#0b0b0b" font-size="14" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">L1d</text>
 <text x="94.0" y="141.0" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">16 KB</text>
-<path d="M108.0,108.0 H108.3 Q112.3,108.0 112.3,112.0 V130.0 Q112.3,134.0 108.3,134.0 H108.0 Z" fill="#86b6ef"/>
-<text x="122.3" y="126.0" fill="#0b0b0b" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">0,89 ns</text>
+<path d="M108.0,108.0 H108.4 Q112.4,108.0 112.4,112.0 V130.0 Q112.4,134.0 108.4,134.0 H108.0 Z" fill="#86b6ef"/>
+<text x="122.4" y="126.0" fill="#0b0b0b" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">0,89 ns</text>
 <text x="94.0" y="172.0" fill="#0b0b0b" font-size="14" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">L2</text>
 <text x="94.0" y="187.0" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">256 KB</text>
 <path d="M108.0,154.0 H117.0 Q121.0,154.0 121.0,158.0 V176.0 Q121.0,180.0 117.0,180.0 H108.0 Z" fill="#5598e7"/>
 <text x="131.0" y="172.0" fill="#0b0b0b" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">2,68 ns</text>
 <text x="94.0" y="218.0" fill="#0b0b0b" font-size="14" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">L3</text>
 <text x="94.0" y="233.0" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">8 MB</text>
-<path d="M108.0,200.0 H151.1 Q155.1,200.0 155.1,204.0 V222.0 Q155.1,226.0 151.1,226.0 H108.0 Z" fill="#2a78d6"/>
-<text x="165.1" y="218.0" fill="#0b0b0b" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">9,67 ns</text>
+<path d="M108.0,200.0 H151.0 Q155.0,200.0 155.0,204.0 V222.0 Q155.0,226.0 151.0,226.0 H108.0 Z" fill="#2a78d6"/>
+<text x="165.0" y="218.0" fill="#0b0b0b" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">9,66 ns</text>
 <text x="94.0" y="264.0" fill="#0b0b0b" font-size="14" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">RAM</text>
 <text x="94.0" y="279.0" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">256 MB</text>
-<path d="M108.0,246.0 H525.4 Q529.4,246.0 529.4,250.0 V268.0 Q529.4,272.0 525.4,272.0 H108.0 Z" fill="#1c5cab"/>
-<text x="539.4" y="264.0" fill="#0b0b0b" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">87 ns</text>
-<text x="539.4" y="280.0" fill="#52514e" font-size="12" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">excede o orçamento em 19 ns</text>
+<path d="M108.0,246.0 H528.3 Q532.3,246.0 532.3,250.0 V268.0 Q532.3,272.0 528.3,272.0 H108.0 Z" fill="#1c5cab"/>
+<text x="542.3" y="264.0" fill="#0b0b0b" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">87 ns</text>
+<text x="542.3" y="280.0" fill="#52514e" font-size="12" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">excede o orçamento em 20 ns</text>
 </svg>

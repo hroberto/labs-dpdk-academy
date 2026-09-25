@@ -273,7 +273,7 @@ this box exists to prevent.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escada-escuro.en.svg">
-  <img alt="Horizontal bar chart of the latency of one dependent access per level of the hierarchy: 0.89 ns in L1d, 2.68 ns in L2, 9.67 ns in L3 and 86.6 ns in RAM. A dashed line marks the 67.2 ns per-packet budget; the RAM bar alone already exceeds it, by 19.4 ns." src="imagens/4-escada-claro.en.svg">
+  <img alt="Horizontal bar chart of the latency of one dependent access per level of the hierarchy: 0.89 ns in L1d, 2.68 ns in L2, 9.7 ns in L3 and 87.2 ns in RAM. A dashed line marks the 67.2 ns per-packet budget; the RAM bar alone already exceeds it, by 19.4 ns." src="imagens/4-escada-claro.en.svg">
 </picture>
 
 The RAM bar is this whole module's problem in one image: **a single access to
@@ -938,7 +938,7 @@ DRAM. RAM latency still exists — it is merely hidden.
 > the value does not change between L1d and DRAM: in both cases memory delivers
 > more than the loop consumes.
 >
-> Converting the 0.187 ns per element into "GB/s of bandwidth" attributes to
+> Converting the 0.181 ns per element into "GB/s of bandwidth" attributes to
 > the memory subsystem a number that belongs to the instrument. The flatness
 > says **the prefetcher keeps up**; it does not say how much bandwidth exists.
 >
@@ -988,7 +988,7 @@ chains** over the same region, with K growing:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-conflito-escuro.en.svg">
-  <img alt="Two stacked charts sharing the same horizontal axis K on a logarithmic scale, from 1 to 64 accesses in flight. In the first, throughput rises from 13.0 to 411 M accesses/s and saturates; a dashed line marks the 10 GbE line rate. In the second, on log scales on both axes, the amortized cost per access falls from 77 to 2.43 ns while the time until the batch is ready stays flat around 80 ns up to K = 16 and rises to 156 ns at K = 64. Both curves are in nanoseconds; the second is the first multiplied by K." src="imagens/4-conflito-claro.en.svg">
+  <img alt="Two stacked charts sharing the same horizontal axis K on a logarithmic scale, from 1 to 64 accesses in flight. In the first, throughput rises from 12.9 to 410 M accesses/s and saturates; a dashed line marks the 10 GbE line rate. In the second, on log scales on both axes, the amortized cost per access falls from 77 to 2.44 ns while the time until the batch is ready stays flat around 80 ns up to K = 16 and rises to 156 ns at K = 64. Both curves are in nanoseconds; the second is the first multiplied by K." src="imagens/4-conflito-claro.en.svg">
 </picture>
 
 The two panels are the same table, and together they are the decision:
@@ -1028,8 +1028,8 @@ conclusion applies to your case.
 **And the price is in the second panel**, which puts both quantities on the same
 nanosecond axis. At K = 1 they **coincide**: with no batch, the access and the set
 are the same thing. From there the blue collapses and the orange does not — and it
-is that separation which shows 3.19 ns was never memory's response time. It is
-86 ns divided by 27 overlapping accesses.
+is that separation which shows 3.21 ns was never memory's response time. It is
+87 ns divided by 27 overlapping accesses.
 
 **Both axes of that panel are logarithmic, and that is not a drawing
 preference.** Since `batch = K × ns per access`, if concurrency were free the cost
@@ -1066,7 +1066,7 @@ changes:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-banda-escuro.en.svg">
-  <img alt="Horizontal bar chart of the effective bandwidth of one core over the same RAM: 11.0 GB/s for random access with independent addresses and 0.74 GB/s when each address depends on the previous one — a 15-fold difference between the two patterns memory actually limits." src="imagens/4-banda-claro.en.svg">
+  <img alt="Horizontal bar chart of the effective bandwidth of one core over the same RAM: 20.8 GB/s for random access with independent addresses and 0.7 GB/s when each address depends on the previous one — a 28-fold difference between the two patterns memory actually limits." src="imagens/4-banda-claro.en.svg">
 </picture>
 
 Fifteen times, without swapping a single part. **The bandwidth the vendor
@@ -1105,7 +1105,7 @@ line between threads:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escala-escuro.en.svg">
-  <img alt="Line chart of aggregate throughput against the number of active physical cores. It rises from 171 million accesses per second with one core to 946 million with twelve, and the curve flattens from eight onwards. A grey reference line shows where it would be if it scaled per core: 2,051 million with twelve." src="imagens/4-escala-claro.en.svg">
+  <img alt="Line chart of aggregate throughput against the number of active physical cores. It rises from 171 million accesses per second with one core to 948 million with twelve, and the curve flattens from eight onwards. A grey reference line shows where it would be if it scaled per core: 2,051 million with twelve." src="imagens/4-escala-claro.en.svg">
 </picture>
 
 **With twelve cores active, each one does 46% of what it did alone.** Aggregate

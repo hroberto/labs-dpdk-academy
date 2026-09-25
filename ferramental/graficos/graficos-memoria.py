@@ -45,14 +45,28 @@ LARGURA = 880
 ORCAMENTO_NS = 67.2          # secao 1: 10 GbE, quadros de 64 B
 LINE_RATE_MPPS = 14.88       # secao 1: 14 880 952 pacotes/s
 
-# efeito-cache.c, coluna "dependente (LATENCIA)"
-ESCADA = [("L1d", "16 KB", 0.891), ("L2", "256 KB", 2.68),
-          ("L3", "8 MB", 9.67), ("RAM", "256 MB", 86.59)]
+# OS VALORES ABAIXO SAO FIXOS AQUI, E ISSO E DIVIDA DECLARADA.
+#
+# Cada constante nomeia a coleta de onde saiu, mas nada CONFERE que ela ainda
+# corresponde. Em 25/09/2026 as quatro apontavam para
+# `2026-09-23-expo6000-canal-duplo` -- uma coleta que o projeto DESCARTOU ao
+# adotar o protocolo de modo texto --, e os graficos seguiram publicando os
+# valores dela enquanto os blocos do README ja tinham sido refeitos.
+#
+# O portao de figuras compara `alt=` com `<desc>`: os dois saem daqui, entao
+# concordam entre si mesmo quando ambos estao velhos. O remedio certo e este
+# arquivo LER a coleta, como `consolidar-efeito-cache.py` ja faz para o bloco
+# da §4.2. Enquanto isso nao existe, a divida esta escrita aqui.
+
+# efeito-cache.c, coluna "dependente (LATENCIA)", rodada r1 de
+# 2026-09-25-0046-expo6000-canal-duplo
+ESCADA = [("L1d", "16 KB", 0.894), ("L2", "256 KB", 2.68),
+          ("L3", "8 MB", 9.66), ("RAM", "256 MB", 87.18)]
 
 # custo-paralelismo.c, coluna "mediana", rodada r1 de
-# 2026-09-23-expo6000-canal-duplo -- a MESMA rodada das tabelas publicadas
-PARALELISMO = [(1, 76.65), (2, 37.97), (4, 20.58), (8, 10.75),
-               (12, 7.38), (16, 5.64), (32, 3.19), (64, 2.43)]
+# 2026-09-25-0046-expo6000-canal-duplo -- a MESMA rodada das tabelas publicadas
+PARALELISMO = [(1, 77.37), (2, 38.18), (4, 20.67), (8, 10.83),
+               (12, 7.42), (16, 5.67), (32, 3.21), (64, 2.44)]
 
 # efeito-cache.c, bloco RAM. Banda = bytes MOVIDOS pela memória: cada acesso
 # traz uma linha de 64 B inteira, mesmo quando o programa usa 4 bytes dela.
@@ -64,14 +78,14 @@ PARALELISMO = [(1, 76.65), (2, 37.97), (4, 20.58), (8, 10.75),
 # memoria -- ver o comentario de efeito-cache.c. Convertido em GB/s e posto ao
 # lado de dois valores que a memoria de fato limita, ele convidaria a
 # comparacao que nao se sustenta. Fica de fora, com a razao dita no README.
-BANDA = [("aleatório, endereços independentes",          64.0 / 5.81),
-         ("aleatório, endereços encadeados",             64.0 / 86.59)]
+BANDA = [("aleatório, endereços independentes",          64.0 / 3.07),
+         ("aleatório, endereços encadeados",             64.0 / 87.18)]
 
 # custo-paralelismo.c, fase 2: N nucleos fisicos, 16 cadeias cada, mesma regiao.
-# Coleta 2026-09-23-expo6000-canal-duplo. O canal e parte da procedencia: a
+# Coleta 2026-09-25-0046-expo6000-canal-duplo. O canal e parte da procedencia: a
 # curva de saturacao E a medida do teto de banda, e o teto depende de quantos
 # pentes servem a requisicao.
-NUCLEOS = [(1, 5.85), (2, 6.08), (4, 6.69), (8, 8.69), (12, 12.68)]
+NUCLEOS = [(1, 5.82), (2, 6.07), (4, 6.68), (8, 8.68), (12, 12.66)]
 
 # --------------------------------------------------------------------------
 # TEXTOS — um gráfico por idioma
@@ -91,9 +105,9 @@ TEXTOS = {
         esc_eixo="nanossegundos", esc_orc="orçamento: 67,2 ns por pacote",
         esc_excede="excede o orçamento em {0:.0f} ns",
         esc_desc=("Gráfico de barras horizontais com a latência de um acesso dependente por "
-                  "nível da hierarquia: 0,89 ns na L1d, 2,68 ns na L2, 9,67 ns na L3 e "
-                  "86,6 ns na RAM. Uma linha tracejada marca o orçamento de 67,2 ns por "
-                  "pacote; só a barra da RAM já o ultrapassa, em 19,4 ns."),
+                  "nível da hierarquia: 0,89 ns na L1d, 2,68 ns na L2, 9,7 ns na L3 e "
+                  "87,2 ns na RAM. Uma linha tracejada marca o orçamento de 67,2 ns por "
+                  "pacote; só a barra da RAM já o ultrapassa, em 20,0 ns."),
         con_titulo="Vazão se compra com concorrência — e se paga com latência",
         con_sub="K acessos independentes em voo sobre a mesma região — custo-paralelismo.c",
         con_p1="1 · quanto a máquina entrega", con_p2="2 · e o que isso custa em espera",
@@ -102,10 +116,10 @@ TEXTOS = {
         con_x="K — acessos em voo ao mesmo tempo (escala log)",
         con_nota1="até K = 16 a curva laranja é plana:", con_nota2="a concorrência sai de graça",
         con_desc=("Dois gráficos empilhados com o mesmo eixo horizontal K em escala "
-                  "logarítmica, de 1 a 64 acessos em voo. No primeiro, a vazão sobe de 13,0 "
-                  "para 411 M acessos/s e satura; uma linha tracejada marca o line rate de "
+                  "logarítmica, de 1 a 64 acessos em voo. No primeiro, a vazão sobe de 12,9 "
+                  "para 410 M acessos/s e satura; uma linha tracejada marca o line rate de "
                   "10 GbE. No segundo, em escala log nos dois eixos, o custo amortizado por "
-                  "acesso cai de 77 para 2,43 ns enquanto o tempo até o lote ficar pronto "
+                  "acesso cai de 77 para 2,44 ns enquanto o tempo até o lote ficar pronto "
                   "permanece plano em torno de 80 ns até K = 16 e sobe para 156 ns em "
                   "K = 64. As duas curvas estão em nanossegundos; a segunda é a primeira "
                   "multiplicada por K."),
@@ -116,8 +130,8 @@ TEXTOS = {
                  "aleatório, endereços encadeados"],
         ban_fecho="{0:.0f}× de diferença — mesma máquina, mesma memória, mesmo núcleo.",
         ban_desc=("Gráfico de barras horizontais com a banda efetiva de um núcleo sobre a mesma "
-                  "RAM: 11,0 GB/s em acesso aleatório com endereços independentes e "
-                  "0,74 GB/s quando cada endereço depende do anterior — 15 vezes de "
+                  "RAM: 20,8 GB/s em acesso aleatório com endereços independentes e "
+                  "0,7 GB/s quando cada endereço depende do anterior — 28 vezes de "
                   "diferença entre os dois padrões que a memória limita."),
         sca_titulo="A banda não se multiplica por núcleo — ela é dividida",
         sca_sub=("vazão agregada com N núcleos físicos empurrando a mesma região — "
@@ -138,7 +152,7 @@ TEXTOS = {
         esc_eixo="nanoseconds", esc_orc="budget: 67.2 ns per packet",
         esc_excede="exceeds the budget by {0:.0f} ns",
         esc_desc=("Horizontal bar chart of the latency of one dependent access per level of the "
-                  "hierarchy: 0.89 ns in L1d, 2.68 ns in L2, 9.67 ns in L3 and 86.6 ns in "
+                  "hierarchy: 0.89 ns in L1d, 2.68 ns in L2, 9.7 ns in L3 and 87.2 ns in "
                   "RAM. A dashed line marks the 67.2 ns per-packet budget; the RAM bar "
                   "alone already exceeds it, by 19.4 ns."),
         con_titulo="Throughput is bought with concurrency — and paid for in latency",
@@ -150,9 +164,9 @@ TEXTOS = {
         con_nota1="up to K = 16 the orange curve is flat:", con_nota2="concurrency comes for free",
         con_desc=("Two stacked charts sharing the same horizontal axis K on a logarithmic "
                   "scale, from 1 to 64 accesses in flight. In the first, throughput rises "
-                  "from 13.0 to 411 M accesses/s and saturates; a dashed line marks the "
+                  "from 12.9 to 410 M accesses/s and saturates; a dashed line marks the "
                   "10 GbE line rate. In the second, on log scales on both axes, the "
-                  "amortized cost per access falls from 77 to 2.43 ns while the time until "
+                  "amortized cost per access falls from 77 to 2.44 ns while the time until "
                   "the batch is ready stays flat around 80 ns up to K = 16 and rises to "
                   "156 ns at K = 64. Both curves are in nanoseconds; the second is the "
                   "first multiplied by K."),
@@ -163,8 +177,8 @@ TEXTOS = {
                  "random, chained addresses"],
         ban_fecho="{0:.0f}× difference — same machine, same memory, same core.",
         ban_desc=("Horizontal bar chart of the effective bandwidth of one core over the same "
-                  "RAM: 11.0 GB/s for random access with independent addresses and "
-                  "0.74 GB/s when each address depends on the previous one — a 15-fold "
+                  "RAM: 20.8 GB/s for random access with independent addresses and "
+                  "0.7 GB/s when each address depends on the previous one — a 28-fold "
                   "difference between the two patterns memory actually limits."),
         sca_titulo="Bandwidth does not multiply per core — it is divided",
         sca_sub=("aggregate throughput with N physical cores pushing the same region — "

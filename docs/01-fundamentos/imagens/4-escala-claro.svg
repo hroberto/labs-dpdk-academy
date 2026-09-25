@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 408" width="880" height="408" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">A banda não se multiplica por núcleo — ela é dividida</title>
-<desc id="d">Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 171 milhões de acessos por segundo com um núcleo para 946 milhões com doze, e a curva achata a partir de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 2 051 milhões com doze.</desc>
+<desc id="d">Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 171 milhões de acessos por segundo com um núcleo para 948 milhões com doze, e a curva achata a partir de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 2 051 milhões com doze.</desc>
 <rect width="880" height="408" fill="#fcfcfb"/>
 <text x="28.0" y="34.0" fill="#0b0b0b" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">A banda não se multiplica por núcleo — ela é dividida</text>
 <text x="28.0" y="55.0" fill="#52514e" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">vazão agregada com N núcleos físicos empurrando a mesma região — custo-paralelismo.c, fase 2</text>
@@ -15,16 +15,16 @@
 <line x1="104.0" y1="118.0" x2="712.0" y2="118.0" stroke="#e1e0d9" stroke-width="1"/>
 <text x="92.0" y="122.0" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">1 700</text>
 <text x="28.0" y="98.0" fill="#898781" font-size="11" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">M acessos/s (soma de todos os núcleos)</text>
-<polyline points="104.0,310.5 159.3,289.0 269.8,245.9 490.9,159.9 712.0,118.0" fill="none" stroke="#898781" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="104.0,310.4 159.3,288.7 269.8,245.5 490.9,159.0 712.0,118.0" fill="none" stroke="#898781" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
 <text x="708.0" y="106.0" fill="#898781" font-size="12" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">se escalasse por núcleo</text>
-<polyline points="104.0,310.5 159.3,290.6 269.8,256.7 490.9,216.1 712.0,212.9" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="104.0" cy="310.5" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="159.3" cy="290.6" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="269.8" cy="256.7" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="490.9" cy="216.1" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="712.0" cy="212.9" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<text x="706.0" y="238.9" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">946 M/s — o teto</text>
-<text x="116.0" y="296.5" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">171 M/s</text>
+<polyline points="104.0,310.4 159.3,290.5 269.8,256.6 490.9,216.0 712.0,212.7" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="104.0" cy="310.4" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="159.3" cy="290.5" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="269.8" cy="256.6" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="490.9" cy="216.0" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="712.0" cy="212.7" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<text x="706.0" y="238.7" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">948 M/s — o teto</text>
+<text x="116.0" y="296.4" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">172 M/s</text>
 <text x="104.0" y="354.0" fill="#898781" font-size="12" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">1</text>
 <text x="159.3" y="354.0" fill="#898781" font-size="12" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">2</text>
 <text x="269.8" y="354.0" fill="#898781" font-size="12" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">4</text>

@@ -274,7 +274,7 @@ caixa existe para evitar.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escada-escuro.svg">
-  <img alt="Gráfico de barras horizontais com a latência de um acesso dependente por nível da hierarquia: 0,89 ns na L1d, 2,68 ns na L2, 9,67 ns na L3 e 86,6 ns na RAM. Uma linha tracejada marca o orçamento de 67,2 ns por pacote; só a barra da RAM já o ultrapassa, em 19,4 ns." src="imagens/4-escada-claro.svg">
+  <img alt="Gráfico de barras horizontais com a latência de um acesso dependente por nível da hierarquia: 0,89 ns na L1d, 2,68 ns na L2, 9,7 ns na L3 e 87,2 ns na RAM. Uma linha tracejada marca o orçamento de 67,2 ns por pacote; só a barra da RAM já o ultrapassa, em 20,0 ns." src="imagens/4-escada-claro.svg">
 </picture>
 
 A barra da RAM é o problema inteiro deste módulo em uma imagem: **um único
@@ -942,7 +942,7 @@ latência da RAM continua existindo — ela é apenas escondida.
 > Esse teto é do laço, não da memória — e é por isso que o valor não muda entre
 > a L1d e a DRAM: nos dois casos a memória entrega mais do que o laço consome.
 >
-> Converter os 0,187 ns por elemento em "GB/s de banda" atribui ao subsistema
+> Converter os 0,181 ns por elemento em "GB/s de banda" atribui ao subsistema
 > de memória um número que é do instrumento. A planura diz que **o prefetcher
 > dá conta**; ela não diz quanta banda existe.
 >
@@ -989,7 +989,7 @@ percorre **K cadeias independentes** sobre a mesma região, com K crescente:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-conflito-escuro.svg">
-  <img alt="Dois gráficos empilhados com o mesmo eixo horizontal K em escala logarítmica, de 1 a 64 acessos em voo. No primeiro, a vazão sobe de 13,0 para 411 M acessos/s e satura; uma linha tracejada marca o line rate de 10 GbE. No segundo, em escala log nos dois eixos, o custo amortizado por acesso cai de 77 para 2,43 ns enquanto o tempo até o lote ficar pronto permanece plano em torno de 80 ns até K = 16 e sobe para 156 ns em K = 64. As duas curvas estão em nanossegundos; a segunda é a primeira multiplicada por K." src="imagens/4-conflito-claro.svg">
+  <img alt="Dois gráficos empilhados com o mesmo eixo horizontal K em escala logarítmica, de 1 a 64 acessos em voo. No primeiro, a vazão sobe de 12,9 para 410 M acessos/s e satura; uma linha tracejada marca o line rate de 10 GbE. No segundo, em escala log nos dois eixos, o custo amortizado por acesso cai de 77 para 2,44 ns enquanto o tempo até o lote ficar pronto permanece plano em torno de 80 ns até K = 16 e sobe para 156 ns em K = 64. As duas curvas estão em nanossegundos; a segunda é a primeira multiplicada por K." src="imagens/4-conflito-claro.svg">
 </picture>
 
 Os dois painéis são a mesma tabela, e juntos são a decisão:
@@ -1028,7 +1028,7 @@ se aplica ao seu caso.
 **E o preço está no segundo painel**, que põe as duas grandezas no mesmo eixo de
 nanossegundos. Em K = 1 elas **coincidem**: sem lote, o acesso e o conjunto são a
 mesma coisa. A partir daí a azul despenca e a laranja não — e é essa separação
-que mostra que 3,19 ns nunca foram o tempo de resposta da memória. São 86 ns
+que mostra que 3,21 ns nunca foram o tempo de resposta da memória. São 87 ns
 divididos por 27 acessos sobrepostos.
 
 **Os dois eixos desse painel são logarítmicos, e isso não é preferência de
@@ -1064,7 +1064,7 @@ A mesma região, o mesmo núcleo, a mesma memória — só muda o padrão de ace
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-banda-escuro.svg">
-  <img alt="Gráfico de barras horizontais com a banda efetiva de um núcleo sobre a mesma RAM: 11,0 GB/s em acesso aleatório com endereços independentes e 0,74 GB/s quando cada endereço depende do anterior — 15 vezes de diferença entre os dois padrões que a memória limita." src="imagens/4-banda-claro.svg">
+  <img alt="Gráfico de barras horizontais com a banda efetiva de um núcleo sobre a mesma RAM: 20,8 GB/s em acesso aleatório com endereços independentes e 0,7 GB/s quando cada endereço depende do anterior — 28 vezes de diferença entre os dois padrões que a memória limita." src="imagens/4-banda-claro.svg">
 </picture>
 
 Quinze vezes, sem trocar uma peça. **A banda que o fabricante vende não é a que
@@ -1103,7 +1103,7 @@ uma única linha entre threads:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escala-escuro.svg">
-  <img alt="Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 171 milhões de acessos por segundo com um núcleo para 946 milhões com doze, e a curva achata a partir de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 2 051 milhões com doze." src="imagens/4-escala-claro.svg">
+  <img alt="Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 171 milhões de acessos por segundo com um núcleo para 948 milhões com doze, e a curva achata a partir de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 2 051 milhões com doze." src="imagens/4-escala-claro.svg">
 </picture>
 
 **Com doze núcleos ativos, cada um faz 46% do que fazia sozinho.** A vazão
