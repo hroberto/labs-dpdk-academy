@@ -1,5 +1,12 @@
 # Fundamentals — the problem, before the tool
 
+<!-- cita-retratado: 0,227 0.227 14,2 14.2 0,437 0.437 -->
+<!-- These values were retracted elsewhere in the material and reappear
+     here as a NEW measurement from the text-mode collection. The
+     coincidence is numeric, not of quantity: `0.227` is the range
+     minimum of `atomic relaxed`, `14.2` is the instrument resolution of
+     custo-anel and `0.437` is the mempool bulk at batch 128. -->
+
 *Leia em [português](README.md).*
 
 > **Levels 1 and 2** of the [study plan](../plano-estudo-dpdk.en.md) ·
@@ -104,14 +111,14 @@ machine ([`custo-syscall.c`](medicoes/custo-syscall.c)):
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  function call (user-space)             0.746  0.746-0.749     0.745-1.038         0.4%   7.7%  
-  clock_gettime (vDSO, no trap)          15.53  15.52-15.81     15.52-16.31         1.9%   1.8%  
-  real syscall (SYS_getpid)              33.77  33.75-33.85     33.21-35.19         0.3%   1.0%  
+  function call (user-space)             0.720  0.717-0.724     0.716-0.778         1.0%   2.0%
+  clock_gettime (vDSO, no trap)          15.52  15.51-15.52     15.51-15.55         0.0%   0.1%
+  real syscall (SYS_getpid)              33.31  33.30-33.31     33.29-33.36         0.0%   0.0%
 
-  a syscall costs 45x a function call
+  a syscall costs 46x a function call
 
 10 GbE budget with 64 B frames: 67.2 ns per packet
-  syscalls that fit in that budget: 1.99
+  syscalls that fit in that budget: 2.02
 
   The traditional kernel path spends at least one syscall per
   packet batch, plus interrupt, sk_buff allocation and a copy.
@@ -701,10 +708,10 @@ paired design ([`custo-traducao.c`](medicoes/custo-traducao.c)):
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  4 KB pages                             89.83  89.34-90.13     88.82-92.39         0.9%   1.0%  
-  2 MB hugepages                         79.63  79.31-79.92     78.95-83.29         0.8%   1.1%  
+  4 KB pages                             89.26  89.12-90.09     88.98-90.88         1.1%   0.7%
+  2 MB hugepages                         79.08  79.02-80.04     78.37-80.47         1.3%   0.8%
 
-  DIFFERENCE attributable to translation     10.01  IQR 9.80 to 10.35   range 9.06 to 12.47   21/21 pairs
+  DIFFERENCE attributable to translation     10.24  IQR 10.02 to 10.47   range 9.80 to 10.86   21/21 pairs
 ```
 
 The ~80 ns common to both measurements are RAM latency, which no hugepage eliminates.
@@ -784,14 +791,14 @@ out of the picture:
   512 MB        78.55     <- RAM
 ```
 
-An L3 hit costs 9 to 10 ns on this machine. In the archived campaign, with the
-machine idle, the measured difference between 4 KB and 2 MB was **11.09 ns**:
+An L3 hit costs 9 to 10 ns on this machine. The measured difference between
+4 KB and 2 MB was **10.24 ns**:
 
 ```
-  4 KB pages                             89.05  88.97-89.18     88.82-89.90         0.2%   0.3%  
-  2 MB hugepages                         77.98  77.85-78.28     77.45-79.06         0.6%   0.6%  
+  4 KB pages                             89.26  89.12-90.09     88.98-90.88         1.1%   0.7%
+  2 MB hugepages                         79.08  79.02-80.04     78.37-80.47         1.3%   0.8%
 
-  page walk cost: 11.09 ns  (12.5% of the 4 KB access)
+  page walk cost: 10.24 ns  (11.5% of the 4 KB access)
 ```
 
 The numbers are **consistent** with the explanation: in this working set the
@@ -942,14 +949,14 @@ The two panels are the same table, and together they are the decision:
 ```
    K   ns/access   M accesses/s   batch of K ready in   throughput gain
   ---  ---------   -----------   ---------------------   --------------
-    1      76.65        13.0                77 ns            1.0x
-    2      37.97        26.3                76 ns            2.0x
-    4      20.58        48.6                82 ns            3.7x
+    1      76.35        13.1                76 ns            1.0x
+    2      37.70        26.5                75 ns            2.0x
+    4      20.55        48.7                82 ns            3.7x
     8      10.75        93.0                86 ns            7.1x
-   12       7.38       135.4                89 ns           10.4x
-   16       5.64       177.4                90 ns           13.6x
-   32       3.19       313.2               102 ns           24.0x
-   64       2.43       411.1               156 ns           31.5x
+   12       7.38       135.6                89 ns           10.3x
+   16       5.63       177.5                90 ns           13.6x
+   32       3.20       312.7               102 ns           23.9x
+   64       2.44       410.6               156 ns           31.3x
 ```
 
 **Latency does not change on any row.** It stays between 76 and 90 ns up to
@@ -1042,11 +1049,11 @@ line between threads:
 ```
      cores   ns/access   M accesses/s     aggregate   ideal scaling
   --------   ---------   -----------   -----------   ------------
-         1        5.85       170.9         170.9          100%
-         2        6.08       164.4         328.8           96%
-         4        6.69       149.4         597.5           87%
-         8        8.69       115.1         920.6           67%
-        12       12.68        78.9         946.3           46%
+         1        5.83       171.6         171.6          100%
+         2        6.07       164.8         329.6           96%
+         4        6.68       149.8         599.1           87%
+         8        8.67       115.3         922.5           67%
+        12       12.66        79.0         947.7           46%
 ```
 
 <picture>
@@ -1564,9 +1571,9 @@ measuring the time for a cache line to travel from one core to another:
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  within domain 0 (cpu 0 <-> 2)          17.94  17.50-18.48     16.78-19.89         5.5%   4.9% ~
-  BETWEEN domains (cpu 0 <-> 6)          81.49  81.45-81.53     81.43-83.43         0.1%   0.5%  
-  RATIO between/within (paired)           4.54  4.41-4.66       4.10-4.92           5.4%   5.0% ~
+  within domain 0 (cpu 0 <-> 2)          23.80  22.95-24.00     21.59-24.22         4.4%   3.3% ~
+  BETWEEN domains (cpu 0 <-> 6)          81.42  81.41-81.44     81.40-81.55         0.0%   0.1%
+  RATIO between/within (paired)           3.42  3.40-3.55       3.36-3.77           4.5%   3.4% ~
 ```
 
 **Crossing the interconnect costs about 4.5 times more — and that is 121% of the budget
@@ -1746,10 +1753,10 @@ competition with high-instruction-level-parallelism ALU work
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  loop alone on the core                 0.536  0.536-0.537     0.536-0.537         0.1%   0.1%  
-  neighbour on SMT sibling (cpu 12)       1.23  1.23-1.23       1.23-1.24           0.1%   0.1%  
-  RATIO with/without SMT sibling (paired)      2.29  2.29-2.29       2.29-2.30           0.1%   0.1%  
-  neighbour on physical core (cpu 2)     0.550  0.549-0.553     0.537-0.567         0.6%   1.3%  
+  loop alone on the core                 0.536  0.536-0.536     0.536-0.536         0.0%   0.0%
+  neighbour on SMT sibling (cpu 12)       1.23  1.23-1.23       1.23-1.23           0.0%   0.1%
+  RATIO with/without SMT sibling (paired)      2.29  2.29-2.29       2.29-2.29           0.1%   0.1%
+
 ```
 
 **Sharing the core costs 129% of time per operation** — the loop becomes 2.29 times
@@ -1812,12 +1819,12 @@ to finish:
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  1 thread  on 1 physical core (cpu 0)    1864.1  1863.8-1864.3   1861.0-1966.1       0.0%   1.2%  
-  2 threads on 2 physical cores (cpu 0,2)    3718.9  3716.5-3719.6   3690.6-3721.7       0.1%   0.2%  
-  2 threads on 2 SMT siblings (cpu 0,12)    1929.8  1929.2-1930.0   1926.4-1930.5       0.0%   0.1%  
+  1 thread  on 1 physical core (cpu 0)    1863.9  1860.9-1864.3   1854.2-2029.0       0.2%   1.9%
+  2 threads on 2 physical cores (cpu 0,2)    3715.2  3713.5-3716.6   3703.3-3726.7       0.1%   0.1%
+  2 threads on 2 SMT siblings (cpu 0,12)    1927.6  1927.3-1927.9   1923.1-1928.3       0.0%   0.1%
 
   two physical cores yield 1.99x one core
-  two SMT siblings    yield 1.04x one core
+  two SMT siblings    yield 1.03x one core
 ```
 
 **Two physical cores yield 1.99×. Two SMT siblings yield 1.04×.** The sibling pair
@@ -1936,14 +1943,14 @@ assumed.
 **1. Uncontended — nobody else wants the same primitive:**
 
 ```
-<!-- cita-retratado: 17.50 -->
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  atomic relaxed (store+load)            0.205  0.204-0.260     0.204-0.410        27.5%  31.1% !
-  atomic seq_cst (store+load)             3.68  3.67-3.95       3.67-3.99           7.4%   3.6% ~
-  mutex lock+unlock                       8.59  8.53-8.68       8.45-8.81           1.8%   1.3%  
-  spinlock lock+unlock                    4.49  4.42-4.51       4.41-4.66           2.1%   1.6%  
-  semaphore post+wait                     8.46  8.39-8.48       8.27-8.54           1.1%   0.9%  
+  atomic relaxed (store+load)            0.255  0.243-0.255     0.227-0.257         4.8%   3.4% ~
+  atomic seq_cst (store+load)             3.76  3.72-3.78       3.69-3.81           1.5%   0.9%
+  mutex lock+unlock                       8.53  8.51-8.55       8.51-8.61           0.4%   0.3%
+  spinlock lock+unlock                    4.50  4.50-4.52       4.43-4.55           0.4%   0.5%
+  semaphore post+wait                     8.37  8.35-8.40       8.30-8.43           0.6%   0.4%
+  semaphore post+wait                     8.37  8.35-8.40       8.30-8.43           0.6%   0.4%  
 ```
 
 The last two columns measure the number's trustworthiness: `disp` says whether the typical
@@ -2030,10 +2037,10 @@ comes out of the per-packet budget.
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  atomic + busy wait (does not sleep)     17.51  17.50-17.53     17.48-18.58         0.1%   2.0%  
-  mutex + busy wait (does not sleep)     95.68  95.25-96.41     94.10-97.55         1.2%   0.9%  
-  mutex + condvar (SLEEPS)              1316.0  1301.0-1331.9   1265.8-1397.8       2.3%   2.3%  
-  POSIX semaphore (SLEEPS)              1281.2  1267.7-1283.5   1224.6-1315.4       1.2%   1.5%  
+  atomic + busy wait (does not sleep)     17.61  17.58-17.96     17.58-18.46         2.1%   1.4%
+  mutex + busy wait (does not sleep)     90.95  90.78-91.43     90.20-93.04         0.7%   0.7%
+  mutex + condvar (SLEEPS)              1275.2  1255.4-1277.2   1238.7-1337.6       1.7%   1.9%
+  POSIX semaphore (SLEEPS)              1217.0  1209.5-1223.4   1184.6-1342.8       1.1%   3.2%
 ```
 
 **The decisive comparison is the two middle lines: it is the same mutex.** The only
@@ -2049,7 +2056,7 @@ than a thousand nanoseconds.
 
 ```
     busy-wait fits 3.8 times into one packet's budget
-    sleeping spends 20.2 whole budgets
+    sleeping spends 19.0 whole budgets
 ```
 
 Waking a thread consumes the equivalent of **20 packets of 10 GbE**. In the time to be

@@ -379,7 +379,7 @@ that makes the other look expensive exists to cross that bridge.
 Packets processed: 10
 Total bytes: 695
 Batch (burst): 32 | batches interrupted by a full queue: 0
-Mean time: 15.0 ns/packet  <- NOT A MEASUREMENT
+Mean time: 12.0 ns/packet  <- NOT A MEASUREMENT
   10 packets are far too few: the cost of reading the clock is of the same
   order as the work measured. Use -n 10000 or more for a defensible number.
 ```

@@ -110,6 +110,14 @@ corre2() { # <rodada>
     "$B2/custo-init"    -l 0 --in-memory                    > "$D2/custo-init.in-memory.r$1.txt" 2>&1
     "$B2/custo-init"    -l 0 --no-huge                      > "$D2/custo-init.no-huge.r$1.txt"   2>&1
     "$B2/estado-lcore"  -l 0-3 --in-memory                  > "$D2/estado-lcore.r$1.txt"         2>&1
+    # A SEGUNDA INVOCACAO existe porque o documento publica as DUAS.
+    #
+    # Com `-l`, os lcores caem onde os numeros mandarem; com `--lcores`, o
+    # mapeamento e escolhido, e a §4 do modulo 02 contrasta os dois blocos para
+    # mostrar que a quarta coluna -- o core id -- nao muda. Sem arquivar a
+    # segunda, esse bloco ficava sem procedencia e so se refazia a mao.
+    "$B2/estado-lcore"  --lcores '"'"'0@6,1@7,2@18'"'"' --in-memory \
+                                                           > "$D2/estado-lcore.lcores.r$1.txt"  2>&1
 }
 corre3() { # <rodada>
     for n in custo-alocacao anatomia-mbuf custo-anel pool-esgotado; do

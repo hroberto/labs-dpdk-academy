@@ -1,5 +1,12 @@
 # Runtime do DPDK — a EAL como sistema de execução
 
+<!-- cita-retratado: 0,227 0.227 14,2 14.2 0,437 0.437 -->
+<!-- Estes valores foram retratados noutros pontos do material e
+     reaparecem aqui como MEDICAO NOVA da coleta de modo texto. A
+     coincidencia e numerica, nao de grandeza: `0,227` e o minimo da
+     faixa do `atomic relaxed`, `14,2` e a resolucao do instrumento do
+     custo-anel e `0,437` e o mempool bulk no lote 128. -->
+
 *Read this in [English](README.en.md).*
 
 > **Nível 3** do [plano de estudo](../plano-estudo-dpdk.md) ·
@@ -132,18 +139,18 @@ cronometra e devolve o resultado por um *pipe*; o pai apenas agrega.
   configuration measured: -l 0 --in-memory
   samples: 11 (one per process; rte_eal_init is not reentrant)
 
-  warning: "rte_eal_cleanup()" has disp 6.0% with 11 samples -- in that band the seal
+  warning: "rte_eal_cleanup()" has disp 7.9% with 11 samples -- in that band the seal
            does not decide. Raise it to 20+ before explaining the result.
   values in MILLISECONDS
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  rte_eal_init()                         118.8  118.3-121.4     117.8-122.1         2.6%   1.4%  
-  rte_eal_cleanup()                      0.094  0.090-0.096     0.055-0.133         6.0%  20.1% ~
+  rte_eal_init()                         117.6  117.3-117.7     116.9-117.9         0.4%   0.3%
+  rte_eal_cleanup()                      0.083  0.078-0.085     0.064-0.101         7.9%  11.1% ~
 
   Reading:
     At 10 GbE with 64 B frames one packet arrives every 67.2 ns.
-    The 119 ms initialisation window is worth 2 million packets
+    The 118 ms initialisation window is worth 2 million packets
 ```
 
 Subir a EAL custa **119 ms**; encerrá-la custa **0,09 ms** — três ordens de
@@ -672,13 +679,13 @@ mil ticks, produtor no lcore 0 e consumidor no lcore 1:
 
   measurement                      minimum    median       p75       p99  samples
   ------------------------------ --------- --------- --------- ---------  -------
-  publication -> observation         10.02     20.04     30.06    110.21   200000
+  publication -> observation         10.02     20.04     30.06     40.07   200000
 
-    instrument resolution: 11.9 ns (one consumer poll).
+    instrument resolution: 14.2 ns (one consumer poll).
     degenerate samples: 0 of 200000 (TSC aligned across the two cores)
     The values above are an UPPER BOUND: between two polls the
     consumer is blind, so the real traversal fits inside the
-    last step. Differences smaller than 11.9 ns are not measurable here.
+    last step. Differences smaller than 14.2 ns are not measurable here.
 ```
 
 **Dez nanossegundos no melhor caso, cento e dez no p99 desta execução.** Para

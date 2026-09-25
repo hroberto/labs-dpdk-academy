@@ -1,5 +1,13 @@
 # Mempool, ring e mbuf — o modelo de dados do DPDK
 
+<!-- cita-retratado: 0,227 0.227 14,2 14.2 0,437 0.437 -->
+<!-- Estes valores foram retratados noutros pontos do material e
+     reaparecem aqui como MEDICAO NOVA da coleta de modo texto. A
+     coincidencia e numerica, nao de grandeza: `0,227` e o minimo da
+     faixa do `atomic relaxed`, `14,2` e a resolucao do instrumento do
+     custo-anel e `0,437` e o mempool bulk no lote 128. -->
+
+
 *Read this in [English](README.en.md).*
 
 > **Nível 4** do [plano de estudo](../plano-estudo-dpdk.md) ·
@@ -68,16 +76,16 @@ dois na mesma máquina, com a mesma metodologia dos demais programas do projeto.
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  malloc/free                             2.78  2.77-2.78       2.77-2.79           0.2%   0.1%  
-  mempool get/put, with cache             1.25  1.25-1.62       1.23-1.62          29.7%  12.6% !
-  mempool get/put, NO cache              13.27  10.53-13.42     10.36-13.44        21.8%  11.1% !
+  malloc/free                             2.18  2.17-2.19       2.15-2.19           0.7%   0.6%
+  mempool get/put, with cache             1.28  1.28-1.28       1.27-1.28           0.1%   0.2%
+  mempool get/put, NO cache              10.45  10.45-10.48     10.44-10.55         0.3%   0.3%
 ```
 
 ```
-  frequency of core 0 during the measurement: 4.33 -> 5.57 GHz
+  frequency of core 0 during the measurement: 5.59 -> 5.56 GHz
   ratios, which do NOT depend on frequency:
-    mempool with cache is 2.23x faster than malloc
-    the per-lcore cache is worth 10.6x (with cache against without)
+    mempool with cache is 2.11x faster than malloc
+    the per-lcore cache is worth 10.1x (with cache against without)
     without the cache, the mempool is 4.8x SLOWER than malloc
 ```
 
@@ -155,10 +163,10 @@ publicada:
 
   batch         malloc/free   mempool bulk      ratio
   -----         -----------   ------------      -----
-  1                 2.74 ns       1.853 ns       1.5x
-  8                 2.28 ns       0.632 ns       3.6x
-  32               12.42 ns       0.465 ns      26.7x
-  128              19.61 ns       0.436 ns      45.0x
+  1                 2.75 ns       1.839 ns       1.5x
+  8                 2.28 ns       0.634 ns       3.6x
+  32               12.53 ns       0.467 ns      26.8x
+  128              19.67 ns       0.437 ns      45.0x
 ```
 
 Pedir mais objetos de uma vez **barateia** cada objeto no mempool (1,85 → 0,44 ns)
@@ -466,9 +474,10 @@ mostrou, a segunda mostrou.
 > determina. A fronteira entre as duas aparece sozinha, no lugar previsto, a
 > partir de uma variável que ninguém escolheu por conveniência.
 
-A segunda coleta está em
-[`medicoes/historico/2026-09-23-mempool-cache-canal-duplo/`](medicoes/historico/2026-09-23-mempool-cache-canal-duplo/),
-com as 240 saídas brutas.
+A coleta está em
+[`../../trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-cache/`](../../trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-cache/),
+com as saídas brutas. Ela vem da campanha de 24/09 em modo texto: as coletas
+anteriores, feitas com sessão gráfica ativa, foram retiradas do projeto.
 
 #### O elo entre a contagem e o tempo, medido
 
@@ -624,9 +633,9 @@ atual não faz.
 > tempo — que é mais uma razão para a coluna de tempo estar fora.
 
 A coleta está em
-[`medicoes/historico/2026-09-21-mempool-cache-intercalada/`](medicoes/historico/2026-09-21-mempool-cache-intercalada/),
-com a saída bruta de cada uma das 240 execuções e a procedência que o programa
-imprime — versão do DPDK, commit, host, compilador e data.
+[`../../trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-cache/`](../../trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-cache/),
+com a saída bruta de cada execução e a procedência que o programa imprime —
+versão do DPDK, commit, host, compilador e data.
 
 ---
 
@@ -793,10 +802,10 @@ O programa [`medicoes/custo-anel.c`](medicoes/custo-anel.c) mede os dois modos
 ```
   batch      SP/SC (ns/obj)   MP/MC (ns/obj) MP/MC cost
   -----      --------------   -------------- -----------
-  1                1.626 ns         8.233 ns       406%
-  8                0.530 ns         1.283 ns       142%
-  32               0.397 ns         0.484 ns        22%
-  128              0.375 ns         0.303 ns       -19%
+  1                1.636 ns         8.237 ns       404%
+  8                0.539 ns         1.283 ns       138%
+  32               0.405 ns         0.485 ns        20%
+  128              0.372 ns         0.302 ns       -19%
 ```
 
 **O custo não depende de haver disputa.** Com um produtor só, o modo MP/MC ainda

@@ -283,7 +283,7 @@ O que está decidido sobre **como** fazer, quando chegar a hora:
   manutenção do inglês.
 
 **Pré-requisito para começar esta etapa:** o conteúdo em português precisa estar
-maduro. Nenhum dos 30 documentos é esqueleto: o último,
+maduro. Nenhum dos 28 documentos é esqueleto: o último,
 `trilha/04-projeto-final/`, virou conteúdo em 16/09/2026. O que ainda falta lá é
 a aplicação de ponta a ponta, e o documento diz isso na primeira seção em vez de
 se declarar pronto.
@@ -302,7 +302,7 @@ se declarar pronto.
 >
 > O `! -name '*.en.md'` não é filigrana. Desde a paridade de 16/09/2026 cada
 > documento tem um par em inglês, e contá-lo dobraria o total sem haver um
-> documento novo: sem o filtro este comando devolve 57 para 30 documentos. O
+> documento novo: sem o filtro este comando devolve 55 para 28 documentos. O
 > verificador aplica o mesmo corte, e é por isso que os dois concordam.
 > ```
 

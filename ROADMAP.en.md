@@ -260,7 +260,7 @@ What is decided about **how** to do it, when the time comes:
   maintaining the English.
 
 **Prerequisite for starting this stage:** the Portuguese content needs to be mature.
-None of the 30 documents is a skeleton: the last one, `trilha/04-projeto-final/`,
+None of the 28 documents is a skeleton: the last one, `trilha/04-projeto-final/`,
 became content on 16/09/2026. What is still missing there is the end-to-end
 application, and the document says so in its first section instead of declaring
 itself finished.
@@ -280,7 +280,7 @@ itself finished.
 >
 > The `! -name '*.en.md'` is not a nicety. Since the parity of 16/09/2026 every
 > document has an English counterpart, and counting it would double the total without
-> there being a new document: without the filter this command returns 57 for 30
+> there being a new document: without the filter this command returns 55 for 28
 > documents. The verifier applies the same cut, and that is why the two agree.
 
 ## Final goal
