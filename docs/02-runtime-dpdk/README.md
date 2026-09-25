@@ -189,29 +189,44 @@ jeito. **O número do encerramento não existe sem a configuração ao lado.**
 > documenta.
 > <!-- retratado: 0.082 0,082 0.30 0,30 195 -->
 
-### 2.1 De onde vêm os 123 ms
+### 2.1 De onde vêm os 118 ms
 
 A primeira hipótese natural é que o custo esteja na memória ou na varredura de
 dispositivos. As duas estão erradas:
 
 | Configuração | `rte_eal_init()` mediana | amplitude |
 |---|---:|---|
-| `-l 0 --in-memory` | 122,4 ms | 121,6–123,7 |
-| `-l 0 --in-memory --no-pci` | 121,1 ms | 120,0–122,5 |
-| `-l 0 --no-huge --in-memory --no-pci` | 120,8 ms | 120,2–121,8 |
-| `-l 0-3 --in-memory` | 123,5 ms | 122,8–125,7 |
+| `-l 0 --in-memory` | 117,7 ms | 117,0–118,2 |
+| `-l 0 --in-memory --no-pci` | 116,4 ms | 115,6–116,9 |
+| `-l 0 --no-huge --in-memory --no-pci` | 116,4 ms | 115,6–116,9 |
+| `-l 0-3 --in-memory` | 117,9 ms | 116,9–118,7 |
 
 Desligar a varredura PCI não muda nada. Trocar hugepages por memória comum não
 muda nada. Usar quatro lcores em vez de um não muda nada. O custo é **um piso
 fixo**, e um piso fixo com essa dispersão não parece trabalho: parece espera.
 
-> **Esta tabela mede `-l 0-3` de fato**, e a mediana de `-l 0 --in-memory`
-> (122,4, amplitude 121,6–123,7) **contém** os 123,1 da tabela do início da
-> seção: as duas coletas concordam.
-> <!-- retratado: 122,3 120,7 -->
+> **Esta tabela e o bloco do início da seção vêm da MESMA campanha**, e é a
+> primeira vez. A mediana de `-l 0 --in-memory` aqui (117,7) é a mesma que o
+> `custo-init` publica lá — como tem de ser, já que é a mesma invocação do mesmo
+> programa.
+>
+> **Antes não era.** A tabela publicava 122,4 ms para `-l 0 --in-memory`
+> enquanto o bloco publicava 117,8 para a mesma configuração, no mesmo
+> documento. A causa era estrutural: esta tabela nunca teve programa que a
+> produzisse — as quatro células eram transcritas à mão, e tabela Markdown não
+> é conferida pelo `verificar-blocos`, que olha bloco de cerca. O `122,4` só
+> existia em arquivo numa coleta de JEDEC-4800 com `--no-huge`; o `123,1` e o
+> `123,5` não existiam em coleta nenhuma.
+>
+> As quatro configurações agora correm na **mesma rodada** da campanha, e isso
+> é condição do argumento: o que ele afirma é que o custo é um **piso fixo**, e
+> piso fixo se demonstra pelas células concordarem **entre si**. Rodadas
+> separadas mediriam quatro instantes diferentes da máquina.
+> <!-- cita-retratado: 122,4 122.4 123,1 123.1 123,5 123.5 -->
+> <!-- retratado: 122,3 120,7 122,4 121,1 120,8 123,5 123,1 -->
 
 **Trabalhando ou esperando?** A distinção é o problema, e a medição anterior não
-consegue fazê-la: 123 ms de relógio de parede são idênticos nos dois casos.
+consegue fazê-la: 118 ms de relógio de parede são idênticos nos dois casos.
 Escolher o instrumento certo aqui é metade da lição.
 
 Um perfilador de CPU — `perf`, por exemplo — é a escolha errada, e por um motivo
@@ -239,14 +254,14 @@ contra o relógio do sistema durante um décimo de segundo para descobrir sua
 frequência — a mesma que [`rte_get_tsc_hz()`][apitschz] devolve depois, e que
 todo código que converte ciclos em nanossegundos usa.
 
-**Ou seja: 100 dos 123 ms, 81% do custo de inicializar a EAL nesta máquina, não
+**Ou seja: 100 dos 118 ms, 85% do custo de inicializar a EAL nesta máquina, não
 são trabalho — são uma medição de relógio.**
 
 > **O que o `strace` não resolveu.** Ele mostrou *que* há uma espera de 100 ms e
 > *onde* ela ocorre; **por que** ela existe veio de ler o código da EAL, e a
 > condição em que ela é dispensada, da [§2.2](#22-por-que-essa-espera-existe-e-quando-ela-não-acontece).
 > E ele não produziu nenhum dos números publicados aqui: instrumentar cada
-> chamada de sistema tem custo próprio, que distorceria a medição. Os 123 ms vêm
+> chamada de sistema tem custo próprio, que distorceria a medição. Os 118 ms vêm
 > de [`custo-init.c`](medicoes/custo-init.c); o `strace` entrou depois, para
 > explicá-los. Medir e diagnosticar são passos distintos, com ferramentas
 > distintas.
@@ -293,7 +308,7 @@ o sinalizador — e o `nanosleep` de 100 ms roda **sempre**.
 > disponível. Numa AMD com `tsc_known_freq` a espera continua acontecendo.
 > Trocar de CPU dentro do mesmo fabricante não move este número.
 
-A consequência prática é que **os 123 ms não são propriedade do DPDK**: são
+A consequência prática é que **os 118 ms não são propriedade do DPDK**: são
 propriedade desta combinação de CPU, fabricante e kernel. Medir na sua máquina
 é parte do exercício, e o programa aceita as opções da EAL diretamente para
 isso.
@@ -307,18 +322,18 @@ inteira de desenhos:
   modelo é serviço de longa duração; qualquer coisa que suba e desça o runtime
   com frequência paga o custo todas as vezes.
 - **Reiniciar em produção é um evento, não uma rotina.** Voltando ao exemplo:
-  reiniciar o *feed handler* durante o pregão significa 123 ms sem receber, mais
+  reiniciar o *feed handler* durante o pregão significa 118 ms sem receber, mais
   o tempo de reassinar o *feed* e reconstruir o livro. A [§7 dos
   fundamentos](../01-fundamentos/README.md#7-métricas-o-vocabulário-para-não-se-enganar)
   trata latência por percentis justamente porque eventos raros e caros são o que
-  define o comportamento observado — e 123 ms é um evento caríssimo num sistema
+  define o comportamento observado — e 118 ms é um evento caríssimo num sistema
   cujo requisito se mede em microssegundos.
 - **A separação entre o que reinicia e o que não reinicia vira decisão de
   projeto.** É exatamente o argumento para o modelo multiprocesso da
   [§4](#4-processos-primário-e-secundário): manter de pé o processo que não pode
   cair, e deixar reiniciável o que muda com frequência.
 
-> **Uma ressalva honesta.** 123 ms mede `rte_eal_init()` isolada. Uma aplicação
+> **Uma ressalva honesta.** 118 ms mede `rte_eal_init()` isolada. Uma aplicação
 > real ainda vai configurar portas, alocar mempools e filas, e subir os
 > trabalhadores — trabalho que este número não inclui. O tempo total até o
 > primeiro pacote processado é maior, não menor.
@@ -466,7 +481,7 @@ sozinha.
 
 **Ciclos de vida diferentes.** A estratégia é recompilada e reiniciada várias
 vezes ao dia; o *feed handler* deveria subir uma vez. A [§2](#2-o-custo-de-existir-quanto-a-eal-leva-para-nascer)
-dá o número que torna isso concreto: cada reinício custa 123 ms de EAL. Reiniciar
+dá o número que torna isso concreto: cada reinício custa 118 ms de EAL. Reiniciar
 só o que precisa ser reiniciado deixa de ser preferência e vira requisito.
 
 **Fronteiras organizacionais.** Times diferentes, permissões diferentes, às vezes
@@ -1113,7 +1128,7 @@ da [§2.3](#23-o-que-isso-decide-na-arquitetura):
 
 | Operação | Custo mediano | Ordem de grandeza |
 |---|---|---|
-| `rte_eal_init()` | 123 ms | 10⁵ µs |
+| `rte_eal_init()` | 118 ms | 10⁵ µs |
 | `rte_eal_cleanup()` | 0,12 a 0,65 ms, conforme o modo de memória | 10² µs |
 | orçamento por pacote em 10 GbE, quadro de 64 B | 67,2 ns | 10⁻¹ µs |
 
@@ -1153,7 +1168,7 @@ conjunto de escolhas justificadas:
 | memória reservada por nó | evita acesso remoto por pacote | [§3.4](#34-reservar-memória-por-nó) |
 | `--file-prefix` nomeado | permite produção e replay na mesma máquina | [§4.3](#43---file-prefix-o-isolamento-entre-instâncias) |
 | hugetlbfs próprio | multiprocesso sem rodar como `root` | [§4.5](#45-o-que-desliga-o-modelo-multiprocesso-sem-avisar) |
-| processo único e longevo | inicializar custa 123 ms | [§2.3](#23-o-que-isso-decide-na-arquitetura) |
+| processo único e longevo | inicializar custa 118 ms | [§2.3](#23-o-que-isso-decide-na-arquitetura) |
 | secundário para a estratégia | isolamento de falha e ciclo de vida próprio | [§4.1](#41-por-que-dois-processos) |
 
 Nenhuma dessas opções é sobre desempenho de código. Todas são sobre **o
@@ -1564,7 +1579,7 @@ Ambos ficam registrados como pendência, não como resultado.
 - **A resolução da medição de travessia é ~12 ns**, um período de sondagem do
   consumidor. Diferenças menores não são observáveis com este instrumento, e os
   valores publicados são limite superior, não o custo exato.
-- **123 ms é desta máquina.** É o resultado de uma CPU sem `tsc_known_freq` com
+- **118 ms é desta máquina.** É o resultado de uma CPU sem `tsc_known_freq` com
   este kernel, e a [§2.2](#22-por-que-essa-espera-existe-e-quando-ela-não-acontece)
   explica por quê. Não use o número como característica do DPDK.
 - **A comparação com outras fontes é sobre versões, não sobre autores.** O que a

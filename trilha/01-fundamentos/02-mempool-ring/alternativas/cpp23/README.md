@@ -172,20 +172,20 @@ Medido com **o mesmo protocolo** de
 por [`custo-anel-cpp.cpp`](custo-anel-cpp.cpp): um thread, sem disputa, ciclo
 enfileirar+desenfileirar, 200 000 operações, mesma estatística.
 
-| lote | `rte_ring` SP/SC, em bloco | `SpscRing`, **unitário** | `SpscRing`, **em bloco** | bloco ÷ bloco | unitário ÷ bloco |
+| lote | `rte_ring` SP/SC, em bloco | `SpscRing`, **unitário** | `SpscRing`, **em bloco** | C++ bloco ÷ `rte_ring` | C++ unitário ÷ `rte_ring` |
 |---:|---:|---:|---:|---:|---:|
-| 1 | 1,627 ns | 3,235 ns | 2,699 ns | 1,7× | 2,0× |
-| 8 | 0,531 ns | 1,067 ns | 0,628 ns | 1,2× | 2,0× |
-| 32 | 0,404 ns | 1,031 ns | 0,565 ns | 1,4× | 2,6× |
-| 128 | **0,372 ns** | 1,140 ns | **0,506 ns** | **1,4×** | 3,1× |
+| 1 | 1,637 ns | 3,261 ns | 2,704 ns | 1,7× | 2,0× |
+| 8 | 0,532 ns | 1,073 ns | 0,635 ns | 1,2× | 2,0× |
+| 32 | 0,404 ns | 1,035 ns | 0,567 ns | 1,4× | 2,6× |
+| 128 | **0,373 ns** | 1,142 ns | **0,508 ns** | **1,4×** | 3,1× |
 
 Coleta em **modo texto**, sem sessão gráfica. Medianas entre execuções:
 `rte_ring` com cinco (campanha, descartada a de aquecimento), `SpscRing` com
-dez. Amplitudes: `rte_ring` 1,627–1,905 no lote 1 e 0,371–0,372 no lote 128;
-`SpscRing` em bloco 2,692–2,728 e 0,504–0,566.
+dez. Amplitudes: `rte_ring` 1,634–1,642 no lote 1 e 0,371–0,374 no lote 128;
+`SpscRing` em bloco 2,687–2,827 e 0,508–0,605.
 
 **A coluna em bloco cai com o lote, e era exatamente isso que a versão anterior
-deste texto dizia não acontecer.** De 2,699 ns no lote 1 para 0,506 ns no lote
+deste texto dizia não acontecer.** De 2,704 ns no lote 1 para 0,508 ns no lote
 128: a amortização existe no anel em C++ porque a API de bloco existe. O que
 não existia era um programa que a exercitasse.
 
@@ -235,8 +235,8 @@ atômicas** cada uma paga por objeto:
 
 A coluna do meio é a terceira linha desta tabela. É por isso que ela fica plana
 em torno de 1 ns a partir do lote 8: naquele caminho não há o que amortizar. As
-duas colunas em bloco caem juntas — o `rte_ring` até 0,372 ns, o `SpscRing` até
-0,506 ns.
+duas colunas em bloco caem juntas — o `rte_ring` até 0,373 ns, o `SpscRing` até
+0,508 ns.
 
 > **O que resta entre as duas, medido no mesmo regime, é de 1,2× a 1,7×.** Não é
 > zero, e vale perguntar de onde vem. Três candidatos, nenhum medido aqui: o
@@ -299,12 +299,43 @@ da glibc resolve do outro.
 Então de onde vem a vantagem de cerca de 30×? Do cache, e dá para desligá-lo. Criando o
 **mesmo** pool com `cache_size = 0`:
 
-| threads | mempool sem cache | `malloc` | razão |
-|---:|---:|---:|---:|
-| 1 | 0,62 ns | 12,0 ns | 19× |
-| 2 | 3,37 ns | 12,2 ns | 4× |
-| 4 | 11,61 ns | 12,5 ns | 1× |
-| 8 | **60,87 ns** | **13,3 ns** | **0,2×** — o mempool **perde** |
+| threads | mempool sem cache | `malloc` | razão | fronteira |
+|---:|---:|---:|---:|---|
+| 1 | 0,62 ns | 12,27 ns | 20× | — |
+| 2 | 3,18 ns | 12,40 ns | 3,9× | — |
+| 4 | 11,76 ns | 12,41 ns | 1,1× | — |
+| 8 | **58,70 ns** | 12,58 ns | **0,2×** — o mempool **perde** | cruza CCD |
+| 16 | **149,93 ns** | 15,36 ns | **0,1×** | cruza CCD e SMT |
+
+> **A última coluna não é decoração, e a tabela não se lê sem ela.** Esta
+> máquina tem doze núcleos físicos em **dois** domínios de L3, seis em cada. A
+> partir de oito threads a disputa deixa de ser só pelo mempool e passa a
+> atravessar a interconexão — que a [§4.2 dos
+> fundamentos](../../../../../docs/01-fundamentos/README.md#42-cache-e-localidade)
+> mede em ~81 ns contra ~22 ns dentro do domínio. Em dezesseis, quatro threads
+> passam a dividir as unidades de execução de um núcleo com a sua irmã SMT.
+>
+> **Linhas separadas por uma marca não são comparáveis**: entre elas muda mais
+> de uma coisa. O salto de 11,8 para 58,7 ns não é "o quádruplo de threads
+> custa cinco vezes"; é o quádruplo de threads **mais** a travessia.
+>
+> Não dá para consertar escolhendo lcores melhores — com oito threads em seis
+> núcleos por CCD, atravessar é inevitável. O que dá para consertar é o
+> silêncio, e o programa agora declara a fronteira por linha.
+
+> **As linhas de 8 e 16 não existiam, e a razão é instrutiva.** A campanha
+> rodava `custo-contencao` com `-l 0-5`, e o programa dobra o número de threads
+> até `rte_lcore_count()`: com seis lcores ele parava em quatro. A linha de 8
+> era publicada assim mesmo, com um valor que **nenhuma execução arquivada
+> continha** — número sem programa, que é o que a regra editorial deste projeto
+> proíbe.
+>
+> Em modo texto não há com quem disputar a máquina, então a campanha passou a
+> usar os 24 lcores. O valor publicado antes (60,87 ns) estava na vizinhança do
+> medido agora (58,70), e isso não o torna aceitável: o que faltava não era
+> exatidão, era procedência.
+> <!-- cita-retratado: 60,87 60.87 11,61 11.61 3,37 3.37 -->
+> <!-- retratado: 60,87 11,61 -->
 
 ```mermaid
 xychart-beta

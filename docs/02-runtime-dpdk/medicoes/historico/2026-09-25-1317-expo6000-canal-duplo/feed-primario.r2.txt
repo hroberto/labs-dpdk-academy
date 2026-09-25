@@ -1,0 +1,31 @@
+EAL: Detected CPU lcores: 24
+EAL: Detected NUMA nodes: 1
+EAL: Detected shared linkage of DPDK
+EAL: Multi-process socket /tmp/academy-runtime-776znuzz/dpdk/academy_session_25020_2666677009042598528_/mp_socket
+EAL: Selected IOVA mode 'VA'
+  origin: feed-primario @ v0.07.00-23-g75b86d7  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-25T13:55:14-0300  |  DPDK 25.11.0
+
+
+== Feed handler (primary process) ==
+
+  memzone .............. "academia_feed_marketdata"
+  virtual address ...... 0x1003bde40        <- compare with the secondary's
+  IOVA address ......... 0x1003bde40
+  size ................. 262464 bytes (256 KiB)
+  NUMA node ............ 0
+  page ................. 2048 KiB
+  producer lcore ....... 0 (index on node 0, NUMA node 0)
+  clock (TSC) .......... 4.392 GHz
+  sizeof(struct tick) .. 32 bytes (2 per cache line)
+  mode ................. cadence (pause between ticks)
+  ticks to publish ..... 200000
+
+  waiting for the subscriber to connect (up to 15 s)...
+  subscriber connected.
+
+  published 200000 ticks in 405.7 ms
+  sequence gaps injected: 39 (SIMULATED loss)
+  waiting for the subscriber to drain...
+  subscriber consumed everything. Waiting for it to exit...
+  all secondaries have exited. Shutting down the primary.
+

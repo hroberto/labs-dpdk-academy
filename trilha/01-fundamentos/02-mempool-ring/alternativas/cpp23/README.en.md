@@ -176,21 +176,21 @@ The ring in C++23 now exists: [`SpscRing`](packet.hpp) — atomic indices with
 [`custo-anel-cpp.cpp`](custo-anel-cpp.cpp): one thread, no contention, an
 enqueue+dequeue cycle, 200 000 operations, the same statistics.
 
-| batch | `rte_ring` SP/SC, bulk | `SpscRing`, **single-element** | `SpscRing`, **bulk** | bulk ÷ bulk | single ÷ bulk |
+| batch | `rte_ring` SP/SC, bulk | `SpscRing`, **single-element** | `SpscRing`, **bulk** | C++ bulk ÷ `rte_ring` | C++ single ÷ `rte_ring` |
 |---:|---:|---:|---:|---:|---:|
-| 1 | 1.627 ns | 3.235 ns | 2.699 ns | 1.7× | 2.0× |
-| 8 | 0.531 ns | 1.067 ns | 0.628 ns | 1.2× | 2.0× |
-| 32 | 0.404 ns | 1.031 ns | 0.565 ns | 1.4× | 2.6× |
-| 128 | **0.372 ns** | 1.140 ns | **0.506 ns** | **1.4×** | 3.1× |
+| 1 | 1.637 ns | 3.261 ns | 2.704 ns | 1.7× | 2.0× |
+| 8 | 0.532 ns | 1.073 ns | 0.635 ns | 1.2× | 2.0× |
+| 32 | 0.404 ns | 1.035 ns | 0.567 ns | 1.4× | 2.6× |
+| 128 | **0.373 ns** | 1.142 ns | **0.508 ns** | **1.4×** | 3.1× |
 
 Collected in **text mode**, with no graphical session. Medians between runs:
 `rte_ring` over five (the campaign's, warm-up discarded), `SpscRing` over ten.
-Amplitudes: `rte_ring` 1.627–1.905 at batch 1 and 0.371–0.372 at batch 128;
-`SpscRing` in bulk 2.692–2.728 and 0.504–0.566.
+Amplitudes: `rte_ring` 1.634–1.642 at batch 1 and 0.371–0.374 at batch 128;
+`SpscRing` in bulk 2.687–2.827 and 0.508–0.605.
 
 **The bulk column falls with the batch, and that is exactly what the earlier
-version of this text said could not happen.** From 2.699 ns at batch 1 to
-0.506 ns at batch 128: the amortisation exists in the C++ ring because the bulk
+version of this text said could not happen.** From 2.704 ns at batch 1 to
+0.508 ns at batch 128: the amortisation exists in the C++ ring because the bulk
 API exists. What did not exist was a program exercising it.
 
 **The distance between the two libraries in the same regime is 1.2× to 1.7×**,
@@ -238,7 +238,7 @@ many atomic publications** each one pays per object:
 
 The middle column is the third row of this table. That is why it flattens around
 1 ns from batch 8 on: on that path there is nothing to amortise. The two bulk
-columns fall together — `rte_ring` to 0.372 ns, `SpscRing` to 0.506 ns.
+columns fall together — `rte_ring` to 0.373 ns, `SpscRing` to 0.508 ns.
 
 > **What remains between the two, measured in the same regime, is 1.2× to 1.7×.**
 > That is not zero, and it is worth asking where it comes from. Three candidates,
@@ -301,12 +301,41 @@ glibc's per-thread *arena* on the other.
 So where does the roughly 30× advantage come from? From the cache, and you can turn it off.
 Creating the **same** pool with `cache_size = 0`:
 
-| threads | mempool without cache | `malloc` | ratio |
-|---:|---:|---:|---:|
-| 1 | 0.62 ns | 12.0 ns | 19× |
-| 2 | 3.37 ns | 12.2 ns | 4× |
-| 4 | 11.61 ns | 12.5 ns | 1× |
-| 8 | **60.87 ns** | **13.3 ns** | **0.2×** — the mempool **loses** |
+| threads | mempool without cache | `malloc` | ratio | boundary |
+|---:|---:|---:|---:|---|
+| 1 | 0.62 ns | 12.27 ns | 20× | — |
+| 2 | 3.18 ns | 12.40 ns | 3.9× | — |
+| 4 | 11.76 ns | 12.41 ns | 1.1× | — |
+| 8 | **58.70 ns** | 12.58 ns | **0.2×** — the mempool **loses** | crosses CCD |
+| 16 | **149.93 ns** | 15.36 ns | **0.1×** | crosses CCD and SMT |
+
+> **The last column is not decoration, and the table does not read without it.**
+> This machine has twelve physical cores across **two** L3 domains, six in each.
+> From eight threads on, the contention stops being only for the mempool and
+> starts crossing the interconnect — which [§4.2 of the
+> fundamentals](../../../../../docs/01-fundamentos/README.en.md#42-cache-and-locality)
+> measures at ~81 ns against ~22 ns inside the domain. At sixteen, four threads
+> begin sharing a core's execution units with their SMT sibling.
+>
+> **Rows separated by a mark are not comparable**: more than one thing changes
+> between them. The jump from 11.8 to 58.7 ns is not "four times the threads
+> costs five times"; it is four times the threads **plus** the crossing.
+>
+> It cannot be fixed by picking better lcores — with eight threads across six
+> cores per CCD, crossing is unavoidable. What can be fixed is the silence, and
+> the program now declares the boundary per row.
+
+> **The 8 and 16 rows did not exist, and the reason is instructive.** The
+> campaign ran `custo-contencao` with `-l 0-5`, and the program doubles the
+> thread count up to `rte_lcore_count()`: with six lcores it stopped at four.
+> The 8 row was published anyway, with a value **no archived run contained** — a
+> number with no program, which is what this project's editorial rule forbids.
+>
+> In text mode there is nobody to contend with, so the campaign moved to all 24
+> lcores. The previously published value (60.87 ns) was in the neighbourhood of
+> what is measured now (58.70), and that does not make it acceptable: what was
+> missing was not accuracy, it was provenance.
+> <!-- cita-retratado: 60,87 60.87 11,61 11.61 3,37 3.37 -->
 
 ```mermaid
 xychart-beta
