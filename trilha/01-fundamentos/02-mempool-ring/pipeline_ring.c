@@ -528,8 +528,8 @@ int main(int argc, char **argv)
         printf("Mode: 1 lcore (%u), producer and consumer interleaved\n", rte_lcore_id());
     /* DRENAGEM: o que ficou no anel volta ao pool antes de qualquer relato.
      * Ver README.md secao 6.5 "Terminacao sob falha". */
-    uint64_t descartados = 0;
     if (sem_progresso) {
+        uint64_t descartados = 0;
         void *sobra[BURST_MAX];
         unsigned deq;
         while ((deq = rte_ring_dequeue_burst(ring, sobra, BURST_MAX, NULL)) > 0) {

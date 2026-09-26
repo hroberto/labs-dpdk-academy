@@ -53,3 +53,11 @@ shadowVariable:docs/01-fundamentos/medicoes/custo-comunicacao.c:562
 // O googletest entra como subprojeto e e analisado junto. Nao e nosso, e
 // consertar o analisador de outro projeto nao e trabalho deste.
 *:subprojects/*
+
+// 4. PONTO DE ENTRADA DE THREAD
+// `pthread_create` exige `void *(*)(void *)`. O cppcheck ve que o parametro so
+// e lido e sugere `const void *` -- e ele mesmo ressalva, na propria mensagem,
+// que isso obrigaria a converter o ponteiro de funcao. Trocar a assinatura para
+// calar o analisador trocaria um aviso de estilo por uma conversao de ponteiro
+// de funcao, que e defeito de verdade.
+constParameterCallback

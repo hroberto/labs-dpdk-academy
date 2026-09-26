@@ -349,7 +349,11 @@ def trecho_da_citacao(texto, pos):
     # contivesse só a marca fazia a explicação ao lado quebrar o alcance --
     # medido em 26/09/2026, no bloco do `atomic relaxed`, onde a isenção
     # deixava de cobrir justamente o bloco que ela anotava.
-    resto = re.sub(r"<!--.*?-->", "", "".join(linhas[a:b + 1]), flags=re.S)
+    # `--!?>`: as duas formas fecham comentario em HTML, e so a primeira era
+    # reconhecida. Aqui o efeito seria mais discreto que no
+    # `verificar-concordancia.py` -- o comentario nao removido faria `resto`
+    # parecer prosa, e a isencao deixaria de alcancar o bloco anotado.
+    resto = re.sub(r"<!--.*?--!?>", "", "".join(linhas[a:b + 1]), flags=re.S)
     so_a_marca = not resto.strip()
     if so_a_marca and a > 0:
         j = a - 1

@@ -260,11 +260,19 @@ jobs:
           meson setup build-${{ matrix.versao }}
           meson compile -C build-${{ matrix.versao }}
 
+      # `LD_LIBRARY_PATH` E NECESSARIO, e a primeira execucao deste job provou.
+      #
+      # Compilar contra um prefixo nao ensina o carregador dinamico a achar o
+      # `.so` depois. Sem esta linha, os binarios sobem ate a chamada e morrem
+      # em `error while loading shared libraries: librte_kvargs.so` -- dez
+      # falhas de L2 que NAO sao do material. O `libdir` vem do mesmo
+      # pkg-config que o build usou, e nao de um caminho digitado aqui.
       - name: Testes L1 e L2 contra ${{ matrix.versao }}
         env:
           DPDK_ACADEMY_AMOSTRAS: "3"
           DPDK_ACADEMY_RODADAS: "20000"
         run: |
           export PKG_CONFIG_PATH="$(echo "$HOME/opt/dpdk-${{ matrix.versao }}"/lib/*/pkgconfig)"
+          export LD_LIBRARY_PATH="$(pkg-config --variable=libdir libdpdk)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
           meson test -C build-${{ matrix.versao }} --suite l1 --print-errorlogs
           meson test -C build-${{ matrix.versao }} --suite l2 --print-errorlogs

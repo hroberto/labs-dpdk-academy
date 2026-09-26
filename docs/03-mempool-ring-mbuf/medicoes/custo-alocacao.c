@@ -151,9 +151,9 @@ static unsigned current_burst = BURST;
 static double m_malloc_lote(void)
 {
     void *v[BURST_MAX];
-    const int rounds = ITERATIONS / (int)current_burst;
+    const int lotes = ITERATIONS / (int)current_burst;
     const double t0 = academy_now_ns_d();
-    for (int i = 0; i < rounds; i++) {
+    for (int i = 0; i < lotes; i++) {
         for (unsigned j = 0; j < current_burst; j++) {
             v[j] = malloc(OBJECT_SIZE);
             consume_ptr(v[j]);
@@ -161,7 +161,7 @@ static double m_malloc_lote(void)
         for (unsigned j = 0; j < current_burst; j++)
             free(v[j]);
     }
-    return (academy_now_ns_d() - t0) / (rounds * (int)current_burst);
+    return (academy_now_ns_d() - t0) / (lotes * (int)current_burst);
 }
 
 static double measure_pool_single(struct rte_mempool *mp)
@@ -208,16 +208,16 @@ static double m_pool_sem_cache(void)
 static double m_pool_bulk(void)
 {
     void *v[BURST_MAX];
-    const int rounds = ITERATIONS / (int)current_burst;
+    const int lotes = ITERATIONS / (int)current_burst;
     const double t0 = academy_now_ns_d();
-    for (int i = 0; i < rounds; i++) {
+    for (int i = 0; i < lotes; i++) {
         if (rte_mempool_get_bulk(pool_cache, v, current_burst) < 0)
             return -1.0;
         for (unsigned j = 0; j < current_burst; j++)
             consume_ptr(v[j]);
         rte_mempool_put_bulk(pool_cache, v, current_burst);
     }
-    return (academy_now_ns_d() - t0) / (rounds * (int)current_burst);
+    return (academy_now_ns_d() - t0) / (lotes * (int)current_burst);
 }
 
 int main(int argc, char **argv)

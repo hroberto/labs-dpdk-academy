@@ -82,8 +82,15 @@ RETRATADO = re.compile(r"<!--\s*(?:cita-)?retratado:\s*([^>]*?)\s*-->")
 # comentario que dizia por que o `10,1x` NAO recebe marca de retratacao entrava
 # na lista de trabalho como se fosse afirmacao do documento. Portao que acusa a
 # propria justificativa ensina a ignorar portao.
+#
+# `--!>` TAMBEM FECHA COMENTARIO, e ignora-lo aqui custa caro. O CodeQL acusou
+# isto na primeira execucao da CI reescrita, em 26/09/2026, e a gravidade e do
+# efeito e nao da sintaxe: um comentario terminado em `--!>` deixaria este
+# laco preso em `dentro do comentario` ate o fim do arquivo, e toda a prosa
+# seguinte sairia da conferencia EM SILENCIO. E o modo de falha que este
+# projeto persegue, achado por uma ferramenta que ele nunca tinha executado.
 ABRE_COM = re.compile(r"<!--")
-FECHA_COM = re.compile(r"-->")
+FECHA_COM = re.compile(r"--!?>")
 
 # Distancia relativa maxima para dois numeros serem candidatos a "mesma
 # grandeza em dois estados". 2% foi escolhido olhando a lista do Apendice A:
@@ -238,6 +245,11 @@ def autoteste():
     caso("comentario de varias linhas nao e prosa",
          "```\nrazao  1.03\n```",
          "<!-- o 1,04× antigo\n     fica de fora -->", 0)
+    # `--!>` e a outra forma de fechar comentario em HTML. Sem ela o laco fica
+    # preso e a prosa seguinte sai da conferencia sem que nada acuse.
+    caso("comentario fechado com --!> tambem termina",
+         "```\nrazao  1.03\n```",
+         "<!-- nota\n     qualquer --!>\nA razao foi de 1,04×.", 1)
     caso("prosa DEPOIS de comentario fechado volta a contar",
          "```\nrazao  1.03\n```",
          "<!-- nota\n     qualquer -->\nA razao foi de 1,04×.", 1)
