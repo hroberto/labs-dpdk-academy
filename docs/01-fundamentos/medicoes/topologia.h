@@ -150,8 +150,20 @@ static inline int academy_nucleo_fisico(int cpu, long *id)
  *
  * E SE NENHUMA DAS DUAS RESPONDER, RECUSA. Não dá para demonstrar a condição
  * do experimento, e aceitar mesmo assim seria inferir por ausência. */
-static inline int academy_parceiro_serve(int a, int c, const int *dom, int n,
-                                         const int *irmaos, int n_irmaos)
+/* A DECISÃO, separada da LEITURA -- e a separação existe por causa do teste.
+ *
+ * Com o sysfs lido aqui dentro, o caso que prova a participação da identidade
+ * física só roda numa máquina cuja CPU 12 seja irmã da 0. Na de referência ele
+ * mata o mutante; noutro runner o bloco simplesmente não executa, e a
+ * regressão deixa de existir sem que nada acuse -- que é a mesma classe de
+ * "teste que parece cobrir e não cobre" que esta auditoria encontrou várias
+ * vezes.
+ *
+ * Recebendo os identificadores prontos, todos os ramos ficam exercitáveis com
+ * valores sintéticos, em qualquer máquina. */
+static inline int academy_parceiro_serve_com_ids(int a, int c, const int *dom, int n,
+                                                 const int *irmaos, int n_irmaos,
+                                                 int tem_id, long id_a, long id_c)
 {
     if (c == a)
         return 0;
@@ -164,9 +176,6 @@ static inline int academy_parceiro_serve(int a, int c, const int *dom, int n,
     if (!no_dominio)
         return 0;
 
-    long id_a = -1, id_c = -1;
-    const int tem_id = academy_nucleo_fisico(a, &id_a) == 0 &&
-                       academy_nucleo_fisico(c, &id_c) == 0;
     if (tem_id)
         return id_a != id_c;
 
@@ -178,6 +187,16 @@ static inline int academy_parceiro_serve(int a, int c, const int *dom, int n,
         if (irmaos[j] == c)
             return 0;
     return 1;
+}
+
+static inline int academy_parceiro_serve(int a, int c, const int *dom, int n,
+                                         const int *irmaos, int n_irmaos)
+{
+    long id_a = -1, id_c = -1;
+    const int tem_id = academy_nucleo_fisico(a, &id_a) == 0 &&
+                       academy_nucleo_fisico(c, &id_c) == 0;
+    return academy_parceiro_serve_com_ids(a, c, dom, n, irmaos, n_irmaos,
+                                          tem_id, id_a, id_c);
 }
 
 /* A CPU do MESMO domínio, em núcleo físico distinto de `a`. -1 se não houver.

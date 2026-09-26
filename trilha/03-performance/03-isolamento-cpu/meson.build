@@ -32,6 +32,11 @@ stall_probe_inj = executable(
   install : false,
 )
 
+test('03-performance - L1 (argumentos do stall_probe)', bash,
+     args : [meson.project_source_root() / 'trilha/03-performance/03-isolamento-cpu/tests/l1_stall_probe_cli.sh',
+             stall_probe],
+     suite : ['l1', 'performance'], timeout : 120)
+
 test('03-performance - L1 (provocador sem carga nao abre a janela)', bash,
      args : [meson.project_source_root() / 'trilha/03-performance/03-isolamento-cpu/tests/l1_provocador_lento.sh',
              stall_probe_inj, stall_probe],

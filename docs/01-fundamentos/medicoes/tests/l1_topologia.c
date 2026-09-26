@@ -95,27 +95,41 @@ int main(void)
 
     /* 13b-bis. A IDENTIDADE FISICA DECIDE, e nao a lista de irmaos.
      *
-     * Este caso existe porque um mutante sobreviveu sem ele: desligar o ramo
-     * da identidade fazia a funcao cair na lista de irmaos, que nos outros
-     * casos ja rejeitava o candidato sozinha -- as duas concordavam, e o teste
-     * nao distinguia qual das duas tinha trabalhado.
+     * COM IDENTIDADES SINTETICAS, e nao com as da maquina. A primeira versao
+     * deste caso so rodava se a CPU 12 fosse irma da 0 no runner -- na maquina
+     * de referencia matava o mutante, e noutra o bloco nem executava. Um teste
+     * condicionado a topologia de quem o roda nao e regressao.
      *
-     * Aqui elas DISCORDAM de proposito. A CPU 12 e irma SMT da 0 nesta
-     * maquina, e a lista passada e uma lista ERRADA, que nao a contem. So a
-     * identidade fisica pega: mesmo pacote, mesmo core. Se ela fosse ignorada,
-     * o programa aceitaria comparar um nucleo consigo mesmo.
+     * Aqui as duas fontes DISCORDAM de proposito: a identidade diz "mesmo
+     * nucleo" e a lista de irmaos, errada, nao contem o candidato. So a
+     * identidade pega. Lista incompleta nao e hipotese de laboratorio: e o que
+     * acontece quando o sysfs e lido parcialmente ou alguem passa a lista do
+     * nucleo errado.
+     */
+    const int dom_par[2] = {0, 12};
+    const int irmaos_errados[1] = {99};
+    caso(27, "identidade fisica pega o irmao que a lista de irmaos perdeu",
+         academy_parceiro_serve_com_ids(0, 12, dom_par, 2, irmaos_errados, 1,
+                                        1, 0x10003L, 0x10003L), 0);
+    caso(28, "identidades diferentes: aceita mesmo sem lista de irmaos",
+         academy_parceiro_serve_com_ids(0, 12, dom_par, 2, NULL, 0,
+                                        1, 0x10003L, 0x10004L), 1);
+    /* OS DOIS LADOS DA LISTA DE IRMAOS, e nao so um.
      *
-     * Uma lista de irmaos incompleta nao e hipotese de laboratorio: e o que
-     * acontece quando o sysfs e lido parcialmente, ou quando alguem passa a
-     * lista de outro nucleo por engano. */
-    long id_zero = -1, id_doze = -1;
-    if (academy_nucleo_fisico(0, &id_zero) == 0 &&
-        academy_nucleo_fisico(12, &id_doze) == 0 && id_zero == id_doze) {
-        const int dom_0_12[2] = {0, 12};
-        const int irmaos_errados[1] = {99};
-        caso(27, "identidade fisica pega o irmao SMT que a lista de irmaos perdeu",
-             academy_parceiro_serve(0, 12, dom_0_12, 2, irmaos_errados, 1), 0);
-    }
+     * O caso 29 sozinho passa uma lista que NAO contem o candidato e espera
+     * aceitacao -- e um mutante que apagasse o laco inteiro tambem aceitaria.
+     * Medido: sobrevivia. O caso 29b e o simetrico, com o candidato DENTRO da
+     * lista, e e ele que exige o laco existir. */
+    caso(29, "sem identidade, candidato fora da lista de irmaos: aceita",
+         academy_parceiro_serve_com_ids(0, 12, dom_par, 2, irmaos_errados, 1,
+                                        0, -1L, -1L), 1);
+    const int irmaos_certos[2] = {0, 12};
+    caso(31, "sem identidade, candidato DENTRO da lista de irmaos: recusa",
+         academy_parceiro_serve_com_ids(0, 12, dom_par, 2, irmaos_certos, 2,
+                                        0, -1L, -1L), 0);
+    caso(30, "sem identidade E sem lista, recusa",
+         academy_parceiro_serve_com_ids(0, 12, dom_par, 2, NULL, 0,
+                                        0, -1L, -1L), 0);
 
     /* 13c-bis. SEM PROVA DE NUCLEO DISTINTO, RECUSA.
      *
