@@ -3111,8 +3111,8 @@ machine states, below).
 
 #### The fourth, and why it is the easiest to mistake for the others
 
-`custo-comunicacao` varies from 16.9 to 23.8 ns between collections — the range
-measured across the six text-mode collections the project archives. The source
+`custo-comunicacao` varies from 16.9 to 22.7 ns between runs — the range
+measured across the 50 runs of the ten collections the project archives. The source
 comment blamed the frequency ramp and declared the problem solved by a clock
 accommodation — **and the accommodation did not take**. The protocol that found
 out why alternates 30 s of idleness with measurement:
@@ -3129,7 +3129,10 @@ the frequency ramp, it would have moved too.
 What varied was **core-to-core** traffic, and the repair had to condition with
 the very traffic about to be measured, for seconds — not with ALU work, which is
 what was already being done. After it, the ranges overlap, and the cross-domain
-crossing sits at 81.45 ns with a 0.03 ns spread regardless of machine state.
+crossing sits at a median of **81.43 ns**, with a 0.035 ns spread **within** a
+run. Across the 50 runs it goes from 81.36 to 82.67 ns — 1.6% — and the two ends
+are the single-channel and the 4800 MT/s collections: what is left of the
+quantity does depend on memory, and barely.
 
 **A code comment declaring a problem solved is more dangerous than no comment**,
 because it switches off the suspicion of whoever comes next. This one sat in the

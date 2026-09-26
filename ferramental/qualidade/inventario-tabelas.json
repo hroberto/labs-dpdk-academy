@@ -327,49 +327,49 @@
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3299,
+      "linha": 3301,
       "secao": "E o que fazer quando a conclusão é \"não há diferença relevante\"",
       "tipo": "tabela_markdown",
       "sha256": "03cdc9a024f3a26103737482bbd13642a8f1214e9fd5e8ce1c9fe01ee08c1f8e"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3365,
+      "linha": 3367,
       "secao": "O ruído de um microbenchmark é unilateral",
       "tipo": "tabela_markdown",
       "sha256": "54eea35977e1d4384041a48300b93e5c682190e957a7dd254d44d9b2e60a099d"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3482,
+      "linha": 3484,
       "secao": "10. Confronto com a literatura",
       "tipo": "tabela_markdown",
       "sha256": "2714653909b0bf00c4279d9bcf22651fe325032b67243a3334fda5368da056b4"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3509,
+      "linha": 3511,
       "secao": "Sincronização: confronto com a referência canônica",
       "tipo": "tabela_markdown",
       "sha256": "287476ec4bee755ab953ea0aab40bee13d6601d5ccdb8a7b2743c93cb8081727"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3520,
+      "linha": 3522,
       "secao": "Sincronização: confronto com a referência canônica",
       "tipo": "tabela_markdown",
       "sha256": "1acef406b83c7cc8bf2523c6cdacec9bf0c05d1e4c8f33c733407e32ca6202aa"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3746,
+      "linha": 3748,
       "secao": "11.1 A travessia, medida",
       "tipo": "tabela_markdown",
       "sha256": "27792f387e1e97f20e8f4308cf361d492926411cdcd458ba8d96edb944fd22a4"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3921,
+      "linha": 3923,
       "secao": "13. Referências externas",
       "tipo": "tabela_markdown",
       "sha256": "a89da528537fb8b8265e00a4a17829269f45353e171ab76444543db94a3858ff"

@@ -3159,8 +3159,8 @@ da máquina, abaixo).
 
 #### A quarta, e por que ela é a mais fácil de confundir com as outras
 
-O `custo-comunicacao` varia de 16,9 a 23,8 ns entre coletas — faixa medida
-nas seis coletas de modo texto que o projeto arquiva. O comentário do fonte
+O `custo-comunicacao` varia de 16,9 a 22,7 ns entre execuções — faixa medida
+nas 50 execuções das dez coletas que o projeto arquiva. O comentário do fonte
 atribuía isso à rampa de frequência e declarava o problema resolvido por uma
 acomodação de clock — **e a acomodação não pegou**. O protocolo que descobriu
 por quê alterna 30 s de ócio com medição:
@@ -3177,8 +3177,10 @@ nucleo` — ALU pura, que depende diretamente do clock do core — não se move
 O que variava era o tráfego **entre núcleos**, e o reparo teve de condicionar
 com o próprio tráfego que se ia medir, por segundos — não com trabalho de ALU,
 que é o que já se fazia. Depois dele, as faixas passam a se sobrepor, e a
-travessia entre domínios fica em 81,45 ns com amplitude de 0,03 ns
-independentemente do estado da máquina.
+travessia entre domínios fica em **81,43 ns** de mediana, com amplitude de
+0,035 ns **dentro** de uma execução. Entre as 50 execuções ela vai de 81,36 a
+82,67 ns — 1,6% —, e as duas pontas são as coletas de canal único e de
+4800 MT/s: a grandeza que sobrou depende da memória, e quase nada.
 
 **Um comentário de código que declara um problema resolvido é mais perigoso que
 a ausência dele**, porque desliga a desconfiança de quem vem depois. Este ficou
