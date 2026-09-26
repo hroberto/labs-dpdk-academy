@@ -935,6 +935,52 @@ reduzido, mas trata-se de expectativa, não de medição. O achado também é de
 uma máquina, com GPU integrada AMD: plataformas com GPU discreta ou outro
 driver não estão cobertas.
 
+### 7.1 Pré-registro: a coleta gráfica de controle
+
+*Escrito antes da coleta. O que estiver abaixo não pode ser reescrito depois de
+ver o resultado; o desfecho entra como seção própria.*
+
+A subseção acima declara uma **expectativa**, não uma medição: espera-se que o
+deslocamento das medianas seja reduzido, e ninguém mediu. A razão de não ter
+medido é que o arquivo não tem o par: a única coleta com sessão gráfica que
+sobreviveu — `2026-09-23-expo6000-canal-duplo`, recuperável da história do git —
+saiu de **árvore suja** (`v0.05.00-2-geb54750-dirty`) e, pela regra deste
+projeto, não é procedência. Toda afirmação texto-contra-gráfico do material se
+apoia nela.
+
+**O par que falta.** Uma coleta com sessão gráfica viva, binário de árvore
+limpa, e todo o resto igual a `2026-09-25-1720-expo6000-canal-duplo`: mesma
+memória (6000 MT/s, canal duplo), mesmo kernel (7.0.0-34), *governor* fixado em
+`performance` nos dois lados, e as fontes de medição **idênticas** — nenhum
+`.c` mudou entre `v0.07.00-25-g836c47a`, que produziu a coleta de texto, e a
+árvore de hoje.
+
+Fixar o *governor* dos dois lados é o que torna este par melhor que o de 23/09:
+lá a coleta gráfica corria em `powersave`, e sessão e relógio estavam
+confundidos. Aqui sobra uma variável só.
+
+**Comparação declarada:** a coleta nova (5 repetições) contra as seis coletas
+de texto com `performance` reunidas (30 repetições), por teste de postos
+bilateral, grandeza a grandeza.
+
+| | previsão | refutada se |
+|---|---|---|
+| **P1** | as duas primitivas que dormem — `mutex + condvar` e `POSIX semaphore` — saem **maiores** com sessão gráfica, as duas com `p < 0,05` | nenhuma das duas sair maior |
+| **P2** | `atomic relaxed` **não** difere além de 3%, porque o *governor* está fixo dos dois lados e os 36% da comparação de 23/09 eram relógio, não sessão | a diferença passar de 3% |
+| **P3** | *controle negativo*: `laço sozinho no núcleo` — ALU pura — não se move além de 1% | ele se mover |
+
+P1 é a previsão que carrega a hipótese: se a sessão gráfica custa alguma coisa,
+ela custa onde a tarefa **volta a ser escalonada**, disputando a CPU com o
+compositor. P3 é o que separa "a sessão custa" de "o instrumento se moveu": se
+o laço de ALU andar, a diferença é de máquina e não de condição, e nenhuma das
+outras conclusões vale.
+
+**O que este par não decide.** A magnitude medida vale para uma sessão gráfica
+**ociosa**, com o compositor e o servidor de display vivos e nada mais. Uma
+sessão em uso — navegador, IDE, compilação — é outra condição, e a §7 já
+registra que a contribuição da sessão não é constante aditiva. A coleta declara
+quantos processos gráficos havia, e é por isso que ela declara.
+
 [iso]: ../../trilha/03-performance/03-isolamento-cpu/README.md#665-identificação-da-fonte-por-rastreamento-de-eventos
 [cmt]: ../../ferramental/qualidade/campanha.sh
 

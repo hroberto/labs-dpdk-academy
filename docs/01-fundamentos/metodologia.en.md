@@ -950,6 +950,53 @@ expectation, not a measurement. The finding also comes from one machine, with
 an AMD integrated GPU: platforms with a discrete GPU or a different driver are
 not covered.
 
+### 7.1 Pre-registration: the graphical control collection
+
+*Written before the collection. Nothing below may be rewritten after seeing the
+result; the outcome goes in as its own section.*
+
+The subsection above states an **expectation**, not a measurement: the median
+shift is expected to be small, and nobody measured it. The reason it was never
+measured is that the archive has no pair: the only surviving collection with a
+graphical session — `2026-09-23-expo6000-canal-duplo`, recoverable from the git
+history — came from a **dirty tree** (`v0.05.00-2-geb54750-dirty`) and, by this
+project's rule, is not provenance. Every text-versus-graphical claim in the
+material rests on it.
+
+**The missing pair.** A collection with a live graphical session, a binary from
+a clean tree, and everything else equal to
+`2026-09-25-1720-expo6000-canal-duplo`: same memory (6000 MT/s, dual channel),
+same kernel (7.0.0-34), *governor* pinned to `performance` on both sides, and
+the measurement sources **identical** — no `.c` changed between
+`v0.07.00-25-g836c47a`, which produced the text collection, and today's tree.
+
+Pinning the *governor* on both sides is what makes this pair better than
+23/09's: there the graphical collection ran under `powersave`, and session and
+clock were confounded. Here one variable is left.
+
+**Declared comparison:** the new collection (5 repetitions) against the six
+`performance` text collections pooled (30 repetitions), by two-sided rank test,
+quantity by quantity.
+
+| | prediction | refuted if |
+|---|---|---|
+| **P1** | the two sleeping primitives — `mutex + condvar` and `POSIX semaphore` — come out **larger** with a graphical session, both at `p < 0.05` | neither comes out larger |
+| **P2** | `atomic relaxed` does **not** differ by more than 3%, because the *governor* is pinned on both sides and the 36% of the 23/09 comparison was clock, not session | the difference exceeds 3% |
+| **P3** | *negative control*: `loop alone on the core` — pure ALU — does not move by more than 1% | it moves |
+
+P1 is the prediction that carries the hypothesis: if the graphical session costs
+anything, it costs where the task **gets scheduled again**, contending for the
+CPU with the compositor. P3 is what separates "the session costs" from "the
+instrument moved": if the ALU loop shifts, the difference is of machine and not
+of condition, and none of the other conclusions hold.
+
+**What this pair does not decide.** The measured magnitude holds for an **idle**
+graphical session, with the compositor and display server alive and nothing
+else. A session in use — browser, IDE, compilation — is another condition, and
+§7 already records that the session's contribution is not a constant addend. The
+collection declares how many graphical processes there were, and that is why it
+declares it.
+
 [iso]: ../../trilha/03-performance/03-isolamento-cpu/README.en.md#665-identifying-the-source-by-per-event-tracing
 [cmt]: ../../ferramental/qualidade/campanha.sh
 
