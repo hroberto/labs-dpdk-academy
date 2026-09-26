@@ -280,6 +280,11 @@ columns fall together — `rte_ring` to 0.373 ns, `SpscRing` to 0.508 ns.
 > The methodological lesson: **before comparing two numbers, check whether they
 > measure the same thing.** The two had the same unit and a different quantity, and
 > that is what produced a "tie" that did not exist.
+> <!-- retratado: 15,9 15.9 -->
+> <!-- `16.0` is NOT in the mark: what fell was its ATTRIBUTION to the ring,
+>      not the measurement. It is still published, correctly labelled, in
+>      topic 02's `bench-ccd.sh` table -- 2 lcores in the same block, whole
+>      pipeline. Marking it would kill a live number. -->
 
 <!-- cita-retratado: 15,9 15.9 16,0 16.0 2,078 2.078 -->
 
@@ -338,6 +343,7 @@ Creating the **same** pool with `cache_size = 0`:
 > what is measured now (58.70), and that does not make it acceptable: what was
 > missing was not accuracy, it was provenance.
 > <!-- cita-retratado: 60,87 60.87 11,61 11.61 3,37 3.37 -->
+> <!-- retratado: 60,87 60.87 11,61 11.61 -->
 
 ```mermaid
 xychart-beta

@@ -78,6 +78,9 @@ aprofundar no mesmo lote move muito menos, e as faixas se tocam.
 > A contagem de recusas **não** entra aqui, e a razão está na retratação do
 > submódulo: oito execuções da mesma configuração deram de 118 626 a 286 625 --
 > 128% de amplitude. Ela responde **se houve** contrapressão, não **quanta**.
+> <!-- retratado: referencia -->
+> <!-- Este bloco não retrata nada: ele CITA a retratação do submódulo. Os dois
+>      números são contagens de objetos recusados. -->
 
 ## Compromissos já publicados
 

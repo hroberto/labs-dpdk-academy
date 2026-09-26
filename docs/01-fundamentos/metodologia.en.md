@@ -42,6 +42,9 @@ the regime**.
 > What remains is the method, which is worth more than this case: **in a
 > microbenchmark, disassemble before publishing.** A loop that is too fast is a
 > hypothesis of measurement error before it is a result.
+> <!-- retratado: 0,115 0.115 -->
+> <!-- The `294×` fell too, and is not in the mark: it is an integer, and this
+>      gate only tracks decimals. -->
 
 ### 1.2 The published ratio belonged to another regime
 

@@ -1694,6 +1694,7 @@ measuring the time for a cache line to travel from one core to another:
 > from the foot of the distribution, presented as the result. It was replaced by
 > the run closest to the pooled median, and the number the text asserts is now
 > the one from the 40.
+> <!-- retratado: 3,73 3.73 -->
 
 **Crossing the interconnect costs about 4.1 times more — and that is 121% of the budget
 of a 64 B packet on 10 GbE.** A single hand-off between badly placed cores already blows
@@ -3804,6 +3805,7 @@ The document's observation was right, and unnamed.
 > same `ca²` and different temporal concentration fill a finite queue in
 > different ways. A number that summarizes a distribution does not carry that
 > distribution's temporal dependence.
+> <!-- retratado: interpretacao -->
 
 > **Design consequence.** Sizing for the average load is insufficient. What decides survival is
 > the margin over the **peak**, and the indicator that warns in time is the high percentile,

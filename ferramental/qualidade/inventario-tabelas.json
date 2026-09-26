@@ -327,49 +327,49 @@
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3303,
+      "linha": 3304,
       "secao": "E o que fazer quando a conclusão é \"não há diferença relevante\"",
       "tipo": "tabela_markdown",
       "sha256": "03cdc9a024f3a26103737482bbd13642a8f1214e9fd5e8ce1c9fe01ee08c1f8e"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3369,
+      "linha": 3370,
       "secao": "O ruído de um microbenchmark é unilateral",
       "tipo": "tabela_markdown",
       "sha256": "54eea35977e1d4384041a48300b93e5c682190e957a7dd254d44d9b2e60a099d"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3486,
+      "linha": 3487,
       "secao": "10. Confronto com a literatura",
       "tipo": "tabela_markdown",
       "sha256": "a8adc937949891bba984599c7baf0763a651c5d0167eb1833f7b08fdd937f853"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3513,
+      "linha": 3514,
       "secao": "Sincronização: confronto com a referência canônica",
       "tipo": "tabela_markdown",
       "sha256": "287476ec4bee755ab953ea0aab40bee13d6601d5ccdb8a7b2743c93cb8081727"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3524,
+      "linha": 3525,
       "secao": "Sincronização: confronto com a referência canônica",
       "tipo": "tabela_markdown",
       "sha256": "1acef406b83c7cc8bf2523c6cdacec9bf0c05d1e4c8f33c733407e32ca6202aa"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3750,
+      "linha": 3751,
       "secao": "11.1 A travessia, medida",
       "tipo": "tabela_markdown",
       "sha256": "27792f387e1e97f20e8f4308cf361d492926411cdcd458ba8d96edb944fd22a4"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3939,
+      "linha": 3946,
       "secao": "13. Referências externas",
       "tipo": "tabela_markdown",
       "sha256": "a89da528537fb8b8265e00a4a17829269f45353e171ab76444543db94a3858ff"
@@ -831,42 +831,42 @@
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 289,
+      "linha": 294,
       "secao": "Dois dos três fatores voltam sem hardware nenhum",
       "tipo": "tabela_markdown",
       "sha256": "ac8df18160ae9b63b6f3c1f3d88992a36feb99eae542e13bb070654fa5a43052"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 304,
+      "linha": 309,
       "secao": "Dois dos três fatores voltam sem hardware nenhum",
       "tipo": "tabela_markdown",
       "sha256": "6d726ca75f223b0409ce58dcf21c56e7f8168edd264a56893acd1bc403577bfc"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 396,
+      "linha": 401,
       "secao": "4. Outros eixos de comparação",
       "tipo": "tabela_markdown",
       "sha256": "10ff1ac81624e7808ff33e4e21176bf9b52ca1223c5323cc9b31e72e0eb778a0"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 439,
+      "linha": 444,
       "secao": "5. Implementação e validação",
       "tipo": "tabela_markdown",
       "sha256": "9590d3ca6535e4a61290532ff1f1191054fcbbfa98ffab9e37082fde0f92d150"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 450,
+      "linha": 455,
       "secao": "5. Implementação e validação",
       "tipo": "bloco_numerico",
       "sha256": "46e0373113e5a89999ddd0d883106541b8088dccde377d99e6c53acb2bb7eb23"
     },
     {
       "arquivo": "trilha/01-fundamentos/02-mempool-ring/alternativas/cpp23/README.md",
-      "linha": 487,
+      "linha": 492,
       "secao": "5.1 O controle, e o que ele impede de concluir",
       "tipo": "tabela_markdown",
       "sha256": "5dc6a2c52a7440906a779ebc54c32edff4345a98dfae3ea0b296ad4383d80b1a"

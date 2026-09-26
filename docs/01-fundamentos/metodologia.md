@@ -42,6 +42,9 @@ regime**.
 > Fica o método, que vale além deste caso: **em microbenchmark, desmonte antes
 > de publicar.** Um laço rápido demais é hipótese de erro de medição antes de
 > ser resultado.
+> <!-- retratado: 0,115 0.115 -->
+> <!-- O `294×` tambem caiu, e nao entra na marca: e inteiro, e este portao so
+>      rastreia decimais. -->
 
 ### 1.2 A razão publicada era de outro regime
 

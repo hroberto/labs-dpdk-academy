@@ -144,6 +144,7 @@ The study command is:
 > checked**. A refactor moved the test from the derived configuration to the
 > command line, and the conflict stopped firing. It is worth keeping as a lesson
 > in method: what a program accepts is not the same as what it supports.
+> <!-- retratado: interpretacao -->
 >
 > **What to do:** use one at a time. To run without hugepages and without privilege,
 > `--no-huge` is enough. What you lose is the isolation `--in-memory` gave — no

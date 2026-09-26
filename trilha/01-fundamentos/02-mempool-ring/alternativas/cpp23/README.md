@@ -277,6 +277,11 @@ duas colunas em bloco caem juntas — o `rte_ring` até 0,373 ns, o `SpscRing` a
 > A lição de método: **antes de comparar dois números, confira se medem a mesma
 > coisa.** Os dois tinham unidade igual e grandeza diferente, e foi isso que
 > produziu um "empate" que não existia.
+> <!-- retratado: 15,9 15.9 -->
+> <!-- O `16,0` NAO entra: o que caiu foi a ATRIBUICAO dele ao anel, nao a
+>      medicao. Ele continua publicado, corretamente rotulado, na tabela de
+>      `bench-ccd.sh` do topico 02 -- 2 lcores no mesmo bloco, pipeline
+>      inteiro. Marca-lo mataria um numero vivo. -->
 
 <!-- cita-retratado: 15,9 15.9 16,0 16.0 2,078 2.078 -->
 

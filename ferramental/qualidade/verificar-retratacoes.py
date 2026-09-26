@@ -96,6 +96,21 @@ Só entram números com pelo menos TRÊS dígitos significativos. Sem esse corte
 valores como "5" ou "100" casariam em toda parte e o verificador viraria ruído
 -- e verificador ruidoso é desligado, que é a forma mais comum de um controle
 morrer.
+
+DUAS COISAS QUE ELE NÃO ALCANÇA, apuradas em 26/09/2026 ao marcar os últimos
+blocos sem marca. Estão aqui porque marcá-las seria pior: a marca é uma
+garantia, e garantia que o programa não pode cumprir é pior que ausência
+declarada.
+
+  INTEIRO NÃO É RASTREADO. O padrão exige separador decimal. Os quatro valores
+  que a §11.2 do módulo 01 derruba -- 7 443 ns, 149×, 2 426 e 1 822 -- são
+  inteiros, e nenhum deles entra na lista de mortos. Estender o padrão custaria
+  caro na direção perigosa: `149` casaria em número de seção, contagem e data.
+
+  O SEPARADOR DE MILHAR DO INGLÊS É VÍRGULA, e o padrão decimal não distingue
+  `118,626` contagem de `118,626` decimal. O efeito é assimétrico entre os
+  pares: em português a mesma frase escreve `118 626` e passa despercebida. O
+  bloco do tópico 02 da trilha é esse caso, e está declarado nele.
 """
 import os
 import re

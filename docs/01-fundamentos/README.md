@@ -3158,6 +3158,7 @@ da máquina, abaixo).
 > Quem quiser um hoje encontra 20,6% em `2 MB hugepages` na região de 32 MB,
 > e ali a causa é outra: a competição por TLB de segundo nível, que a §4.1
 > descreve.
+> <!-- retratado: 27,5 27.5 -->
 
 #### A quarta, e por que ela é a mais fácil de confundir com as outras
 
@@ -3813,6 +3814,12 @@ praticamente zero — não há fila se formando para aparecer primeiro na cauda.
 > em rajada perde 26,6 % enquanto cadenciada não perde nada. Com chegada regular
 > ela não avisa, e monitorar p99 esperando aviso seria esperar de um instrumento
 > o que a distribuição não oferece.
+>
+> <!-- retratado: interpretacao -->
+> <!-- Os quatro valores derrubados aqui -- 7 443, 149, 2 426 e 1 822 -- sao
+>      INTEIROS, e este portao so rastreia decimais. Marca-los seria escrever
+>      uma garantia que ele nao pode dar. O 26,6 % do bloco esta VIVO: e a
+>      perda da coleta atual, nao um valor retratado. -->
 
 > **Uma exceção na tabela, e ela não é fila.** A linha de 8 passos dá p99 de
 > 381 ns contra mediana de 30 — 12,7×, a maior razão da tabela. Não pode ser
