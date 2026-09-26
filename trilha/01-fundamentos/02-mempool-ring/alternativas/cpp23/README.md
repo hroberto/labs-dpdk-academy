@@ -278,6 +278,8 @@ duas colunas em bloco caem juntas — o `rte_ring` até 0,373 ns, o `SpscRing` a
 > coisa.** Os dois tinham unidade igual e grandeza diferente, e foi isso que
 > produziu um "empate" que não existia.
 
+<!-- cita-retratado: 15,9 15.9 16,0 16.0 2,078 2.078 -->
+
 **Nível 3 — o DPDK ganha por quase cem vezes.** Oito núcleos disputando a mesma
 fonte de objetos, medido por
 [`custo-contencao.c`](../../../../../docs/03-mempool-ring-mbuf/medicoes/custo-contencao.c)

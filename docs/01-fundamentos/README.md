@@ -1132,8 +1132,8 @@ agregada cresce 5,5×, não 12× — e a curva achata: de oito para doze núcleo
 
 #### O teto é a banda, e isso foi medido duas vezes
 
-Novecentos e quarenta e seis milhões de acessos por segundo, a 64 bytes por
-linha, são **60,6 GB/s** com doze núcleos. Um núcleo sozinho, no mesmo
+Os 947,7 milhões de acessos por segundo da última linha, a 64 bytes por linha
+de cache, são **60,6 GB/s** com doze núcleos. Um núcleo sozinho, no mesmo
 programa e com o mesmo padrão de acesso, faz **10,9 GB/s**. A pergunta é o que
 limita cada um.
 
@@ -3480,7 +3480,7 @@ revelou um viés que nenhuma estatística interna detectaria.
 | Medição | Aqui | Literatura | Veredito |
 |---|---:|---:|---|
 | Latência entre núcleos, mesmo CCD | ~18 ns | < 25 ns ([Tom's Hardware][th]) | **concorda** |
-| Latência entre núcleos, CCDs distintos | 83–102 ns entre execuções | 180–200 ns antes; 75–95 ns depois do AGESA 1.2.0.2 ([Tom's][th], [TechSpot][ts]) | **intermediário — ver abaixo** |
+| Latência entre núcleos, CCDs distintos | 81,4 ns (mediana de 50 execuções) | 180–200 ns antes; 75–95 ns depois do AGESA 1.2.0.2 ([Tom's][th], [TechSpot][ts]) | **intermediário — ver abaixo** |
 | Falta de TLB / *page walk* | 10,01 ns (512 MB, pareado) | 8,80 ns em Core Duo T2600; 18,17 ns em Athlon 64 ([Gorman][lwntlb]) | **entre os dois — concorda** |
 | Custo de uma syscall | ~33 ns | centenas de ns; < 100 ns nos melhores casos ([Gregg][gregg], [Stoll][syscalls]) | **abaixo — explicado** |
 | Latência de memória (acesso disperso) | ~89 ns | ~70 ns em 9950X ([ChipsAndCheese][cc]); 139,5 ns em Opteron 844 ([McKenney][perfbook]) | **entre os dois — explicado** |
@@ -3652,13 +3652,18 @@ Hardware][th], [TechSpot][ts]). São resultados de *benchmarks* em configuraçõ
 específicas — **não valores especificados pela AMD**, e não uma caracterização
 oficial do defeito.
 
-Nesta máquina os resultados caem entre essas faixas, com dispersão alta: a
-mediana variou de **83 a 102 ns** entre execuções, e dentro de uma mesma coleta
-as amostras foram de 83 a 123 ns. Essa instabilidade é, ela própria, um
-resultado — ver a nota da [§4.3](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só)
-— mas **a causa não foi isolada**.
+Nesta máquina o resultado cai **dentro** da faixa posterior ao AGESA 1.2.0.2, e
+é estável: a mediana é de **81,43 ns**, e as 50 execuções arquivadas em dez
+coletas ficam entre 81,36 e 82,67 ns, com dispersão interna de 0,0% a 0,1%. As
+duas coletas que mais se afastam são as de um pente só e as de 4800 MT/s, e o
+afastamento é de 1,6% — coerente com a [§4.2](#42-cache-e-localidade),
+onde a travessia entre domínios é justamente a grandeza menos sensível à
+memória.
 
-Há pelo menos quatro variáveis ainda não controladas:
+<!-- retratado: 102 123 -->
+
+Concordar com a faixa externa não fecha a questão. Restam três variáveis não
+controladas, e elas limitam o que a concordância autoriza a dizer:
 
 **1. Metodologia.** O ping-pong mede uma ida e volta e divide por dois. Esse
 número inclui não só a transferência e a coerência da linha de cache, mas também
@@ -3677,21 +3682,22 @@ e posteriores ao 1.2.0.2.
 controlar exatamente quais núcleos físicos e quais CCDs participam de cada
 amostra, e excluir migração de thread e pares SMT como variáveis.
 
-**4. Frequência.** As medições rodaram com escalonamento dinâmico ativo — e
-[a §9](#9-validação-reproduza-na-sua-máquina) documenta o que isso faz: no mesmo
-laço, ciclos por operação constantes e tempo por operação variando 29% com o
-clock.
+> **A frequência foi controlada, e não move esta grandeza.** A coleta em modo
+> texto com o governor em `performance` dá **81,43 ns** — o mesmo valor das
+> coletas em `powersave`. O escalonamento dinâmico move o tempo por operação em
+> outros laços, e [a §9](#9-validação-reproduza-na-sua-máquina) documenta 29%
+> num deles; neste, não move. É o tipo de variável que só sai da lista quando
+> alguém a mede, e não quando alguém argumenta que ela não deveria importar.
 
-> **Portanto, 83–102 ns não é apresentado aqui como a latência entre CCDs do Zen
-> 5.** É o intervalo observado por **este** experimento, nesta máquina e sob
-> essas condições. E convém a precisão de vocabulário: o ping-pong mede uma
+> **Portanto, 81,4 ns não é apresentado aqui como a latência entre CCDs do Zen
+> 5.** É o valor observado por **este** experimento, nesta máquina e sob essas
+> condições. E convém a precisão de vocabulário: o ping-pong mede uma
 > **latência de comunicação entre duas threads**, da qual a transferência da
-> linha de cache é um componente. Chamar os 83–123 ns de "o tempo de a linha
+> linha de cache é um componente. Chamar os 81,4 ns de "o tempo de a linha
 > viajar" torna misteriosa uma divergência que, assim enunciada, deixa de ser.
 
-Fechar a questão exigiria identificar a versão de BIOS/AGESA, fixar frequência e
-afinidade, repetir exatamente os mesmos pares de núcleos e comparar com uma
-ferramenta de referência. Esse grau de caracterização pertence à Etapa 5 do
+Fechar a questão exigiria identificar a versão de BIOS/AGESA, repetir exatamente
+os mesmos pares de núcleos e comparar com uma ferramenta de referência. Esse grau de caracterização pertence à Etapa 5 do
 [roadmap](../../ROADMAP.md); para Fundamentos basta **registrar a discrepância
 sem atribuir a ela uma causa que o experimento não isolou**.
 
@@ -3790,11 +3796,19 @@ praticamente zero — não há fila se formando para aparecer primeiro na cauda.
 > o que a distribuição não oferece.
 
 > **Uma exceção na tabela, e ela não é fila.** A linha de 8 passos dá p99 de
-> ~376 ns contra mediana de 30 — 12,5×, a maior razão da tabela, e estável nas
-> cinco repetições (373 a 392 ns). Não pode ser fila: ρ = 0,48 é o ponto mais
-> folgado. É um custo fixo ocasional — uma interrupção, uma falta de cache — que
-> pesa **relativamente** mais justamente onde a mediana é menor. Razão entre
-> percentis exige olhar a escala absoluta antes de virar conclusão.
+> 381 ns contra mediana de 30 — 12,7×, a maior razão da tabela. Não pode ser
+> fila: ρ = 0,48 é o ponto mais folgado. É um custo fixo ocasional — uma
+> interrupção, uma falta de cache — que pesa **relativamente** mais justamente
+> onde a mediana é menor. Razão entre percentis exige olhar a escala absoluta
+> antes de virar conclusão.
+>
+> **E esse p99 não é estável, o que reforça a leitura.** Nas 50 execuções
+> arquivadas desta medição, a mediana da latência fica entre 30 e 33 ns, mas o
+> p99 desta linha vai de **340 ns a 29 935 ns** — quartis em 376 e 427, mediana
+> em 388. Uma cauda que varia oitenta vezes entre execuções enquanto a mediana
+> não se move é a assinatura de evento raro, não de acúmulo: fila deixaria
+> rastro na mediana. O valor publicado acima é de uma execução, e está perto da
+> mediana entre elas; uma única execução não mede esta cauda.
 
 #### O que a teoria diz, e onde ela diverge desta medição
 

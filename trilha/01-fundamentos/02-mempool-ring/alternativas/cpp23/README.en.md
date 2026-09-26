@@ -281,6 +281,8 @@ columns fall together — `rte_ring` to 0.373 ns, `SpscRing` to 0.508 ns.
 > measure the same thing.** The two had the same unit and a different quantity, and
 > that is what produced a "tie" that did not exist.
 
+<!-- cita-retratado: 15,9 15.9 16,0 16.0 2,078 2.078 -->
+
 **Level 3 — DPDK wins by almost a hundred times.** Eight cores contending for the
 same object source, measured by
 [`custo-contencao.c`](../../../../../docs/03-mempool-ring-mbuf/medicoes/custo-contencao.c)

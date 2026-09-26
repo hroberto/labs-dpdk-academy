@@ -129,6 +129,8 @@ dois na mesma máquina, com a mesma metodologia dos demais programas do projeto.
 > idênticas (2,23× nas duas). É por isso que este módulo afirma "duas vezes mais
 > rápido" e não "1,25 nanossegundos": a razão é a afirmação; o nanossegundo é
 > circunstância.
+>
+> <!-- cita-retratado: 2,19 2.19 2,77 2.77 2,23 2.23 -->
 
 **`malloc()` custa 2,18 ns, não dezenas.** Alocar e liberar repetidamente um
 objeto do mesmo tamanho é o caso em que a glibc é boa: o alocador tem um cache
@@ -224,6 +226,8 @@ em que a diferença é menor.
 > distinto**, pelo mesmo motivo que os fundamentos passaram a fazê-lo depois de
 > descartar uma medição inválida. Sem fixá-la, a medição saiu bimodal: p25 de
 > 10,5 ns contra p75 de 25,4 ns na mesma medição.
+>
+> <!-- cita-retratado: 10,5 10.5 25,4 25.4 -->
 
 ---
 
@@ -270,6 +274,8 @@ versões de uma mesma célula correm adjacentes e a ordem das células é permut
 a cada repetição. Braços em blocos confundem o efeito com deriva de estado da
 máquina — foi assim que, numa campanha anterior deste mesmo estudo, uma
 diferença de 0,70 ns por pacote virou 0,15 ns ao ser reproduzida intercalada.
+
+<!-- cita-retratado: 0,70 0.70 0,15 0.15 -->
 
 **A métrica é contador da biblioteca**, não evento de hardware: não depende do
 PMU, que nesta máquina está bloqueado. Ela conta as vezes em que o cache por

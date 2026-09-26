@@ -26,6 +26,8 @@ depending on whether turbo engaged.
 
 And the **ratios came out identical** — 2.23× in both.
 
+<!-- cita-retratado: 2,23 2.23 -->
+
 Hence the rule the module adopts: **the ratio is the claim; the nanosecond is
 circumstance.** The text says "twice as fast", not "0.98 nanoseconds", because
 the first survives the frequency and the second does not.

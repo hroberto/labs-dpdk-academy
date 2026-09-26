@@ -25,6 +25,8 @@ binário deu **2,19 ns e 2,77 ns** para o `malloc`, conforme o turbo engatasse.
 
 E as **razões ficaram idênticas** — 2,23× nas duas.
 
+<!-- cita-retratado: 2,23 2.23 -->
+
 Daí a regra que o módulo adota: **a razão é a afirmação; o nanossegundo é
 circunstância.** O texto afirma "duas vezes mais rápido", não "0,98
 nanossegundos", porque a primeira sobrevive à frequência e a segunda não.

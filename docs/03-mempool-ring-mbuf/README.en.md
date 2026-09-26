@@ -122,6 +122,8 @@ on the same machine, with the same methodology as the project's other programs.
 > `malloc`, depending on whether turbo engaged. The **ratios** were identical (2.23×
 > in both). That is why this module claims "twice as fast" and not "1.25
 > nanoseconds": the ratio is the claim; the nanosecond is circumstance.
+>
+> <!-- cita-retratado: 2,19 2.19 2,77 2.77 2,23 2.23 -->
 
 **`malloc()` costs 2.18 ns, not tens.** Repeatedly allocating and freeing an object
 of the same size is the case where glibc is good: the allocator has a per-thread
@@ -217,6 +219,8 @@ the regime where the difference is smallest.
 > reason the fundamentals came to do so after discarding an invalid measurement.
 > Without pinning it, the measurement came out bimodal: p25 of 10.5 ns against p75 of
 > 25.4 ns in the same measurement.
+>
+> <!-- cita-retratado: 10,5 10.5 25,4 25.4 -->
 
 ---
 
@@ -263,6 +267,8 @@ the two versions of a given cell run adjacent to each other, and the cell order
 is permuted on every repetition. Arms in blocks confound the effect with machine
 state drift — that is how, in an earlier campaign of this same study, a
 difference of 0.70 ns per packet became 0.15 ns when reproduced interleaved.
+
+<!-- cita-retratado: 0,70 0.70 0,15 0.15 -->
 
 **The metric is a library counter**, not a hardware event: it does not depend on
 the PMU, which is blocked on this machine. It counts the times the per-lcore

@@ -1135,8 +1135,8 @@ cores, **50% more cores buy 2.8% of throughput**.
 
 #### The ceiling is bandwidth, and that was measured twice
 
-Nine hundred and forty-six million accesses per second, at 64 bytes per line,
-are **60.6 GB/s** with twelve cores. A single core, in the same program and
+The 947.7 million accesses per second of the last row, at 64 bytes per cache
+line, are **60.6 GB/s** with twelve cores. A single core, in the same program and
 with the same access pattern, does **10.9 GB/s**. The question is what limits
 each one.
 
@@ -3614,12 +3614,12 @@ constant cycles per operation and time per operation varying 29% with the clock.
 > **So 83–102 ns is not presented here as Zen 5's cross-CCD latency.** It is the range
 > observed by **this** experiment, on this machine and under these conditions. And a point of
 > vocabulary is worth the precision: the ping-pong measures a **communication latency between
-> two threads**, of which the cache line transfer is one component. Calling the 83–123 ns "the
+> two threads**, of which the cache line transfer is one component. Calling the 81.4 ns "the
 > time for the line to travel" makes mysterious a divergence that, stated properly, stops
 > being so.
 
-Closing the question would require identifying the BIOS/AGESA version, fixing frequency and
-affinity, repeating exactly the same core pairs and comparing against a reference tool. That
+Closing the question would require identifying the BIOS/AGESA version, repeating exactly the
+same core pairs and comparing against a reference tool. That
 degree of characterisation belongs to Stage 5 of the [roadmap](../../ROADMAP.md); for
 Fundamentals it is enough to **record the discrepancy without attributing to it a cause the
 experiment did not isolate**.
@@ -3714,11 +3714,19 @@ to show up first in the tail.
 > does not offer.
 
 > **One exception in the table, and it is not a queue.** The 8-step row gives a p99 of
-> ~376 ns against a median of 30 — 12.5×, the largest ratio in the table, and stable across
-> the five repetitions (373 to 392 ns). It cannot be a queue: ρ = 0.48 is the slackest point.
-> It is an occasional fixed cost — an interrupt, a cache miss — that weighs **relatively**
-> more precisely where the median is smallest. A ratio between percentiles needs the absolute
-> scale looked at before it becomes a conclusion.
+> 381 ns against a median of 30 — 12.7×, the largest ratio in the table. It cannot be a
+> queue: ρ = 0.48 is the slackest point. It is an occasional fixed cost — an interrupt, a
+> cache miss — that weighs **relatively** more precisely where the median is smallest. A
+> ratio between percentiles needs the absolute scale looked at before it becomes a
+> conclusion.
+>
+> **And that p99 is not stable, which reinforces the reading.** Across the 50 archived runs
+> of this measurement the median latency stays between 30 and 33 ns, but the p99 of this row
+> ranges from **340 ns to 29,935 ns** — quartiles at 376 and 427, median at 388. A tail that
+> varies eightyfold between runs while the median does not move is the signature of a rare
+> event, not of build-up: a queue would leave a trace in the median. The value published
+> above is from one run, and sits near the median across them; a single run does not measure
+> this tail.
 
 #### What theory says, and where it diverges from this measurement
 

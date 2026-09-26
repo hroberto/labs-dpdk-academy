@@ -76,6 +76,14 @@ SO_URL = re.compile(r"^\s*(\[[^\]]+\]:\s*)?(https?|ftp)://\S+\s*$")
 # valor antigo esta perto do novo por construcao. Acusar ali e pedir que o
 # documento apague a propria correcao.
 RETRATADO = re.compile(r"<!--\s*(?:cita-)?retratado:\s*([^>]*?)\s*-->")
+# COMENTARIO HTML NAO E PROSA. Ele e a nota de quem edita para quem edita, e o
+# leitor do documento renderizado nao o ve. A nota que mais paga esse preco e
+# justamente a que EXPLICA uma decisao sobre um numero -- em 25/09/2026 o
+# comentario que dizia por que o `10,1x` NAO recebe marca de retratacao entrava
+# na lista de trabalho como se fosse afirmacao do documento. Portao que acusa a
+# propria justificativa ensina a ignorar portao.
+ABRE_COM = re.compile(r"<!--")
+FECHA_COM = re.compile(r"-->")
 
 # Distancia relativa maxima para dois numeros serem candidatos a "mesma
 # grandeza em dois estados". 2% foi escolhido olhando a lista do Apendice A:
@@ -94,11 +102,21 @@ def numeros(texto):
     retratados = set()
     for m in RETRATADO.finditer(texto):
         retratados.update(v.replace(",", ".") for v in m.group(1).split())
-    dentro, bloco, prosa = False, set(), []
+    dentro, comentario, bloco, prosa = False, False, set(), []
     for ln in texto.split("\n"):
         s = ln.strip()
         if s.startswith("```"):
             dentro = not dentro
+            continue
+        # Um comentario de uma linha so nao muda o estado; um que abre e nao
+        # fecha na mesma linha suprime as seguintes ate o fechamento.
+        if comentario:
+            if FECHA_COM.search(ln):
+                comentario = False
+            continue
+        if ABRE_COM.search(ln):
+            if not FECHA_COM.search(ln[ln.index("<!--"):]):
+                comentario = True
             continue
         if dentro or (s.startswith("|") and s.endswith("|")):
             for m in NUM_NU.finditer(ln):
@@ -215,6 +233,14 @@ def autoteste():
          "A tabela publicava 1,04× e o valor nao reproduz.", 0)
     caso("um bloco que explica basta, com outro perto",
          "```\na 1.03\nb 1.041\n```", "A razao foi de 1,04×.", 0)
+    caso("comentario de uma linha nao e prosa",
+         "```\nrazao  1.03\n```", "<!-- o 1,04× antigo fica de fora -->", 0)
+    caso("comentario de varias linhas nao e prosa",
+         "```\nrazao  1.03\n```",
+         "<!-- o 1,04× antigo\n     fica de fora -->", 0)
+    caso("prosa DEPOIS de comentario fechado volta a contar",
+         "```\nrazao  1.03\n```",
+         "<!-- nota\n     qualquer -->\nA razao foi de 1,04×.", 1)
     print(f"\n  {falhas} falha(s)")
     return falhas
 
