@@ -204,9 +204,25 @@ cat "$D/diario.txt.tmp" >> "$D/diario.txt" 2>/dev/null; rm -f "$D/diario.txt.tmp
         # o feed nao saiu. Hugetlbfs ausente e PULO, decidido em `campanha.sh`;
         # hugetlbfs presente e feed que nao saiu e outra coisa: a coleta foi
         # tentada e nao aconteceu.
-        echo "  feed r$1: SEM SAIDA VALIDA (supervisor rc=$rc)" >> "$D/diario.txt"
-        registrar "feed-primario.r$1.txt"   FAIL "$rc"
-        registrar "feed-secundario.r$1.txt" FAIL "$rc"
+        # RC PROPRIO QUANDO QUEM FALHOU FOI A PUBLICACAO, e nao o experimento.
+        #
+        # Com o supervisor devolvendo 0 e a copia falhando -- `successful-session`
+        # ausente, diretorio nomeado inexistente, `cp` reprovado --, gravar
+        # `FAIL "$rc"` produzia a linha `FAIL 0`: a coluna STATUS afirma que a
+        # celula falhou e a coluna RC diz que terminou bem. Nao e falso verde,
+        # porque `veredito_hw` decide pelo STATUS -- mas o manifesto e o que
+        # sobra para quem abrir a coleta depois, e uma linha que se contradiz
+        # nao serve de diagnostico.
+        #
+        # 74 e EX_IOERR do sysexits.h, e a escolha e deliberada: distingue
+        # "o experimento nao produziu sessao valida" (rc do supervisor) de
+        # "a sessao era valida e a promocao falhou" (erro de E/S na fronteira).
+        # Sao causas diferentes e pedem investigacoes diferentes.
+        local falha_rc=$rc
+        [ "$falha_rc" -ne 0 ] || falha_rc=74
+        echo "  feed r$1: SEM SAIDA VALIDA (supervisor rc=$rc, registrado $falha_rc)" >> "$D/diario.txt"
+        registrar "feed-primario.r$1.txt"   FAIL "$falha_rc"
+        registrar "feed-secundario.r$1.txt" FAIL "$falha_rc"
         # A SAIDA DEGENERADA NAO FICA NA COLETA. Deixa-la ali com o nome certo
         # convidaria a conferencia por nomes a da-la por medida.
         rm -f "$D2/feed-secundario.r$1.txt" "$D2/feed-primario.r$1.txt"

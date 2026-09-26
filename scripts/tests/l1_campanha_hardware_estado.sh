@@ -255,6 +255,10 @@ conferir "supervisor rc=1: as duas celulas sao FAIL" \
     "$(awk '$1 ~ /^feed-/ && $2 == "FAIL" { n++ } END { print n+0 }' "$MANIFESTO")" "2"
 rc=0; veredito_hw >/dev/null 2>&1 || rc=$?
 conferir "supervisor rc=1: a subcampanha reprova" "$rc" "1"
+# E O RC DO EXPERIMENTO E PRESERVADO. Carimbar 74 aqui apagaria a distincao
+# que o proprio 74 existe para criar.
+conferir "supervisor rc=1: o RC registrado e o do supervisor, nao 74" \
+    "$(awk '$1 == "feed-primario.r3.txt" { print $3 }' "$MANIFESTO")" "1"
 
 # 8b. A SEGUNDA TENTATIVA VENCE: so ELA e promovida.
 #
@@ -319,6 +323,14 @@ conferir "copia parcial: nada fica promovido" \
     "$(ls "$D2"/feed-*.r8.txt 2>/dev/null | wc -l)" "0"
 conferir "copia parcial: as duas celulas viram FAIL" \
     "$(awk '$1 ~ /r8.txt$/ && $2 == "FAIL" { n++ } END { print n+0 }' "$MANIFESTO")" "2"
+# A TERCEIRA COLUNA NAO PODE DIZER 0 NUMA LINHA QUE DIZ FAIL. O supervisor
+# devolveu 0 -- a sessao era valida --, e quem falhou foi a promocao; gravar o
+# rc dele produziria `FAIL 0`, uma linha que afirma falha e registra sucesso.
+# 74 e EX_IOERR, e distingue falha de publicacao de falha do experimento.
+conferir "copia parcial: RC e o de falha de publicacao, nao 0" \
+    "$(awk '$1 == "feed-primario.r8.txt" { print $3 }' "$MANIFESTO")" "74"
+conferir "copia parcial: nenhuma linha FAIL com RC 0" \
+    "$(awk '$2 == "FAIL" && $3 == 0 { n++ } END { print n+0 }' "$MANIFESTO")" "0"
 
 # 8d. SEM HUGETLBFS o feed nem e tentado, e nao registra nada: o PULO e
 #     decidido em `campanha.sh`, e contar aqui tambem inflaria o veredito.
@@ -331,4 +343,4 @@ if [ "$falhas" -gt 0 ]; then
     echo "  $falhas assercao(oes) falharam"
     exit 1
 fi
-echo "  ok: 34 assercoes; estado por celula sobe do manifesto ate o codigo de saida"
+echo "  ok: 37 assercoes; estado por celula sobe do manifesto ate o codigo de saida"
