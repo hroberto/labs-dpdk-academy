@@ -94,9 +94,25 @@ grep -q "Arguments left for the application: 3" <<<"$saida"; check "argumentos a
 #    duas assercoes especificas da argparse sao condicionais; a propriedade
 #    ESTRUTURAL -- o ramo de erro da aplicacao NAO executa -- vale em qualquer
 #    release e continua sendo exigida.
+# COMO SE DESCOBRE SE HA ARGPARSE, e por que nao pelo cache do sistema.
+#
+# `ldconfig -p` responde sobre as bibliotecas INSTALADAS NO SISTEMA. Enquanto o
+# projeto so media contra o `dpdk-dev` do apt, as duas perguntas tinham a mesma
+# resposta. Na primeira execucao do job `releases-dpdk`, que constroi o DPDK num
+# prefixo proprio em `~/opt`, elas se separaram: o 25.11 TEM argparse, o cache
+# do sistema nao sabe disso, o teste tomava o ramo errado e falhava em vermelho
+# sem haver defeito.
+#
+# `ldd` sobre o BINARIO responde a pergunta certa -- o que este executavel vai
+# carregar de fato --, e nao depende de onde a release foi instalada.
+tem_argparse() {
+    ldd "$BIN" 2>/dev/null | grep -q 'librte_argparse' && return 0
+    ldconfig -p 2>/dev/null | grep -q 'librte_argparse'
+}
+
 saida=$("$BIN" --opcao-inexistente 2>&1); rc=$?
 ultima_saida="$saida"
-if ldconfig -p 2>/dev/null | grep -q 'librte_argparse'; then
+if tem_argparse; then
     check "opcao desconhecida encerra o processo com 234 (nao 1)" "$([ $rc -eq 234 ]; echo $?)"
     grep -q "unknown argument" <<<"$saida"; check "a EAL identifica o argumento desconhecido" $?
 else
@@ -109,7 +125,7 @@ check "opcao desconhecida nao sai com sucesso" "$([ $rc -ne 0 ]; echo $?)"
 # NAO roda; SEM argparse, rte_eal_init() devolve -1 e o ramo de erro RODA. Sao
 # comportamentos opostos, e ambos corretos para a sua release. Afirmar so um
 # deles falha em vermelho na outra.
-if ldconfig -p 2>/dev/null | grep -q 'librte_argparse'; then
+if tem_argparse; then
     ! grep -q "Error initialising the EAL" <<<"$saida"
     check "o ramo de erro da APLICACAO nao executa (a EAL encerra antes)" $?
 else
