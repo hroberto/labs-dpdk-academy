@@ -262,9 +262,16 @@ def mann_whitney(a, b):
 
     COM CORRECAO DE VARIANCIA POR EMPATES. O `0.5` acima trata o empate no U, e
     so nele: a variancia usada para o `z` presumia que nao ha valores repetidos.
-    Empate reduz a variancia da estatistica, entao ignora-lo produz `z` menor e
-    `p` maior em valor absoluto -- conservador numa direcao, otimista noutra,
-    dependendo do sinal, e em nenhuma delas correto.
+
+    A DIRECAO DO ERRO E UMA SO, e a primeira versao deste comentario dizia que
+    dependia do sinal -- estava errado. Empate REDUZ a variancia verdadeira;
+    ignora-lo usa um `sd` maior que o correto, o que encolhe `|z|` e, como o
+    `p` daqui e BILATERAL (`erfc(|z|/sqrt(2))`), aumenta o `p` sempre. Nao e
+    otimista em direcao nenhuma: e conservador quanto a rejeitar a hipotese
+    nula, o que e mais seguro e ainda assim errado.
+
+    O proprio numero medido ja dizia isso: no conjunto com empates do
+    autoteste, `p` sem correcao da 0,0845 e com correcao da 0,0746.
 
     MEDIDO ANTES DE ESCREVER: sobre as coletas de 26/09/2026, P0 contra
     P0+ipi-thread, sao 70 observacoes com 70 valores DISTINTOS -- zero grupos de
@@ -432,9 +439,9 @@ def autoteste():
             + 0.5 * sum(1 for x in [1, 2, 2, 3, 3, 3, 4] for y in [2, 3, 3, 4, 4, 5, 5] if x == y)
     import math as _m
     p_sem = _m.erfc(abs((u_emp - n1 * n2 / 2) / sd_sem) / _m.sqrt(2))
-    caso(16, "com empates, o p corrigido e menor que o sem correcao",
+    caso(20, "com empates, o p corrigido e menor que o sem correcao",
          p_emp < p_sem, True)
-    caso(19, "e a diferenca nao e ruido de arredondamento",
+    caso(21, "e a diferenca nao e ruido de arredondamento",
          round(p_sem - p_emp, 4), 0.0099)
     caso(17, "rotulo curto guarda hora, memoria e canais",
          rotulo_curto("2026-09-24-0955-jedec4800-canal-unico-texto"), "0955 4800 1c")

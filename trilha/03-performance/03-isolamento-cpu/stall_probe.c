@@ -61,6 +61,7 @@
 #include <time.h>
 
 #include "gap_hist.h"
+#include "argumento.h"
 #include "procstat.h"
 
 /* Leitura do relogio. `CLOCK_MONOTONIC` e nao o TSC bruto: a sonda precisa
@@ -227,11 +228,23 @@ int main(int argc, char **argv)
     const int leu_mascara =
         sched_getaffinity(0, sizeof permitidas_no_inicio, &permitidas_no_inicio) == 0;
 
-    const int cpu = atoi(argv[1]);
-    const double segundos = atof(argv[2]);
-    const uint64_t limiar = (argc == 4) ? strtoull(argv[3], NULL, 10) : 1000u;
-    if (cpu < 0 || segundos <= 0.0) {
-        fprintf(stderr, "invalid parameters\n");
+    /* CONVERSAO CONFERIDA. `atoi("abc")` devolvia 0 e o programa media a CPU 0
+     * imprimindo "cpu 0" -- o rotulo afirmando uma condicao que ninguem pediu,
+     * e saindo com codigo 0. A guarda `cpu < 0` nao pegava, porque 0 e uma CPU
+     * legitima: o valor de erro estava dentro do dominio valido. */
+    int cpu = 0;
+    double segundos = 0.0;
+    unsigned long long limiar_lido = 1000u;
+    if (academy_arg_int(argv[1], "cpu", 0, CPU_SETSIZE - 1, &cpu) != 0)
+        return 2;
+    if (academy_arg_double(argv[2], "seconds", &segundos) != 0)
+        return 2;
+    if (argc == 4 &&
+        academy_arg_u64(argv[3], "threshold_ns", 1u, UINT64_MAX, &limiar_lido) != 0)
+        return 2;
+    const uint64_t limiar = (uint64_t)limiar_lido;
+    if (segundos <= 0.0) {
+        fprintf(stderr, "seconds must be greater than zero\n");
         return 2;
     }
     /* O teto vem da tabela de /proc/interrupts, nao do escalonador: um CPU
@@ -250,7 +263,10 @@ int main(int argc, char **argv)
 
     /* A thread provocadora sobe ANTES da captura inicial, para que o delta de
      * /proc/interrupts cubra exatamente a janela em que ela esteve ativa. */
-    const int cpu_prov = (argc == 5) ? atoi(argv[4]) : -1;
+    int cpu_prov = -1;
+    if (argc == 5 && academy_arg_int(argv[4], "provoker_cpu", 0, CPU_SETSIZE - 1,
+                                     &cpu_prov) != 0)
+        return 2;
     struct provocador pv = { cpu_prov, PROV_NAO_INICIOU, 0, 0 };
     pthread_t th;
     int tem_provocador = 0;
@@ -272,6 +288,41 @@ int main(int argc, char **argv)
             fprintf(stderr, "pthread_create failed\n");
             return 1;
         }
+
+        /* HANDSHAKE ANTES DA JANELA, e nao so conferencia depois dela.
+         *
+         * `pthread_create` devolve quando a thread FOI CRIADA, nao quando ela
+         * foi escalonada. Sem esperar aqui, a captura inicial de
+         * /proc/interrupts e o aquecimento da sonda podiam acontecer com o
+         * provocador ainda parado -- e a conferencia do fim, que exige
+         * `voltas > 0`, aprovaria uma execucao em que a carga so comecou
+         * depois de metade da janela ter passado.
+         *
+         * A espera e por DUAS coisas: o estado ATIVO, que diz que a fixacao
+         * deu certo, e a primeira volta, que diz que a carga de fato comecou.
+         * Estar fixado e nao ter mapeado nada ainda nao e provocar. */
+        const uint64_t limite_espera = agora_ns() + 2000000000ull;  /* 2 s */
+        for (;;) {
+            const int est = atomic_load_explicit(&pv.estado, memory_order_acquire);
+            if (est == PROV_ATIVO &&
+                atomic_load_explicit(&pv.voltas, memory_order_relaxed) > 0)
+                break;
+            if (est == PROV_SEM_AFINIDADE || est == PROV_SEM_MEMORIA) {
+                fprintf(stderr, "provoker failed before the window: %s\n",
+                        est == PROV_SEM_AFINIDADE ? "could not pin to the requested CPU"
+                                                  : "mmap failed");
+                atomic_store_explicit(&pv.parar, 1, memory_order_relaxed);
+                pthread_join(th, NULL);
+                return 1;
+            }
+            if (agora_ns() > limite_espera) {
+                fprintf(stderr, "provoker did not start within 2 s;"
+                                " the window would be labelled with a load that had not begun\n");
+                atomic_store_explicit(&pv.parar, 1, memory_order_relaxed);
+                pthread_join(th, NULL);
+                return 1;
+            }
+        }
     }
 
     struct proc_tabela antes, depois;
@@ -287,6 +338,11 @@ int main(int argc, char **argv)
     for (int i = 0; i < 100000; i++)
         (void)agora_ns();
 
+    /* A CONTAGEM NO INICIO DA JANELA. O handshake acima prova que o provocador
+     * JA trabalhava; este marcador prova que ele CONTINUOU durante a medicao.
+     * Sao duas afirmacoes diferentes, e a conferencia do fim precisa das duas. */
+    const unsigned long voltas_no_inicio =
+        tem_provocador ? atomic_load_explicit(&pv.voltas, memory_order_relaxed) : 0;
     const uint64_t t0 = agora_ns();
     const uint64_t fim = t0 + (uint64_t)(segundos * 1e9);
     uint64_t anterior = agora_ns(), acima = 0;
@@ -309,11 +365,12 @@ int main(int argc, char **argv)
          * nao ter existido de fato. */
         const int est = atomic_load_explicit(&pv.estado, memory_order_acquire);
         const unsigned long voltas = atomic_load_explicit(&pv.voltas, memory_order_relaxed);
-        if (est != PROV_ATIVO || voltas == 0) {
+        if (est != PROV_ATIVO || voltas == 0 || voltas <= voltas_no_inicio) {
             fprintf(stderr, "provoker did not run as declared: %s (%lu rounds)\n",
                     est == PROV_SEM_AFINIDADE ? "could not pin to the requested CPU"
                     : est == PROV_SEM_MEMORIA ? "mmap failed"
                     : est == PROV_NAO_INICIOU ? "never started"
+                    : voltas <= voltas_no_inicio ? "stopped before the window ended"
                     : "no work done",
                     voltas);
             fprintf(stderr, "  the measurement would be labelled with a provoker that did not exist.\n");
@@ -334,8 +391,9 @@ int main(int argc, char **argv)
      * duas coletas com contagens de ordem diferente nao sao comparaveis,
      * mesmo que as duas digam "verified". */
     if (tem_provocador)
-        printf("provoker rounds: %lu (8 MiB mapped, touched and unmapped each)\n",
-               atomic_load_explicit(&pv.voltas, memory_order_relaxed));
+        printf("provoker rounds during the window: %lu"
+               " (8 MiB mapped, touched and unmapped each)\n",
+               atomic_load_explicit(&pv.voltas, memory_order_relaxed) - voltas_no_inicio);
     printf("samples: %" PRIu64 "\n", h.amostras);
     printf("stalls above threshold: %" PRIu64 "\n", acima);
     /* Percentis saem do histograma e sao PISOS de balde; o maior e exato.

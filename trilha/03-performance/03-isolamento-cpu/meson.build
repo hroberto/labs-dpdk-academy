@@ -5,7 +5,9 @@
 # sem privilégio (L1). As sondas não usam DPDK: a pergunta é sobre o sistema
 # operacional, e a resposta precisa valer para qualquer laço de polling.
 
-isolamento_inc = include_directories('.')
+# O segundo diretorio traz `argumento.h`: conversao de argumento que recusa em
+# vez de devolver zero, porque aqui zero e uma CPU legitima.
+isolamento_inc = include_directories('.', '../../../docs/01-fundamentos/medicoes')
 
 stall_probe = executable(
   'stall_probe',

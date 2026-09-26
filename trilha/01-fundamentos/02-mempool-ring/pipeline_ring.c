@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "argumento.h"
 #include "packet.h"
 #include "../../../docs/01-fundamentos/medicoes/statistics.h"
 
@@ -116,13 +117,28 @@ static int parse_config(int argc, char **argv, struct config *cfg)
     cfg->profundidade = 1024;
     cfg->cache_size = 64;
     optind = 1;
+    unsigned long long lido = 0;
     while ((opt = getopt(argc, argv, "n:b:t:q:c:")) != -1) {
         switch (opt) {
-        case 'n': cfg->num_packets = strtoull(optarg, NULL, 10); break;
-        case 'b': cfg->burst = (unsigned)strtoul(optarg, NULL, 10); break;
-        case 't': cfg->progresso_ms = strtoull(optarg, NULL, 10); break;
-        case 'q': cfg->profundidade = (unsigned)strtoul(optarg, NULL, 10); break;
-        case 'c': cfg->cache_size = (unsigned)strtoul(optarg, NULL, 10); break;
+        /* CONVERSAO CONFERIDA, e a parcial tambem. `strtoull("12x", NULL, 10)`
+         * devolve 12: um erro de digitacao virava uma contagem de pacotes
+         * plausivel, e o programa media outra coisa sem dizer nada. Medido
+         * antes: `-n 12x` processava 12 pacotes em silencio. */
+        case 'n':
+            if (academy_arg_u64(optarg, "-n", 1u, UINT64_MAX, &lido) != 0) return -1;
+            cfg->num_packets = lido; break;
+        case 'b':
+            if (academy_arg_u64(optarg, "-b", 1u, BURST_MAX, &lido) != 0) return -1;
+            cfg->burst = (unsigned)lido; break;
+        case 't':
+            if (academy_arg_u64(optarg, "-t", 0u, UINT64_MAX, &lido) != 0) return -1;
+            cfg->progresso_ms = lido; break;
+        case 'q':
+            if (academy_arg_u64(optarg, "-q", 1u, UINT32_MAX, &lido) != 0) return -1;
+            cfg->profundidade = (unsigned)lido; break;
+        case 'c':
+            if (academy_arg_u64(optarg, "-c", 0u, UINT32_MAX, &lido) != 0) return -1;
+            cfg->cache_size = (unsigned)lido; break;
         default:
             fprintf(stderr, "Usage: %s <EAL> -- [-n packets] [-b batch (1..%u)]"
                             " [-t ms without progress] [-q queue depth]"

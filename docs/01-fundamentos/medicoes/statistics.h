@@ -299,10 +299,15 @@ collect_paired(double (*ma)(void), double (*mb)(void), int n)
          * segundo herda tudo isso em TODAS as amostras. A vantagem -- ou a
          * desvantagem -- vai inteira para o mesmo lado.
          *
-         * Alternando, metade dos pares tem A primeiro e metade tem B, e o
-         * efeito de ordem entra nas duas medições em partes iguais. Ele não
-         * desaparece; deixa de ser sistemático, que é o que uma razão
-         * publicada precisa.
+         * Alternando, o efeito de ordem entra nas duas medições em partes
+         * QUASE iguais. Não desaparece, e deixa de ser sistemático -- que é o
+         * que uma razão publicada precisa.
+         *
+         * "Quase" é literal e vale escrever: com `n` ímpar a divisão não fecha.
+         * `custo-comunicacao` usa 21 amostras, o que dá 11 pares A→B e 10
+         * B→A, e sempre com a mesma orientação sobrando. O resíduo é de um
+         * par em 21, contra 21 em 21 da ordem fixa -- e dizer "metade e
+         * metade" seria forte demais para o que o código faz.
          *
          * `va` SEMPRE GUARDA `ma`, independente de quem correu antes: o que
          * alterna é a ordem de execução, não o rótulo. Trocar os dois faria a

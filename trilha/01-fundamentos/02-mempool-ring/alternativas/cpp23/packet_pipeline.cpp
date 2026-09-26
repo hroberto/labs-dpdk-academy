@@ -11,6 +11,7 @@
 // por padrao em C++, e redefini-lo emite -Wmacro-redefined.
 #include <pthread.h>
 #include <cerrno>
+#include <limits>
 
 #include <sched.h>
 
@@ -105,7 +106,18 @@ std::expected<Config, std::string_view> parse_config(int argc, char** argv) {
                 return std::unexpected("numeric argument is not a valid number");
             if (arg == "-n") cfg.num_packets = valor;
             else if (arg == "-b") cfg.burst = valor;
-            else cfg.consumer_cpu = static_cast<int>(valor);
+            else {
+                // `-c` TEM DOMINIO PROPRIO, e conferir so a conversao nao
+                // bastava. `static_cast<int>` de um valor acima de INT_MAX e
+                // definido pela implementacao, e mesmo um `int` valido pode
+                // ser >= CPU_SETSIZE e chegar ao `CPU_SET`, que nao aceita.
+                // O numero identifica uma CPU: o intervalo E parte do contrato.
+                if (valor > static_cast<unsigned long long>(
+                                std::numeric_limits<int>::max()) ||
+                    valor >= static_cast<unsigned long long>(CPU_SETSIZE))
+                    return std::unexpected("consumer CPU is out of range");
+                cfg.consumer_cpu = static_cast<int>(valor);
+            }
         } else {
             return std::unexpected("Usage: packet_pipeline [-n packets] [-b batch (1..256)] [-c consumer_cpu]");
         }

@@ -3,7 +3,9 @@
 # A lógica de pacote vive em pacote.c, separada de pipeline_ring.c, justamente
 # para poder ser testada sem EAL (L1). O runtime é exercitado no L2.
 
-pacote_inc = include_directories('.')
+# O segundo diretorio traz `argumento.h`: `strtoull("12x")` devolvia 12, e um
+# erro de digitacao virava contagem de pacotes plausivel.
+pacote_inc = include_directories('.', '../../../docs/01-fundamentos/medicoes')
 
 pipeline_ring = executable(
   'pipeline_ring',
