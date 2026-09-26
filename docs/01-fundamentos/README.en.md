@@ -1,12 +1,5 @@
 # Fundamentals — the problem, before the tool
 
-<!-- cita-retratado: 0,227 0.227 14,2 14.2 0,437 0.437 -->
-<!-- These values were retracted elsewhere in the material and reappear
-     here as a NEW measurement from the text-mode collection. The
-     coincidence is numeric, not of quantity: `0.227` is the range
-     minimum of `atomic relaxed`, `14.2` is the instrument resolution of
-     custo-anel and `0.437` is the mempool bulk at batch 128. -->
-
 *Leia em [português](README.md).*
 
 > **Levels 1 and 2** of the [study plan](../plano-estudo-dpdk.en.md) ·
@@ -2078,6 +2071,12 @@ assumed.
   semaphore post+wait                     8.37  8.35-8.40       8.30-8.43           0.6%   0.4%  
 ```
 
+<!-- cita-retratado: 0,227 0.227 -->
+<!-- `0.227` was retracted elsewhere in the material and reappears HERE as a
+     new measurement: it is the RANGE MINIMUM of `atomic relaxed` in this
+     collection, not the median that was dropped. The coincidence is of
+     digits, not of quantity, and the exemption covers this block only. -->
+
 The last two columns measure the number's trustworthiness: `disp` says whether the typical
 value is reproducible, `CV` denounces isolated outlying samples. How to read them together
 is in [§9](#9-validation-reproduce-it-on-your-machine).
@@ -3081,6 +3080,7 @@ had run: alternating idleness and measurement.
 > measured loop, dropped the baseline from 0.536 to 0.449 ns. And the control
 > that closes the case is the `-falign-loops=32` row, where the two values
 > **swap places** — were it machine state, they would not swap.
+> <!-- cita-retratado: 0,449 0.449 -->
 
 **No instrument from one scale sees the next**, and that is what makes the
 distinction useful rather than academic. Raising `n` characterises the first

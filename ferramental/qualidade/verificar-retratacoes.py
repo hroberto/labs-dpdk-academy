@@ -101,6 +101,11 @@ import os
 import re
 import sys
 
+# Quantos blocos sem marca o relatorio lista antes de resumir. `--cobertura`
+# levanta o corte: a lista existe para ser trabalhada, e trabalhar dez de
+# vinte e um deixa onze invisiveis para quem esta justamente atras deles.
+LIMITE_SEM_MARCA = 10
+
 IGNORAR = {".git", "build", "subprojects", "__pycache__", "temp"}
 
 # Marcadores de retratação, em minúsculas. Derivados dos blocos que o projeto
@@ -255,6 +260,63 @@ def fora_de_retratacao(texto):
     for ini, fim, _ in reversed(retratacoes(texto)):
         texto = texto[:ini] + texto[fim:]
     return texto
+
+
+def trecho_da_citacao(texto, pos):
+    """O TRECHO que uma marca `cita-retratado` isenta, e nada além dele.
+
+    POR QUE A ISENÇÃO PRECISOU DE ESCOPO
+
+    Até 26/09/2026 uma marca `cita-retratado` liberava o valor no DOCUMENTO
+    INTEIRO. A auditoria daquele dia reproduziu a consequência em sete linhas
+    do tópico de C++23: o bloco declara `<!-- retratado: 60,87 11,61 -->`, diz
+    com todas as letras que "o que faltava não era exatidão, era procedência"
+    -- e o gráfico logo abaixo republica `60.87` numa barra. Verde, porque a
+    marca de citação deliberada da linha acima isentava o arquivo todo.
+
+    A isenção existe para o parágrafo que cita o valor de propósito. Fora dele
+    ela não é isenção: é uma porta que fica aberta.
+
+    O ESCOPO, e por que ele tem duas partes. A marca aparece de duas formas no
+    material: dentro do bloco de citação que ela anota, e sozinha numa linha
+    depois do parágrafo que ela anota. A primeira forma se resolve com o bloco
+    que contém a marca; a segunda precisa alcançar o parágrafo anterior, senão
+    isentaria só a si mesma e nenhuma das citações declaradas valeria.
+    """
+    linhas = texto.splitlines(keepends=True)
+    # em que linha cai a marca
+    acum, alvo = 0, 0
+    for i, l in enumerate(linhas):
+        if acum + len(l) > pos:
+            alvo = i
+            break
+        acum += len(l)
+    def corrida(i):
+        """(inicio, fim) da sequência de linhas não vazias que contém `i`."""
+        a = i
+        while a > 0 and linhas[a - 1].strip():
+            a -= 1
+        b = i
+        while b + 1 < len(linhas) and linhas[b + 1].strip():
+            b += 1
+        return a, b
+    a, b = corrida(alvo)
+    # A MARCA SOZINHA: o trecho anotado é o parágrafo ANTERIOR, e ele entra.
+    #
+    # "Sozinha" é sobre PROSA, não sobre a marca literal: a marca costuma vir
+    # acompanhada de um comentário que explica por que a citação é deliberada,
+    # e esse comentário não renderiza para o leitor. Exigir que a corrida
+    # contivesse só a marca fazia a explicação ao lado quebrar o alcance --
+    # medido em 26/09/2026, no bloco do `atomic relaxed`, onde a isenção
+    # deixava de cobrir justamente o bloco que ela anotava.
+    resto = re.sub(r"<!--.*?-->", "", "".join(linhas[a:b + 1]), flags=re.S)
+    so_a_marca = not resto.strip()
+    if so_a_marca and a > 0:
+        j = a - 1
+        while j > 0 and not linhas[j].strip():
+            j -= 1
+        a = corrida(j)[0]
+    return "".join(linhas[a:b + 1])
 
 
 # Unidade logo depois do número. Sem esta exigência, o arredondado `18` casa em
@@ -473,20 +535,33 @@ def verificar(raiz="."):
         except (OSError, UnicodeDecodeError):
             continue
         vivo = fora_de_retratacao(texto)
-        citados = set()
+        # {valor: [trechos que o isentam]}. E por TRECHO, nao por documento:
+        # ver `trecho_da_citacao`.
+        citados = {}
         for m in CITA.finditer(texto):
+            trecho = trecho_da_citacao(texto, m.start())
             # A isencao vale para as duas grafias: quem declara citar `2,078`
             # de proposito esta citando o mesmo valor que o ingles escreve
             # `2.078`, e exigir as duas marcas seria burocracia sem ganho.
             for n in NUMERO.findall(m.group(1)):
-                citados.update(grafias(n))
+                for g in grafias(n):
+                    citados.setdefault(g, []).append(trecho)
         if citados:
             isentos[os.path.relpath(doc, raiz)] = sorted(citados)
         for n, origens in sorted(mortos.items()):
-            if n in vivo and n not in citados:
+            if n not in vivo:
+                continue
+            # SOBREVIVE FORA DO TRECHO ISENTO? A pergunta e por linha: o valor
+            # pode estar citado de proposito num paragrafo e republicado por
+            # engano noutro, e ate 26/09/2026 o segundo passava escondido atras
+            # do primeiro.
+            trechos = citados.get(n, [])
+            sobrevive = any(aparece(n, l) and not any(l in tr for tr in trechos)
+                            for l in vivo.splitlines())
+            if sobrevive:
                 onde = ", ".join(sorted(set(os.path.relpath(o, raiz) for o in origens)))
-                for i, linha in enumerate(vivo.splitlines(), 1):
-                    if aparece(n, linha):
+                for linha in vivo.splitlines():
+                    if aparece(n, linha) and not any(linha in tr for tr in trechos):
                         print(f"  {os.path.relpath(doc, raiz)}: '{n}' foi RETRATADO"
                               f" (em {onde}) e continua publicado")
                         print(f"      {linha.strip()[:110]}")
@@ -508,10 +583,10 @@ def verificar(raiz="."):
         print(f"\n  COBERTURA PARCIAL: {len(sem_marca)} bloco(s) de retratação com"
               f" número e SEM a marca `<!-- retratado: ... -->`.")
         print("  Eles NAO foram conferidos. Verde aqui não cobre estes blocos:")
-        for doc, trecho in sem_marca[:10]:
+        for doc, trecho in sem_marca[:LIMITE_SEM_MARCA]:
             print(f"    {doc}: {trecho}...")
-        if len(sem_marca) > 10:
-            print(f"    ... e mais {len(sem_marca) - 10}")
+        if len(sem_marca) > LIMITE_SEM_MARCA:
+            print(f"    ... e mais {len(sem_marca) - LIMITE_SEM_MARCA}")
     return problemas
 
 
@@ -591,6 +666,54 @@ def autoteste():
     if "COBERTURA PARCIAL" in saida:
         print("  AUTOTESTE FALHOU: bloco sem marca, com numero de 1 significativo,"
               " gerou aviso de cobertura parcial")
+        falhas += 1
+
+    # ESCOPO DA ISENCAO -- tres casos, e os tres vieram de defeito medido.
+    #
+    # A auditoria de 26/09/2026 mostrou o primeiro em sete linhas do topico de
+    # C++23: o bloco declarava `<!-- retratado: 60,87 -->`, dizia que ao valor
+    # faltava PROCEDENCIA, e o grafico logo abaixo republicava `60.87`. Verde,
+    # porque a marca de citacao deliberada isentava o arquivo inteiro.
+    doc = ("# d\n\n> **Este bloco publicava 60,87 ns, e o valor nao tinha programa.**\n"
+           "> O medido agora e 58,70 ns.\n"
+           "> <!-- cita-retratado: 60,87 -->\n"
+           "> <!-- retratado: 60,87 -->\n\n"
+           "    bar \"sem cache\" [0.62, 60,87]\n")
+    rc, saida = rodar({"d.md": doc})
+    if rc != 1 or "60,87" not in saida:
+        print("  AUTOTESTE FALHOU: isencao de um trecho liberou o valor NOUTRO"
+              f" trecho do mesmo documento (rc={rc})")
+        print("    " + saida.strip().replace("\n", "\n    "))
+        falhas += 1
+
+    # A MARCA SOZINHA precisa alcancar o paragrafo ANTERIOR. E a forma que o
+    # material usa para anotar um bloco de medicao sem sujar o bloco: comentario
+    # HTML nao renderiza, e por isso ele fica FORA da cerca, logo depois dela.
+    doc = ("# d\n\n> **Isto publicava 9,99 ns, e estava errado.**\n"
+           "> <!-- retratado: 9,99 -->\n\n"
+           "A faixa medida agora vai de 9,99 a 12,00 ns.\n\n"
+           "<!-- cita-retratado: 9,99 -->\n")
+    rc, saida = rodar({"d.md": doc})
+    if rc != 0:
+        print("  AUTOTESTE FALHOU: marca sozinha nao isentou o paragrafo que"
+              f" ela anota (rc={rc})")
+        print("    " + saida.strip().replace("\n", "\n    "))
+        falhas += 1
+
+    # E o COMENTARIO QUE EXPLICA a citacao nao pode quebrar esse alcance. A
+    # marca quase nunca vem sozinha de verdade: ao lado dela fica a razao de a
+    # citacao ser deliberada, que tambem nao renderiza. Enquanto "sozinha"
+    # significava "so a marca", a explicacao ao lado anulava a isencao.
+    doc = ("# d\n\n> **Isto publicava 9,99 ns, e estava errado.**\n"
+           "> <!-- retratado: 9,99 -->\n\n"
+           "A faixa medida agora vai de 9,99 a 12,00 ns.\n\n"
+           "<!-- cita-retratado: 9,99 -->\n"
+           "<!-- o 9,99 aqui e o MINIMO da faixa, nao a mediana derrubada -->\n")
+    rc, saida = rodar({"d.md": doc})
+    if rc != 0:
+        print("  AUTOTESTE FALHOU: comentario ao lado da marca anulou a"
+              f" isencao (rc={rc})")
+        print("    " + saida.strip().replace("\n", "\n    "))
         falhas += 1
 
     # PARIDADE pt/en: o mesmo valor, a outra grafia.
@@ -746,6 +869,9 @@ def autoteste():
 
 
 if __name__ == "__main__":
+    if "--cobertura" in sys.argv:
+        LIMITE_SEM_MARCA = 10**6
+
     if "--autoteste" in sys.argv:
         sys.exit(1 if autoteste() else 0)
     # As flags nao sao caminho. Sem este filtro, `--arredondados` virava o alvo

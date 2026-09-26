@@ -607,6 +607,8 @@ descartado, comparada com os valores publicados:
   1 nucleo, sequencial        0,200 -> 0,195 ns/acesso     -2,5%   nao responde
 ```
 
+<!-- cita-retratado: 31,2 31.2 -->
+
 **Previsão 1 confirmada, previsão 2 confirmada.** Memória 25% mais rápida
 melhorou o agregado em 45% de vazão e não fez nada pelo núcleo sozinho. As duas metades
 da frase da §4.2 se separam: o agregado **é** limitado pela banda; o núcleo
@@ -648,6 +650,8 @@ hardware. Das **56** medições que o `comparar-hardware.py` confronta hoje:
 | 1,6% a 9,0% | 16 | caminhos mistos: parte do trabalho em cache, parte fora |
 | 10,9% a 31,2% | **16** | DRAM e o *fabric* entre CCDs |
 
+<!-- cita-retratado: 31,2 31.2 -->
+
 > **A faixa do meio existe, e uma versão anterior desta seção a omitia.** O
 > texto dizia "doze não se moveram, dez se moveram", como se a divisão fosse
 > limpa. Ela era limpa no conjunto menor que a ferramenta cobria então; com
@@ -659,6 +663,8 @@ caírem onde o mecanismo prevê**. `laco sozinho`, `RAZAO com/sem irmao SMT`,
 `L1d dependente` e `L3 dependente` saíram em **0,0%** — nenhum deles toca a
 memória principal. O agregado de doze núcleos saiu em **31,2%**, o maior de
 todos, e é o que mais disputa banda.
+
+<!-- cita-retratado: 31,2 31.2 -->
 
 Instrumento que responde onde deve e fica quieto onde deve é a única evidência
 possível de que ele mede o que diz medir.
@@ -725,12 +731,15 @@ descartada. Uma variável: o número de canais.
   1 nucleo, custo-paralelismo  6,20 ->  5,85 ns/acesso    -5,6%   <- substituta
 ```
 
+<!-- cita-retratado: 40,5 40.5 88,00 88.00 -->
+
 > **Este bloco é REGISTRO, e não medição corrente.** Os valores da coluna
 > esquerda vêm da coleta de setembro que foi descartada em 24/09, ao adotar o
 > protocolo de modo texto. Ele fica porque é o que o pré-registro previu e o que
 > foi medido **na época** — reescrevê-lo com números de hoje falsificaria o
 > registro, que é justamente o que um pré-registro existe para impedir.
 >
+> <!-- cita-retratado: 88,00 88.00 -->
 > O `88,00` leva a marca `<- historico` na linha. O contraste equivalente,
 > medido com coleta arquivada, está na tabela de `4800 → 6000 MT/s` acima.
 
@@ -758,6 +767,7 @@ descartada. Uma variável: o número de canais.
 > −11,6 % para a frequência contra −7,7 a −8,4 % para o canal. A leitura
 > sobrevive — o núcleo sozinho responde mais à frequência —, com margem bem mais
 > estreita do que estes 14,5 contra 5,6 sugerem.
+> <!-- cita-retratado: 14,5 14.5 88,00 88.00 -->
 
 **A previsão 4 é a que dá valor às outras duas.** `custo-comunicacao` mede
 tráfego de linha de cache entre núcleos, que não toca a DRAM: se o canal

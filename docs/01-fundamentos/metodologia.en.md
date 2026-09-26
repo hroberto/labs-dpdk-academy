@@ -616,6 +616,8 @@ against the published values:
   1 core, sequential          0.200 -> 0.195 ns/access     -2.5%   does not
 ```
 
+<!-- cita-retratado: 31,2 31.2 -->
+
 **Prediction 1 confirmed, prediction 2 confirmed.** Memory 25% faster improved
 the aggregate by 45% in throughput and did nothing for the lone core. The two halves of the
 §4.2 sentence come apart: the aggregate **is** bandwidth-limited; the lone
@@ -658,6 +660,8 @@ confronts today:
 | 1.6% to 9.0% | 16 | mixed paths: part of the work in cache, part outside |
 | 10.9% to 31.2% | **16** | DRAM and the inter-CCD fabric |
 
+<!-- cita-retratado: 31,2 31.2 -->
+
 > **The middle band exists, and an earlier version of this section omitted it.**
 > The text said "twelve did not move, ten moved", as if the split were clean. It
 > was clean in the smaller set the tool covered then; with 56 comparisons there
@@ -669,6 +673,8 @@ landing where the mechanism predicts**. The in-core ALU loop, the paired SMT
 ratio, and the `L1d` and `L3` dependent columns all came out at **0.0%** — none
 of them touches main memory. The twelve-core aggregate came out at **31.2%**,
 the largest of all, and it is the one that competes hardest for bandwidth.
+
+<!-- cita-retratado: 31,2 31.2 -->
 
 An instrument that responds where it should and stays quiet where it should is
 the only possible evidence that it measures what it claims to measure.
@@ -735,6 +741,8 @@ variable: the number of channels.
   1 core, custo-paralelismo    6.20 ->  5.85 ns/access    -5.6%   <- replacement
 ```
 
+<!-- cita-retratado: 40,5 40.5 88,00 88.00 -->
+
 > **This block is a RECORD, not a current measurement.** The left-hand column's
 > values come from the September collection discarded on 24/09, when the
 > text-mode protocol was adopted. It stays because it is what the
@@ -742,6 +750,7 @@ variable: the number of channels.
 > with today's numbers would falsify the record, which is precisely what a
 > pre-registration exists to prevent.
 >
+> <!-- cita-retratado: 88,00 88.00 -->
 > The `88.00` carries the `<- historical` mark on its line. The equivalent
 > contrast, measured with an archived collection, is in the `4800 → 6000 MT/s`
 > table above.
@@ -770,6 +779,7 @@ variable: the number of channels.
 > to −11.6% for frequency against −7.7 to −8.4% for the channel. The reading
 > survives — the lone core responds more to frequency — with a margin far
 > narrower than these 14.5 against 5.6 suggest.
+> <!-- cita-retratado: 14,5 14.5 88,00 88.00 -->
 
 **Prediction 4 is what gives the other two their value.**
 `custo-comunicacao` measures cache-line traffic between cores, which does not

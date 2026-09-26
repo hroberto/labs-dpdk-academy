@@ -344,7 +344,7 @@ xychart-beta
     title "Mempool cost per operation: with and without the per-lcore cache"
     x-axis "threads, one per core" ["1", "2", "4", "8"]
     y-axis "ns per operation" 0 --> 70
-    bar "without cache (cache_size = 0)" [0.62, 3.37, 11.61, 60.87]
+    bar "without cache (cache_size = 0)" [0.62, 3.18, 11.76, 58.70]
     line "with cache (cache_size = 512)" [0.41, 0.42, 0.41, 0.42]
 ```
 

@@ -1,12 +1,5 @@
 # Fundamentos — o problema, antes da ferramenta
 
-<!-- cita-retratado: 0,227 0.227 14,2 14.2 0,437 0.437 -->
-<!-- Estes valores foram retratados noutros pontos do material e
-     reaparecem aqui como MEDICAO NOVA da coleta de modo texto. A
-     coincidencia e numerica, nao de grandeza: `0,227` e o minimo da
-     faixa do `atomic relaxed`, `14,2` e a resolucao do instrumento do
-     custo-anel e `0,437` e o mempool bulk no lote 128. -->
-
 *Read this in [English](README.en.md).*
 
 > **Níveis 1 e 2** do [plano de estudo](../plano-estudo-dpdk.md) ·
@@ -2088,6 +2081,12 @@ fique visível em vez de precisar ser suposta.
   semaphore post+wait                     8.37  8.35-8.40       8.30-8.43           0.6%   0.4%
 ```
 
+<!-- cita-retratado: 0,227 0.227 -->
+<!-- O `0,227` foi retratado noutro ponto do material e reaparece AQUI como
+     medicao nova: ele e o MINIMO DA FAIXA do `atomic relaxed` nesta coleta,
+     nao a mediana que foi derrubada. A coincidencia e de digitos, nao de
+     grandeza, e a isencao vale so para este bloco. -->
+
 As duas últimas colunas medem a confiança do número: `disp` diz se o valor
 típico é reprodutível, `CV` denuncia amostras isoladas destoantes. Como lê-las
 juntas está na [§9](#9-validação-reproduza-na-sua-máquina).
@@ -3129,6 +3128,7 @@ que ninguém tinha rodado: alternar ócio e medição.
 > medido, derrubou a linha de base de 0,536 para 0,449 ns. E o controle que
 > fecha o caso é a linha do `-falign-loops=32`, em que os dois valores **trocam
 > de lugar** — se fosse estado da máquina, não trocariam.
+> <!-- cita-retratado: 0,449 0.449 -->
 
 **Nenhum instrumento de uma escala enxerga a seguinte**, e é isso que torna a
 distinção útil em vez de acadêmica. Aumentar `n` caracteriza melhor a primeira
