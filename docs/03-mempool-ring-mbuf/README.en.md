@@ -194,8 +194,8 @@ This is the section's main result, and it appears in no published comparison:
 ```
 
 Asking for more objects at once **cheapens** each object in the mempool
-(1.84 → 0.44 ns) and **makes it more expensive** in `malloc` (2.75 → 19.67 ns). The
-ratio between the two goes from 1.5× to 45.0×.
+(1.81 → 0.43 ns) and **makes it more expensive** in `malloc` (2.57 → 19.58 ns). The
+ratio between the two goes from 1.4× to 45.2×.
 
 That is decisive because the data plane **is** batch processing.
 [§3 of the practical topic](../../trilha/01-fundamentos/02-mempool-ring/README.en.md)

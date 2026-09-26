@@ -2674,11 +2674,11 @@ The three numbers, for this experiment:
 | Quantity | Value | Where it comes from |
 |---|---:|---|
 | `λ_peak` | 3,881,988 packets/s | a 10 Gb/s link with a 322 B on-wire datagram |
-| `μ` | 1,366,272 packets/s | **measured on this machine**: 732 ns per packet, 25 samples |
+| `μ` | 1,363,015 packets/s | **measured on this machine**: 734 ns per packet, 25 samples |
 | `T` | 1 ms | the order of magnitude of an opening burst |
 
 ```
-ΔQ = (3,881,988 − 1,366,272) × 1 ms  =  2,516 descriptors
+ΔQ = (3,881,988 − 1,363,015) × 1 ms  =  2,519 descriptors
 ```
 
 > **The prediction, before measuring.** Rings of 256, 512 and 1,024 should be
@@ -2714,14 +2714,14 @@ distribution is in the [code](medicoes/rajada-nasdaq.c).
   arrival       ring(n)      loss  peak occ.   p99(us)
   -----------   -------  --------  --------  --------
   cadenced          512    0.000%         1       0.7
-  burst             512   26.544%       512     375.5
-  burst            1024   21.639%      1024     750.2
-  burst            4096    6.319%      4096    2998.6
-  burst           32768    0.000%     21234    6948.8
+  burst             512   26.585%       512     376.4
+  burst            1024   21.679%      1024     752.0
+  burst            4096    6.341%      4096    3005.7
+  burst           32768    0.000%     21262    6974.9
 ```
 
-**The prediction holds.** With 512 descriptors the loss is 26.5%; the 4,096 ring
-— above the 2,516 the arithmetic asked for — brings it down to 6.3%, and not to
+**The prediction holds.** With 512 descriptors the loss is 26.6%; the 4,096 ring
+— above the 2,519 the arithmetic asked for — brings it down to 6.3%, and not to
 zero, because long bursts keep happening. And the paced row shows that **the same
 traffic, spread evenly, loses nothing and never occupies more than one
 descriptor**.
@@ -2731,7 +2731,7 @@ The full table, with every depth and the median and `ca²` columns, is in the
 
 > **Average utilisation predicts none of this.** Mean `ρ` is **0.019** — the
 > machine is idle 98.1% of the time, and a monitoring dashboard would show plenty
-> of headroom while 26.5% of the packets die. It is the same thesis as
+> of headroom while 26.6% of the packets die. It is the same thesis as
 > [§11](#112-three-readings), taken to the extreme.
 
 #### What a buffer buys, and what it charges
@@ -2755,15 +2755,17 @@ Submitting the same traffic to both, at equivalent depth:
 ```
   path                             queue     loss       drain
   ------------------------------  ------  -------  ----------
-  descriptor ring                   8192   1.083%   1,365,969 packets/s
-  UDP socket (recv one at a time)   8738   1.618%     993,287 packets/s
-  UDP socket (recvmmsg batches)     8738   1.538%   1,026,172 packets/s
+  descriptor ring                   8192   1.089%   1,363,015 packets/s
+  UDP socket (recv one at a time)   8738   1.174%   1,191,880 packets/s
+  UDP socket (recvmmsg batches)     8738   1.166%   1,196,001 packets/s
 ```
 
 **Same queue, same burst, and the socket loses more** — the entire difference is
-the drain being **27% lower**, because each datagram pays the kernel crossing and
-the copy on top of the application's work. Batching through `recvmmsg` gives part
-of that back, by the same amortisation as [§6.2](#62-the-bus-has-a-budget-too).
+the drain being **12.6% lower**, because each datagram pays the kernel crossing
+and the copy on top of the application's work. Batching through `recvmmsg` gives
+little of that back here — 0.08 percentage points of loss — and the caveat on
+what so narrow a margin supports is in the
+[deep dive](6.3-aprofundamento.en.md#2-so_rcvbuf-the-queue-you-ask-for-is-not-the-queue-you-have).
 
 And this is where the two worlds part: on the socket path the levers are
 **indirect** — `SO_RCVBUF` delivers far less queue than it appears to and
@@ -3707,7 +3709,7 @@ to show up first in the tail.
 > predictability — still stands, and gains a condition: **the tail warns in advance when
 > arrival is irregular**, which is the case in
 > [§6.3](#63-how-many-descriptors-and-what-they-do-not-buy), where the same load in bursts
-> loses 26.5% while cadenced it loses nothing. With regular arrival it does not warn, and
+> loses 26.6% while cadenced it loses nothing. With regular arrival it does not warn, and
 > monitoring p99 expecting a warning would be asking an instrument for what the distribution
 > does not offer.
 
@@ -3750,13 +3752,13 @@ The document's observation was right, and unnamed.
 >
 > **And that is no longer just a warning.**
 > [§6.3](#63-how-many-descriptors-and-what-they-do-not-buy) measures the same
-> traffic under both distributions: paced, zero loss; bursty, **26.5% loss at a
+> traffic under both distributions: paced, zero loss; bursty, **26.6% loss at a
 > mean ρ of 0.019**. `ca²` goes from 0.00 to 2.99.
 
 > **Correction: this section attributed that loss to Kingman's term, and the
 > attribution was wrong.** The text called the measured `ca²` "Kingman's term,
 > measured rather than assumed", which suggests the approximation explains the
-> 26.5%. It does not, and §6.3 always said the opposite — *"with `ρ > 1` there
+> 26.6%. It does not, and §6.3 always said the opposite — *"with `ρ > 1` there
 > is no steady state to compute; it is the arithmetic of accumulation"*. The
 > document contradicted itself, and this was the wrong side.
 >
@@ -3766,7 +3768,7 @@ The document's observation was right, and unnamed.
 > 1 and there is no steady state; the descriptor ring is finite; and a two-state
 > process has **correlated** intervals, because the modulating state persists.
 > The arithmetic gives the problem away on its own — an approximation evaluated
-> at `ρ = 0.019` predicts negligible waiting, not 26.5% loss.
+> at `ρ = 0.019` predicts negligible waiting, not 26.6% loss.
 >
 > What governs is accumulation, `dQ/dt = λ_burst − μ`, integrated over the
 > duration of the burst. `ca²` remains valid as **evidence** of the difference

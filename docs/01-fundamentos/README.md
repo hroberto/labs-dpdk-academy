@@ -2709,11 +2709,11 @@ Os três números, para este experimento:
 | Grandeza | Valor | De onde vem |
 |---|---:|---|
 | `λ_pico` | 3 881 988 pacotes/s | enlace de 10 Gb/s com datagrama de 322 B no fio |
-| `μ` | 1 366 272 pacotes/s | **medido nesta máquina**: 732 ns por pacote, 25 amostras |
+| `μ` | 1 363 015 pacotes/s | **medido nesta máquina**: 734 ns por pacote, 25 amostras |
 | `T` | 1 ms | ordem de grandeza de uma rajada de abertura |
 
 ```
-ΔQ = (3 881 988 − 1 366 272) × 1 ms  =  2 516 descritores
+ΔQ = (3 881 988 − 1 363 015) × 1 ms  =  2 519 descritores
 ```
 
 > **A previsão, antes de medir.** Anéis de 256, 512 e 1 024 devem ser
@@ -2749,14 +2749,14 @@ tempo**. A distribuição exata está no
   chegada       anel(n)     perda  ocup.max   p99(us)
   -----------   -------  --------  --------  --------
   cadenciada        512    0.000%         1       0.7
-  rajada            512   26.544%       512     375.5
-  rajada           1024   21.639%      1024     750.2
-  rajada           4096    6.319%      4096    2998.6
-  rajada          32768    0.000%     21234    6948.8
+  rajada            512   26.585%       512     376.4
+  rajada           1024   21.679%      1024     752.0
+  rajada           4096    6.341%      4096    3005.7
+  rajada          32768    0.000%     21262    6974.9
 ```
 
-**A previsão se sustenta.** Com 512 descritores a perda é de 26,5%; o anel de
-4 096 — acima dos 2 516 que a conta pedia — derruba para 6,3%, e não a zero,
+**A previsão se sustenta.** Com 512 descritores a perda é de 26,6%; o anel de
+4 096 — acima dos 2 519 que a conta pedia — derruba para 6,3%, e não a zero,
 porque as rajadas longas continuam existindo. E a linha cadenciada mostra que
 **o mesmo tráfego, distribuído por igual, não perde nada e nunca ocupa mais que
 um descritor**.
@@ -2767,7 +2767,7 @@ A tabela completa, com todas as profundidades e as colunas de mediana e
 
 > **A utilização média não prevê nada disso.** `ρ` médio é **0,019** — a máquina
 > fica ociosa 98,1% do tempo, e um painel de monitoração mostraria folga total
-> enquanto 26,5% dos pacotes morrem. É a mesma tese da
+> enquanto 26,6% dos pacotes morrem. É a mesma tese da
 > [§11](#112-três-leituras), levada ao extremo.
 
 #### O que o buffer compra, e o que ele cobra
@@ -2791,16 +2791,17 @@ Submetendo o mesmo tráfego aos dois, com profundidade equivalente:
 ```
   caminho                          fila    perda    drenagem
   ------------------------------  -----  -------  ----------
-  anel de descritores              8192   1.083%   1 365 969 pacotes/s
-  socket UDP (recv um a um)        8738   1.618%     993 287 pacotes/s
-  socket UDP (recvmmsg em lote)    8738   1.538%   1 026 172 pacotes/s
+  anel de descritores              8192   1.089%   1 363 015 pacotes/s
+  socket UDP (recv um a um)        8738   1.174%   1 191 880 pacotes/s
+  socket UDP (recvmmsg em lote)    8738   1.166%   1 196 001 pacotes/s
 ```
 
 **Mesma fila, mesma rajada, e o socket perde mais** — a diferença inteira é a
-drenagem **27% menor**, porque cada datagrama paga a travessia do kernel e a
-cópia além do trabalho da aplicação. O lote via `recvmmsg` devolve parte disso,
-pelo mesmo mecanismo de amortização do
-[§6.2](#62-o-barramento-também-tem-orçamento).
+drenagem **12,6% menor**, porque cada datagrama paga a travessia do kernel e a
+cópia além do trabalho da aplicação. O lote via `recvmmsg` devolve pouco disso
+aqui — 0,08 ponto percentual de perda —, e a ressalva sobre o que essa margem
+estreita sustenta está no
+[aprofundamento](6.3-aprofundamento.md#2-so_rcvbuf-a-fila-que-você-pede-não-é-a-que-você-tem).
 
 E é aqui que os dois mundos se separam: no caminho de socket as alavancas são
 **indiretas** — `SO_RCVBUF` entrega bem menos fila do que aparenta e satura em
@@ -3784,7 +3785,7 @@ praticamente zero — não há fila se formando para aparecer primeiro na cauda.
 > é previsibilidade — continua de pé, e ganha uma condição: **a cauda avisa
 > antes quando a chegada é irregular**, que é o caso da
 > [§6.3](#63-quantos-descritores-e-o-que-eles-não-compram), onde a mesma carga
-> em rajada perde 26,5 % enquanto cadenciada não perde nada. Com chegada regular
+> em rajada perde 26,6 % enquanto cadenciada não perde nada. Com chegada regular
 > ela não avisa, e monitorar p99 esperando aviso seria esperar de um instrumento
 > o que a distribuição não oferece.
 
@@ -3827,13 +3828,13 @@ utilização. A observação do documento estava certa e sem nome.
 >
 > **E isso deixou de ser advertência.** A
 > [§6.3](#63-quantos-descritores-e-o-que-eles-não-compram) mede o mesmo tráfego
-> nas duas distribuições: cadenciado, perda zero; em rajada, **26,5 % de perda
+> nas duas distribuições: cadenciado, perda zero; em rajada, **26,6 % de perda
 > com ρ médio de 0,019**. O `ca²` sai de 0,00 para 2,99.
 
 > **Correção: esta seção atribuía essa perda ao termo de Kingman, e a
 > atribuição estava errada.** O texto dizia que o `ca²` medido era "o termo de
 > Kingman, medido em vez de suposto", o que sugere que a aproximação explica os
-> 26,5 %. Ela não explica, e a §6.3 sempre disse o contrário — *"com `ρ > 1` não
+> 26,6 %. Ela não explica, e a §6.3 sempre disse o contrário — *"com `ρ > 1` não
 > há estado estacionário para calcular; é aritmética de acúmulo"*. O documento
 > contradizia a si mesmo, e o lado errado era este.
 >
@@ -3843,7 +3844,7 @@ utilização. A observação do documento estava certa e sem nome.
 > de 1 e não há estado estacionário; o anel de descritores é finito; e um
 > processo de dois estados tem intervalos **correlacionados**, porque o estado
 > modulador persiste. A própria aritmética denuncia o problema — uma
-> aproximação avaliada em `ρ = 0,019` prevê espera desprezível, não 26,5 % de
+> aproximação avaliada em `ρ = 0,019` prevê espera desprezível, não 26,6 % de
 > perda.
 >
 > O que governa é o acúmulo, `dQ/dt = λ_rajada − μ`, integrado sobre a duração

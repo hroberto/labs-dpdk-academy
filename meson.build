@@ -217,6 +217,29 @@ if python3.found()
                  '--autoteste'],
          suite : ['l1', 'docs'], timeout : 60)
   endforeach
+
+  # OS CONSOLIDADORES TAMBEM SAO PROGRAMA PUBLICADO. Eles produzem blocos que o
+  # `verificar-blocos.py` nao consegue conferir -- a linha consolidada nao tem
+  # a forma de nenhum `printf` arquivado, e por isso cai fora do escopo daquele
+  # portao, como o cabecalho dele declara. Quem confere esses blocos e o
+  # autoteste do consolidador mais o `--conferir`; sem eles rodando, a tabela
+  # volta a envelhecer sem que nada acuse.
+  #
+  # O caso que motivou o registro: em 25/09/2026 o `milhar()` do
+  # `consolidar-rajada.py` passou a emitir NBSP (U+00A0) em vez de espaco, e o
+  # autoteste PASSOU porque o literal esperado carregava o mesmo caractere
+  # errado. Quem acusou foi o `verificar-autodescricao.py`, por acidente.
+  foreach c : ['efeito-cache', 'rajada']
+    test('docs - autoteste do consolidador de ' + c, python3,
+         args : [meson.project_source_root() / 'ferramental/qualidade/consolidar-' + c + '.py',
+                 '--autoteste'],
+         suite : ['l1', 'docs'], timeout : 60)
+  endforeach
+
+  test('docs - blocos consolidados da §6.3 conferem com a coleta', python3,
+       args : [meson.project_source_root() / 'ferramental/qualidade/consolidar-rajada.py',
+               '--conferir'],
+       suite : ['l1', 'docs'], timeout : 60)
 else
   # python3 ausente: registrar marcadores que PULAM (codigo 77) em vez de nao
   # registrar nada. Sem isto a suite l1 encolhia em TRES testes e reportava

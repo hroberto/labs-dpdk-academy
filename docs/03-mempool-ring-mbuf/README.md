@@ -201,9 +201,9 @@ publicada:
   128              19.58 ns       0.433 ns      45.2x
 ```
 
-Pedir mais objetos de uma vez **barateia** cada objeto no mempool (1,84 → 0,44 ns)
-e **encarece** no `malloc` (2,75 → 19,67 ns). A razão entre os dois vai de 1,5×
-para 45,0×.
+Pedir mais objetos de uma vez **barateia** cada objeto no mempool (1,81 → 0,43 ns)
+e **encarece** no `malloc` (2,57 → 19,58 ns). A razão entre os dois vai de 1,4×
+para 45,2×.
 
 Isso é decisivo porque o plano de dados **é** processamento em lote. A
 [§3 do tópico prático](../../trilha/01-fundamentos/02-mempool-ring/README.md)
