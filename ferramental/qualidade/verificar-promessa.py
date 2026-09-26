@@ -87,6 +87,12 @@ IGNORAR = {".git", "build", "subprojects", "__pycache__", "temp"}
 EXTERNAS = {
     # cadeia de build e desenvolvimento
     "clang-format", "clang-tidy", "google-benchmark", "pkg-config", "ldconfig",
+    # ALVOS DO CODEQL, que o SECURITY.md cita pelo nome. Ao contrario dos jobs
+    # do `ci.yml` -- que o verificador le do proprio workflow --, estes NAO
+    # estao na arvore: o CodeQL roda pelo *default setup*, configurado na
+    # interface do GitHub. Sao externos porque a configuracao deles e externa,
+    # e o SECURITY.md registra essa limitacao de procedencia.
+    "c-cpp",
     # pacotes de distribuição
     "dpdk-dev", "dpdk-devel", "rdma-core", "libibverbs1", "ibverbs-providers",
     # `linux-headers` entra aqui porque o §6.7 do topico de isolamento cita a
@@ -161,6 +167,37 @@ def entregues(raiz):
     pode estar velha.
     """
     nomes = set()
+
+    # OS JOBS DA CI TAMBEM SAO ENTREGA DA ARVORE, e nao ferramenta externa.
+    #
+    # O `SECURITY.md` cita `build-and-test` e `c-cpp` ao descrever o que roda
+    # em cada push. Eles nao sao alvo de `executable()` nem arquivo, e o portao
+    # os acusava como promessa nao cumprida -- mas a promessa E cumprida, por
+    # `.github/workflows/`. Declara-los em EXTERNAS seria chama-los de
+    # ferramenta de terceiros, que e falso: sao definidos aqui dentro.
+    #
+    # Entram o `id` do job e cada `language:` das matrizes, que e o que produz
+    # os nomes `c-cpp`, `python` e `actions` do CodeQL.
+    fluxos = os.path.join(raiz, ".github", "workflows")
+    if os.path.isdir(fluxos):
+        for nome_arq in sorted(os.listdir(fluxos)):
+            if not nome_arq.endswith((".yml", ".yaml")):
+                continue
+            try:
+                texto = open(os.path.join(fluxos, nome_arq), encoding="utf-8").read()
+            except (OSError, UnicodeDecodeError):
+                continue
+            # `  <id>:` com dois niveis de recuo e o id de um job.
+            for job in re.findall(r"^  ([a-z][a-z0-9_-]*):\s*$", texto, re.M):
+                nomes.add(job)
+            for lang in re.findall(r"language:\s*\[([^\]]*)\]", texto):
+                for item in lang.split(","):
+                    item = item.strip().strip("'\"")
+                    if item:
+                        nomes.add(item)
+            for lang in re.findall(r"-\s*language:\s*([a-z0-9-]+)", texto):
+                nomes.add(lang)
+
     mesons = []
     for m in arquivos(raiz):
         if os.path.basename(m) != "meson.build":

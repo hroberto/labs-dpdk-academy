@@ -79,8 +79,19 @@ static inline uint64_t agora_ns(void)
 
 /* Thread provocadora: altera o mapeamento em ciclo, para forcar invalidacao de
  * TLB nas demais CPUs deste processo. Ver o cabecalho e o README secao 2.1. */
+/* O ESTADO DO PROVOCADOR SOBE, e nao morre dentro da thread.
+ *
+ * `tem_provocador` dizia apenas que `pthread_create` funcionou. Se a fixacao
+ * falhasse dentro da thread -- CPU fora do cpuset, por exemplo --, ela devolvia
+ * NULL em silencio, nenhuma carga era gerada, e o programa imprimia
+ * "provoker thread: same process, other CPU" assim mesmo. O rotulo afirmava a
+ * condicao central do experimento sem que ela tivesse ocorrido. */
+enum { PROV_NAO_INICIOU = 0, PROV_ATIVO, PROV_SEM_AFINIDADE, PROV_SEM_MEMORIA };
+
 struct provocador {
     int cpu;
+    _Atomic int estado;
+    _Atomic unsigned long voltas;   /* prova que a carga rodou, e nao so subiu */
     /* Escrito pela thread principal, lido pela provocadora.
      *
      * `volatile` impede o compilador de eliminar a releitura e nao faz mais que
@@ -100,14 +111,20 @@ static void *provocar(void *arg)
     cpu_set_t set;
     CPU_ZERO(&set);
     CPU_SET(pv->cpu, &set);
-    if (sched_setaffinity(0, sizeof set, &set) != 0)
+    if (sched_setaffinity(0, sizeof set, &set) != 0) {
+        atomic_store_explicit(&pv->estado, PROV_SEM_AFINIDADE, memory_order_release);
         return NULL;
+    }
+    atomic_store_explicit(&pv->estado, PROV_ATIVO, memory_order_release);
     const size_t bytes = 8u * 1024u * 1024u;
     while (!atomic_load_explicit(&pv->parar, memory_order_relaxed)) {
         void *p = mmap(NULL, bytes, PROT_READ | PROT_WRITE,
                        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        if (p == MAP_FAILED)
+        if (p == MAP_FAILED) {
+            atomic_store_explicit(&pv->estado, PROV_SEM_MEMORIA, memory_order_release);
             break;
+        }
+        atomic_fetch_add_explicit(&pv->voltas, 1u, memory_order_relaxed);
         /* Tocar e obrigatorio: sem pagina residente nao ha o que invalidar,
          * e o `munmap` nao gera IPI para ninguem. */
         memset(p, 1, bytes);
@@ -198,6 +215,18 @@ int main(int argc, char **argv)
                 argv[0]);
         return 2;
     }
+    /* A MASCARA ORIGINAL, ANTES DE QUALQUER FIXACAO.
+     *
+     * Este programa fixa a si mesmo na CPU da sonda logo abaixo, e a partir
+     * dali `sched_getaffinity` devolve apenas essa CPU. Conferir o provocador
+     * contra a mascara JA REDUZIDA rejeitaria toda CPU valida -- foi o que a
+     * primeira versao desta conferencia fez, e o sintoma era o oposto do
+     * defeito: recusava o caso correto. */
+    cpu_set_t permitidas_no_inicio;
+    CPU_ZERO(&permitidas_no_inicio);
+    const int leu_mascara =
+        sched_getaffinity(0, sizeof permitidas_no_inicio, &permitidas_no_inicio) == 0;
+
     const int cpu = atoi(argv[1]);
     const double segundos = atof(argv[2]);
     const uint64_t limiar = (argc == 4) ? strtoull(argv[3], NULL, 10) : 1000u;
@@ -222,12 +251,20 @@ int main(int argc, char **argv)
     /* A thread provocadora sobe ANTES da captura inicial, para que o delta de
      * /proc/interrupts cubra exatamente a janela em que ela esteve ativa. */
     const int cpu_prov = (argc == 5) ? atoi(argv[4]) : -1;
-    struct provocador pv = { cpu_prov, 0 };
+    struct provocador pv = { cpu_prov, PROV_NAO_INICIOU, 0, 0 };
     pthread_t th;
     int tem_provocador = 0;
     if (cpu_prov >= 0) {
         if (cpu_prov == cpu) {
             fprintf(stderr, "provoker CPU must differ from probe CPU\n");
+            return 2;
+        }
+        /* A CPU PEDIDA PRECISA ESTAR PERMITIDA A ESTE PROCESSO. Sem isto o
+         * `CPU_SET` aceita qualquer numero e a falha so aparece dentro da
+         * thread, tarde demais para distinguir de "nao pedi provocador". */
+        if (!leu_mascara || cpu_prov >= CPU_SETSIZE ||
+            !CPU_ISSET(cpu_prov, &permitidas_no_inicio)) {
+            fprintf(stderr, "provoker CPU %d is not available to this process\n", cpu_prov);
             return 2;
         }
         tem_provocador = (pthread_create(&th, NULL, provocar, &pv) == 0);
@@ -266,12 +303,28 @@ int main(int argc, char **argv)
     if (tem_provocador) {
         atomic_store_explicit(&pv.parar, 1, memory_order_relaxed);
         pthread_join(th, NULL);
+        /* O QUE FOI PEDIDO PRECISA TER ACONTECIDO. `pthread_create` ter
+         * funcionado nao diz que a thread se fixou, nem que gerou carga; sem
+         * esta conferencia a medicao sai rotulada com um provocador que pode
+         * nao ter existido de fato. */
+        const int est = atomic_load_explicit(&pv.estado, memory_order_acquire);
+        const unsigned long voltas = atomic_load_explicit(&pv.voltas, memory_order_relaxed);
+        if (est != PROV_ATIVO || voltas == 0) {
+            fprintf(stderr, "provoker did not run as declared: %s (%lu rounds)\n",
+                    est == PROV_SEM_AFINIDADE ? "could not pin to the requested CPU"
+                    : est == PROV_SEM_MEMORIA ? "mmap failed"
+                    : est == PROV_NAO_INICIOU ? "never started"
+                    : "no work done",
+                    voltas);
+            fprintf(stderr, "  the measurement would be labelled with a provoker that did not exist.\n");
+            return 1;
+        }
     }
 
     printf("stall probe: cpu %d, %.1f s, threshold %" PRIu64 " ns\n",
            cpu, segundos, limiar);
     printf("provoker thread: %s\n",
-           tem_provocador ? "same process, other CPU" : "none");
+           tem_provocador ? "same process, other CPU (verified: pinned and ran)" : "none");
     printf("samples: %" PRIu64 "\n", h.amostras);
     printf("stalls above threshold: %" PRIu64 "\n", acima);
     /* Percentis saem do histograma e sao PISOS de balde; o maior e exato.

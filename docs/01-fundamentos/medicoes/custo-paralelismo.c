@@ -60,6 +60,7 @@
 #include "clock_ns.h"
 #include "fixar_cpu.h"
 #include "largada.h"
+#include "topologia.h"
 #include "statistics.h"
 
 #define REGIAO_BYTES (256ull * 1024 * 1024)
@@ -184,17 +185,16 @@ static int n_cpus_fisicas;
  * SMT (ver secao 5.1.1 "SMT: duas CPUs logicas nao sao dois nucleos"), nao a banda de memoria. */
 static void descobrir_cpus_fisicas(void)
 {
-    int vistos[NUCLEOS_MAX];
+    /* PACOTE E NUCLEO, e nao `core_id` sozinho: ele e numerado POR PACOTE, e
+     * numa maquina de dois soquetes o nucleo 3 de cada um compartilha o mesmo
+     * numero. Deduplicar so por ele contaria um nucleo onde ha dois, e esta
+     * fase -- que mede o caminho de memoria com N nucleos ativos -- usaria
+     * metade da maquina achando que usou inteira. */
+    long vistos[NUCLEOS_MAX];
     int n_vistos = 0;
     for (int cpu = 0; cpu < 4 * NUCLEOS_MAX && n_cpus_fisicas < NUCLEOS_MAX; cpu++) {
-        char caminho[128];
-        snprintf(caminho, sizeof(caminho),
-                 "/sys/devices/system/cpu/cpu%d/topology/core_id", cpu);
-        FILE *f = fopen(caminho, "r");
-        if (f == NULL)
-            continue;
-        int core = -1;
-        if (fscanf(f, "%d", &core) == 1) {
+        long core = -1;
+        if (academy_nucleo_fisico(cpu, &core) == 0) {
             int novo = 1;
             for (int i = 0; i < n_vistos; i++)
                 if (vistos[i] == core)
@@ -204,7 +204,6 @@ static void descobrir_cpus_fisicas(void)
                 cpus_fisicas[n_cpus_fisicas++] = cpu;
             }
         }
-        fclose(f);
     }
 }
 

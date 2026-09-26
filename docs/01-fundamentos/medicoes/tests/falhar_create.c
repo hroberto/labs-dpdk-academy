@@ -34,6 +34,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /* Threads criadas com sucesso desde o ultimo `pthread_join`. */
 static int vivas;
@@ -42,8 +43,14 @@ static pthread_mutex_t trava = PTHREAD_MUTEX_INITIALIZER;
 int pthread_create(pthread_t *t, const pthread_attr_t *a, void *(*f)(void *), void *arg)
 {
     static int (*real)(pthread_t *, const pthread_attr_t *, void *(*)(void *), void *);
-    if (real == NULL)
-        real = dlsym(RTLD_NEXT, "pthread_create");
+    if (real == NULL) {
+        /* `dlsym` devolve `void *`, e atribui-lo a ponteiro de funcao e
+         * condicionalmente suportado em ISO C -- `-Wpedantic` acusa, e a barra
+         * deste projeto e zero aviso. `memcpy` e a forma que POSIX documenta
+         * para a conversao. */
+        const void *sim = dlsym(RTLD_NEXT, "pthread_create");
+        memcpy(&real, &sim, sizeof real);
+    }
 
     if (getenv("FALHAR_NA_CRIACAO_PARCIAL") == NULL)
         return real(t, a, f, arg);
@@ -70,8 +77,10 @@ int pthread_create(pthread_t *t, const pthread_attr_t *a, void *(*f)(void *), vo
 int pthread_join(pthread_t t, void **r)
 {
     static int (*real)(pthread_t, void **);
-    if (real == NULL)
-        real = dlsym(RTLD_NEXT, "pthread_join");
+    if (real == NULL) {
+        const void *sim = dlsym(RTLD_NEXT, "pthread_join");
+        memcpy(&real, &sim, sizeof real);
+    }
     const int rc = real(t, r);
     pthread_mutex_lock(&trava);
     if (vivas > 0)

@@ -22,6 +22,12 @@ coleta_zero = executable(
 test('fundamentos - L1 (coleta que nao aconteceu deve abortar)', coleta_zero,
      suite : ['l1', 'fundamentos'], timeout : 30, should_fail : true)
 
+# --- L1: a topologia decide a CPU parceira ---------------------------------
+topologia_l1 = executable('l1-topologia', 'tests/l1_topologia.c',
+  include_directories : include_directories('.'), install : false)
+test('fundamentos - L1 (parceira e nucleo saem da topologia)', topologia_l1,
+     suite : ['l1', 'fundamentos'], timeout : 30)
+
 # --- L1: a fixacao de CPU falha FECHADA ------------------------------------
 #
 # Nao e `should_fail`: o teste precisa distinguir o codigo 86 de um aborto

@@ -132,4 +132,59 @@ static inline int academy_parceiro_no_dominio(int a, const char *lista_dominio, 
     return -1;
 }
 
+/* Compõe pacote e núcleo numa identidade única.
+ *
+ * FUNÇÃO PURA DE PROPÓSITO: numa máquina de um soquete `pacote` é 0, e a
+ * composição fica indistinguível de usar `core` sozinho -- o defeito que ela
+ * corrige não tem como aparecer aqui. Separada assim, o teste a exercita com
+ * dois pacotes sintéticos sem precisar de dois soquetes.
+ *
+ * SEM `physical_package_id` o resultado ainda serve: é o único caso em que o
+ * sysfs costuma omiti-lo, e assumir um soquete ali é verdade. */
+static inline long academy_id_nucleo(long pacote, long core)
+{
+    return ((pacote < 0 ? 0L : pacote) << 16) | core;
+}
+
+/* Identidade do NÚCLEO FÍSICO de uma CPU, estável entre soquetes.
+ *
+ * `core_id` sozinho NÃO identifica um núcleo: ele é numerado por pacote, e em
+ * máquina de dois soquetes o núcleo 3 do pacote 0 e o núcleo 3 do pacote 1
+ * compartilham o mesmo `core_id`. Quem deduplica só por ele conta um núcleo
+ * onde há dois, e mede metade da máquina achando que mediu inteira.
+ *
+ * A máquina de referência tem um soquete, então aqui não há efeito -- o que
+ * torna este um defeito que só aparece em quem reproduzir o estudo noutro
+ * lugar, que é exatamente o público do material.
+ *
+ * Devolve 0 e preenche `id` com `pacote << 16 | core`, ou -1 se o sysfs não
+ * expuser os dois campos. */
+static inline int academy_nucleo_fisico(int cpu, long *id)
+{
+    char caminho[128];
+    long pacote = -1, core = -1;
+
+    snprintf(caminho, sizeof(caminho),
+             "/sys/devices/system/cpu/cpu%d/topology/physical_package_id", cpu);
+    FILE *f = fopen(caminho, "r");
+    if (f != NULL) {
+        if (fscanf(f, "%ld", &pacote) != 1)
+            pacote = -1;
+        fclose(f);
+    }
+    snprintf(caminho, sizeof(caminho),
+             "/sys/devices/system/cpu/cpu%d/topology/core_id", cpu);
+    f = fopen(caminho, "r");
+    if (f == NULL)
+        return -1;
+    if (fscanf(f, "%ld", &core) != 1)
+        core = -1;
+    fclose(f);
+    if (core < 0)
+        return -1;
+
+    *id = academy_id_nucleo(pacote, core);
+    return 0;
+}
+
 #endif /* ACADEMY_TOPOLOGIA_H */

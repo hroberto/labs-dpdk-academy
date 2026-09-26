@@ -329,13 +329,32 @@ int main(int argc, char **argv)
     printf("  %-10s %14s %14s %10s\n", "batch", "malloc/free", "mempool bulk", "ratio");
     printf("  %-10s %14s %14s %10s\n", "-----", "-----------", "------------", "-----");
     static const unsigned bursts[] = {1, 8, 32, 128};
+    /* A PRIMEIRA TABELA DESTE PROGRAMA JA CONFERIA A COLETA, e esta nao.
+     *
+     * `m_pool_bulk()` devolve -1.0 quando `rte_mempool_get_bulk()` nao entrega
+     * os objetos -- caminho de erro explicito, que o chamador nao olhava. A
+     * linha saia com a mediana negativa, e a razao virava `0.0x` pelo ternario
+     * abaixo: um numero de aparencia plausivel para uma coleta que falhou.
+     *
+     * Com a EAL de pe `exit()` esta proibido -- pularia `rte_eal_cleanup()` --,
+     * entao a linha e marcada e o codigo de saida muda no fim. */
+    int linhas_invalidas = 0;
     for (size_t i = 0; i < sizeof(bursts) / sizeof(bursts[0]); i++) {
         current_burst = bursts[i];
         const struct statistics m = collect(m_malloc_lote, n);
         const struct statistics p = collect(m_pool_bulk, n);
+        if (!collection_is_valid(m, n) || !collection_is_valid(p, n)) {
+            printf("  %-10u %14s %14s %10s   LINHA INVALIDA\n",
+                   bursts[i], "--", "--", "--");
+            linhas_invalidas++;
+            continue;
+        }
         printf("  %-10u %11.2f ns %11.3f ns %9.1fx\n", bursts[i], m.median, p.median,
                p.median > 0 ? m.median / p.median : 0.0);
     }
+    if (linhas_invalidas > 0)
+        fprintf(stderr, "  %d linha(s) da varredura em lote nao mediram; a tabela"
+                        " esta incompleta\n", linhas_invalidas);
 
     printf("\n  Reading:\n");
     printf("    The pool is not magic: it trades dynamic allocation for an index\n");
@@ -356,5 +375,5 @@ int main(int argc, char **argv)
     rte_mempool_free(pool_cache);
     rte_mempool_free(pool_sem_cache);
     rte_eal_cleanup();
-    return 0;
+    return linhas_invalidas > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
