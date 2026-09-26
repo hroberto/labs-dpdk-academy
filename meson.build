@@ -486,6 +486,13 @@ test('scripts - L1 (o tarball do DPDK e conferido)', bash,
      args : [meson.project_source_root() / 'scripts/tests/l1_dpdk_soma.sh'],
      suite : ['l1', 'scripts'], timeout : 60)
 
+# O `run-all` esta acima da campanha e tinha os mesmos caminhos de falso
+# sucesso que ela: `--so-ruido` descartava o resultado, SIGTERM nao terminava,
+# e a etapa 4 criava arquivos sem conferir retorno.
+test('scripts - L1 (run-all so conclui se tudo concluir)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_run_all_veredito.sh'],
+     suite : ['l1', 'scripts'], timeout : 60)
+
 test('02-runtime - L1 (FAIL e SKIP dos runners multiprocesso)', bash,
      args : [meson.project_source_root() / 'docs/02-runtime-dpdk/medicoes/tests/l1_multiprocesso.sh'],
      suite : ['l1', 'runtime'], timeout : 60)
