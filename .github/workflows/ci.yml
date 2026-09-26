@@ -247,11 +247,26 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ~/opt/dpdk-${{ matrix.versao }}
-          key: dpdk-${{ matrix.versao }}-${{ runner.os }}-${{ hashFiles('scripts/preparar-dpdk.sh') }}
+          # `portatil` NA CHAVE, e nao so no comando: um prefixo generico e um
+          # nativo sao binarios diferentes, e compartilhar chave entre eles faria
+          # o cache devolver o errado sem nenhum sintoma ate a EAL morrer.
+          key: dpdk-${{ matrix.versao }}-portatil-${{ runner.os }}-${{ hashFiles('scripts/preparar-dpdk.sh') }}
 
       - name: Construir o DPDK ${{ matrix.versao }}
         if: steps.cache-dpdk.outputs.cache-hit != 'true'
-        run: ./scripts/preparar-dpdk.sh --minimo ${{ matrix.versao }}
+        # `--portatil` PORQUE O CACHE ATRAVESSA RUNNERS DIFERENTES.
+        #
+        # Sem ele o DPDK e compilado com `-Dplatform=native`, que assa a ISA da
+        # maquina que construiu. O prefixo vai para o cache e volta noutro
+        # runner -- os do GitHub sao heterogeneos -- e se aquele nao tiver as
+        # mesmas instrucoes, toda `rte_eal_init` morre com "unsupported cpu
+        # type". A falha e por sorteio: em 26/09/2026 este job passou na main
+        # as 06:28 e falhou no mesmo codigo as 14:59, dez testes de L2, com
+        # "This system does not support AVX512BW".
+        #
+        # O preco e que estes binarios NAO servem para medir tempo. Aqui nao
+        # medem: este job confere CONTRATO contra duas releases do DPDK.
+        run: ./scripts/preparar-dpdk.sh --portatil --minimo ${{ matrix.versao }}
 
       - name: Conferir o prefixo
         run: ./scripts/preparar-dpdk.sh --conferir ${{ matrix.versao }}

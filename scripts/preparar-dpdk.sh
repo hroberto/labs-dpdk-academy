@@ -34,6 +34,7 @@
 #   scripts/preparar-dpdk.sh --conferir 25.11 # so confere um prefixo existente
 #   scripts/preparar-dpdk.sh --minimo 25.11   # so os drivers que o estudo usa
 #   scripts/preparar-dpdk.sh --sem-stats --minimo 25.11   # para medir TEMPO
+#   scripts/preparar-dpdk.sh --portatil --minimo 26.07   # para CI, NAO para medir
 #
 # O MODO --minimo EXISTE PARA REPRODUZIR O QUE FOI PUBLICADO
 #
@@ -114,12 +115,14 @@ conferir_prefixo() { # <prefixo> <versao-esperada> [sem-stats]
 modo=construir
 MINIMO=0
 SEM_STATS=0
+PORTATIL=0
 while true; do
     case "${1:-}" in
         -h|--help) uso 0 ;;
         --conferir) modo=conferir; shift ;;
         --minimo) MINIMO=1; shift ;;
         --sem-stats) SEM_STATS=1; shift ;;
+        --portatil) PORTATIL=1; shift ;;
         *) break ;;
     esac
 done
@@ -203,6 +206,29 @@ echo "==> configurando (prefixo $PREFIXO)"
 # justamente o estudo que motivou este script. Os prefixos ja em uso foram
 # construidos com os drivers, e mudar isso tornaria os bracos incomparaveis.
 OPCOES=(--prefix="$PREFIXO" --buildtype=release -Dtests=false)
+if [ "$PORTATIL" -eq 1 ]; then
+    # `-Dplatform=generic` NAO E O PADRAO, E NAO DEVE SER.
+    #
+    # O padrao do DPDK e `native`, que assa no binario a ISA da maquina que
+    # compilou. Para reproduzir o que este repositorio publicou isso e o
+    # correto: os numeros saem da maquina de referencia, com as instrucoes que
+    # ela tem.
+    #
+    # Em CI e o oposto. Os runners do GitHub sao heterogeneos -- uns Intel com
+    # AVX-512, outros AMD sem --, e o prefixo construido num deles fica em
+    # CACHE e e restaurado noutro. Quando as ISAs nao batem, toda
+    # `rte_eal_init` morre com "unsupported cpu type", e a falha e por sorteio
+    # de maquina: verde de manha, dez falhas de L2 a tarde, sem nada ter
+    # mudado na arvore.
+    #
+    # Medido em 26/09/2026: `releases-dpdk (26.07)` passou na main as 06:28 e
+    # falhou no mesmo codigo as 14:59, com "This system does not support
+    # AVX512BW" em dez testes de EAL. A 25.11 passou nas duas -- outro sorteio.
+    #
+    # Quem usa esta opcao aceita a troca: o binario roda em qualquer runner, e
+    # NAO serve para medir tempo.
+    OPCOES+=(-Dplatform=generic)
+fi
 if [ "$MINIMO" -eq 1 ]; then
     # `mempool/ring` e obrigatorio: e o handler padrao (`ring_mp_mc`), e sem ele
     # `rte_mempool_create` nao aloca. `bus/pci` e `bus/vdev` entram porque a EAL
