@@ -66,12 +66,56 @@ A chave pública está no perfil do mantenedor no GitHub.
 
 O mecanismo varia, e a propriedade que importa não: o histórico tem commits
 assinados com **SSH** e commits de merge assinados com **GPG** pelo próprio
-GitHub. `git log --format="%G?"` mostra os dois. Dizer "GPG" no lugar de
-"assinado" descrevia um mecanismo, e não a garantia — e o que a `main` exige é
-a garantia.
+GitHub. Dizer "GPG" no lugar de "assinado" descrevia um mecanismo, e não a
+garantia — e o que a `main` exige é a garantia.
 
-Se você encontrar um commit sem assinatura verificada em `main`, isso é por si
-só um incidente: relate.
+### Conferindo por conta própria
+
+`git log --format='%G?'` responde sobre **o seu chaveiro**, e não sobre esta
+árvore. Ele confere cada assinatura na hora, e conferir exige ter a chave
+pública de quem assinou. Num clone recém-feito, portanto:
+
+- os commits assinados com SSH saem `G`, porque a chave do mantenedor está
+  declarada no `allowed_signers`;
+- **os merges do GitHub saem `E`**, porque a chave com que o GitHub assina não
+  está no seu chaveiro.
+
+`E` não quer dizer assinatura ruim. Quer dizer *não consegui conferir*. Para
+que o comando responda o que se espera dele, importe a chave e declare
+confiança nela:
+
+    curl -sS https://github.com/web-flow.gpg | gpg --import
+    echo "968479A1AFF927E37D1A566BB5690EEEBB952194:6:" | gpg --import-ownertrust
+
+Depois disso todo o histórico de `main` sai `G`. Entre os dois estados há um
+terceiro que vale reconhecer: com a chave importada e **sem** a confiança
+declarada, os merges saem `U` — assinatura boa, dono não confiado. Ter a chave
+e acreditar que ela é mesmo do GitHub são perguntas diferentes, e o gpg as
+mantém separadas de propósito.
+
+O arquivo do GitHub traz duas chaves. A que assina hoje é `B5690EEE…`, de
+janeiro de 2024; a anterior, `4AEE18F8…`, expirou em 16/01/2024 e continua ali
+para conferir o histórico mais antigo.
+
+Se preferir não mexer no chaveiro, a mesma pergunta tem resposta que não depende
+dele:
+
+    gh api repos/<dono>/<repo>/commits/<sha> --jq .commit.verification
+
+**Esta seção já esteve errada, e do pior jeito possível.** Ela afirmava que
+`git log --format="%G?"` "mostra os dois" e, três linhas abaixo, que commit sem
+assinatura verificada em `main` é incidente. Quem seguisse as duas instruções
+encontrava um `E` para cada merge do GitHub — e a saída provável não é abrir
+um relato por merge, é concluir que `E` é normal aqui. Aprender isso é o dano,
+porque `E` é também o que apareceria se a chave de assinatura tivesse sido
+trocada por outra. A garantia descrita estava correta; o instrumento oferecido
+para verificá-la é que não entregava o que o texto prometia, e um documento de
+segurança que ensina a ignorar um sinal protege menos do que um que não
+mencionasse o sinal.
+
+Feita a conferência, a regra vale sem ressalva: se você encontrar em `main` um
+commit que não verifica — `B`, ou `E`/`U` depois de importar a chave —, isso é
+por si só um incidente: relate.
 
 ## Configuração do repositório
 
@@ -163,8 +207,21 @@ vulnerability reporting* for those.
 
 All commits are signed and `main` requires **verified** signatures; the
 mechanism varies (SSH for authored commits, GPG for GitHub merge commits) and
-the guarantee does not. An unsigned
-commit on `main` is itself an incident worth reporting.
+the guarantee does not. Note that `git log --format='%G?'` answers about *your
+keyring*, not about this tree: on a fresh clone the GitHub merge commits come
+back as `E` -- "could not check" -- because GitHub's signing key is not in your
+keyring, which is not the same as a bad signature. Import it and declare trust:
+
+    curl -sS https://github.com/web-flow.gpg | gpg --import
+    echo "968479A1AFF927E37D1A566BB5690EEEBB952194:6:" | gpg --import-ownertrust
+
+and the whole history reports `G`; imported but untrusted, those commits report
+`U` instead. Without touching the keyring, `gh api
+repos/<owner>/<repo>/commits/<sha> --jq .commit.verification` answers the same
+question. This paragraph used to promise that `%G?` showed both mechanisms,
+which taught readers to dismiss `E` -- the very value a swapped signing key
+would produce. Once you can verify, a commit on `main` that does not verify is
+itself an incident worth reporting.
 
 **Repository configuration:** Dependabot alerts and security updates are on,
 with **no auto-triage rules** — both GitHub presets that auto-dismiss alerts are
