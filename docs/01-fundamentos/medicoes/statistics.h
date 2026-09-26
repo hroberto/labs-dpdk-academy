@@ -292,6 +292,26 @@ collect_paired(double (*ma)(void), double (*mb)(void), int n)
     for (int i = 0; i < n; i++) {
         va[i] = ma();
         vb[i] = mb();               /* na MESMA volta: é isto que pareia */
+        /* AMOSTRA INVÁLIDA PARA A COLETA PAREADA TAMBÉM.
+         *
+         * `collection_state` já recusava negativo e não-finito no caminho de
+         * `collect()`, e o comentário abaixo dele descreve exatamente o defeito
+         * que isso corrige. A coleta PAREADA nunca recebeu a mesma guarda:
+         * gravava o negativo, tirava mediana da diferença e da razão, e o
+         * programa imprimia a tabela e saía com 0.
+         *
+         * Aqui a recusa é imediata: uma amostra inválida contamina a DIFERENÇA
+         * e a RAZÃO, que são o resultado deste módulo -- não adianta descartar
+         * o par e seguir com n-1, porque o n declarado deixaria de ser o n
+         * coletado. `p.n == 0` é o sinal de inválido, o mesmo que a falha de
+         * alocação acima já usava. */
+        if (!isfinite(va[i]) || !isfinite(vb[i]) || va[i] < 0.0 || vb[i] < 0.0) {
+            free(va); free(vb); free(vd); free(vr);
+            /* Mesma ressalva do memset acima, e pela mesma razao. */
+            /* cppcheck-suppress memsetClassFloat */
+            memset(&p, 0, sizeof p);
+            return p;
+        }
         vd[i] = va[i] - vb[i];
         vr[i] = vb[i] > 0.0 ? va[i] / vb[i] : 0.0;
     }
@@ -360,6 +380,27 @@ static STAT_MAYBE_UNUSED struct statistics collect_or_fail(double (*measurement)
         exit(EXIT_FAILURE);
     }
     return e;
+}
+
+/* A coleta pareada é válida? `p.n == 0` é o sinal de que não é -- ou a
+ * alocação falhou, ou alguma amostra veio inválida. */
+static STAT_MAYBE_UNUSED int paired_is_valid(struct paired_stats p, int n)
+{
+    return p.n == n && collection_is_valid(p.a, n) && collection_is_valid(p.b, n);
+}
+
+/* Adaptador pareado para os programas SEM EAL, irmão de `collect_or_fail`.
+ * Existe porque a versão sem ele deixava a coleta pareada ser o único caminho
+ * do módulo sem recusa -- e é justamente dela que saem as RAZÕES publicadas. */
+static STAT_MAYBE_UNUSED struct paired_stats
+collect_paired_or_fail(double (*ma)(void), double (*mb)(void), int n)
+{
+    struct paired_stats p = collect_paired(ma, mb, n);
+    if (!paired_is_valid(p, n)) {
+        fprintf(stderr, "COLETA PAREADA INVALIDA: sem resultado publicavel\n");
+        exit(EXIT_FAILURE);
+    }
+    return p;
 }
 
 /* Marca visual da DISPERSÃO OBSERVADA NESTA COLETA.

@@ -467,6 +467,25 @@ test('scripts - L1 (estado das celulas sobe da subcampanha)', bash,
      args : [meson.project_source_root() / 'scripts/tests/l1_campanha_hardware_estado.sh'],
      suite : ['l1', 'scripts'], timeout : 60)
 
+# O parceiro de comparacao do bench-ccd sai da topologia lida, e nao de `A+2`:
+# escolher por aritmetica acerta por coincidencia do enumerador desta maquina e
+# compara ENTRE dominios noutra, com o rotulo de "mesmo dominio".
+test('scripts - L1 (parceiro de CCD sai da topologia)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_bench_ccd_topologia.sh'],
+     suite : ['l1', 'scripts'], timeout : 60)
+
+# O que muda o NUMERO sem mudar o commit precisa ficar no registro de ambiente:
+# duas coletas com o mesmo banner podiam ter protocolos diferentes.
+test('scripts - L1 (protocolo da coleta fica registrado)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_ambiente_sobreposicoes.sh'],
+     suite : ['l1', 'scripts'], timeout : 120)
+
+# Todo numero deste repositorio e medido contra o prefixo do DPDK, e ate aqui
+# nada conferia que o tarball baixado era o mesmo de antes.
+test('scripts - L1 (o tarball do DPDK e conferido)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_dpdk_soma.sh'],
+     suite : ['l1', 'scripts'], timeout : 60)
+
 test('02-runtime - L1 (FAIL e SKIP dos runners multiprocesso)', bash,
      args : [meson.project_source_root() / 'docs/02-runtime-dpdk/medicoes/tests/l1_multiprocesso.sh'],
      suite : ['l1', 'runtime'], timeout : 60)

@@ -39,6 +39,8 @@
 #include <time.h>
 
 #include "fixar_cpu.h"
+#include "largada.h"
+#include "topologia.h"
 #include "cpu_pause.h"
 #include "clock_ns.h"
 #include "statistics.h"
@@ -305,7 +307,7 @@ static void *vizinho_ocupado(void *_)
  * para carga que espera memoria, e o §5.1.1 diz isso. */
 #define OPS_AGREGADO 20000000
 
-static pthread_barrier_t largada_agregado;
+static struct academy_largada largada_agregado;
 
 struct trabalhador {
     int cpu;
@@ -321,7 +323,14 @@ static void *trabalhador_agregado(void *arg)
      * primeira configuracao medida sai mais cara que as outras, que e
      * exatamente o defeito que o custo-espera publicou por oito dias. */
     TRABALHO_ALU(2000000, a, b, c, d);
-    pthread_barrier_wait(&largada_agregado);
+    /* A LARGADA PODE SER CANCELADA. Com `pthread_barrier_t`, uma falha de
+     * `pthread_create` deixava esta thread esperando por participantes que
+     * nunca viriam, e o caminho de erro destruia a barreira com ela ainda
+     * bloqueada -- comportamento indefinido por POSIX. */
+    if (!academy_largada_esperar(&largada_agregado)) {
+        t->acumulador = 0;
+        return NULL;
+    }
     TRABALHO_ALU(OPS_AGREGADO, a, b, c, d);
     t->acumulador = a + b + c + d;
     return NULL;
@@ -334,23 +343,33 @@ static double vazao_agregada(const int *cpus, int n)
     pthread_t th[MAX_AGREGADO];
     struct trabalhador t[MAX_AGREGADO];
     if (n > MAX_AGREGADO)
-        return 0.0;
-    pthread_barrier_init(&largada_agregado, NULL, (unsigned)n + 1);
+        return -1.0;
+    academy_largada_init(&largada_agregado);
     for (int i = 0; i < n; i++) {
         t[i].cpu = cpus[i];
         if (pthread_create(&th[i], NULL, trabalhador_agregado, &t[i]) != 0) {
-            pthread_barrier_destroy(&largada_agregado);
-            return 0.0;
+            /* SOLTAR, ESPERAR, E SO ENTAO DESISTIR. O caminho anterior
+             * destruia a barreira com threads bloqueadas nela e voltava sem
+             * `join`: comportamento indefinido, threads penduradas, e 0.0
+             * entrando na estatistica como se fosse medida. */
+            academy_largada_soltar(&largada_agregado, 0);
+            for (int j = 0; j < i; j++)
+                pthread_join(th[j], NULL);
+            fprintf(stderr, "  AMOSTRA INVALIDA: pthread_create falhou na"
+                            " thread %d de %d (vazao agregada)\n", i, n);
+            return -1.0;
         }
     }
-    pthread_barrier_wait(&largada_agregado);
+    /* Espera os N anunciarem que chegaram; so entao solta e marca `t0`. A
+     * barreira de `n + 1` fazia isso, e era a unica coisa que ela fazia bem. */
+    academy_largada_aguardar(&largada_agregado, n);
+    academy_largada_soltar(&largada_agregado, 1);
     const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < n; i++) {
         pthread_join(th[i], NULL);
         soma_vizinho += t[i].acumulador;
     }
     const double dt = (double)(academy_now_ns() - t0);
-    pthread_barrier_destroy(&largada_agregado);
     return (double)n * OPS_AGREGADO / (dt / 1e9) / 1e6;   /* M operacoes/s */
 }
 
@@ -404,7 +423,14 @@ static double com_vizinho(void)
     pthread_t t;
     atomic_store(&parar_vizinho, 0);
     if (pthread_create(&t, NULL, vizinho_ocupado, NULL) != 0)
-        return 0.0;
+        {
+            fprintf(stderr, "  AMOSTRA INVALIDA: pthread_create falhou (vizinho ocupado)\n");
+            /* NEGATIVO, E NAO ZERO. `statistics.h` declara a convencao tres
+             * linhas acima de `collection_state`: "ou NaN em falha, nunca
+             * zero". Zero e um tempo plausivel -- entra na mediana e some.
+             * Negativo dispara `e.minimum < 0` e a coleta e recusada. */
+            return -1.0;
+        }
     const struct timespec d = {0, 20000000};
     nanosleep(&d, NULL);
     const double r = laco_de_trabalho();
@@ -463,7 +489,20 @@ int main(void)
 
     const int a = primeiro_cpu(dominios[0]);
     cpu_local_a = a;
-    cpu_local_b = a + 2;
+    /* A PARCEIRA SAI DA LISTA QUE ACABOU DE SER IMPRESSA, e nao de `a + 2`.
+     *
+     * A linha acima le `shared_cpu_list`, as tres linhas anteriores imprimem os
+     * dominios na tela, e a versao anterior entao somava 2 -- ignorando o que
+     * tinha lido. Nesta maquina acerta por coincidencia do enumerador (CCD0 e
+     * `0-5,12-17`, logo 0 e 2 servem); noutra topologia este programa, que
+     * existe para medir a travessia ENTRE dominios contra a de DENTRO,
+     * compararia dois dominios e chamaria isso de "within domain". */
+    cpu_local_b = academy_parceiro_no_dominio(a, dominios[0], a + 2);
+    if (cpu_local_b < 0) {
+        printf("  O dominio de L3 da CPU %d nao tem segunda CPU em nucleo\n"
+               "  fisico distinto: nao ha par 'dentro do dominio' para medir.\n", a);
+        return 77;   /* PULADO: a maquina nao oferece a condicao, e nao e defeito */
+    }
     char rot[64];
 
     if (n < 2) {
@@ -505,7 +544,7 @@ int main(void)
 
     /* INTERCALADAS, para que a razão abaixo tenha selo próprio. */
     const struct paired_stats pc =
-        collect_paired(medir_entre, medir_dentro, AMOSTRAS_C2C);
+        collect_paired_or_fail(medir_entre, medir_dentro, AMOSTRAS_C2C);
     const struct statistics e_dentro = pc.b, e_entre = pc.a;
     const double dentro = e_dentro.median, entre = e_entre.median;
 
@@ -555,10 +594,10 @@ int main(void)
         snprintf(rot, sizeof(rot), "neighbour on SMT sibling (cpu %d)", irmao);
         /* DUAS FASES, e a razao de ser esta documentada no bloco abaixo. */
         const struct paired_stats f1 =
-            collect_paired(com_vizinho, laco_sem_vizinho, AMOSTRAS_C2C);
+            collect_paired_or_fail(com_vizinho, laco_sem_vizinho, AMOSTRAS_C2C);
         condicionar();
         const struct paired_stats f2 =
-            collect_paired(com_vizinho, laco_sem_vizinho, AMOSTRAS_C2C);
+            collect_paired_or_fail(com_vizinho, laco_sem_vizinho, AMOSTRAS_C2C);
 
         const struct statistics e_smt = f2.a;
         print_row(rot, e_smt);

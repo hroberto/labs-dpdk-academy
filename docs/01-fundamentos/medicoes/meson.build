@@ -194,6 +194,26 @@ test('fundamentos - custo-paralelismo (L3)', custo_paralelismo,
 custo_comunicacao = executable('custo-comunicacao', 'custo-comunicacao.c', versao_h,
                                c_args : alinhamento,
                                dependencies : [dependency('threads'), libm], install : false)
+
+# --- L1: criacao parcial de trabalhadores termina, e reprova ----------------
+#
+# `pthread_create` quase nunca falha numa maquina de estudo, e por isso o
+# caminho de erro dela ficou sem teste enquanto continha um deadlock
+# determinístico. O objeto compartilhado abaixo devolve EAGAIN -- o que o
+# kernel devolve ao bater RLIMIT_NPROC -- quando ja ha thread viva, que e a
+# condicao de criacao parcial.
+falhar_create = shared_library(
+  'falhar_create',
+  'tests/falhar_create.c',
+  dependencies : [dependency('threads'), meson.get_compiler('c').find_library('dl', required : false)],
+  install : false,
+)
+
+test('fundamentos - L1 (criacao parcial de threads nao trava)', bash,
+     args : [meson.project_source_root() / 'docs/01-fundamentos/medicoes/tests/l1_largada_cancelavel.sh',
+             falhar_create, custo_paralelismo, custo_comunicacao],
+     suite : ['l1', 'fundamentos'], timeout : 180)
+
 # Reproduz a Tabela 3.1 de McKenney nesta maquina, para confronto direto com a
 # referencia canonica da area.
 custo_mckenney = executable('custo-mckenney', 'custo-mckenney.c', versao_h,

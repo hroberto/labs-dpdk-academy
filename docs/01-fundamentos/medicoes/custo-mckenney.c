@@ -51,6 +51,7 @@
 #include <time.h>
 
 #include "fixar_cpu.h"
+#include "topologia.h"
 #include "cpu_pause.h"
 #include "clock_ns.h"
 #include "statistics.h"
@@ -139,7 +140,14 @@ static double falta_de_cache(void)
     atomic_store(&encerrar, 0);
     atomic_store(&bastao, 0);
     if (pthread_create(&t, NULL, parceiro, NULL) != 0)
-        return 0.0;
+        {
+            fprintf(stderr, "  AMOSTRA INVALIDA: pthread_create falhou (thread parceira)\n");
+            /* NEGATIVO, E NAO ZERO. `statistics.h` declara a convencao tres
+             * linhas acima de `collection_state`: "ou NaN em falha, nunca
+             * zero". Zero e um tempo plausivel -- entra na mediana e some.
+             * Negativo dispara `e.minimum < 0` e a coleta e recusada. */
+            return -1.0;
+        }
     const struct timespec d = {0, 5000000};
     nanosleep(&d, NULL);
 
@@ -163,7 +171,14 @@ static double cas_com_falta(void)
     atomic_store(&encerrar, 0);
     atomic_store(&bastao, 0);
     if (pthread_create(&t, NULL, parceiro, NULL) != 0)
-        return 0.0;
+        {
+            fprintf(stderr, "  AMOSTRA INVALIDA: pthread_create falhou (thread parceira)\n");
+            /* NEGATIVO, E NAO ZERO. `statistics.h` declara a convencao tres
+             * linhas acima de `collection_state`: "ou NaN em falha, nunca
+             * zero". Zero e um tempo plausivel -- entra na mediana e some.
+             * Negativo dispara `e.minimum < 0` e a coleta e recusada. */
+            return -1.0;
+        }
     const struct timespec d = {0, 5000000};
     nanosleep(&d, NULL);
 
@@ -179,6 +194,21 @@ static double cas_com_falta(void)
     atomic_store(&encerrar, 1);
     pthread_join(t, NULL);
     return r;
+}
+
+/* A lista de CPUs do domínio de L3 do núcleo local, ou string vazia. */
+static void dominio_do_local(char *saida, size_t tam)
+{
+    char caminho[128];
+    saida[0] = '\0';
+    snprintf(caminho, sizeof(caminho),
+             "/sys/devices/system/cpu/cpu%d/cache/index3/shared_cpu_list", cpu_local);
+    FILE *f = fopen(caminho, "r");
+    if (f == NULL)
+        return;
+    if (fgets(saida, (int)tam, f) != NULL)
+        saida[strcspn(saida, "\n")] = '\0';
+    fclose(f);
 }
 
 /* Descobre o primeiro núcleo de um domínio de L3 diferente do local. */
@@ -231,7 +261,23 @@ int main(void)
     printf("\nCACHE MISS - the line is on another core and has to migrate\n\n");
     print_header_cycles();
 
-    cpu_remoto = 2;
+    /* O NUMERO 2 ERA CONSTANTE, e o rotulo da linha afirma "same L3 domain".
+     *
+     * Este mesmo arquivo ja lia o sysfs para achar o OUTRO dominio, logo
+     * abaixo; para o MESMO dominio ele chutava. Nesta maquina o chute acerta
+     * -- CCD0 e `0-5,12-17` --, e noutra topologia a linha rotulada "same L3
+     * domain" mediria travessia entre dominios, que e exatamente a linha
+     * seguinte do programa. */
+    char meu_dominio[256];
+    dominio_do_local(meu_dominio, sizeof(meu_dominio));
+    cpu_remoto = meu_dominio[0] != '\0'
+               ? academy_parceiro_no_dominio(cpu_local, meu_dominio, 2)
+               : -1;
+    if (cpu_remoto < 0) {
+        printf("\n  (nao ha segunda CPU em nucleo fisico distinto no dominio de\n"
+               "   L3 da CPU %d: sem categoria 'same L3 domain')\n", cpu_local);
+        return 77;   /* PULADO: a maquina nao oferece a condicao */
+    }
     print_row_cycles("plain miss, same L3 domain", collect_or_fail(falta_de_cache, DEFAULT_SAMPLES), T);
     print_row_cycles("CAS with miss, same L3 domain", collect_or_fail(cas_com_falta, DEFAULT_SAMPLES), T);
 
