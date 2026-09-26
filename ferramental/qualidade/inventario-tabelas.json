@@ -155,7 +155,7 @@
       "linha": 1741,
       "secao": "4.4 Mapa de decisão: o que ajustar, e o que isso cobra",
       "tipo": "tabela_markdown",
-      "sha256": "f9aa26948d96e8eab5e7d25fd0ffc79bc15470ed52ab9e4d0a45953ffb67977d"
+      "sha256": "53e7bc865dd39275cceb1d513910e9ddb435dfa8c6945c3b8857761c2200d5e0"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -344,7 +344,7 @@
       "linha": 3484,
       "secao": "10. Confronto com a literatura",
       "tipo": "tabela_markdown",
-      "sha256": "2714653909b0bf00c4279d9bcf22651fe325032b67243a3334fda5368da056b4"
+      "sha256": "a8adc937949891bba984599c7baf0763a651c5d0167eb1833f7b08fdd937f853"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
@@ -369,7 +369,7 @@
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
-      "linha": 3923,
+      "linha": 3935,
       "secao": "13. Referências externas",
       "tipo": "tabela_markdown",
       "sha256": "a89da528537fb8b8265e00a4a17829269f45353e171ab76444543db94a3858ff"

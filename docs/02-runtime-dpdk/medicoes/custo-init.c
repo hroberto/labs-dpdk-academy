@@ -23,7 +23,7 @@
  *   ./custo-init -l 0 --in-memory
  *   ./custo-init -l 0 --no-huge --file-prefix=meu_teste
  *
- * NAO combine `--in-memory` com `--no-huge`: antes do DPDK 24 a segunda liga
+ * NAO combine `--in-memory` com `--no-huge`: ate o DPDK 25.07 a segunda liga
  * `--legacy-mem`, incompativel com a primeira, e a EAL aborta citando uma
  * opcao que voce nao passou.
  */
@@ -162,7 +162,8 @@ int main(int argc, char **argv)
             printf(" %s", argv[i]);
         printf("\n\n  Common causes: no hugepages reserved (use --no-huge), or no\n");
         printf("  write permission on /dev/hugepages (use --in-memory, on its own).\n");
-        printf("  Both together fail before DPDK 24: --no-huge turns on --legacy-mem.\n\n");
+        printf("  Both together fail before DPDK 25.11: --no-huge turns on --legacy-mem,\n");
+        printf("  and until 25.07 the conflict is checked on the derived config.\n\n");
         /* NAO e `return 0`. Sair com sucesso aqui fazia o Meson reportar OK
          * para uma execucao que nao mediu nada -- a mesma classe de falso verde
          * que o codigo 77 resolveu nos testes L3. Aqui e FALHA e nao PULO

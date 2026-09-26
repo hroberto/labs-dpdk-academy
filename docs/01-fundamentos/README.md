@@ -714,8 +714,8 @@ desenho pareado ([`custo-traducao.c`](medicoes/custo-traducao.c)):
 ```
 
 Os ~80 ns comuns às duas medições são a latência da RAM, que hugepage nenhuma
-elimina. **A diferença — 10,01 ns — é o custo adicional de tradução** que as
-páginas de 4 KB cobram neste percurso, ou seja **14,9% do orçamento** de um
+elimina. **A diferença — 10,64 ns — é o custo adicional de tradução** que as
+páginas de 4 KB cobram neste percurso, ou seja **15,8% do orçamento** de um
 pacote de 64 B em 10 GbE, gastos antes de qualquer trabalho útil.
 
 > **Por que o rótulo não diz "o page walk".** `t_4KB − t_2MB` não é uma medição
@@ -1740,7 +1740,7 @@ As seções anteriores mediram mecanismos. Esta as põe lado a lado como
 
 | Técnica | O que ataca | Ganho medido aqui | O que cobra | Quando **não** usar |
 |---|---|---|---|---|
-| **hugepages** | o custo adicional de tradução | **10,01 ns** na coleta vigente, e o ganho **acompanha o conjunto de trabalho sem ser monotônico**: 1,21 ns em 8 MB, 18,03 em 32 MB, 8,13 em 64 MB, 10,01 em 512 MB — o pico em 32 MB é discutido na [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço) | memória reservada que some do sistema; configuração de boot; sem swap | conjunto de trabalho pequeno o bastante para caber na TLB |
+| **hugepages** | o custo adicional de tradução | **10,64 ns** na coleta vigente, e o ganho **acompanha o conjunto de trabalho sem ser monotônico**: 1,20 ns em 8 MB, 15,03 em 32 MB, 6,56 em 64 MB, 10,64 em 512 MB — o pico em 32 MB é discutido na [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço), e é o ponto que menos se repete: entre as cinco coletas de modo texto ele vai de 9,45 a 31,63 ns, contra menos de 10% de amplitude nos outros três | memória reservada que some do sistema; configuração de boot; sem swap | conjunto de trabalho pequeno o bastante para caber na TLB |
 | **layout contíguo** | a falta de localidade | até 33× de banda ([§4.2](#42-cache-e-localidade)) | refatoração; estruturas menos naturais de escrever | acesso genuinamente disperso, em que não há ordem a explorar |
 | **lote e *prefetch*** | a falta de concorrência | 77 → 5,6 ns amortizados, 13,6× de vazão ([§4.2](#42-cache-e-localidade)) | **latência**: esperar o lote encher (+17% até K = 16, +103% em K = 64) | quando a cauda de latência é o contrato, e não a vazão |
 | **`__rte_cache_aligned`** | o falso compartilhamento | 53 → 8 ns ([§4.2.1](#421-falso-compartilhamento-o-erro-mais-comum-de-quem-escreve-plano-de-dados)) | até 63 bytes desperdiçados por objeto | estrutura só de leitura, ou tocada por um lcore só |
@@ -3485,7 +3485,7 @@ revelou um viés que nenhuma estatística interna detectaria.
 |---|---:|---:|---|
 | Latência entre núcleos, mesmo CCD | ~18 ns | < 25 ns ([Tom's Hardware][th]) | **concorda** |
 | Latência entre núcleos, CCDs distintos | 81,4 ns (mediana de 50 execuções) | 180–200 ns antes; 75–95 ns depois do AGESA 1.2.0.2 ([Tom's][th], [TechSpot][ts]) | **intermediário — ver abaixo** |
-| Falta de TLB / *page walk* | 10,01 ns (512 MB, pareado) | 8,80 ns em Core Duo T2600; 18,17 ns em Athlon 64 ([Gorman][lwntlb]) | **entre os dois — concorda** |
+| Falta de TLB / *page walk* | 10,64 ns (512 MB, pareado) | 8,80 ns em Core Duo T2600; 18,17 ns em Athlon 64 ([Gorman][lwntlb]) | **entre os dois — concorda** |
 | Custo de uma syscall | ~33 ns | centenas de ns; < 100 ns nos melhores casos ([Gregg][gregg], [Stoll][syscalls]) | **abaixo — explicado** |
 | Latência de memória (acesso disperso) | ~89 ns | ~70 ns em 9950X ([ChipsAndCheese][cc]); 139,5 ns em Opteron 844 ([McKenney][perfbook]) | **entre os dois — explicado** |
 | Acordar thread bloqueada | ~1300 ns | ordem de µs; caminho lento por projeto ([futex][futex]) | concorda |
@@ -3768,11 +3768,23 @@ variável ficando maior: antes da travessia a latência **é** o tempo de servi�
 depois, é a profundidade da fila. Um gráfico de latência que atravesse esse
 ponto está mostrando duas coisas diferentes com o mesmo eixo.
 
-**3. A cauda NÃO avisa antes — e é isso que delimita o achado.** Abaixo de
-ρ = 1 o p99 fica a um pequeno múltiplo da mediana: 1,4× em ρ = 0,78, 1,6× em
-ρ = 0,70. Na travessia os dois saltam **juntos** — 38 253 ns de mediana contra
-39 650 de p99, razão 1,0×. Quem esperasse o percentil alto como alarme
-antecipado não teria aviso nenhum neste experimento.
+**3. A cauda NÃO avisa antes — e é isso que delimita o achado.** Na travessia
+os dois saltam **juntos** — 38 253 ns de mediana contra 39 650 de p99, razão
+1,0×. Quem esperasse o percentil alto como alarme antecipado não teria aviso
+nenhum neste experimento.
+
+> **E abaixo de ρ = 1 a razão p99/mediana não é um múltiplo pequeno estável.**
+> A própria tabela dá 1,5× em ρ = 0,53, 1,6× em ρ = 0,61 e 0,70 — e então
+> **3,6× em ρ = 0,78** e **12,7× em ρ = 0,48**. Uma versão anterior deste
+> parágrafo lia a linha errada e publicava "1,4× em ρ = 0,78", que é a razão da
+> linha de ρ = 0,53.
+>
+> As duas razões altas **não são fila**: ρ = 0,48 é o ponto mais folgado da
+> tabela, e a nota da §11.1 mostra que aquele p99 varia de 340 a 29 935 ns
+> entre execuções enquanto a mediana não se move. O que elas dizem é que a
+> razão entre percentis, nesta escala, é governada por evento raro e não por
+> ocupação — e por isso ela não serve como alarme antecipado em nenhuma
+> direção, nem alta nem baixa.
 
 E isso não é surpresa, é a teoria da subseção seguinte aplicada a este
 programa: `orcamento-estourado.c` simula chegada **por prazo fixo**, e chegada

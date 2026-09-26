@@ -708,8 +708,8 @@ paired design ([`custo-traducao.c`](medicoes/custo-traducao.c)):
 ```
 
 The ~80 ns common to both measurements are RAM latency, which no hugepage eliminates.
-**The difference — 10.01 ns — is the extra cost of translation** that 4 KB pages charge on
-this walk, that is **14.9% of the budget** of a 64 B packet on 10 GbE, spent before any
+**The difference — 10.64 ns — is the extra cost of translation** that 4 KB pages charge on
+this walk, that is **15.8% of the budget** of a 64 B packet on 10 GbE, spent before any
 useful work.
 
 > **Why the label does not say "the page walk".** `t_4KB − t_2MB` is not a direct
@@ -1734,7 +1734,7 @@ cost.
 
 | Technique | What it attacks | Gain measured here | What it costs | When **not** to use it |
 |---|---|---|---|---|
-| **hugepages** | the extra cost of translation | **10.01 ns** in the current collection, and the gain **tracks the working set without being monotonic**: 1.21 ns at 8 MB, 18.03 at 32 MB, 8.13 at 64 MB, 10.01 at 512 MB — the peak at 32 MB is discussed in [§4.1](#41-virtual-memory-what-translating-an-address-means) | reserved memory that vanishes from the system; boot configuration; no swap | a working set small enough to fit in the TLB |
+| **hugepages** | the extra cost of translation | **10.64 ns** in the current collection, and the gain **tracks the working set without being monotonic**: 1.20 ns at 8 MB, 15.03 at 32 MB, 6.56 at 64 MB, 10.64 at 512 MB — the peak at 32 MB is discussed in [§4.1](#41-virtual-memory-what-translating-an-address-means), and it is the least repeatable point: across the five text-mode collections it runs from 9.45 to 31.63 ns, against less than 10% of amplitude in the other three | reserved memory that vanishes from the system; boot configuration; no swap | a working set small enough to fit in the TLB |
 | **contiguous layout** | lost locality | up to 33× of bandwidth ([§4.2](#42-cache-and-locality)) | refactoring; structures that are less natural to write | genuinely scattered access, with no order to exploit |
 | **batching and prefetch** | lack of concurrency | 77 → 5.6 ns amortized, 13.6× throughput ([§4.2](#42-cache-and-locality)) | **latency**: waiting for the batch to fill (+17% up to K = 16, +103% at K = 64) | when the latency tail is the contract, not throughput |
 | **`__rte_cache_aligned`** | false sharing | 53 → 8 ns ([§4.2.1](#421-false-sharing-the-most-common-mistake-of-data-plane-programmers)) | up to 63 bytes wasted per object | a read-only structure, or one touched by a single lcore |
@@ -3434,7 +3434,7 @@ internal statistic would detect.
 |---|---:|---:|---|
 | Core-to-core latency, same CCD | ~18 ns | < 25 ns ([Tom's Hardware][th]) | **agrees** |
 | Core-to-core latency, distinct CCDs | 83–102 ns across runs | 180–200 ns before; 75–95 ns after AGESA 1.2.0.2 ([Tom's][th], [TechSpot][ts]) | **intermediate — see below** |
-| TLB miss / *page walk* | 10.01 ns (512 MB, paired) | 8.80 ns on a Core Duo T2600; 18.17 ns on an Athlon 64 ([Gorman][lwntlb]) | **between the two — agrees** |
+| TLB miss / *page walk* | 10.64 ns (512 MB, paired) | 8.80 ns on a Core Duo T2600; 18.17 ns on an Athlon 64 ([Gorman][lwntlb]) | **between the two — agrees** |
 | Cost of a syscall | ~33 ns | hundreds of ns; < 100 ns in the best cases ([Gregg][gregg], [Stoll][syscalls]) | **below — explained** |
 | Memory latency (scattered access) | ~89 ns | ~70 ns on a 9950X ([ChipsAndCheese][cc]); 139,5 ns on an Opteron 844 ([McKenney][perfbook]) | **between the two — explained** |
 | Waking a blocked thread | ~1300 ns | on the order of µs; a slow path by design ([futex][futex]) | agrees |
@@ -3687,11 +3687,21 @@ and the queue does not recover while arrivals continue.
 the crossing the latency **is** the service time; afterwards, it is the queue's depth. A
 latency chart that crosses that point is showing two different things on the same axis.
 
-**3. The tail does NOT warn in advance — and that is what bounds the finding.** Below ρ = 1
-the p99 stays within a small multiple of the median: 1.4× at ρ = 0.78, 1.6× at ρ = 0.70. At
-the crossing the two jump **together** — 38 253 ns median against 39 650 p99, a ratio of
-1.0×. Anyone expecting the high percentile as an early alarm would get no warning at all in
-this experiment.
+**3. The tail does NOT warn in advance — and that is what bounds the finding.** At the
+crossing the two jump **together** — 38 253 ns median against 39 650 p99, a ratio of 1.0×.
+Anyone expecting the high percentile as an early alarm would get no warning at all in this
+experiment.
+
+> **And below ρ = 1 the p99/median ratio is not a stable small multiple.** The table itself
+> gives 1.5× at ρ = 0.53, 1.6× at ρ = 0.61 and 0.70 — and then **3.6× at ρ = 0.78** and
+> **12.7× at ρ = 0.48**. An earlier version of this paragraph read the wrong row and
+> published "1.4× at ρ = 0.78", which is the ratio of the ρ = 0.53 row.
+>
+> The two high ratios are **not a queue**: ρ = 0.48 is the slackest point in the table, and
+> the note in §11.1 shows that its p99 ranges from 340 to 29,935 ns across runs while the
+> median does not move. What they say is that the ratio between percentiles, at this scale,
+> is governed by a rare event and not by utilisation — and so it serves as an early alarm in
+> neither direction, high or low.
 
 And that is no surprise, it is the theory of the next subsection applied to this program:
 `orcamento-estourado.c` simulates arrival **on a fixed deadline**, and deterministic arrival

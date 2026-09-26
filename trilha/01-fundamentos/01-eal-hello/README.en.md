@@ -116,7 +116,7 @@ The study command is:
 | `-l 0` | uses only lcore 0 | none, for this example |
 | [`--in-memory`][optmem] | does not write runtime files to disk | prevents secondary processes |
 
-> **The two together do not work before DPDK 24, and the message does not help.**
+> **The two together only work from DPDK 25.11 on, and the message does not help.**
 >
 > This document used to publish `-l 0 --in-memory --no-huge` as the study command,
 > and it works on the reference machine's DPDK 25.11. In CI, with Ubuntu's 23.11,
@@ -128,9 +128,22 @@ The study command is:
 > ```
 >
 > Note what the message cites: **`--legacy-mem`, which nobody passed.** It is
-> switched on internally by `--no-huge` in that release — one option triggering
-> another, and the conflict shows up under the implicit option's name, not the one
-> you wrote. It is the kind of error that makes you look in the wrong place.
+> switched on internally by `--no-huge` — one option triggering another, and the
+> conflict shows up under the implicit option's name, not the one you wrote. It is
+> the kind of error that makes you look in the wrong place.
+>
+> **The boundary is 25.11, not 24.** The releases' `eal_common_options.c` shows
+> where it sits: in **23.11, 24.03, 24.11 and 25.07** the test is
+> `internal_cfg->legacy_mem && internal_cfg->in_memory` — over the **derived**
+> configuration, and `--no-huge` writes `legacy_mem` into it. In **25.11** the same
+> test became `CONFLICTING_OPTIONS(args, legacy_mem, in_memory)`, over the
+> **typed** arguments — and `args.legacy_mem` stays zero when nobody wrote
+> `--legacy-mem`.
+>
+> That is: what changed was not the incompatibility, it was **where it is
+> checked**. A refactor moved the test from the derived configuration to the
+> command line, and the conflict stopped firing. It is worth keeping as a lesson
+> in method: what a program accepts is not the same as what it supports.
 >
 > **What to do:** use one at a time. To run without hugepages and without privilege,
 > `--no-huge` is enough. What you lose is the isolation `--in-memory` gave — no
@@ -240,7 +253,7 @@ The EAL does not use what exists; it uses what was asked for.
    **application's** error message not appear?
 4. Swap `--no-huge` for `--in-memory`. Does it work on your machine? If so, where
    did the memory come from — and why did it not need `/dev/hugepages`?
-5. Now pass **both together**: `--in-memory --no-huge`. On a release before DPDK 24
+5. Now pass **both together**: `--in-memory --no-huge`. On a release before DPDK 25.11
    this fails, and the message cites `--legacy-mem`, which you did not pass. Check
    your version with `pkg-config --modversion libdpdk` before concluding anything
    about the result.
