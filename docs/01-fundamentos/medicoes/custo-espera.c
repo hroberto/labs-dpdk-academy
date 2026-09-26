@@ -61,6 +61,7 @@
 #include <stdio.h>
 #include <time.h>
 
+#include "fixar_cpu.h"
 #include "cpu_pause.h"
 #include "clock_ns.h"
 #include "statistics.h"
@@ -88,14 +89,6 @@
 
 static int cpu_a = 0, cpu_b = 2;
 
-
-static void fixar(int cpu)
-{
-    cpu_set_t c;
-    CPU_ZERO(&c);
-    CPU_SET(cpu, &c);
-    pthread_setaffinity_np(pthread_self(), sizeof(c), &c);
-}
 
 /* Alinhado à linha de cache: sem isso, o compilador pode empacotá-lo na mesma
  * linha de outra variável escrita por outra thread, e a medição passa a medir
@@ -225,7 +218,7 @@ static void *thread_ruido(void *_)
      * para que só a existência da thread influa, e não a disputa por unidades
      * de execução. Não toca em mtx nem em sumidouro, e usa a própria linha de
      * cache. */
-    fixar(cpu_b + 2);
+    academy_fixar_cpu(cpu_b + 2);
     while (!atomic_load_explicit(&parar_ruido, memory_order_relaxed))
         sumidouro_ruido++;
     return NULL;
@@ -330,7 +323,7 @@ static void *par_atomica(void *_)
 {
     const int n_rodadas = RODADAS_REPASSE;
     (void)_;
-    fixar(cpu_b);
+    academy_fixar_cpu(cpu_b);
     for (int i = 0; i < n_rodadas; i++) {
         while (atomic_load_explicit(&bola, memory_order_acquire) != 1)
             academy_cpu_pause();
@@ -344,7 +337,7 @@ static void *par_mutex_ativo(void *_)
 {
     const int n_rodadas = RODADAS_REPASSE;
     (void)_;
-    fixar(cpu_b);
+    academy_fixar_cpu(cpu_b);
     for (int i = 0; i < n_rodadas; i++) {
         for (;;) {
             pthread_mutex_lock(&mtx2);
@@ -365,7 +358,7 @@ static void *par_condvar(void *_)
 {
     const int n_rodadas = RODADAS_REPASSE;
     (void)_;
-    fixar(cpu_b);
+    academy_fixar_cpu(cpu_b);
     for (int i = 0; i < n_rodadas; i++) {
         pthread_mutex_lock(&mtx2);
         while (estado != 1)
@@ -381,7 +374,7 @@ static void *par_semaforo(void *_)
 {
     const int n_rodadas = RODADAS_REPASSE;
     (void)_;
-    fixar(cpu_b);
+    academy_fixar_cpu(cpu_b);
     for (int i = 0; i < n_rodadas; i++) {
         sem_wait(&sem_ida);
         sem_post(&sem_volta);
@@ -487,7 +480,7 @@ int main(void)
 {
     print_provenance("custo-espera");
     pthread_spin_init(&spin, 0);
-    fixar(cpu_a);
+    academy_fixar_cpu(cpu_a);
     aquecer();
 
     printf("Cost of waiting for work\n");

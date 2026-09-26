@@ -22,6 +22,21 @@ coleta_zero = executable(
 test('fundamentos - L1 (coleta que nao aconteceu deve abortar)', coleta_zero,
      suite : ['l1', 'fundamentos'], timeout : 30, should_fail : true)
 
+# --- L1: a fixacao de CPU falha FECHADA ------------------------------------
+#
+# Nao e `should_fail`: o teste precisa distinguir o codigo 86 de um aborto
+# qualquer, e `should_fail` aceitaria qualquer saida nao-zero -- inclusive um
+# segfault no lugar do aborto deliberado.
+fixar_cpu_l1 = executable(
+  'l1-fixar-cpu',
+  'tests/l1_fixar_cpu.c',
+  dependencies : [dependency('threads')],
+  include_directories : include_directories('.'),
+  install : false,
+)
+test('fundamentos - L1 (fixacao de CPU falha fechada)', fixar_cpu_l1,
+     suite : ['l1', 'fundamentos'], timeout : 30)
+
 # --- L1: o modulo de estatistica, sem EAL e sem DPDK -----------------------
 #
 # estatistica.h calcula a mediana, o IQR, o p99, a dispersao e o CV de TODA

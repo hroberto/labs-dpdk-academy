@@ -2035,18 +2035,18 @@ Each row has a function of its own being timed, and the correspondence is direct
 
 | Table row | Function timed | Called by |
 |---|---|---|
-| `relaxed atomic (store+load)` | [`m_atomica_relaxed`](medicoes/custo-espera.c#L178) | [`grupo_primitivo`](medicoes/custo-espera.c#L311) |
-| `seq_cst atomic (store+load)` | [`m_atomica_seqcst`](medicoes/custo-espera.c#L273) | same |
-| `mutex lock+unlock` | [`m_mutex_simples`](medicoes/custo-espera.c#L189) | same |
-| `spinlock lock+unlock` | [`m_spinlock`](medicoes/custo-espera.c#L284) | same |
-| `semaphore post+wait` | [`m_semaforo_livre`](medicoes/custo-espera.c#L296) | same |
-| `atomic + busy wait` | [`m_repasse_atomica`](medicoes/custo-espera.c#L396) | [`main`](medicoes/custo-espera.c#L486) |
-| `mutex + busy wait` | [`m_repasse_mutex_ativo`](medicoes/custo-espera.c#L415) | same |
-| `mutex + condvar (SLEEPS)` | [`m_repasse_condvar`](medicoes/custo-espera.c#L443) | same |
-| `POSIX semaphore (SLEEPS)` | [`m_repasse_semaforo`](medicoes/custo-espera.c#L465) | same |
+| `relaxed atomic (store+load)` | [`m_atomica_relaxed`](medicoes/custo-espera.c#L171) | [`grupo_primitivo`](medicoes/custo-espera.c#L304) |
+| `seq_cst atomic (store+load)` | [`m_atomica_seqcst`](medicoes/custo-espera.c#L266) | same |
+| `mutex lock+unlock` | [`m_mutex_simples`](medicoes/custo-espera.c#L182) | same |
+| `spinlock lock+unlock` | [`m_spinlock`](medicoes/custo-espera.c#L277) | same |
+| `semaphore post+wait` | [`m_semaforo_livre`](medicoes/custo-espera.c#L289) | same |
+| `atomic + busy wait` | [`m_repasse_atomica`](medicoes/custo-espera.c#L389) | [`main`](medicoes/custo-espera.c#L479) |
+| `mutex + busy wait` | [`m_repasse_mutex_ativo`](medicoes/custo-espera.c#L408) | same |
+| `mutex + condvar (SLEEPS)` | [`m_repasse_condvar`](medicoes/custo-espera.c#L436) | same |
+| `POSIX semaphore (SLEEPS)` | [`m_repasse_semaforo`](medicoes/custo-espera.c#L458) | same |
 
-The first five go through [`measure_default`](medicoes/custo-espera.c#L267), which runs the
-measurement inside [`com_outra_thread`](medicoes/custo-espera.c#L237). That is where the
+The first five go through [`measure_default`](medicoes/custo-espera.c#L260), which runs the
+measurement inside [`com_outra_thread`](medicoes/custo-espera.c#L230). That is where the
 condition stated above is met — there is always another thread in the process. It is not a
 description of intent: it is the function that creates the thread.
 
@@ -2266,12 +2266,12 @@ decision; the other half is **where** the threads run.
 | Situation | Primitive | Why | Measured in |
 |---|---|---|---|
 | Each core has its own state | **none** | with no sharing there is nothing to synchronise | — |
-| One counter, one flag, one pointer | `relaxed` atomic | the operation is already indivisible; order does not matter | [`m_atomica_relaxed`](medicoes/custo-espera.c#L178) |
-| Publish data and then a signal | `acquire`/`release` atomic | guarantees that whoever sees the signal sees the data | [`m_repasse_atomica`](medicoes/custo-espera.c#L396) |
+| One counter, one flag, one pointer | `relaxed` atomic | the operation is already indivisible; order does not matter | [`m_atomica_relaxed`](medicoes/custo-espera.c#L171) |
+| Publish data and then a signal | `acquire`/`release` atomic | guarantees that whoever sees the signal sees the data | [`m_repasse_atomica`](medicoes/custo-espera.c#L389) |
 | Pass objects between cores | [`rte_ring`][guiaring] | a lock-free queue, made for it | [`pipeline_ring.c`](../../trilha/01-fundamentos/02-mempool-ring/pipeline_ring.c) |
-| An invariant across several variables, short section | spinlock | a real lock, without the cost of sleeping | [`m_spinlock`](medicoes/custo-espera.c#L284) |
-| A section of unpredictable duration | mutex | sleeping is acceptable outside the hot path | [`m_mutex_simples`](medicoes/custo-espera.c#L189), [`m_repasse_mutex_ativo`](medicoes/custo-espera.c#L415) |
-| Waiting for an event that may take long | condvar / semaphore | frees the CPU; **never** on the hot path | [`m_repasse_condvar`](medicoes/custo-espera.c#L443), [`m_repasse_semaforo`](medicoes/custo-espera.c#L465) |
+| An invariant across several variables, short section | spinlock | a real lock, without the cost of sleeping | [`m_spinlock`](medicoes/custo-espera.c#L277) |
+| A section of unpredictable duration | mutex | sleeping is acceptable outside the hot path | [`m_mutex_simples`](medicoes/custo-espera.c#L182), [`m_repasse_mutex_ativo`](medicoes/custo-espera.c#L408) |
+| Waiting for an event that may take long | condvar / semaphore | frees the CPU; **never** on the hot path | [`m_repasse_condvar`](medicoes/custo-espera.c#L436), [`m_repasse_semaforo`](medicoes/custo-espera.c#L458) |
 
 The last column leads **straight to the line** of the function that produced each number,
 in [`medicoes/custo-espera.c`](medicoes/custo-espera.c): recommendation and evidence sit

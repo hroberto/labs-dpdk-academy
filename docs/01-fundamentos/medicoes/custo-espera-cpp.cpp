@@ -34,6 +34,7 @@
 #include <pthread.h>
 #include <sched.h>
 
+#include "fixar_cpu.h"
 #include "cpu_pause.h"
 #include "statistics.h"
 
@@ -54,14 +55,6 @@ constexpr int cpu_b = 2;
 // Afinidade não é padronizada em C++; usa-se a mesma chamada POSIX do lado C,
 // justamente para que a única variável entre os dois programas sejam os
 // primitivos de sincronização.
-void fixar(int cpu)
-{
-    cpu_set_t c;
-    CPU_ZERO(&c);
-    CPU_SET(cpu, &c);
-    pthread_setaffinity_np(pthread_self(), sizeof(c), &c);
-}
-
 [[nodiscard]] double now_ns()
 {
     return static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -114,7 +107,7 @@ double m_mutex_simples()
 
 void thread_ruido()
 {
-    fixar(cpu_b + 2);
+    academy_fixar_cpu(cpu_b + 2);
     while (!parar_ruido.load(std::memory_order_relaxed))
         sumidouro_ruido = sumidouro_ruido + 1;  // volatile++ é depreciado em C++20
 }
@@ -181,7 +174,7 @@ void assentar()
 
 void par_atomica()
 {
-    fixar(cpu_b);
+    academy_fixar_cpu(cpu_b);
     for (int i = 0; i < rodadas_repasse; i++) {
         while (bola.load(std::memory_order_acquire) != 1)
             academy_cpu_pause();
@@ -207,7 +200,7 @@ double m_repasse_atomica()
 
 void par_mutex_ativo()
 {
-    fixar(cpu_b);
+    academy_fixar_cpu(cpu_b);
     for (int i = 0; i < rodadas_repasse; i++) {
         for (;;) {
             mtx2.lock();
@@ -249,7 +242,7 @@ double m_repasse_mutex_ativo()
 
 void par_condvar()
 {
-    fixar(cpu_b);
+    academy_fixar_cpu(cpu_b);
     for (int i = 0; i < rodadas_repasse; i++) {
         std::unique_lock lk(mtx2);
         cond.wait(lk, [] { return estado == 1; });
@@ -277,7 +270,7 @@ double m_repasse_condvar()
 
 void par_semaforo()
 {
-    fixar(cpu_b);
+    academy_fixar_cpu(cpu_b);
     for (int i = 0; i < rodadas_repasse; i++) {
         sem_ida.acquire();
         sem_volta.release();
@@ -302,7 +295,7 @@ double m_repasse_semaforo()
 
 int main()
 {
-    fixar(cpu_a);
+    academy_fixar_cpu(cpu_a);
     aquecer();
 
     std::printf("Custo de esperar por trabalho -- versao C++23\n");
