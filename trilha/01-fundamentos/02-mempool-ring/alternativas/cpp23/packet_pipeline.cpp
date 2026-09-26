@@ -21,6 +21,7 @@
 #include <print>
 #include <string_view>
 
+#include "fixar_cpu.h"
 #include "packet.hpp"
 
 namespace {
@@ -89,15 +90,6 @@ std::expected<Config, std::string_view> parse_config(int argc, char** argv) {
 }
 
 
-// Fixa a thread corrente numa CPU. Espelha o que a EAL faz com um lcore -- sem
-// isso a comparacao mediria o escalonador, erro que ja custou caro neste
-// projeto (ver custo-contencao.c).
-bool pin_to(int cpu) {
-    cpu_set_t cs;
-    CPU_ZERO(&cs);
-    CPU_SET(cpu, &cs);
-    return pthread_setaffinity_np(pthread_self(), sizeof(cs), &cs) == 0;
-}
 
 // Produtor e consumidor em nucleos distintos, ligados pelo SpscRing.
 //
@@ -110,8 +102,7 @@ academy::Summary run_two_cores(const Config& cfg, int cpu_prod, int cpu_cons) {
     std::atomic<bool> producing{true};
 
     std::thread consumidor([&] {
-        if (!pin_to(cpu_cons))
-            std::println(stderr, "warning: could not pin the consumer to CPU {}", cpu_cons);
+        academy_fixar_cpu(cpu_cons);
         academy::Packet p{};
         std::vector<academy::Packet> burst;
         burst.reserve(cfg.burst);
@@ -151,8 +142,7 @@ academy::Summary run_two_cores(const Config& cfg, int cpu_prod, int cpu_cons) {
         if (!burst.empty()) academy::process_burst(std::span<academy::Packet>{burst}, total);
     });
 
-    if (!pin_to(cpu_prod))
-        std::println(stderr, "warning: could not pin the producer to CPU {}", cpu_prod);
+    academy_fixar_cpu(cpu_prod);
     for (std::uint64_t i = 0; i < cfg.num_packets; ++i) {
         auto p = academy::make(i, 64u + static_cast<std::uint32_t>(i % 32u));
         while (!ring.enqueue(p)) ;  // anel cheio: gira, como o lado DPDK faz

@@ -91,14 +91,48 @@ static double medir_uma(void)
  * A diferenca entre as duas fontes e justamente o que esta sonda precisa
  * distinguir, porque ela publica CICLOS -- e ciclos calculados sobre uma
  * frequencia errada sao um numero errado com aparencia de invariante. */
+
+/* A CADEIA VIVE EM REGISTRADOR, e a razao esta medida.
+ *
+ * A versao anterior usava `volatile long x` e somava `x = x + 1`. O `objdump`
+ * mostrava o laco como `mov (%rsp); add; mov ,(%rsp)` -- load/add/store pela
+ * pilha a cada iteracao --, que e EXATAMENTE o padrao que este projeto
+ * retratou no `efeito-cache.c` em 0907f57.
+ *
+ * O QUE FOI MEDIDO, E O QUE ISSO AUTORIZA DIZER. As duas formas correndo lado
+ * a lado nesta maquina deram RAZAO 1,00 em tres repeticoes -- custo por
+ * iteracao indistinguivel. A razao e o que vale aqui; o absoluto saiu numa
+ * maquina em uso e nao e numero publicavel.
+ *
+ * Isso estabelece EQUIVALENCIA DE CUSTO OBSERVADO, e nao identidade de
+ * mecanismo: o assembly da versao com `volatile` continua com load e store, e
+ * o que a medicao diz e que eles nao custam nada de observavel aqui. O
+ * comportamento e compativel com o store-to-load forwarding dos Zen recentes,
+ * que a AMD documenta e estende com Predictive Store Forwarding desde o
+ * Zen 3 -- e nao com "renomeacao de memoria", termo que a documentacao nao
+ * sustenta para este caso.
+ *
+ * E E RESULTADO DE PLATAFORMA, nao propriedade de C nem de `volatile`. Num
+ * processador que nao encurte esse caminho, a mesma cadeia custaria varios
+ * ciclos, o periodo "medido" sairia multiplicado por isso, e a razao
+ * emissao/hardware -- que esta sonda usa para detectar NUCLEO DIVIDIDO --
+ * acusaria divisao onde nao ha. Um numero certo por acidente de hardware e um
+ * numero que nao viaja, e e por isso que a cadeia passou para registrador
+ * mesmo sem haver defeito medido nesta maquina.
+ *
+ * A barreira de compilador entrega a mesma serializacao sem depender disso:
+ * ela impede o compilador de eliminar ou reordenar a soma, e nao obriga a
+ * ida a memoria. */
 static _Alignas(64) volatile long sumidouro_clk;
 static double periodo_ns(void)
 {
     const int n = 20000000;
-    volatile long x = 0;
+    long x = 0;
     const uint64_t t0 = academy_now_ns();
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < n; i++) {
         x = x + 1;
+        __asm__ volatile("" : "+r"(x) :: "memory");
+    }
     const double r = (double)(academy_now_ns() - t0) / n;
     sumidouro_clk = x;
     return r;
@@ -244,30 +278,48 @@ int main(int argc, char **argv)
          * dobra junto com a medicao. Numerador e denominador caem juntos, e a
          * divisao cancela exatamente o efeito que se quer ver.
          *
-         * O sysfs nao cai: ele le a frequencia do hardware, que nao muda por
-         * haver duas threads no nucleo. Medido em 24/09, com o irmao saturado:
-         * sysfs 5,44 GHz contra 3,12 GHz empirico, divergencia de 1,74x. Sem
-         * carga os dois concordam -- 5,59 contra 5,51.
+         * O valor do sysfs nao cai, e e isso que o torna util aqui. Medido em
+         * 24/09, com o irmao saturado: 5,44 GHz reportados contra 3,12 GHz
+         * empiricos, divergencia de 1,74x. Sem carga os dois concordam --
+         * 5,59 contra 5,51.
          *
-         * Por isso os dois sao publicados, com o nome do que cada um mede:
+         * O NOME NAO E "HARDWARE", E DIZER ISSO ESTAVA ERRADO. Este mesmo
+         * arquivo abre declarando que `scaling_cur_freq` e o que o driver ACHA
+         * que pediu; chamar o mesmo numero de frequencia do hardware duzentas
+         * linhas abaixo e uma contradicao interna, e era a saida -- nao a
+         * ressalva -- que o leitor via. A documentacao do kernel e explicita:
+         * na maioria dos casos o valor corresponde ao ultimo P-state
+         * solicitado, e pode ou nao refletir a frequencia efetivamente
+         * executada. Em amd-pstate isso pesa mais, porque o CPPC opera com
+         * niveis abstratos de desempenho e o hardware decide dentro dos
+         * limites que o SO forneceu.
          *
-         *   por HARDWARE  quantos periodos de relogio a operacao ocupa. E o
-         *                 numero comparavel entre condicoes, e o que fecha o
-         *                 modelo: 1,824 com irmao saturado contra 1,818
-         *                 medidos em modo grafico.
-         *   por EMISSAO   quantas oportunidades de emissao DESTA thread a
+         * O DADO FICA, o rotulo muda, e a comparacao continua valendo -- ela
+         * nunca dependeu de o valor ser a frequencia instantanea, so de ele
+         * NAO CAIR sob disputa, que e uma propriedade observada. Se o numero
+         * merece voltar a se chamar frequencia efetiva e questao para um
+         * estudo que o cruze com APERF/MPERF, e nao para uma correcao de
+         * nomenclatura.
+         *
+         *   pela frequencia reportada  quantos ciclos a operacao ocupa, contados
+         *                 pela frequencia que o cpufreq reporta. E o numero
+         *                 comparavel entre condicoes, e o que fecha o modelo:
+         *                 1,824 com irmao saturado contra 1,818 medidos em modo
+         *                 grafico.
+         *   por emissao   quantas oportunidades de emissao DESTA thread a
          *                 operacao consome. Igual ao de cima quando o nucleo
          *                 esta sozinho; menor sob disputa, e a diferenca entre
          *                 os dois E a disputa.
          */
         const double f_hw = freq_ghz(cpu);
         printf("  CICLOS por operacao\n");
-        printf("    por HARDWARE (sysfs %.2f GHz):  %.3f\n", f_hw, med * f_hw);
-        printf("    por EMISSAO  (medido %.2f GHz): %.3f\n",
+        printf("    pela frequencia reportada (sysfs %.2f GHz): %.3f\n",
+               f_hw, med * f_hw);
+        printf("    por emissao (medido %.2f GHz):              %.3f\n",
                T1 > 0 ? 1.0 / T1 : 0.0, T1 > 0 ? med / T1 : 0.0);
         if (f_hw > 0 && T1 > 0) {
             const double razao = (1.0 / T1) / f_hw;
-            printf("    razao emissao/hardware: %.2f", razao);
+            printf("    razao emissao/sysfs:                        %.2f", razao);
             /* Abaixo de ~0,8 a thread nao esta recebendo o nucleo inteiro. O
              * limiar nao e teorico: sem carga a coleta de 24/09 deu 0,99, e
              * com o irmao saturado, 0,57. */

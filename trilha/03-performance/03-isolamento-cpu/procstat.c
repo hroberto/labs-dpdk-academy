@@ -120,12 +120,24 @@ size_t proc_delta_cpu(const struct proc_tabela *antes,
                       unsigned cpu, struct proc_delta *fora, size_t max)
 {
     size_t n = 0;
+    /* A GUARDA VEM ANTES DO ACESSO, e ate 26/09/2026 vinha depois.
+     *
+     * A checagem de `cpu` estava no `if` do corpo do laco, DEPOIS de
+     * `por_cpu[cpu]` ja ter sido lido -- ela relatava o problema sem impedi-lo.
+     * O `cpu` chega de `atoi(argv[1])` no `stall_probe`, e `por_cpu` tem
+     * PROC_MAX_CPUS posicoes: um argumento acima disso lia fora do vetor.
+     *
+     * As tres condicoes sao distintas e todas necessarias: as duas tabelas
+     * podem ter numero de colunas diferente entre as capturas, e o teto do
+     * vetor e o unico limite que nao depende do que foi lido de /proc. */
+    if (cpu >= PROC_MAX_CPUS || cpu >= depois->n_cpus || cpu >= antes->n_cpus)
+        return 0;
     for (unsigned i = 0; i < depois->n_linhas && n < max; i++) {
         const uint64_t d1 = depois->linha[i].por_cpu[cpu];
         const uint64_t d0 = proc_valor(antes, depois->linha[i].rotulo, cpu);
         /* Contadores do kernel nao decrescem; se decresceram, houve reinicio do
          * contador ou troca de tabela, e somar lixo e pior que ignorar. */
-        if (cpu >= depois->n_cpus || d1 <= d0)
+        if (d1 <= d0)
             continue;
         snprintf(fora[n].rotulo, sizeof fora[n].rotulo, "%s", depois->linha[i].rotulo);
         fora[n].delta = d1 - d0;

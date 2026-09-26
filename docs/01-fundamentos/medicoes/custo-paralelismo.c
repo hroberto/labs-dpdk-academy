@@ -58,6 +58,7 @@
 
 #include "cadeia.h"
 #include "clock_ns.h"
+#include "fixar_cpu.h"
 #include "statistics.h"
 
 #define REGIAO_BYTES (256ull * 1024 * 1024)
@@ -217,10 +218,7 @@ struct tarefa {
 static void *trabalhar(void *arg)
 {
     struct tarefa *t = arg;
-    cpu_set_t c;
-    CPU_ZERO(&c);
-    CPU_SET(t->cpu, &c);
-    pthread_setaffinity_np(pthread_self(), sizeof(c), &c);
+    academy_fixar_cpu(t->cpu);
 
     size_t idx[K_POR_NUCLEO];
     for (int i = 0; i < K_POR_NUCLEO; i++)

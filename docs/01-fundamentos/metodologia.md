@@ -434,25 +434,29 @@ medido dobra *junto* com a medição que ele deveria normalizar. Numerador e
 denominador caem juntos, e a divisão cancela exatamente o efeito que se quer
 ver.
 
-O `sysfs` não cai, porque lê a frequência do hardware, que não muda por haver
-duas threads no núcleo:
+O valor do `sysfs` não cai, e é isso que o torna útil aqui. Ele **não é a
+frequência do hardware** — é o que o driver reporta, e a documentação do kernel
+diz que na maioria dos casos corresponde ao último P-state solicitado, podendo
+ou não refletir a frequência efetivamente executada. O que a comparação exige
+dele é menos do que isso: apenas que **não caia sob disputa**, e isso é
+observado:
 
 | condição | `sysfs` | cadeia dependente | razão |
 |---|---:|---:|---:|
 | núcleo sozinho | 5,59 GHz | 5,51 GHz | 0,99 |
 | irmão SMT saturado | 5,44 GHz | 3,12 GHz | **0,57** |
 
-E pelo relógio de hardware o modelo fecha na terceira casa: 0,3353 ns a
+E pela frequência reportada o modelo fecha na terceira casa: 0,3353 ns a
 5,44 GHz dão **1,824 ciclos**, contra os 1,818 medidos em modo gráfico.
 
 **A sonda passou a publicar os dois**, com o nome do que cada um mede:
 
 ```
-  sem carga                      irmao SMT saturado
-  ----------------------------   ----------------------------
-  por HARDWARE  (5.53 GHz) 1.122  por HARDWARE  (5.39 GHz) 1.822
-  por EMISSAO   (5.51 GHz) 1.119  por EMISSAO   (3.13 GHz) 1.057
-  razao 1.00 <- tem o nucleo      razao 0.58 <- nucleo dividido
+  sem carga                            irmao SMT saturado
+  ---------------------------------    ---------------------------------
+  pela freq. reportada (5.53) 1.122    pela freq. reportada (5.39) 1.822
+  por emissao          (5.51) 1.119    por emissao          (3.13) 1.057
+  razao 1.00 <- tem o nucleo           razao 0.58 <- nucleo dividido
 ```
 
 A razão entre as duas fontes deixa de ser ruído e passa a ser **o

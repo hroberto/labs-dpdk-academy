@@ -411,6 +411,45 @@ fi
 # minutos ja gastos.
 # --------------------------------------------------------------------------
 [ "$(id -u)" -eq 0 ] || { echo "FALHA: rode com sudo (o rtla exige root)."; exit 1; }
+
+# O VEREDITO DA CAMPANHA PRECISA DE CONTADOR, e ate 26/09/2026 nao tinha.
+#
+# Cada passo dizia `&& echo ok || echo FALHA`, e o `||` CONSOME o codigo de
+# saida: o passo falhava, a mensagem saia, e o script seguia ate o `exit 0`.
+# Uma campanha com o osnoise e o isolamento falhados -- os dois bracos que
+# medem ruido -- imprimia "CONCLUIDA" e o `run-all.sh` reportava `rc=0`.
+#
+# E o mesmo defeito que este repositorio ja pagou nos testes: PULO nao e verde,
+# e FALHA consumida e pior que PULO. Agora sao tres estados, e so um deles
+# permite dizer que a campanha esta completa.
+#
+#   FALHAS   o passo correu e falhou
+#   PULOS    o pre-requisito nao existe -- campanha INCOMPLETA, nao completa
+#   pulo pedido por flag (--so-ruido, --so-hardware) nao conta: foi escolha.
+FALHAS=0
+PULOS=0
+falhou()  { echo "    FALHA${1:+ $1}"; FALHAS=$((FALHAS + 1)); }
+pulou()   { echo "    PULADO: $1"; PULOS=$((PULOS + 1)); }
+# O VEREDITO SAI NO CODIGO DE SAIDA, e nao so na tela. Quem le o diario ve as
+# linhas de FALHA; quem automatiza le o `$?`, e ate aqui os dois discordavam --
+# era o `$?` que decidia se a coleta entrava no historico como completa.
+veredito() {
+    echo
+    if [ "$FALHAS" -gt 0 ]; then
+        echo "==> CAMPANHA COM FALHA: $FALHAS passo(s) correram e falharam" \
+             "${PULOS:+e $PULOS pulado(s) por pre-requisito}"
+        echo "    A coleta em ${SAIDA#$RAIZ/} NAO esta completa."
+        exit 1
+    fi
+    if [ "$PULOS" -gt 0 ]; then
+        echo "==> CAMPANHA INCOMPLETA: $PULOS passo(s) pulado(s) por pre-requisito ausente"
+        echo "    Nao e falha de medicao, e tambem nao e campanha completa: os"
+        echo "    bracos pulados nao foram medidos, e o historico precisa saber."
+        exit 2
+    fi
+    echo "==> CAMPANHA COMPLETA: nenhum passo falhou nem foi pulado por falta de pre-requisito"
+    exit 0
+}
 DONO=${SUDO_USER:-$(logname 2>/dev/null || echo root)}
 id "$DONO" >/dev/null 2>&1 || { echo "FALHA: nao identifiquei o usuario dono ($DONO)"; exit 1; }
 # O `-H` NAO E OPCIONAL nas chamadas abaixo: sem ele o sudo mantem HOME=/root, e
@@ -595,10 +634,11 @@ if [ -s "$SAIDA/osnoise-hist.txt" ] && grep -q "^count:" "$SAIDA/osnoise-hist.tx
     grep -E "^(over|count|min|avg|max):" "$SAIDA/osnoise-hist.txt" | sed 's/^/    /'
 elif command -v rtla >/dev/null; then
     rtla osnoise hist -c 2 -d 10m -T 1 > "$SAIDA/osnoise-hist.txt" 2>&1 \
-        && echo "    ok" || echo "    FALHA (saida em osnoise-hist.txt)"
+        && echo "    ok" || falhou "(saida em osnoise-hist.txt)"
     grep -E "^(over|count|min|avg|max):" "$SAIDA/osnoise-hist.txt" | sed 's/^/    /'
 else
-    echo "    PULADO: rtla ausente" | tee "$SAIDA/osnoise-hist.txt"
+    echo "PULADO: rtla ausente" > "$SAIDA/osnoise-hist.txt"
+    pulou "rtla ausente"
 fi
 
 # --------------------------------------------------------------------------
@@ -610,9 +650,9 @@ echo
 echo "==> 2/6 campanha de isolamento, 4 celulas x 5 repeticoes  ($(date +%T))"
 if [ -x build/trilha/03-performance/03-isolamento-cpu/stall_probe ]; then
     sudo -u "$DONO" -H ./ferramental/qualidade/campanha-isolamento.sh "$SAIDA/isolamento" 5 \
-        && echo "    ok" || echo "    FALHA"
+        && echo "    ok" || falhou
 else
-    echo "    PULADO: stall_probe ausente; rode scripts/build-all.sh antes"
+    pulou "stall_probe ausente; rode scripts/build-all.sh antes"
 fi
 
 # --------------------------------------------------------------------------
@@ -631,7 +671,9 @@ if [ "$SO_RUIDO" -eq 1 ]; then
     echo
     echo "==> CONCLUIDA  $(date -Is)"
     echo "    saida: ${SAIDA#$RAIZ/}"
-    exit 0
+    # Os passos 3 a 6 foram pulados POR ESCOLHA e nao contam; os 1 e 2, que sao
+    # o objeto deste modo, contam como em qualquer campanha.
+    veredito
 fi
 
 # --------------------------------------------------------------------------
@@ -643,9 +685,9 @@ echo
 echo "==> 3/6 campanha de tempo do mempool  ($(date +%T))"
 if [ -x build-25.11-sem-stats/trilha/01-fundamentos/02-mempool-ring/pipeline_ring ]; then
     sudo -u "$DONO" -H ./ferramental/qualidade/campanha-mempool-tempo.sh "$SAIDA/mempool-tempo" 21 \
-        && echo "    ok" || echo "    FALHA"
+        && echo "    ok" || falhou
 else
-    echo "    PULADO: binarios -sem-stats ausentes"
+    pulou "binarios -sem-stats ausentes"
 fi
 
 
@@ -659,9 +701,9 @@ echo
 echo "==> 4/6 campanha de miss do mempool  ($(date +%T))"
 if [ -x build-25.11/trilha/01-fundamentos/02-mempool-ring/pipeline_ring ]; then
     sudo -u "$DONO" -H ./ferramental/qualidade/campanha-mempool-cache.sh "$SAIDA/mempool-cache" 6 \
-        && echo "    ok" || echo "    FALHA"
+        && echo "    ok" || falhou
 else
-    echo "    PULADO: binarios COM estatisticas ausentes"
+    pulou "binarios COM estatisticas ausentes"
 fi
 
 fi   # fim dos passos 1 a 4
@@ -763,8 +805,11 @@ elif mountpoint -q /mnt/huge-academia 2>/dev/null \
     HUGE_PREPARADA=1
     echo "    hugepage do feed: /mnt/huge-academia (efemera, desmontada no fim)"
 else
-    echo "    AVISO: sem hugetlbfs gravavel pelo dono; o feed NAO sera coletado"
-    echo "           a comparacao do passo 6 perdera os rotulos do feed"
+    # PULO, E NAO AVISO. O feed faz parte da campanha; sem ele o passo 6 perde
+    # rotulos, e uma campanha que sabe disso nao pode terminar COMPLETA. Dizer
+    # no diario e deixar o codigo de saida em 0 e exatamente o falso verde que
+    # `pulou()` existe para impedir.
+    pulou "sem hugetlbfs gravavel pelo dono; o feed NAO foi coletado (o passo 6 perde os rotulos do feed)"
 fi
 
 # COLETA INCOMPLETA NAO E COLETA, e distinguir as duas exige contar.
@@ -785,13 +830,92 @@ fi
 #
 # O que constitui a medicao sao as saidas por repeticao, `*.r<N>.txt`. Contar
 # so elas ignora diario, ambiente e qualquer residuo.
-completa() { # <configuracao>  -> 0 se os tres modulos batem com a referencia
-    local c="$1" m a b
+# NOMES, E NAO QUANTIDADE. Contar acerta o numero e erra a pergunta: uma
+# referencia com `A.r1 A.r2 B.r1 B.r2` e uma coleta nova com
+# `A.r1 A.r2 C.r1 C.r2` tem a mesma cardinalidade e nao tem a mesma matriz
+# experimental. A coleta nova passaria por completa faltando B inteiro, e o
+# passo 6 compararia celulas que nao existem do outro lado.
+#
+# A pergunta certa e de CONTINENCIA: toda saida de repeticao da referencia tem
+# homonima na nova? Sobra na nova nao reprova -- a referencia e o piso, nao o
+# teto --, e por isso `comm -13`, que lista so o que esta na referencia e falta
+# na coleta.
+repeticoes_de() { # <diretorio>  -> um nome por linha, ordenado
+    ( cd "$1" 2>/dev/null && ls *.r[0-9]*.txt 2>/dev/null | sort ) || true
+}
+faltando_em() { # <configuracao> <modulo>  -> nomes da referencia ausentes
+    comm -13 <(repeticoes_de "docs/$2/medicoes/historico/$1") \
+             <(repeticoes_de "docs/$2/medicoes/historico/$REF")
+}
+# PRESENCA DO ARQUIVO NAO E SUCESSO DA MEDICAO, e a diferenca nao e teorica:
+# `programa > saida.txt 2>&1` cria a saida MESMO quando o programa sai com
+# erro. Uma celula pode existir com o nome certo e conter so uma execucao
+# reprovada -- e a conferencia por nomes, sozinha, a daria por medida.
+#
+# `manifesto.txt` e a autoridade quando existe: `campanha-hardware.sh` grava
+# nele o estado com que cada celula terminou. Sem manifesto a resposta e vazia,
+# e NAO "PASS": as coletas anteriores a 26/09/2026 nao o tem, e presumir
+# aprovacao delas seria inventar um dado que ninguem registrou. Nesses casos
+# vale a conferencia por nomes, que e o que havia.
+# SILENCIO DENTRO DO MANIFESTO NAO E APROVACAO, e a primeira versao desta
+# funcao errava nisso: ela devolvia vazio TANTO para "nao ha manifesto" quanto
+# para "ha manifesto e a celula nao esta nele", e tratava os dois como PASS. O
+# contrato que dai resultava nao era o anunciado --
+#
+#     arquivo existe + manifesto diz PASS -> celula valida
+#
+# -- e sim o bem mais fraco
+#
+#     arquivo existe + manifesto nao diz FAIL/SKIP -> celula valida
+#
+# que e uma inferencia por ausencia, exatamente o que o manifesto veio
+# substituir. Os dois casos agora tem nome proprio:
+#
+#   SEM_MANIFESTO  coleta anterior a 26/09/2026. NAO ha o que reconstruir, e
+#                  vale a conferencia por nomes, que e o que havia. Recusar
+#                  aqui reprovaria retroativamente todo o historico.
+#   SEM_REGISTRO   ha manifesto e a celula nao esta nele. Uma vez que o
+#                  manifesto e a autoridade, isso e lacuna, nao aprovacao.
+estado_da_celula() { # <configuracao> <modulo> <celula>
+    local man="docs/$2/medicoes/historico/$1/manifesto.txt" e
+    [ -r "$man" ] || { echo "SEM_MANIFESTO"; return 0; }
+    e=$(awk -v c="$3" '$1 == c { print $2; exit }' "$man")
+    echo "${e:-SEM_REGISTRO}"
+}
+nao_passaram_em() { # <configuracao> <modulo>  -> celulas da matriz que nao mediram
+    local c="$1" m="$2" cel estado
+    for cel in $(repeticoes_de "docs/$m/medicoes/historico/$REF"); do
+        estado=$(estado_da_celula "$c" "$m" "$cel")
+        case "$estado" in
+            SEM_MANIFESTO|PASS) ;;
+            *) echo "$cel($estado)" ;;
+        esac
+    done
+}
+# O MANIFESTO INTEIRO, e nao so as celulas da matriz.
+#
+# `nao_passaram_em` percorre `repeticoes_de "$REF"`, que sao os `*.r<N>.txt`.
+# Etapas como `ambiente.txt` e `teste-estado-maquina.txt` nao estao nessa lista
+# e ficariam de fora -- um FAIL nelas era visto pelo `veredito_hw` na hora da
+# coleta e desaparecia depois, ao reabrir a pasta meses adiante. Isso contradiz
+# a razao de os contadores em memoria terem saido: o historico precisa
+# reconstruir o veredito SO com o manifesto.
+#
+# A `ambiente.txt` e o caso que mais dói: e dela que sai a condicao
+# texto/grafico, e uma coleta cuja condicao nao foi registrada contamina toda
+# comparacao posterior.
+manifesto_reprova() { # <configuracao> <modulo>  -> linhas nao-PASS, vazio se nao ha manifesto
+    local man="docs/$2/medicoes/historico/$1/manifesto.txt"
+    [ -r "$man" ] || return 0
+    awk '$2 == "FAIL" || $2 == "SKIP" { print $1 "(" $2 " " $3 ")" }' "$man"
+}
+completa() { # <configuracao>  -> 0 se a matriz esta la E mediu
+    local c="$1" m
     for m in 01-fundamentos 02-runtime-dpdk 03-mempool-ring-mbuf; do
-        a=$(ls "docs/$m/medicoes/historico/$REF"/*.r[0-9]*.txt 2>/dev/null | wc -l)
-        b=$(ls "docs/$m/medicoes/historico/$c"/*.r[0-9]*.txt   2>/dev/null | wc -l)
-        [ "$a" -gt 0 ] || return 1
-        [ "$b" -ge "$a" ] || return 1
+        [ -n "$(repeticoes_de "docs/$m/medicoes/historico/$REF")" ] || return 1
+        [ -z "$(faltando_em "$c" "$m")" ] || return 1
+        [ -z "$(manifesto_reprova "$c" "$m")" ] || return 1
+        [ -z "$(nao_passaram_em "$c" "$m")" ] || return 1
     done
     return 0
 }
@@ -800,9 +924,21 @@ if [ -d "docs/01-fundamentos/medicoes/historico/$CONF" ] && completa "$CONF"; th
 elif [ -d "docs/01-fundamentos/medicoes/historico/$CONF" ]; then
     echo "    ABORTADO: $CONF existe e esta INCOMPLETA."
     for m in 01-fundamentos 02-runtime-dpdk 03-mempool-ring-mbuf; do
-        printf "              %-22s %s de %s saidas de repeticao\n" "$m" \
+        # NOMEAR O QUE FALTA, e nao so contar: com a conferencia por nomes, "18
+        # de 20" nao diz QUAIS duas celulas nao existem, e sao elas que dizem se
+        # a campanha parou no meio ou pulou um braco inteiro.
+        ausentes=$(faltando_em "$CONF" "$m" | tr '\n' ' ')
+        # AS DUAS CAUSAS SAO DIFERENTES e precisam aparecer separadas: celula
+        # que nao existe e campanha interrompida; celula que existe e nao
+        # passou e medicao que correu e reprovou. Refazer a coleta resolve a
+        # primeira; a segunda pede olhar o programa.
+        reprovadas=$( { nao_passaram_em "$CONF" "$m"; manifesto_reprova "$CONF" "$m"; } \
+                      | sort -u | tr '\n' ' ')
+        printf "              %-22s %s de %s saidas de repeticao%s%s\n" "$m" \
             "$(ls docs/$m/medicoes/historico/$CONF/*.r[0-9]*.txt 2>/dev/null | wc -l)" \
-            "$(ls docs/$m/medicoes/historico/$REF/*.r[0-9]*.txt  2>/dev/null | wc -l)"
+            "$(ls docs/$m/medicoes/historico/$REF/*.r[0-9]*.txt  2>/dev/null | wc -l)" \
+            "${ausentes:+ -- faltam: $ausentes}" \
+            "${reprovadas:+ -- nao mediram: $reprovadas}"
     done
     echo "              A campanha de hardware nao sobrescreve. Para refazer:"
     echo "                rm -rf docs/*/medicoes/historico/$CONF"
@@ -810,20 +946,39 @@ elif [ -d "docs/01-fundamentos/medicoes/historico/$CONF" ]; then
 elif [ -x build/docs/01-fundamentos/medicoes/custo-syscall ]; then
     # `sudo -u` limpa o ambiente, entao a variavel vai explicita na chamada:
     # exportar no shell de root nao a faz chegar ao filho.
-    sudo -u "$DONO" -H \
+    # OS TRES ESTADOS DA SUBCAMPANHA, e nao "deu certo ou nao deu".
+    #
+    # `campanha-hardware.sh` devolve 0, 2 (alguma celula pulou por
+    # pre-requisito) ou 1 (alguma falhou). Colapsar 2 em falha transformaria
+    # ausencia declarada em defeito; colapsar 1 em sucesso e o falso verde.
+    if sudo -u "$DONO" -H \
         DPDK_ACADEMY_HUGE_DIR="${DPDK_ACADEMY_HUGE_DIR:-}" \
-        ./ferramental/qualidade/campanha-hardware.sh "$CONF" \
-        && echo "    ok" || echo "    FALHA"
+        ./ferramental/qualidade/campanha-hardware.sh "$CONF"; then
+        echo "    ok"
+    else
+        hw_rc=$?
+        if [ "$hw_rc" -eq 2 ]; then
+            pulou "campanha de hardware: celula(s) puladas por pre-requisito"
+        else
+            falhou "(campanha de hardware saiu com $hw_rc)"
+        fi
+    fi
     # O feed some em silencio; conferir a contagem e o unico jeito de saber.
     nfeed=$(ls docs/02-runtime-dpdk/medicoes/historico/$CONF/feed-*.txt 2>/dev/null | wc -l)
     if [ "$nfeed" -eq 12 ]; then
         echo "    feed: 12 arquivos, completo"
+    elif [ -z "${DPDK_ACADEMY_HUGE_DIR:-}" ]; then
+        # Sem hugetlbfs o feed nem foi tentado, e o `pulou` ja saiu la atras
+        # quando a montagem falhou. Contar duas vezes inflaria o veredito.
+        echo "    feed: nao coletado (sem hugetlbfs; ja contabilizado acima)"
     else
-        echo "    AVISO: feed com $nfeed arquivos, esperados 12 -- a comparacao"
-        echo "           do passo 6 perde esses rotulos"
+        # HAVIA HUGETLBFS E O FEED SAIU PARCIAL. Isso nao e ausencia declarada:
+        # a coleta foi tentada, produziu parte e a outra parte nao existe. Um
+        # AVISO aqui deixava a campanha fechar COMPLETA sabendo disso.
+        falhou "(feed com $nfeed arquivo(s), esperados 12; o passo 6 perde esses rotulos)"
     fi
 else
-    echo "    PULADO: binarios dos modulos ausentes; rode scripts/build-all.sh"
+    pulou "binarios dos modulos ausentes; rode scripts/build-all.sh"
 fi
 
 if [ "$HUGE_PREPARADA" -eq 1 ]; then
@@ -854,7 +1009,12 @@ echo "==> 6/6 revisao dos dados do projeto  ($(date +%T))"
 } > "$SAIDA/comparacao.txt" 2>&1
 chown "$DONO" "$SAIDA/comparacao.txt" 2>/dev/null
 marcados=$(grep -c '<<<' "$SAIDA/comparacao.txt" || true)
-echo "    rotulos que se moveram mais de 5%: $marcados"
+# A MENSAGEM DIZ A REGUA QUE RODOU. O limiar deixou de ser 5% fixo quando
+# `comparar-hardware.py` passou a usar `max(piso, 2 x amplitude historica do
+# proprio rotulo)`; a frase ficou para tras e passou a descrever uma regra que
+# nao existe mais. Num projeto cuja tese e rastreabilidade, isso e um numero
+# publicado sem programa que o produza.
+echo "    rotulos marcados (deslocamento acima da amplitude historica do rotulo): $marcados"
 if [ "$marcados" -gt 0 ]; then
     grep '<<<' "$SAIDA/comparacao.txt" | sed 's/^/      /' | head -20
 fi
@@ -888,9 +1048,19 @@ echo "    comparacao completa em ${SAIDA#$RAIZ/}/comparacao.txt"
 
 echo
 echo "    portao de qualidade:"
-sudo -u "$DONO" -H ./ferramental/qualidade/pre-commit.sh > "$SAIDA/portao.txt" 2>&1
+# O `if` NAO E ESTILO. Este script roda sob `set -u` e NAO sob `set -e`: uma
+# chamada solta que devolve 1 nao interrompe nada e nao incrementa `FALHAS`, e
+# a campanha seguia para o "CAMPANHA COMPLETA" com o portao de qualidade
+# reprovado. E o mesmo defeito que `FALHAS`/`PULOS` vieram corrigir, sobrevivendo
+# no ultimo passo -- justamente o que decide se a coleta e publicavel.
+if sudo -u "$DONO" -H ./ferramental/qualidade/pre-commit.sh > "$SAIDA/portao.txt" 2>&1; then
+    portao_rc=0
+else
+    portao_rc=$?
+fi
 chown "$DONO" "$SAIDA/portao.txt" 2>/dev/null
 grep -E "FALHA|aviso|tudo passou" "$SAIDA/portao.txt" | sed 's/^/      /'
+[ "$portao_rc" -eq 0 ] || falhou "(portao de qualidade saiu com $portao_rc)"
 
 echo
 echo "==> CONCLUIDA  $(date -Is)"
@@ -911,3 +1081,12 @@ echo "    Para voltar ao modo grafico:"
 echo "      sudo systemctl set-default graphical.target && sudo reboot"
 echo "      (aqui e modo texto: nao ha sessao grafica inibindo, entao -i nao"
 echo "       faz falta. O set-default SIM: ele e persistente.)"
+
+# --------------------------------------------------------------------------
+# O VEREDITO, e ele sai no codigo de saida e nao so na tela.
+#
+# Quem le o diario ve as linhas de FALHA; quem automatiza le o `$?`. Ate aqui
+# os dois discordavam, e o segundo e que decide se a coleta entra no historico
+# como completa.
+# --------------------------------------------------------------------------
+veredito

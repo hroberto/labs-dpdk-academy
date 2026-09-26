@@ -8,7 +8,9 @@
 # Note que não há cpp_args aqui: o padrão vem de default_options no meson.build
 # raiz, e o Meson emite a flag correta para cada compilador.
 
-alt_cpp23_inc = include_directories('.')
+# O segundo diretorio traz `fixar_cpu.h`: a fixacao de CPU aborta em vez de
+# avisar, porque aqui mesmo-CCD contra CCD-cruzado E a variavel independente.
+alt_cpp23_inc = include_directories('.', '../../../../../docs/01-fundamentos/medicoes')
 
 cpp_threads = dependency('threads')
 

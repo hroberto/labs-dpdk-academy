@@ -238,11 +238,28 @@ for v in ferramental/qualidade/verificar-*.py; do
         aviso "$nome nao roda: falta bit de execucao (chmod +x $v)"
         continue
     fi
-    if out=$("./$v" 2>&1); then
+    out=$("./$v" 2>&1); rc=$?
+    if [ "$rc" -eq 0 ]; then
         # Primeira linha nao vazia COM NUMERO: e o resumo nos seis verificadores.
         # `tail -1` parecia obvio e trazia a ultima linha de uma LISTA em dois
         # deles, o que faz um verificador que passou parecer que reclamou.
         ok "$nome: $(grep -vE '^[[:space:]]*$' <<<"$out" | grep -m1 '[0-9]' | sed 's/^ *//' | cut -c1-70)"
+    elif [ "$rc" -eq 77 ]; then
+        # 77 E "NAO FOI POSSIVEL CONFERIR", e nao "conferido e aprovado". A
+        # distincao existe porque ferramenta ausente virando verde e o defeito
+        # que este arquivo passou a combater: o portao afirmava ter lido um
+        # arquivo que ninguem abriu.
+        #
+        # Fora da CI isso e aviso -- nem toda maquina tem toda dependencia, e
+        # bloquear o commit por isso empurra todo mundo para o --no-verify, que
+        # desliga a barra inteira. NA CI e FALHA, porque la as dependencias sao
+        # instaladas de proposito e um PULADO significa que a instalacao quebrou.
+        if [ -n "${CI:-}" ]; then
+            falha "$nome NAO CONFERIU (na CI isto e falha)"
+            sed 's/^/          /' <<<"$out" | head -8
+        else
+            aviso "$nome NAO CONFERIU: $(grep -vE '^[[:space:]]*$' <<<"$out" | tail -1 | sed 's/^ *//' | cut -c1-70)"
+        fi
     else
         falha "$nome nao passou"; sed 's/^/          /' <<<"$out" | head -8
     fi

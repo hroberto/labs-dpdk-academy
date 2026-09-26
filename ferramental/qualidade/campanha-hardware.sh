@@ -64,6 +64,67 @@ for d in "$D" "$D2" "$D3"; do
 done
 mkdir -p "$D" "$D2" "$D3"
 
+# O ESTADO DE CADA MEDICAO SOBE, e nao morre no redirecionamento.
+#
+# Ate aqui as ~30 invocacoes deste arquivo eram chamadas soltas. O script roda
+# sob `set -u` e NAO sob `set -e`, entao um programa que saia com erro nao
+# interrompia nada, e a ultima linha imprimia CONCLUIDA com codigo 0.
+#
+# O CUSTO DISSO CRESCEU quando `custo-contencao` passou a recusar a amostra
+# cujas condicoes nao ocorreram: o programa detecta o experimento invalido,
+# devolve 1, este script ignora, `campanha.sh` le "ok" e a coleta entra no
+# historico. Um instrumento novo nao vale nada se o orquestrador acima dele
+# apaga o sinal.
+#
+# E O ARQUIVO SEMPRE EXISTE. `programa > saida.txt 2>&1` cria a saida mesmo
+# quando o programa falha, entao a conferencia de completude por NOMES -- que
+# e a que `campanha.sh` faz -- ve a celula presente e nao sabe que ela contem
+# uma execucao reprovada. Presenca do artefato nao e sucesso da medicao, e o
+# manifesto e o que separa as duas.
+#
+# `rodar` NAO propaga o erro pelo retorno de proposito: devolver nao-zero aqui
+# abortaria a rodada no meio e perderia as celulas seguintes. A campanha vai
+# ate o fim, registra o que aconteceu em cada uma, e o veredito sai no codigo
+# de saida do processo.
+# O FORMATO E CONTRATO, e nao registro de diario. Tres colunas, uma linha por
+# celula, sem espaco dentro de CELL -- e o que permite ao `campanha.sh` ler o
+# estado de uma celula sem interpretar prosa.
+#
+#   CELL                                     STATUS  RC
+#   custo-syscall.r1.txt                     PASS    0
+#   tlb-real.r1.txt                          SKIP    77
+#   custo-contencao.r2.txt                   FAIL    1
+MANIFESTO="$D/manifesto.txt"
+{
+    echo "# manifesto da coleta $CONF -- estado com que cada celula terminou"
+    echo "# STATUS: PASS (mediu), SKIP (pre-requisito ausente), FAIL (correu e reprovou)"
+    printf '%-40s %-7s %s\n' "CELL" "STATUS" "RC"
+} > "$MANIFESTO"
+
+rodar() { # <arquivo-de-saida> <comando...>
+    local saida="$1"; shift
+    "$@" > "$saida" 2>&1
+    local rc=$? estado
+    case "$rc" in
+        0)  estado="PASS" ;;
+        # 77 e PULADO em todo o projeto: pre-requisito ausente, nao defeito.
+        77) estado="SKIP" ;;
+        *)  estado="FAIL" ;;
+    esac
+    printf '%-40s %-7s %s\n' "$(basename "$saida")" "$estado" "$rc" >> "$MANIFESTO"
+}
+
+# O ESTADO SE CONTA NO MANIFESTO, e nao numa variavel que so este processo ve.
+# Derivar de contador em memoria funcionaria igual aqui dentro, e deixaria o
+# arquivo como relato paralelo -- dois lugares para a mesma verdade, e nada
+# obrigando os dois a concordar. Quem le a coleta depois so tem o arquivo.
+contar_estado() { # <PASS|SKIP|FAIL>
+    awk -v e="$1" '$2 == e { n++ } END { print n + 0 }' "$MANIFESTO"
+}
+registrar() { # <celula> <STATUS> <rc>  -- para etapas que nao passam por rodar()
+    printf '%-40s %-7s %s\n' "$1" "$2" "$3" >> "$MANIFESTO"
+}
+
 B=build-precommit/docs/01-fundamentos/medicoes
 B2=build-precommit/docs/02-runtime-dpdk/medicoes
 B3=build-precommit/docs/03-mempool-ring-mbuf/medicoes
@@ -95,21 +156,82 @@ corre_feed() { # <rodada>
     python3 ./scripts/feed-supervisor.py --primary "$B2/feed-primario" \
         --secondary "$B2/feed-secundario" --huge-dir "$DPDK_ACADEMY_HUGE_DIR" \
         --output "$t/saida" --ticks 200000 >/dev/null 2>&1
-    local d; d=$(ls -d "$t"/saida/session-* 2>/dev/null | tail -1)
-    if [ -n "$d" ]; then
-        cp "$d/secondary.txt" "$D2/feed-secundario.r$1.txt"
-        cp "$d/primary.txt"   "$D2/feed-primario.r$1.txt"
+    local rc=$?
+    # A SESSAO VALIDA E A QUE O SUPERVISOR NOMEIA, e nao a ultima da ordenacao.
+    #
+    # `ls -d session-* | tail -1` acertava por acidente: o laco do supervisor
+    # devolve assim que uma tentativa vence, entao a ultima criada era a boa.
+    # Mas isso e reconstruir estruturalmente uma decisao semantica que so ele
+    # tem -- `success` e "Book validity: VALID;" no secundario -- e qualquer
+    # mudanca naquele laco quebraria isto aqui em silencio. Agora ele escreve o
+    # nome em `successful-session`, e este arquivo so existe quando venceu.
+    local nome; nome=$(cat "$t/saida/successful-session" 2>/dev/null)
+    local d=""; [ -n "$nome" ] && d="$t/saida/$nome"
+
+    # O `rc` DO SUPERVISOR E A AUTORIDADE, e nao a existencia do diretorio.
+    #
+    # `feed-supervisor.py` cria `session-<tentativa>` para CADA tentativa e
+    # grava `primary.txt`/`secondary.txt` nas duas ANTES de saber se a sessao
+    # sera valida; `success` so e verdadeiro quando o secundario publica
+    # "Book validity: VALID;". Ele devolve 0 assim que uma tentativa vence, e 1
+    # quando todas falham.
+    #
+    # Ate aqui esta funcao perguntava "existe alguma tentativa?", e nao "existe
+    # uma tentativa VALIDA?". Com as duas falhando, o diretorio da ultima
+    # existia com os dois arquivos dentro, e a coleta recebia a saida de uma
+    # sessao DEGENERADA com nome de celula normal -- promovida a evidencia, e
+    # consumida pelos comparadores como tal. O `>/dev/null 2>&1` e o retorno
+    # descartado escondiam isso por inteiro.
+    #
+    # A COPIA E A FRONTEIRA DE PUBLICACAO. `session-N/` e evidencia diagnostica
+    # da tentativa e fica no temporario; `historico/` e afirmacao de que o
+    # protocolo de validade foi satisfeito. So atravessa quem o componente que
+    # CONHECE o criterio disse que passou.
+    #
+    # OS NOMES REGISTRADOS SAO OS DAS CELULAS, e nao um "feed.rN" generico: o
+    # manifesto so serve de autoridade se falar a mesma lingua da matriz que o
+    # `campanha.sh` confere.
+    if [ "$rc" -eq 0 ] && [ -n "$d" ] \
+       && cp "$d/secondary.txt" "$D2/feed-secundario.r$1.txt" \
+       && cp "$d/primary.txt"   "$D2/feed-primario.r$1.txt"; then
+        registrar "feed-primario.r$1.txt"   PASS 0
+        registrar "feed-secundario.r$1.txt" PASS 0
         echo "  feed r$1: $(basename "$d")" >> "$D/diario.txt"
 cat "$D/diario.txt.tmp" >> "$D/diario.txt" 2>/dev/null; rm -f "$D/diario.txt.tmp"
     else
-        echo "  feed r$1: SEM SAIDA" >> "$D/diario.txt"
+        # FALHA, E NAO AVISO. Chegar aqui significa que havia hugetlbfs
+        # gravavel -- a funcao retorna cedo quando nao ha -- e que mesmo assim
+        # o feed nao saiu. Hugetlbfs ausente e PULO, decidido em `campanha.sh`;
+        # hugetlbfs presente e feed que nao saiu e outra coisa: a coleta foi
+        # tentada e nao aconteceu.
+        # RC PROPRIO QUANDO QUEM FALHOU FOI A PUBLICACAO, e nao o experimento.
+        #
+        # Com o supervisor devolvendo 0 e a copia falhando -- `successful-session`
+        # ausente, diretorio nomeado inexistente, `cp` reprovado --, gravar
+        # `FAIL "$rc"` produzia a linha `FAIL 0`: a coluna STATUS afirma que a
+        # celula falhou e a coluna RC diz que terminou bem. Nao e falso verde,
+        # porque `veredito_hw` decide pelo STATUS -- mas o manifesto e o que
+        # sobra para quem abrir a coleta depois, e uma linha que se contradiz
+        # nao serve de diagnostico.
+        #
+        # 74 e EX_IOERR do sysexits.h, e a escolha e deliberada: distingue
+        # "o experimento nao produziu sessao valida" (rc do supervisor) de
+        # "a sessao era valida e a promocao falhou" (erro de E/S na fronteira).
+        # Sao causas diferentes e pedem investigacoes diferentes.
+        local falha_rc=$rc
+        [ "$falha_rc" -ne 0 ] || falha_rc=74
+        echo "  feed r$1: SEM SAIDA VALIDA (supervisor rc=$rc, registrado $falha_rc)" >> "$D/diario.txt"
+        registrar "feed-primario.r$1.txt"   FAIL "$falha_rc"
+        registrar "feed-secundario.r$1.txt" FAIL "$falha_rc"
+        # A SAIDA DEGENERADA NAO FICA NA COLETA. Deixa-la ali com o nome certo
+        # convidaria a conferencia por nomes a da-la por medida.
+        rm -f "$D2/feed-secundario.r$1.txt" "$D2/feed-primario.r$1.txt"
     fi
     rm -rf "$t"
 }
 corre2() { # <rodada>
-    "$B2/custo-init"    -l 0 --in-memory                    > "$D2/custo-init.in-memory.r$1.txt" 2>&1
-    "$B2/custo-init"    -l 0 --no-huge                      > "$D2/custo-init.no-huge.r$1.txt"   2>&1
-
+    rodar "$D2/custo-init.in-memory.r$1.txt" "$B2/custo-init"    -l 0 --in-memory
+    rodar "$D2/custo-init.no-huge.r$1.txt" "$B2/custo-init"    -l 0 --no-huge
     # A VARREDURA DE CONFIGURACOES DA §2.1, que ate 25/09/2026 nao tinha
     # programa. A tabela estava no documento em Markdown, e tabela de prosa nao
     # e conferida pelo `verificar-blocos` -- que olha bloco de cerca. O
@@ -119,22 +241,21 @@ corre2() { # <rodada>
     # O argumento da secao -- que o custo e piso fixo, e portanto espera e nao
     # trabalho -- depende de as quatro celulas concordarem entre si, e nao do
     # valor absoluto. Por isso as quatro correm na mesma rodada, aqui.
-    "$B2/custo-init" -l 0 --in-memory --no-pci          > "$D2/custo-init.in-memory-no-pci.r$1.txt" 2>&1
-    "$B2/custo-init" -l 0 --no-huge --in-memory --no-pci > "$D2/custo-init.no-huge-no-pci.r$1.txt"  2>&1
-    "$B2/custo-init" -l 0-3 --in-memory                  > "$D2/custo-init.4lcores.r$1.txt"         2>&1
-    "$B2/estado-lcore"  -l 0-3 --in-memory                  > "$D2/estado-lcore.r$1.txt"         2>&1
+    rodar "$D2/custo-init.in-memory-no-pci.r$1.txt" "$B2/custo-init" -l 0 --in-memory --no-pci
+    rodar "$D2/custo-init.no-huge-no-pci.r$1.txt" "$B2/custo-init" -l 0 --no-huge --in-memory --no-pci
+    rodar "$D2/custo-init.4lcores.r$1.txt" "$B2/custo-init" -l 0-3 --in-memory
+    rodar "$D2/estado-lcore.r$1.txt" "$B2/estado-lcore"  -l 0-3 --in-memory
     # A SEGUNDA INVOCACAO existe porque o documento publica as DUAS.
     #
     # Com `-l`, os lcores caem onde os numeros mandarem; com `--lcores`, o
     # mapeamento e escolhido, e a §4 do modulo 02 contrasta os dois blocos para
     # mostrar que a quarta coluna -- o core id -- nao muda. Sem arquivar a
     # segunda, esse bloco ficava sem procedencia e so se refazia a mao.
-    "$B2/estado-lcore"  --lcores '"'"'0@6,1@7,2@18'"'"' --in-memory \
-                                                           > "$D2/estado-lcore.lcores.r$1.txt"  2>&1
+    rodar "$D2/estado-lcore.lcores.r$1.txt" "$B2/estado-lcore"  --lcores '"'"'0@6,1@7,2@18'"'"' --in-memory
 }
 corre3() { # <rodada>
     for n in custo-alocacao anatomia-mbuf custo-anel pool-esgotado; do
-        "$B3/$n" -l 0 --no-huge --file-prefix="camp_${n}_$1" > "$D3/$n.r$1.txt" 2>&1
+        rodar "$D3/$n.r$1.txt" "$B3/$n" -l 0 --no-huge --file-prefix="camp_${n}_$1"
     done
     # A MAQUINA INTEIRA, e nao seis lcores.
     #
@@ -148,26 +269,29 @@ corre3() { # <rodada>
     # CCD em n=8, SMT em n=16 --, e por isso o programa agora DECLARA qual
     # fronteira cada linha cruza, em vez de deixar a curva parecer funcao so do
     # numero de threads.
-    "$B3/custo-contencao" -l 0-23 --no-huge --file-prefix="camp_cont_$1" > "$D3/custo-contencao.r$1.txt" 2>&1
+    rodar "$D3/custo-contencao.r$1.txt" "$B3/custo-contencao" -l 0-23 --no-huge --file-prefix="camp_cont_$1"
 }
 
-./scripts/ambiente.sh > "$D/ambiente.txt"
+# O AMBIENTE NAO E ACESSORIO: `condicao_coleta.py` le dele se a coleta correu
+# com sessao grafica, e uma coleta cuja condicao nao esta declarada contamina
+# toda comparacao posterior.
+rodar "$D/ambiente.txt" ./scripts/ambiente.sh
 cp "$D/ambiente.txt" "$D2/ambiente.txt"; cp "$D/ambiente.txt" "$D3/ambiente.txt"
 echo "feed: ${DPDK_ACADEMY_HUGE_DIR:-AUSENTE (par primario/secundario nao coletado)}" >> "$D/diario.txt.tmp"
 echo "inicio: $(date -Is)  carga: $(cut -d' ' -f1-3 /proc/loadavg)  uptime: $(uptime -p)" > "$D/diario.txt"
 for r in 0 1 2 3 4 5; do
     [ $r -eq 0 ] && rot="aquecimento(descartado)" || rot="rodada$r"
     echo "[$rot] $(date +%H:%M:%S) carga $(cut -d' ' -f1 /proc/loadavg)" >> "$D/diario.txt"
-    for p in $PROGS; do ./$B/$p > "$D/${p}.r${r}.txt" 2>&1; done
+    for p in $PROGS; do rodar "$D/${p}.r${r}.txt" "./$B/$p"; done
     # Varredura por regiao: o que confronta a previsao de cobertura de TLB com
     # a medicao. 512 MB e o padrao e ja saiu no laco acima.
     for mb in 8 16 32 64; do
-        ./$B/custo-traducao "$mb" > "$D/custo-traducao.regiao${mb}mb.r${r}.txt" 2>&1
+        rodar "$D/custo-traducao.regiao${mb}mb.r${r}.txt" "./$B/custo-traducao" "$mb"
     done
     # O mesmo percurso em ordem crescente: muda so a ordem dos enderecos, com
     # a cadeia dependente mantida, para isolar o padrao de acesso.
     for mb in 8 16 32 64 512; do
-        ./$B/custo-traducao "$mb" sequencial > "$D/custo-traducao.seq${mb}mb.r${r}.txt" 2>&1
+        rodar "$D/custo-traducao.seq${mb}mb.r${r}.txt" "./$B/custo-traducao" "$mb" sequencial
     done
     corre2 "$r"
     corre3 "$r"
@@ -177,12 +301,77 @@ echo "fim: $(date -Is)  carga: $(cut -d' ' -f1-3 /proc/loadavg)" >> "$D/diario.t
 
 # O teste do estado da maquina: alterna ocio e medicao. E o protocolo que
 # encontrou a quarta escala de dispersao, e por isso acompanha toda coleta.
-le() { ./$B/custo-comunicacao 2>/dev/null | awk '/within domain/{d=$8} /^  BETWEEN domains/{e=$7} END{printf "%s %s",d,e}'; }
-{ echo "ciclo  apos-ocio(dentro entre)  imediata(dentro entre)"
-  for c in 1 2 3 4; do sleep 30; a=$(le); b=$(le); echo "  $c      $a               $b"; done
-} > "$D/teste-estado-maquina.txt"
+# O `2>/dev/null` seguido de pipe ESCONDIA A FALHA DUAS VEZES: o erro sumia e
+# o `$?` do pipe era o do `awk`, que tem sucesso sobre entrada vazia. O
+# resultado era um arquivo de diagnostico com colunas em branco e nenhum sinal.
+# O ESTADO SAI PELO RETORNO, e nao por variavel -- e a primeira correcao deste
+# arquivo errava exatamente nisso.
+#
+# `le` e chamada como `a=$(le)`, e substituicao de comando roda em SUBSHELL.
+# Um `LE_FALHOU=1` la dentro morre com o subshell: o pai continua vendo 0, e o
+# manifesto recebia PASS para uma etapa que nao correu. Trocar um fail-open por
+# outro fail-open nao e correcao, e este so apareceu porque alguem foi conferir
+# a semantica do shell em vez de ler o codigo e concordar com ele.
+#
+# Medido:  FLAG=0; f() { FLAG=1; }; a=$(f); echo $FLAG   ->  0
+le() {
+    local saida
+    saida=$("./$B/custo-comunicacao" 2>/dev/null) || return 1
+    printf '%s' "$saida" | awk '/within domain/{d=$8} /^  BETWEEN domains/{e=$7} END{printf "%s %s",d,e}'
+}
+# O LACO E FUNCAO PARA PODER SER TESTADO. Solto dentro de um `{ }` ele nao
+# tinha como ser exercitado sem rodar a campanha inteira -- e foi justamente
+# aqui que um fail-open passou despercebido por vir da semantica do shell, e
+# nao de um retorno ignorado.
+#
+# `falhou` e local e a redirecao acontece na CHAMADA: redirecionar uma funcao
+# nao cria subshell, entao o estado chega ao `if`. Nao ha variavel global no
+# caminho, que e o que tornava a versao anterior fragil.
+coletar_estado_maquina() { # <ciclos> <segundos-de-ocio>
+    local ciclos=$1 ocio=$2 c a b falhou=0
+    echo "ciclo  apos-ocio(dentro entre)  imediata(dentro entre)"
+    for c in $(seq 1 "$ciclos"); do
+        sleep "$ocio"
+        a=$(le) || falhou=1
+        b=$(le) || falhou=1
+        echo "  $c      $a               $b"
+    done
+    return "$falhou"
+}
+if coletar_estado_maquina 4 30 > "$D/teste-estado-maquina.txt"; then
+    registrar "teste-estado-maquina.txt" PASS 0
+else
+    registrar "teste-estado-maquina.txt" FAIL 1
+fi
 
-echo "CONCLUIDA -> ${D#$RAIZ/}"   # relativo: o diario e publico
+# O VEREDITO, e ele sai no codigo de saida. Os tres estados sao os mesmos que
+# `campanha.sh` usa, para que o pai possa distinguir sem interpretar texto:
+#   0  todas as celulas mediram
+#   2  alguma PULOU por pre-requisito -- nao e defeito, e nao e completa
+#   1  alguma FALHOU
+cp "$MANIFESTO" "$D2/manifesto.txt" 2>/dev/null
+cp "$MANIFESTO" "$D3/manifesto.txt" 2>/dev/null
+veredito_hw() {
+    local falhas pulos
+    falhas=$(contar_estado FAIL)
+    pulos=$(contar_estado SKIP)
+    if [ "$falhas" -gt 0 ] || [ "$pulos" -gt 0 ]; then
+        echo "  celulas que nao mediram (${MANIFESTO#$RAIZ/}):"
+        awk '$2 == "FAIL" || $2 == "SKIP"' "$MANIFESTO" | sed 's/^/    /'
+    fi
+    if [ "$falhas" -gt 0 ]; then
+        echo "SUBCAMPANHA COM FALHA: $falhas celula(s) correram e reprovaram${pulos:+ e $pulos pulada(s)}" >&2
+        echo "  A coleta em ${D#$RAIZ/} NAO e publicavel." >&2
+        return 1
+    fi
+    if [ "$pulos" -gt 0 ]; then
+        echo "SUBCAMPANHA INCOMPLETA: $pulos celula(s) pulada(s) por pre-requisito" >&2
+        return 2
+    fi
+    echo "CONCLUIDA -> ${D#$RAIZ/}"   # relativo: o diario e publico
+    return 0
+}
+veredito_hw || exit $?
 echo "          -> ${D2#$RAIZ/}"
 echo "          -> ${D3#$RAIZ/}"
 echo "Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medicoes/historico/{outra,$CONF}"

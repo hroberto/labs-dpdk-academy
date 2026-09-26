@@ -38,6 +38,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "fixar_cpu.h"
 #include "cpu_pause.h"
 #include "clock_ns.h"
 #include "statistics.h"
@@ -71,18 +72,10 @@ static _Alignas(64) atomic_int bola;
 static int cpu_a, cpu_b;
 
 
-static int fixar(int cpu)
-{
-    cpu_set_t conjunto;
-    CPU_ZERO(&conjunto);
-    CPU_SET(cpu, &conjunto);
-    return pthread_setaffinity_np(pthread_self(), sizeof(conjunto), &conjunto);
-}
-
 static void *rebatedor(void *ignorado)
 {
     (void)ignorado;
-    fixar(cpu_b);
+    academy_fixar_cpu(cpu_b);
     for (int i = 0; i < RODADAS; i++) {
         while (atomic_load_explicit(&bola, memory_order_acquire) != 1)
             academy_cpu_pause();
@@ -100,7 +93,7 @@ static double medir(int a, int b)
     pthread_t t;
     if (pthread_create(&t, NULL, rebatedor, NULL) != 0)
         return -1.0;
-    fixar(cpu_a);
+    academy_fixar_cpu(cpu_a);
 
     const struct timespec espera = {0, 1000000};
     nanosleep(&espera, NULL); /* deixa o rebatedor chegar ao laço */
@@ -151,7 +144,7 @@ static _Alignas(64) atomic_int parar_c2c;
 static void *rebatedor_condicionamento(void *ignorado)
 {
     (void)ignorado;
-    fixar(cpu_b);
+    academy_fixar_cpu(cpu_b);
     while (!atomic_load_explicit(&parar_c2c, memory_order_relaxed)) {
         while (atomic_load_explicit(&bola, memory_order_acquire) != 1) {
             if (atomic_load_explicit(&parar_c2c, memory_order_relaxed))
@@ -173,7 +166,7 @@ static void condicionar_c2c(int a, int b, int ms)
     pthread_t t;
     if (pthread_create(&t, NULL, rebatedor_condicionamento, NULL) != 0)
         return;
-    fixar(cpu_a);
+    academy_fixar_cpu(cpu_a);
     const struct timespec espera = {0, 1000000};
     nanosleep(&espera, NULL);
 
@@ -250,7 +243,7 @@ static void *vizinho_ocupado(void *_)
 {
     (void)_;
     if (cpu_vizinho >= 0)
-        fixar(cpu_vizinho);
+        academy_fixar_cpu(cpu_vizinho);
     long a = 0, b = 0, c = 0, d = 0;
     while (!atomic_load_explicit(&parar_vizinho, memory_order_relaxed))
         TRABALHO_ALU(1000, a, b, c, d);
@@ -322,7 +315,7 @@ struct trabalhador {
 static void *trabalhador_agregado(void *arg)
 {
     struct trabalhador *t = arg;
-    fixar(t->cpu);
+    academy_fixar_cpu(t->cpu);
     long a = 0, b = 0, c = 0, d = 0;
     /* Acomoda a frequencia DENTRO da thread, antes da barreira: sem isto a
      * primeira configuracao medida sai mais cara que as outras, que e
@@ -502,7 +495,7 @@ int main(void)
      * 27,25 ns entre coletas, 55% de faixa, enquanto `ENTRE dominios` saia
      * estavel na mesma execucao. Medir durante a rampa e o mesmo defeito que a
      * secao 2 "A fronteira user-space / kernel-space" ja documentava para a chamada de funcao, em outro lugar. */
-    fixar(cpu_local_a);
+    academy_fixar_cpu(cpu_local_a);
     acomodar_frequencia();
 
     /* E CONDICIONA O PROPRIO TRAFEGO ENTRE NUCLEOS -- ver o cabecalho de
@@ -531,11 +524,11 @@ int main(void)
     /* FIXA A THREAD DE MEDICAO EXPLICITAMENTE.
      *
      * Ate aqui ela estava fixada em cpu_a por EFEITO COLATERAL: `measure_pair`
-     * chama `fixar(cpu_a)` para o ping-pong, e a fixacao sobrevivia ate este
+     * chama `academy_fixar_cpu(cpu_a)` para o ping-pong, e a fixacao sobrevivia ate este
      * bloco. Funcionava, e nao dizia isso em lugar nenhum -- bastava alguem
      * reordenar os blocos para a medicao de SMT passar a rodar onde o
      * escalonador quisesse, sem que nada acusasse. */
-    fixar(cpu_local_a);
+    academy_fixar_cpu(cpu_local_a);
     acomodar_frequencia();
 
     cpu_vizinho = -1;
@@ -559,7 +552,6 @@ int main(void)
 
     if (irmao > 0) {
         cpu_vizinho = irmao;
-        char rot[64];
         snprintf(rot, sizeof(rot), "neighbour on SMT sibling (cpu %d)", irmao);
         /* DUAS FASES, e a razao de ser esta documentada no bloco abaixo. */
         const struct paired_stats f1 =

@@ -1,3 +1,31 @@
+# ESTE ARQUIVO NAO E UM PORTAO. E configuracao para editor e para execucao a
+# mao, e esta declaracao existe porque a ausencia dela ja enganou uma auditoria:
+# um `.clang-tidy` na raiz parece cobertura, e aqui nenhum gate o executa.
+#
+# A analise estatica que de fato roda na barra e no CI e o cppcheck, em
+# `ferramental/qualidade/analise-estatica.sh`. Ela conta no veredito; o que
+# estiver escrito abaixo, nao.
+#
+# POR QUE NAO VIROU PORTAO
+#
+# Nao por preguica, e sim porque a linha de base nunca foi medida. A lista
+# abaixo inclui `modernize-*`, `readability-*`, `cppcoreguidelines-*` e
+# `google-*`, familias que opinam sobre estilo e nao so sobre defeito. Quantos
+# achados elas produzem nesta arvore e uma pergunta sem resposta ate alguem
+# rodar, e um gate cuja saida ninguem viu nao e um gate: e uma CI vermelha
+# esperando o proximo commit, e dai a dois dias um `|| true` para calar.
+#
+# PARA TRANSFORMA-LO EM PORTAO, nesta ordem:
+#
+#   1. medir:  clang-tidy -p build $(git ls-files '*.c' '*.cpp') 2>/dev/null \
+#                | grep -c 'warning:'
+#   2. triar a lista por familia, e cortar o que o projeto nao vai acatar;
+#   3. so entao registrar em `analise-estatica.sh`, com o mesmo tratamento de
+#      ferramenta ausente que o cppcheck tem la (PULADO anunciado fora da CI,
+#      FALHA dentro dela), e acrescentar `clang-tidy` ao apt-get do workflow.
+#
+# Enquanto os tres passos nao acontecerem, a cobertura efetiva deste projeto em
+# analise estatica e o cppcheck -- e agora esta escrito.
 Checks: >
   -*,
   clang-analyzer-*,

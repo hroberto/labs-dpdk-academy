@@ -21,6 +21,35 @@ project(
 )
 
 # ---------------------------------------------------------------------------
+# O MINIMO DO COMPILADOR, DECLARADO E CONFERIDO
+#
+# O `README.md` pede GCC 14+ ou Clang 18+, e a CI instala `g++-14` de proposito.
+# O build nao conferia: quem estivesse no GCC 13 -- o padrao do Ubuntu 24.04 --
+# recebia um erro de `<print>` ausente no meio da compilacao da alternativa em
+# C++23, sem nada dizer que a versao e que estava errada.
+#
+# E a mesma escolha que este arquivo ja faz para o DPDK tres blocos abaixo:
+# declarar o minimo transforma "nao compila" numa mensagem util.
+#
+# `std::println` e `<print>` sao C++23 e chegaram na libstdc++ no GCC 14; no
+# libc++ o equivalente veio no Clang 18. A checagem e pelo compilador de C++
+# porque e so a alternativa em C++23 que depende disso -- o C do projeto compila
+# em toolchain mais antiga.
+cpp_compilador = meson.get_compiler('cpp')
+cpp_minimo = {'gcc': '14', 'clang': '18'}
+if cpp_minimo.has_key(cpp_compilador.get_id())
+  minimo = cpp_minimo[cpp_compilador.get_id()]
+  if not cpp_compilador.version().version_compare('>=' + minimo)
+    error(
+      'compilador C++ ' + cpp_compilador.get_id() + ' ' + cpp_compilador.version() +
+      ' e anterior ao minimo ' + minimo + '.\n' +
+      '  A alternativa em C++23 usa <print>/std::println, que chegou nessa versao.\n' +
+      '  No Ubuntu 24.04:  sudo apt install g++-14  e  CXX=g++-14 meson setup build'
+    )
+  endif
+endif
+
+# ---------------------------------------------------------------------------
 # Dependências
 #
 # DPDK é dependência de AMBIENTE: recursos de memoria e preparacao da NIC
@@ -422,6 +451,20 @@ test('scripts - L1 (modelo de driver de NIC)', bash,
 subdir('docs/01-fundamentos/medicoes')
 test('scripts - L1 (apuracao e mutacoes)', bash,
      args : [meson.project_source_root() / 'scripts/tests/l1_apuracao.sh'],
+     suite : ['l1', 'scripts'], timeout : 60)
+
+# A campanha decide pela MATRIZ e nao pela contagem, e isso precisa de teste:
+# a versao que contava arquivos declarava COMPLETA uma coleta com celula
+# trocada, e o passo 6 comparava contra celulas inexistentes.
+test('scripts - L1 (completude da campanha e por matriz)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_campanha_completa.sh'],
+     suite : ['l1', 'scripts'], timeout : 60)
+
+# O estado de cada medicao precisa SUBIR da subcampanha: sem isto um programa
+# que recusa a amostra devolve 1, a subcampanha ignora e a coleta entra no
+# historico como boa -- o instrumento existe e o orquestrador apaga o sinal.
+test('scripts - L1 (estado das celulas sobe da subcampanha)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_campanha_hardware_estado.sh'],
      suite : ['l1', 'scripts'], timeout : 60)
 
 test('02-runtime - L1 (FAIL e SKIP dos runners multiprocesso)', bash,

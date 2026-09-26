@@ -45,6 +45,7 @@
 
 #include "sizing.h"
 #include "clock_ns.h"
+#include "fixar_cpu.h"
 #include "statistics.h"
 
 #define OBJECTS 4095u   /* 2^12 - 1: tamanho ótimo em uso de memória */
@@ -77,10 +78,7 @@ static _Alignas(64) atomic_int parar_ruido = 0;
 static void *ruido(void *arg)
 {
     const int cpu = *(const int *)arg;
-    cpu_set_t conjunto;
-    CPU_ZERO(&conjunto);
-    CPU_SET(cpu, &conjunto);
-    pthread_setaffinity_np(pthread_self(), sizeof(conjunto), &conjunto);
+    academy_fixar_cpu(cpu);
 
     while (!atomic_load_explicit(&parar_ruido, memory_order_relaxed))
         ;

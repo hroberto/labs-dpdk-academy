@@ -50,6 +50,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "fixar_cpu.h"
 #include "cpu_pause.h"
 #include "clock_ns.h"
 #include "statistics.h"
@@ -68,14 +69,6 @@ static _Alignas(64) volatile long sumidouro;
 static int cpu_local = 0;
 static int cpu_remoto = 2; /* mesmo CCD por padrão; a main varia */
 
-
-static void fixar(int cpu)
-{
-    cpu_set_t c;
-    CPU_ZERO(&c);
-    CPU_SET(cpu, &c);
-    pthread_setaffinity_np(pthread_self(), sizeof(c), &c);
-}
 
 static void aquecer(void)
 {
@@ -130,7 +123,7 @@ static double trava_melhor_caso(void)
 static void *parceiro(void *_)
 {
     (void)_;
-    fixar(cpu_remoto);
+    academy_fixar_cpu(cpu_remoto);
     while (!atomic_load_explicit(&encerrar, memory_order_relaxed)) {
         int esperado = 1;
         atomic_compare_exchange_weak_explicit(&bastao, &esperado, 0, memory_order_acq_rel,
@@ -216,7 +209,7 @@ static int nucleo_de_outro_dominio(void)
 int main(void)
 {
     print_provenance("custo-mckenney");
-    fixar(cpu_local);
+    academy_fixar_cpu(cpu_local);
     aquecer();
 
     const struct statistics clk = collect_or_fail(clock_period_ns, 9);
