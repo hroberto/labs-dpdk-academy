@@ -478,6 +478,13 @@ static double m_repasse_semaforo(void)
 
 int main(void)
 {
+    /* A CPU `cpu_b + 2` e a da thread de ruido: nucleo fisico distinto, nem o
+     * de medicao nem seu irmao SMT. Numa maquina com poucos nucleos ela nao
+     * existe, e ai esta medicao nao cabe. */
+    const int exigidas[] = { cpu_a, cpu_b, cpu_b + 2 };
+    academy_exigir_cpus(exigidas, 3,
+                        "precisa de tres nucleos fisicos distintos");
+
     print_provenance("custo-espera");
     pthread_spin_init(&spin, 0);
     academy_fixar_cpu(cpu_a);

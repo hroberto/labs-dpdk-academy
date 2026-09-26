@@ -44,6 +44,7 @@
 #ifndef ACADEMY_FIXAR_CPU_H
 #define ACADEMY_FIXAR_CPU_H
 
+#include <errno.h>
 #include <pthread.h>
 #include <sched.h>
 #include <stdio.h>
@@ -55,6 +56,53 @@
  * colide com o 77 que o Meson reserva para teste PULADO -- pular é exatamente o
  * que uma pré-condição falha não pode fazer aqui. */
 #define ACADEMY_SAIDA_AFINIDADE 86
+
+/* PULADO, e nao falha: a maquina nao tem a topologia que a medicao exige.
+ * E o 77 do Meson, que a suite ja usa com esse significado. */
+#define ACADEMY_SAIDA_SEM_TOPOLOGIA 77
+
+/* Confere ANTES de medir que todas as CPUs necessarias existem e estao
+ * permitidas a este processo, e pula quando nao estao.
+ *
+ * POR QUE PULAR, E NAO FALHAR
+ *
+ * `academy_fixar_cpu()` aborta com 86 porque uma fixacao que falha no meio de
+ * uma medicao e defeito: o programa pediu uma CPU que ele mesmo escolheu. Mas
+ * um runner de CI com 4 CPUs nao tem a CPU 4, e isso nao e defeito do programa
+ * -- e uma maquina que nao pode produzir este numero. Falhar ali transformaria
+ * "esta medicao nao cabe aqui" em "o projeto esta quebrado".
+ *
+ * A diferenca importa porque foi medida: com o retorno de `setaffinity`
+ * descartado, `custo-espera` rodava na CI pedindo a CPU 4, nao a obtinha, e
+ * media com a thread de ruido onde o escalonador quisesse -- publicando um
+ * numero cuja condicao declarada nao existia naquela maquina.
+ *
+ * A PERGUNTA E SOBRE A MASCARA PERMITIDA, e nao sobre a contagem de CPUs:
+ * `sysconf(_SC_NPROCESSORS_ONLN)` diria 24 numa maquina onde um cpuset deixou
+ * so duas ao processo. Aqui `sched_getaffinity` e a ferramenta certa -- nao
+ * como conferencia depois de fixar, que nao acrescenta nada, mas como
+ * pre-condicao antes.
+ */
+static inline void academy_exigir_cpus(const int *cpus, int n, const char *porque)
+{
+    cpu_set_t permitidas;
+    CPU_ZERO(&permitidas);
+    if (sched_getaffinity(0, sizeof(permitidas), &permitidas) != 0) {
+        fprintf(stderr, "topologia: nao foi possivel ler as CPUs permitidas "
+                        "(%s). Nada foi medido.\n", strerror(errno));
+        exit(ACADEMY_SAIDA_SEM_TOPOLOGIA);
+    }
+    for (int i = 0; i < n; i++) {
+        if (cpus[i] >= 0 && cpus[i] < CPU_SETSIZE && CPU_ISSET(cpus[i], &permitidas))
+            continue;
+        fprintf(stderr,
+                "PULADO: esta medicao precisa da CPU %d, que esta maquina nao\n"
+                "  oferece a este processo (%s).\n"
+                "  Nada foi medido -- e isto NAO e uma medicao com sucesso.\n",
+                cpus[i], porque);
+        exit(ACADEMY_SAIDA_SEM_TOPOLOGIA);
+    }
+}
 
 static inline void academy_fixar_cpu(int cpu)
 {
