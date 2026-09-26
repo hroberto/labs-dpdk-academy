@@ -88,22 +88,35 @@ O que está ligado, e o princípio por trás:
   vazada no instante do push, e reescrever histórico não desfaz o que já foi
   indexado;
 - **Private vulnerability reporting**, que é o canal citado em *Como relatar*;
-- `main` protegida por ruleset: assinatura verificada obrigatória, sem force
-  push e sem deleção.
+- `main` protegida por ruleset **ativo e sem ator de exceção**: assinatura
+  verificada obrigatória, sem force push, sem deleção, e quatro verificações
+  exigidas para merge — `build-and-test`, `sanitizers`, `releases-dpdk (25.11)`
+  e `releases-dpdk (26.07)` —, com a branch obrigada a estar atualizada em
+  relação à `main` antes de entrar.
+
+Exigir só `build-and-test` era o estado anterior, e este documento o registrava
+como decisão em aberto. Ela foi fechada. As três que faltavam são justamente as
+que pegam defeito dependente da versão do DPDK e do sanitizador — o tipo que
+compila, passa no teste local e aparece no leitor. Enquanto podiam estar
+vermelhas sem impedir o merge, o verde do PR afirmava menos do que aparentava.
+A exigência de branch atualizada fecha o caso vizinho: um PR validado contra uma
+`main` que já mudou foi medido em outra árvore.
 
 **O que o ruleset NÃO impõe**, e vale dizer porque a prática diária sugere o
 contrário:
 
 - **não exige pull request.** Quem tem permissão de escrita pode empurrar
-  direto para a `main`, desde que o commit esteja assinado. Passar por PR é
-  prática adotada, não garantia da configuração;
-- **exige apenas um check:** `build-and-test`. `sanitizers` e as duas
-  `releases-dpdk` rodam e podem estar vermelhas sem impedir o merge — e são
-  justamente as que pegam defeito dependente de versão e de conjunto de
-  instruções.
+  direto para a `main`, desde que o commit esteja assinado e as quatro
+  verificações passem. Passar por PR é prática adotada, não garantia da
+  configuração;
+- **`build-and-test` é aceito de qualquer origem.** As outras três estão
+  vinculadas ao GitHub Actions; essa não. Qualquer aplicativo com permissão de
+  status pode publicar um check com esse nome e satisfazer a regra. É sobra da
+  configuração antiga, não escolha — e está aqui porque uma verificação que
+  qualquer um pode afirmar garante menos do que a lista sugere.
 
-As duas coisas são decisões em aberto, não descuido, e estão escritas aqui para
-que ninguém confunda o que a ferramenta garante com o que o hábito faz.
+As duas estão escritas aqui para que ninguém confunda o que a ferramenta garante
+com o que o hábito faz.
 
 **O CodeQL está ativo**, com os alvos `actions`, `python` e `c-cpp`, e roda em
 todo push para `main` e em todo pull request.
@@ -117,7 +130,8 @@ O texto ficou para trás da realidade, o que num documento de segurança é pior
 que não dizer nada: quem o lê para saber o que protege a árvore recebia a
 resposta invertida. E há duas ressalvas que continuam valendo:
 
-- **o CodeQL não é verificação exigida para merge** — só `build-and-test` é;
+- **o CodeQL não é verificação exigida para merge** — as exigidas são as
+  quatro acima, e ele não está entre elas;
 - **a configuração dele não está nesta árvore.** Ele roda pelo *default setup*,
   ajustado na interface do GitHub, e não por um workflow versionado. Não há
   `.github/workflows/codeql.yml`: quem clonar o repositório não consegue
@@ -156,11 +170,16 @@ commit on `main` is itself an incident worth reporting.
 with **no auto-triage rules** — both GitHub presets that auto-dismiss alerts are
 disabled and `dependabot.yml` carries no `ignore` rule, so every security alert
 arrives intact and is judged by a human. Secret scanning with push protection is
-on; private vulnerability reporting is on; `main` is protected by a ruleset
-requiring verified signatures and rejecting force pushes and deletion. CodeQL is
+on; private vulnerability reporting is on; `main` is protected by an active
+ruleset with no bypass actor, requiring verified signatures, rejecting force
+pushes and deletion, and requiring four checks to pass -- `build-and-test`,
+`sanitizers`, `releases-dpdk (25.11)` and `releases-dpdk (26.07)` -- on a branch
+that must be up to date with `main`. The ruleset still does **not** require a
+pull request, and `build-and-test` is accepted from any source while the other
+three are bound to GitHub Actions. CodeQL is
 **active**, covering `actions`, `python` and `c-cpp`, on every push to `main`
 and every pull request. This paragraph used to state the opposite, for reasons
 that were sound at the time -- the default setup must build the code, which
 requires DPDK, and `pipeline_ring_vazado` leaks on purpose. The configuration
 changed; the text did not. Note that CodeQL is **not a required check for
-merge**: only `build-and-test` is.
+merge**: the four listed above are, and it is not among them.
