@@ -56,18 +56,42 @@ static inline void consume_ptr(void*p){ __asm__ __volatile__("" : : "r"(p) : "me
 /* Roda num lcore da EAL: e o que faz rte_lcore_id() ser valido e o cache por
  * lcore do mempool ser realmente usado. Thread comum recebe LCORE_ID_ANY e
  * PULA o cache -- detalhe que muda o resultado por completo. */
+/* O DENOMINADOR SAO AS OPERACOES QUE ACONTECERAM, e nao as que foram pedidas.
+ *
+ * A versao anterior dividia por `ITER` sempre, e o `continue` do `get_bulk`
+ * falhado nao tirava nada da conta. Uma falha custa quase zero -- ela nem chega
+ * a consumir os objetos --, entao cada falha EMPURRAVA O CUSTO PUBLICADO PARA
+ * BAIXO.
+ *
+ * O vies tem direcao e endereco: falha de `get_bulk` acontece quando o pool
+ * esvazia, ou seja, sob CONTENCAO -- que e exatamente o que esta medicao
+ * estuda. O mecanismo que deveria piorar o numero o melhorava.
+ *
+ * As falhas viram contador proprio em vez de desaparecerem: coleta com falha
+ * mede outra coisa, e quem le precisa saber disso em vez de deduzir. */
+static _Atomic unsigned long long falhas_get;
+
 static int worker_pool(void *arg)
 {
     (void)arg;
     void *v[BURST];
+    unsigned long long feitas = 0, falhou = 0;
     while (!atomic_load_explicit(&start_flag, memory_order_acquire)) ;
     const double t0 = academy_now_ns_d();
     for (int i = 0; i < ITER / (int)BURST; i++) {
-        if (rte_mempool_get_bulk(pool, v, BURST) < 0) continue;
+        if (rte_mempool_get_bulk(pool, v, BURST) < 0) { falhou++; continue; }
         for (unsigned j = 0; j < BURST; j++) consume_ptr(v[j]);
         rte_mempool_put_bulk(pool, (void *const *)v, BURST);
+        feitas++;
     }
-    atomic_fetch_add(&ns_total, (unsigned long long)((academy_now_ns_d()-t0)*1000.0/ITER));
+    const double decorrido = academy_now_ns_d() - t0;
+    atomic_fetch_add(&falhas_get, falhou);
+    /* Sem nenhuma operacao concluida nao ha custo por operacao a somar: somar
+     * zero seria publicar "de graca" o que na verdade nao mediu nada. */
+    if (feitas > 0)
+        atomic_fetch_add(&ns_total,
+                         (unsigned long long)(decorrido * 1000.0
+                                              / (double)(feitas * BURST)));
     return 0;
 }
 
@@ -77,17 +101,24 @@ static void *worker_malloc(void *arg)
     void *v[BURST];
     while (!atomic_load_explicit(&start_flag, memory_order_acquire)) ;
     const double t0 = academy_now_ns_d();
-    for (int i = 0; i < ITER / (int)BURST; i++) {
+    const int lotes = ITER / (int)BURST;
+    for (int i = 0; i < lotes; i++) {
         for (unsigned j = 0; j < BURST; j++) { v[j] = malloc(TAM); consume_ptr(v[j]); }
         for (unsigned j = 0; j < BURST; j++) free(v[j]);
     }
-    atomic_fetch_add(&ns_total, (unsigned long long)((academy_now_ns_d()-t0)*1000.0/ITER));
+    /* Mesmo denominador do `worker_pool`: objetos que passaram pelo laco. Aqui
+     * nao ha falha possivel, entao sao todos -- mas a conta fica escrita do
+     * mesmo jeito nos dois, para que a razao publicada compare o comparavel. */
+    atomic_fetch_add(&ns_total,
+                     (unsigned long long)((academy_now_ns_d() - t0) * 1000.0
+                                          / (double)((unsigned long long)lotes * BURST)));
     return NULL;
 }
 
 static double measure_pool(unsigned n_lcores)
 {
     atomic_store(&start_flag, 0); atomic_store(&ns_total, 0);
+    atomic_store(&falhas_get, 0);
     unsigned id, launched_n = 0;
     RTE_LCORE_FOREACH_WORKER(id) {
         if (launched_n + 1 >= n_lcores) break;
@@ -96,6 +127,17 @@ static double measure_pool(unsigned n_lcores)
     atomic_store_explicit(&start_flag, 1, memory_order_release);
     worker_pool(NULL);
     rte_eal_mp_wait_lcore();
+    /* O ROTULO DA LINHA AFIRMA `n` THREADS, e so o lancamento sabe se foram
+     * tantas. `rte_eal_remote_launch` so conta em sucesso, e uma falha dele
+     * deixaria a linha rotulada com um numero que nao foi medido. */
+    if (launched_n + 1 != n_lcores)
+        fprintf(stderr, "  AVISO: pedi %u thread(s) e lancei %u -- a linha nao"
+                        " mede o que o rotulo diz\n", n_lcores, launched_n + 1);
+    const unsigned long long falhou = atomic_load(&falhas_get);
+    if (falhou > 0)
+        fprintf(stderr, "  AVISO: %llu lote(s) de get_bulk falharam com %u"
+                        " thread(s); o custo publicado e o do caminho de"
+                        " sucesso\n", falhou, n_lcores);
     return (double)atomic_load(&ns_total) / 1000.0 / (launched_n + 1);
 }
 

@@ -91,14 +91,48 @@ static double medir_uma(void)
  * A diferenca entre as duas fontes e justamente o que esta sonda precisa
  * distinguir, porque ela publica CICLOS -- e ciclos calculados sobre uma
  * frequencia errada sao um numero errado com aparencia de invariante. */
+
+/* A CADEIA VIVE EM REGISTRADOR, e a razao esta medida.
+ *
+ * A versao anterior usava `volatile long x` e somava `x = x + 1`. O `objdump`
+ * mostrava o laco como `mov (%rsp); add; mov ,(%rsp)` -- load/add/store pela
+ * pilha a cada iteracao --, que e EXATAMENTE o padrao que este projeto
+ * retratou no `efeito-cache.c` em 0907f57.
+ *
+ * O QUE FOI MEDIDO, E O QUE ISSO AUTORIZA DIZER. As duas formas correndo lado
+ * a lado nesta maquina deram RAZAO 1,00 em tres repeticoes -- custo por
+ * iteracao indistinguivel. A razao e o que vale aqui; o absoluto saiu numa
+ * maquina em uso e nao e numero publicavel.
+ *
+ * Isso estabelece EQUIVALENCIA DE CUSTO OBSERVADO, e nao identidade de
+ * mecanismo: o assembly da versao com `volatile` continua com load e store, e
+ * o que a medicao diz e que eles nao custam nada de observavel aqui. O
+ * comportamento e compativel com o store-to-load forwarding dos Zen recentes,
+ * que a AMD documenta e estende com Predictive Store Forwarding desde o
+ * Zen 3 -- e nao com "renomeacao de memoria", termo que a documentacao nao
+ * sustenta para este caso.
+ *
+ * E E RESULTADO DE PLATAFORMA, nao propriedade de C nem de `volatile`. Num
+ * processador que nao encurte esse caminho, a mesma cadeia custaria varios
+ * ciclos, o periodo "medido" sairia multiplicado por isso, e a razao
+ * emissao/hardware -- que esta sonda usa para detectar NUCLEO DIVIDIDO --
+ * acusaria divisao onde nao ha. Um numero certo por acidente de hardware e um
+ * numero que nao viaja, e e por isso que a cadeia passou para registrador
+ * mesmo sem haver defeito medido nesta maquina.
+ *
+ * A barreira de compilador entrega a mesma serializacao sem depender disso:
+ * ela impede o compilador de eliminar ou reordenar a soma, e nao obriga a
+ * ida a memoria. */
 static _Alignas(64) volatile long sumidouro_clk;
 static double periodo_ns(void)
 {
     const int n = 20000000;
-    volatile long x = 0;
+    long x = 0;
     const uint64_t t0 = academy_now_ns();
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < n; i++) {
         x = x + 1;
+        __asm__ volatile("" : "+r"(x) :: "memory");
+    }
     const double r = (double)(academy_now_ns() - t0) / n;
     sumidouro_clk = x;
     return r;
