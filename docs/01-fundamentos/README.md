@@ -126,6 +126,7 @@ referência ([`custo-syscall.c`](medicoes/custo-syscall.c)):
 > referência, e a razão syscall/chamada saiu 22% baixa por não declarar que
 > fora medida a frio. O benchmark atual confere o assembly; a conclusão do
 > capítulo nunca dependeu da razão.
+> <!-- retratado: 0,115 0.115 -->
 
 > **E uma terceira, de método.** Esta tabela publicava 0,924 ns para a chamada
 > de função, com `disp` de 0,4% — selo limpo, e correto para aquela coleta.
@@ -1699,6 +1700,7 @@ medindo o tempo de uma linha de cache viajar de um núcleo para outro:
 > execução no pé da distribuição, apresentada como o resultado. Foi trocado pela
 > execução mais próxima da mediana agregada, e o número que o texto afirma
 > passou a ser o das 40.
+> <!-- retratado: 3,73 3.73 -->
 
 **Atravessar a interconexão custa cerca de 4,1 vezes mais — e são 121% do
 orçamento de um pacote de 64 B em 10 GbE.** Um único repasse entre núcleos mal
@@ -3785,6 +3787,7 @@ nenhum neste experimento.
 > razão entre percentis, nesta escala, é governada por evento raro e não por
 > ocupação — e por isso ela não serve como alarme antecipado em nenhuma
 > direção, nem alta nem baixa.
+> <!-- retratado: interpretacao -->
 
 E isso não é surpresa, é a teoria da subseção seguinte aplicada a este
 programa: `orcamento-estourado.c` simula chegada **por prazo fixo**, e chegada
@@ -3886,6 +3889,7 @@ utilização. A observação do documento estava certa e sem nome.
 > `ca²` e concentração temporal diferente enchem uma fila finita de modos
 > diferentes. Um número que resume uma distribuição não carrega a dependência
 > temporal dela.
+> <!-- retratado: interpretacao -->
 
 > **Consequência de projeto.** Dimensionar para a carga média é insuficiente. O
 > que decide a sobrevivência é a margem sobre o **pico**, e o indicador que

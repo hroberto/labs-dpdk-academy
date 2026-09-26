@@ -106,6 +106,24 @@ import sys
 # vinte e um deixa onze invisiveis para quem esta justamente atras deles.
 LIMITE_SEM_MARCA = 10
 
+# Quanto texto depois do bloco ainda conta como "a marca dele". Tres linhas
+# curtas: a marca vem logo apos a cerca ou apos a linha final da citacao, e
+# esticar mais faria a marca de um bloco cobrir o bloco seguinte.
+LIMITE_VIZINHANCA = 200
+
+# RETRATACAO DE INTERPRETACAO nao precisa de codigo, e quase ganhou um.
+#
+# Quando o bloco corrige uma LEITURA -- a atribuicao de uma perda a Kingman, o
+# mecanismo de um acumulador `volatile`, a fronteira de uma versao do DPDK --,
+# nenhum numero dentro dele esta proibido. A forma e `<!-- retratado:
+# interpretacao -->`, e ela funciona pelo que ja existia: a marca tira o bloco
+# do relatorio de cobertura, e `NUMERO.findall("interpretacao")` devolve vazio,
+# entao nada entra na lista de mortos.
+#
+# Uma versao deste arquivo acrescentou um conjunto `SEM_VALOR` e um desvio para
+# tratar esse caso. O teste de mutacao mostrou que o desvio nao mudava nada --
+# mutante vivo -- e ele saiu. Fica a convencao, que e o que precisava existir.
+
 IGNORAR = {".git", "build", "subprojects", "__pycache__", "temp"}
 
 # Marcadores de retratação, em minúsculas. Derivados dos blocos que o projeto
@@ -130,6 +148,13 @@ MARCADORES = (
     "used to publish", "once published", "previously published",
     "previous version", "used to say", "was an artefact", "was an artifact",
     "was wrong", "were wrong", "retraction",
+    # `an earlier version published` -- o par ingles de "uma versao anterior
+    # publicou". A assimetria custou caro em 26/09/2026: o bloco portugues da
+    # §2 era reconhecido, o ingles nao, e ao marcar `0,115` como retratado o
+    # portao acusou o PROPRIO bloco ingles de republicar o valor que ele
+    # retrata. A frase entra inteira, e nao so `earlier version`, pelo mesmo
+    # motivo que a lista toda e especifica.
+    "an earlier version published", "earlier version published",
 )
 
 # Número decimal qualquer; o corte por dígitos significativos vem depois, em
@@ -515,10 +540,32 @@ def verificar(raiz="."):
             texto = open(doc, encoding="utf-8").read()
         except (OSError, UnicodeDecodeError):
             continue
-        for _, _, bloco in retratacoes(texto):
+        for ini, fim, bloco in retratacoes(texto):
             marca = MARCA.search(bloco)
             if not marca:
-                if NUMERO.search(bloco):
+                # A MARCA ADJACENTE CONTA, e ate 26/09/2026 nao contava.
+                #
+                # Este verificador tinha dois criterios que discordavam entre
+                # si. O escopo da isencao alcanca a marca que fica LOGO DEPOIS
+                # do bloco -- e ela fica ali por necessidade, porque bloco de
+                # medicao precisa casar a coleta literalmente e nao admite um
+                # comentario no meio. Ja o relatorio de cobertura perguntava se
+                # a marca estava DENTRO, e por isso contava como "nao conferido"
+                # cinco blocos cuja retratacao esta declarada na linha seguinte.
+                #
+                # Agora os dois olham para o mesmo lugar.
+                # A marca ADJACENTE ja registra os valores por conta propria:
+                # `retratacoes()` reconhece a marca sozinha como retratacao em
+                # si, e foi assim que o material a usou desde o inicio. O que
+                # faltava era o RELATORIO saber disso.
+                #
+                # DOS DOIS LADOS, porque o material usa as duas posicoes: a §4.2
+                # poe a marca ANTES do bloco e a §4.1 poe DEPOIS. Olhar so para
+                # a frente deixava a primeira de fora, e a diferenca entre as
+                # duas e de quem escreveu, nao de significado.
+                vizinha = (MARCA.search(texto[fim:fim + LIMITE_VIZINHANCA])
+                           or MARCA.search(texto[max(0, ini - LIMITE_VIZINHANCA):ini]))
+                if not vizinha and NUMERO.search(bloco):
                     sem_marca.append((os.path.relpath(doc, raiz), bloco.strip()[:70]))
                 continue
             for n in NUMERO.findall(marca.group(1)):
@@ -666,6 +713,74 @@ def autoteste():
     if "COBERTURA PARCIAL" in saida:
         print("  AUTOTESTE FALHOU: bloco sem marca, com numero de 1 significativo,"
               " gerou aviso de cobertura parcial")
+        falhas += 1
+
+    # A MARCA ADJACENTE CONTA COMO MARCA DO BLOCO. Ela fica fora por
+    # necessidade: bloco de medicao casa a coleta literalmente e nao admite
+    # comentario no meio. Enquanto o relatorio exigia a marca DENTRO, cinco
+    # blocos com retratacao declarada na linha seguinte eram contados como
+    # nao conferidos -- e o valor deles, em compensacao, nem entrava na lista
+    # de mortos, entao ninguem conferia se ele sobrevivia.
+    doc = ("# d\n\n> **Esta tabela publicava 12,34 ns, e estava errado.**\n"
+           "> O medido agora e 20,00 ns.\n"
+           "<!-- retratado: 12,34 -->\n\n"
+           "A folga segue em 12,34 ns.\n")
+    rc, saida = rodar({"d.md": doc})
+    if rc != 1 or "12,34" not in saida:
+        print("  AUTOTESTE FALHOU: marca adjacente ao bloco nao foi lida como"
+              f" marca dele (rc={rc})")
+        print("    " + saida.strip().replace("\n", "\n    "))
+        falhas += 1
+    if "COBERTURA PARCIAL" in saida:
+        print("  AUTOTESTE FALHOU: bloco com marca adjacente contado como sem marca")
+        falhas += 1
+
+    # E A MARCA NAO PODE ESTICAR ATE O BLOCO SEGUINTE. Sem o limite, a marca de
+    # um bloco cobriria o proximo, e o segundo passaria por conferido sem ser.
+    doc = ("# d\n\n> **Este bloco publicava 12,34 ns, e estava errado.**\n\n"
+           + "enchimento.\n" * 40 +
+           "\n> **Este outro publicava 56,78 ns, e tambem estava errado.**\n\n"
+           "<!-- retratado: 56,78 -->\n")
+    rc, saida = rodar({"d.md": doc})
+    if "COBERTURA PARCIAL" not in saida:
+        print("  AUTOTESTE FALHOU: a marca do segundo bloco cobriu o primeiro,"
+              " a quarenta linhas de distancia")
+        falhas += 1
+
+    # E A MARCA ANTES DO BLOCO conta igual. O material usa as duas posicoes --
+    # a §4.2 do modulo 01 poe a marca antes, a §4.1 poe depois --, e a diferenca
+    # e de quem escreveu, nao de significado. Enquanto o relatorio so olhava
+    # para a frente, o bloco do acumulador `volatile` era contado como nao
+    # conferido com a marca dele duas linhas acima.
+    doc = ("# d\n\n<!-- retratado: 12,34 -->\n\n"
+           "> **Esta tabela publicava 12,34 ns, e estava errado.**\n"
+           "> O medido agora e 20,00 ns.\n\n"
+           "A folga segue em 12,34 ns.\n")
+    rc, saida = rodar({"d.md": doc})
+    if "COBERTURA PARCIAL" in saida:
+        print("  AUTOTESTE FALHOU: marca ANTES do bloco contada como ausente")
+        falhas += 1
+    if rc != 1:
+        print(f"  AUTOTESTE FALHOU: marca antes do bloco nao matou o valor (rc={rc})")
+        falhas += 1
+
+    # RETRATACAO DE INTERPRETACAO: o que caiu foi a leitura, e nenhum numero do
+    # bloco esta proibido. Sem esta forma, o unico jeito de tirar do relatorio
+    # um bloco que corrige uma ATRIBUICAO seria marcar valores que continuam
+    # vivos -- e o portao passaria a persegui-los pelo material inteiro.
+    doc = ("# d\n\n> **Correcao: esta secao atribuia a perda ao termo de"
+           " Kingman, e a atribuicao estava errada.**\n"
+           "> Os 26,6 % continuam valendo no cenario publicado.\n"
+           "> <!-- retratado: interpretacao -->\n\n"
+           "A perda medida e de 26,6 %.\n")
+    rc, saida = rodar({"d.md": doc})
+    if rc != 0:
+        print("  AUTOTESTE FALHOU: `retratado: interpretacao` proibiu um numero"
+              f" que o bloco declara vivo (rc={rc})")
+        print("    " + saida.strip().replace("\n", "\n    "))
+        falhas += 1
+    if "COBERTURA PARCIAL" in saida:
+        print("  AUTOTESTE FALHOU: bloco de interpretacao ficou na cobertura parcial")
         falhas += 1
 
     # ESCOPO DA ISENCAO -- tres casos, e os tres vieram de defeito medido.

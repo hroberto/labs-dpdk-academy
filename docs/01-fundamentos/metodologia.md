@@ -74,6 +74,7 @@ regime**.
 |---|---|---|
 | 0,115 ns / 294× | o instrumento não media o que dizia medir | desmonte o binário antes de publicar |
 | 36× contra 46× | a medição estava certa, o regime não estava declarado | diga se mediu a frio ou em regime |
+<!-- cita-retratado: 0,115 0.115 -->
 
 E uma observação que vale para o documento inteiro: **nenhuma das duas mudou a
 conclusão do §2**. Ela sai de 33,3 ns contra 67,2 ns de orçamento, e a chamada

@@ -74,6 +74,7 @@ the regime**.
 |---|---|---|
 | 0.115 ns / 294× | the instrument did not measure what it claimed | disassemble the binary before publishing |
 | 36× against 46× | the measurement was right, the regime was undeclared | say whether you measured cold or in steady state |
+<!-- cita-retratado: 0,115 0.115 -->
 
 And an observation that holds for the whole document: **neither changed §2's
 conclusion**. It comes from 33.3 ns against a 67.2 ns budget, and the function

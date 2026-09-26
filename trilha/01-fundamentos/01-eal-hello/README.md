@@ -142,6 +142,7 @@ O comando de estudo é:
 > para a linha de comando, e o conflito deixou de disparar. Vale como aviso de
 > método: o que o programa aceita não é o mesmo que o que o programa
 > suporta.
+> <!-- retratado: interpretacao -->
 >
 > **O que fazer:** use uma de cada vez. Para rodar sem hugepages e sem
 > privilégio, `--no-huge` basta. O que se perde é o isolamento que

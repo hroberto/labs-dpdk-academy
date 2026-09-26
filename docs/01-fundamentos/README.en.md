@@ -123,6 +123,7 @@ machine ([`custo-syscall.c`](medicoes/custo-syscall.c)):
 > reference call, and the syscall/call ratio came out 22% low for not declaring
 > it had been measured cold. The current benchmark checks the assembly; the
 > chapter's conclusion never depended on the ratio.
+> <!-- retratado: 0,115 0.115 -->
 
 > **And a third one, of method.** This table used to publish 0.924 ns for the
 > function call, with a `disp` of 0.4% — a clean seal, and correct for that
