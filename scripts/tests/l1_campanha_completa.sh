@@ -32,11 +32,10 @@ raiz=$(cd "$(dirname "$0")/../.." && pwd)
 fonte="$raiz/ferramental/qualidade/campanha.sh"
 [ -r "$fonte" ] || { echo "FALHA: nao achei $fonte"; exit 1; }
 
-eval "$(sed -n '/^repeticoes_de() {/,/^}/p;/^faltando_em() {/,/^}/p;/^completa() {/,/^}/p' "$fonte")"
-if ! declare -F completa >/dev/null; then
-    echo "FALHA: nao consegui extrair completa() de campanha.sh"
-    exit 1
-fi
+eval "$(sed -n '/^repeticoes_de() {/,/^}/p;/^faltando_em() {/,/^}/p;/^estado_da_celula() {/,/^}/p;/^nao_passaram_em() {/,/^}/p;/^completa() {/,/^}/p' "$fonte")"
+for f in repeticoes_de faltando_em estado_da_celula nao_passaram_em completa; do
+    declare -F "$f" >/dev/null || { echo "FALHA: nao consegui extrair $f() de campanha.sh"; exit 1; }
+done
 
 REF=ref
 tmp=$(mktemp -d)
@@ -112,8 +111,64 @@ for m in $MODULOS; do
 done
 caso "lixo na referencia nao e exigido da coleta nova" 0
 
+manifesto() { # <configuracao> <modulo> <linhas "celula STATUS rc">
+    local d="docs/$2/medicoes/historico/$1"
+    mkdir -p "$d"
+    {
+        echo "# manifesto de teste"
+        printf '%-40s %-7s %s\n' "CELL" "STATUS" "RC"
+        shift 2
+        local l
+        for l in "$@"; do printf '%-40s %-7s %s\n' $l; done
+    } > "$d/manifesto.txt"
+}
+
+# ---- O ARQUIVO EXISTE E A MEDICAO REPROVOU ------------------------------
+# `programa > saida.txt 2>&1` cria a saida mesmo quando o programa sai com
+# erro. Sem consultar o manifesto, a celula esta presente com o nome certo e
+# passa por medida -- o defeito mais traicoeiro desta familia, porque a coleta
+# parece intacta em disco.
+for m in $MODULOS; do
+    criar ref  "$m" A.r1.txt A.r2.txt
+    criar nova "$m" A.r1.txt A.r2.txt
+    manifesto nova "$m" "A.r1.txt PASS 0" "A.r2.txt FAIL 1"
+done
+caso "celula presente com FAIL no manifesto NAO e completa" 1
+
+for m in $MODULOS; do
+    criar ref  "$m" A.r1.txt A.r2.txt
+    criar nova "$m" A.r1.txt A.r2.txt
+    manifesto nova "$m" "A.r1.txt PASS 0" "A.r2.txt SKIP 77"
+done
+caso "celula presente com SKIP no manifesto NAO e completa" 1
+
+for m in $MODULOS; do
+    criar ref  "$m" A.r1.txt A.r2.txt
+    criar nova "$m" A.r1.txt A.r2.txt
+    manifesto nova "$m" "A.r1.txt PASS 0" "A.r2.txt PASS 0"
+done
+caso "todas PASS no manifesto e completa" 0
+
+# SEM MANIFESTO A RESPOSTA E VAZIA, E NAO "PASS". As coletas anteriores a
+# 26/09/2026 nao o tem, e presumir aprovacao delas inventaria um dado que
+# ninguem registrou. Vale a conferencia por nomes, que e o que havia.
+for m in $MODULOS; do
+    criar ref  "$m" A.r1.txt A.r2.txt
+    criar nova "$m" A.r1.txt A.r2.txt
+done
+caso "sem manifesto, decide pelos nomes (compatibilidade)" 0
+
+# UMA CELULA FORA DO MANIFESTO tambem e desconhecida, e nao reprovada: o
+# manifesto pode ser de uma versao da campanha que nao produzia aquela celula.
+for m in $MODULOS; do
+    criar ref  "$m" A.r1.txt B.r1.txt
+    criar nova "$m" A.r1.txt B.r1.txt
+    manifesto nova "$m" "A.r1.txt PASS 0"
+done
+caso "celula ausente do manifesto nao reprova" 0
+
 if [ "$falhas" -gt 0 ]; then
     echo "  $falhas assercao(oes) falharam"
     exit 1
 fi
-echo "  ok: 7 casos; completude decidida por matriz, nao por contagem"
+echo "  ok: 12 casos; completude por matriz E por estado, nao por presenca"

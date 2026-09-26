@@ -847,11 +847,37 @@ faltando_em() { # <configuracao> <modulo>  -> nomes da referencia ausentes
     comm -13 <(repeticoes_de "docs/$2/medicoes/historico/$1") \
              <(repeticoes_de "docs/$2/medicoes/historico/$REF")
 }
-completa() { # <configuracao>  -> 0 se os tres modulos contem a matriz da referencia
+# PRESENCA DO ARQUIVO NAO E SUCESSO DA MEDICAO, e a diferenca nao e teorica:
+# `programa > saida.txt 2>&1` cria a saida MESMO quando o programa sai com
+# erro. Uma celula pode existir com o nome certo e conter so uma execucao
+# reprovada -- e a conferencia por nomes, sozinha, a daria por medida.
+#
+# `manifesto.txt` e a autoridade quando existe: `campanha-hardware.sh` grava
+# nele o estado com que cada celula terminou. Sem manifesto a resposta e vazia,
+# e NAO "PASS": as coletas anteriores a 26/09/2026 nao o tem, e presumir
+# aprovacao delas seria inventar um dado que ninguem registrou. Nesses casos
+# vale a conferencia por nomes, que e o que havia.
+estado_da_celula() { # <configuracao> <modulo> <celula>  -> PASS|SKIP|FAIL ou vazio
+    local man="docs/$2/medicoes/historico/$1/manifesto.txt"
+    [ -r "$man" ] || return 0
+    awk -v c="$3" '$1 == c { print $2; exit }' "$man"
+}
+nao_passaram_em() { # <configuracao> <modulo>  -> celulas presentes que nao mediram
+    local c="$1" m="$2" cel estado
+    for cel in $(repeticoes_de "docs/$m/medicoes/historico/$REF"); do
+        estado=$(estado_da_celula "$c" "$m" "$cel")
+        case "$estado" in
+            ""|PASS) ;;
+            *) echo "$cel($estado)" ;;
+        esac
+    done
+}
+completa() { # <configuracao>  -> 0 se os tres modulos contem a matriz da referencia E ela mediu
     local c="$1" m
     for m in 01-fundamentos 02-runtime-dpdk 03-mempool-ring-mbuf; do
         [ -n "$(repeticoes_de "docs/$m/medicoes/historico/$REF")" ] || return 1
         [ -z "$(faltando_em "$c" "$m")" ] || return 1
+        [ -z "$(nao_passaram_em "$c" "$m")" ] || return 1
     done
     return 0
 }
@@ -864,10 +890,16 @@ elif [ -d "docs/01-fundamentos/medicoes/historico/$CONF" ]; then
         # de 20" nao diz QUAIS duas celulas nao existem, e sao elas que dizem se
         # a campanha parou no meio ou pulou um braco inteiro.
         ausentes=$(faltando_em "$CONF" "$m" | tr '\n' ' ')
-        printf "              %-22s %s de %s saidas de repeticao%s\n" "$m" \
+        # AS DUAS CAUSAS SAO DIFERENTES e precisam aparecer separadas: celula
+        # que nao existe e campanha interrompida; celula que existe e nao
+        # passou e medicao que correu e reprovou. Refazer a coleta resolve a
+        # primeira; a segunda pede olhar o programa.
+        reprovadas=$(nao_passaram_em "$CONF" "$m" | tr '\n' ' ')
+        printf "              %-22s %s de %s saidas de repeticao%s%s\n" "$m" \
             "$(ls docs/$m/medicoes/historico/$CONF/*.r[0-9]*.txt 2>/dev/null | wc -l)" \
             "$(ls docs/$m/medicoes/historico/$REF/*.r[0-9]*.txt  2>/dev/null | wc -l)" \
-            "${ausentes:+ -- faltam: $ausentes}"
+            "${ausentes:+ -- faltam: $ausentes}" \
+            "${reprovadas:+ -- nao mediram: $reprovadas}"
     done
     echo "              A campanha de hardware nao sobrescreve. Para refazer:"
     echo "                rm -rf docs/*/medicoes/historico/$CONF"
@@ -875,17 +907,36 @@ elif [ -d "docs/01-fundamentos/medicoes/historico/$CONF" ]; then
 elif [ -x build/docs/01-fundamentos/medicoes/custo-syscall ]; then
     # `sudo -u` limpa o ambiente, entao a variavel vai explicita na chamada:
     # exportar no shell de root nao a faz chegar ao filho.
-    sudo -u "$DONO" -H \
+    # OS TRES ESTADOS DA SUBCAMPANHA, e nao "deu certo ou nao deu".
+    #
+    # `campanha-hardware.sh` devolve 0, 2 (alguma celula pulou por
+    # pre-requisito) ou 1 (alguma falhou). Colapsar 2 em falha transformaria
+    # ausencia declarada em defeito; colapsar 1 em sucesso e o falso verde.
+    if sudo -u "$DONO" -H \
         DPDK_ACADEMY_HUGE_DIR="${DPDK_ACADEMY_HUGE_DIR:-}" \
-        ./ferramental/qualidade/campanha-hardware.sh "$CONF" \
-        && echo "    ok" || falhou
+        ./ferramental/qualidade/campanha-hardware.sh "$CONF"; then
+        echo "    ok"
+    else
+        hw_rc=$?
+        if [ "$hw_rc" -eq 2 ]; then
+            pulou "campanha de hardware: celula(s) puladas por pre-requisito"
+        else
+            falhou "(campanha de hardware saiu com $hw_rc)"
+        fi
+    fi
     # O feed some em silencio; conferir a contagem e o unico jeito de saber.
     nfeed=$(ls docs/02-runtime-dpdk/medicoes/historico/$CONF/feed-*.txt 2>/dev/null | wc -l)
     if [ "$nfeed" -eq 12 ]; then
         echo "    feed: 12 arquivos, completo"
+    elif [ -z "${DPDK_ACADEMY_HUGE_DIR:-}" ]; then
+        # Sem hugetlbfs o feed nem foi tentado, e o `pulou` ja saiu la atras
+        # quando a montagem falhou. Contar duas vezes inflaria o veredito.
+        echo "    feed: nao coletado (sem hugetlbfs; ja contabilizado acima)"
     else
-        echo "    AVISO: feed com $nfeed arquivos, esperados 12 -- a comparacao"
-        echo "           do passo 6 perde esses rotulos"
+        # HAVIA HUGETLBFS E O FEED SAIU PARCIAL. Isso nao e ausencia declarada:
+        # a coleta foi tentada, produziu parte e a outra parte nao existe. Um
+        # AVISO aqui deixava a campanha fechar COMPLETA sabendo disso.
+        falhou "(feed com $nfeed arquivo(s), esperados 12; o passo 6 perde esses rotulos)"
     fi
 else
     pulou "binarios dos modulos ausentes; rode scripts/build-all.sh"
