@@ -197,6 +197,44 @@
 #   estabilizou as medianas nao se sustenta, e o que sobra e descobrir o que
 #   ainda se move.
 #
+#   DESFECHO, E POR QUE ELE NAO DECIDE NADA. A previsao correu tres vezes e
+#   saiu REFUTADA nas tres -- 10 rotulos na campanha de 26/09. So que o numero
+#   8 e a contagem de uma REGUA que media errado, e isso foi apurado depois:
+#   das 95 grandezas com cinco coletas ou mais, 40 ja variam mais de 5% entre
+#   coletas em que nada mudou. A marca fixa acusava 8 rotulos na mediana entre
+#   dois pares de texto do MESMO hardware -- ou seja, o valor previsto era o
+#   ruido da propria regua, e a previsao nunca teve como se sustentar.
+#
+#   Previsao calibrada em instrumento defeituoso nao e refutada nem sustentada:
+#   e sem efeito. Ela fica registrada porque foi feita, e o que a substitui
+#   esta abaixo.
+#
+# PRE-REGISTRO DE 26/09/2026 -- A REGUA NOVA
+#
+#   O `comparar-hardware.py` passou a marcar quando o passo excede DUAS VEZES a
+#   amplitude historica do proprio rotulo, medida sobre as coletas irmas de
+#   mesma configuracao e mesma condicao de sessao. Rotulo sem irmas suficientes
+#   nao recebe marca e entra na contagem `SEM REGUA`.
+#
+#   CALIBRACAO, declarada: nos dez pares de coletas expo6000 de modo texto a
+#   regra nova da mediana de 1 marca, faixa de 0 a 2 -- contra 8 da regra fixa.
+#   E na unica comparacao com efeito real conhecido (texto contra sessao
+#   grafica, 26/09) ela marca as duas grandezas que o teste de postos da §7.2
+#   da metodologia do modulo 01 identificou, que a regra fixa NAO marcava.
+#
+#   PREVISAO. No maximo 3 rotulos nao explicados por mudanca de codigo recebem
+#   a marca numa campanha de texto contra texto do mesmo hardware.
+#
+#   O NUMERO 3 VEM DA CALIBRACAO, e nao de folga: e a mediana 1 mais a margem
+#   ate o maior par observado, 2. Como o 8 de antes, ele foi tirado do dado que
+#   existe -- e como antes, ele vale a partir da PROXIMA campanha, porque
+#   previsao avaliada no proprio dado que a calibrou e descricao.
+#
+#   REFUTADA SE. Mais de 3 rotulos nao explicados receberem a marca num par
+#   texto-texto de mesma configuracao. Contra coleta de OUTRA condicao ou de
+#   outro hardware a previsao nao se aplica: ali a marca mede a diferenca que
+#   se foi buscar.
+#
 # UMA LIMITACAO DO LIMIAR, DECLARADA PORQUE ELA JA DISPAROU.
 #
 # `abs(d) > 5%` e relativo, e a `DIFFERENCE attributable to translation` e uma
@@ -839,11 +877,12 @@ EXPLICADOS_RE='efeito-cache: (L1d|L2|L3|RAM) random'
 explicados=$(grep '<<<' "$SAIDA/comparacao.txt" | grep -cE "$EXPLICADOS_RE" || true)
 nao_explicados=$(( marcados - explicados ))
 echo "    dos $marcados marcados, $explicados sao mudanca de codigo declarada"
-if [ "$nao_explicados" -le 8 ]; then
-    echo "    PREVISAO SUSTENTADA ($nao_explicados rotulo(s) nao explicado(s), <= 8)"
+if [ "$nao_explicados" -le 3 ]; then
+    echo "    PREVISAO SUSTENTADA ($nao_explicados rotulo(s) nao explicado(s), <= 3)"
 else
-    echo "    PREVISAO REFUTADA ($nao_explicados nao explicados, previa-se no maximo 8)"
+    echo "    PREVISAO REFUTADA ($nao_explicados nao explicados, previa-se no maximo 3)"
 fi
+grep -E "^  SEM REGUA:" "$SAIDA/comparacao.txt" | sed 's/^/    /' || true
 grep -E "rotulo\(s\);" "$SAIDA/comparacao.txt" | sed 's/^/    /'
 echo "    comparacao completa em ${SAIDA#$RAIZ/}/comparacao.txt"
 

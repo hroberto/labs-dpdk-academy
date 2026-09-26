@@ -229,6 +229,11 @@ if python3.found()
   # `consolidar-rajada.py` passou a emitir NBSP (U+00A0) em vez de espaco, e o
   # autoteste PASSOU porque o literal esperado carregava o mesmo caractere
   # errado. Quem acusou foi o `verificar-autodescricao.py`, por acidente.
+  test('docs - autoteste do comparador de hardware', python3,
+       args : [meson.project_source_root() / 'ferramental/qualidade/comparar-hardware.py',
+               '--autoteste'],
+       suite : ['l1', 'docs'], timeout : 60)
+
   test('docs - autoteste da leitura de condicao da coleta', python3,
        args : [meson.project_source_root() / 'ferramental/qualidade/condicao_coleta.py',
                '--autoteste'],
