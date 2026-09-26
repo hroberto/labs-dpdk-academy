@@ -120,14 +120,39 @@ def verificar(raiz="."):
     if problemas:
         return problemas
 
+    # RELEASE EM ANDAMENTO NAO E DIVERGENCIA, e a ordem dos fatos obriga a dizer
+    # isso aqui.
+    #
+    # A tag aponta para o commit que sobe a versao -- foi assim em todas as
+    # releases deste repositorio. Entao existe um intervalo, entre o commit e a
+    # tag, em que o `.cff` esta legitimamente A FRENTE. Enquanto este portao
+    # tratava isso como erro, o commit do bump so podia entrar com
+    # `--no-verify`, e a regra do projeto e nao commitar sem o portao verde.
+    #
+    # O comentario do bloco do meson.build, logo abaixo, ja raciocinava assim:
+    # "numa release em andamento os dois ja estao a frente da tag". Faltava a
+    # mesma leitura aqui.
+    #
+    # O QUE CONTINUA SENDO ERRO: versao ATRAS da tag -- alguem esqueceu de subir
+    # -- e versao a frente com a tag JA EXISTINDO, que significa `.cff` e tag
+    # discordando de verdade.
     tag = tag_mais_recente(raiz)
     if tag:
         esperada = tag.lstrip("v")
-        if str(d["version"]) != esperada:
-            print(f"  CITATION.cff: version '{d['version']}' != tag mais recente '{tag}'")
+        versao = str(d["version"])
+        def ordem(v):
+            return [int(x) for x in re.findall(r"\d+", v)] or [0]
+        tags = set(git(["tag"], raiz).split())
+        em_andamento = (ordem(versao) > ordem(esperada)
+                        and f"v{versao}" not in tags and versao not in tags)
+        if em_andamento:
+            print(f"  CITATION.cff: version '{versao}' a frente de '{tag}' e sem tag"
+                  f" propria -- release em andamento, nao divergencia")
+        elif versao != esperada:
+            print(f"  CITATION.cff: version '{versao}' != tag mais recente '{tag}'")
             problemas += 1
         data = git(["log", "-1", "--format=%ad", "--date=short", tag], raiz)
-        if data and str(d["date-released"]) != data:
+        if data and not em_andamento and str(d["date-released"]) != data:
             print(f"  CITATION.cff: date-released '{d['date-released']}' != data de {tag} ({data})")
             problemas += 1
 
@@ -189,6 +214,7 @@ version: 1.02.01
 date-released: "%s"
 """
     falhas = 0
+    data_hoje = __import__("datetime").date.today().isoformat()
 
     def repo(cff, tag="v1.02.01", licenca="MIT License\n", remoto="git@github.com:dono/nome.git",
              meson=None):
@@ -240,6 +266,25 @@ date-released: "%s"
     # 3. O caso mais provável no dia a dia: taggeou e esqueceu de subir a versão.
     caso(3, "version defasada em relação à tag passou",
          repo(bom, tag="v1.03.00"), 1)
+
+    # 3.1 RELEASE EM ANDAMENTO: o `.cff` À FRENTE da tag, sem tag própria ainda.
+    #     É o estado normal entre o commit que sobe a versão e a tag que aponta
+    #     para ele, e tratá-lo como erro obrigava `--no-verify` em toda release.
+    adiantado = BASE.replace("version: 1.02.01", "version: 1.03.00")
+    caso("3.1", "release em andamento acusada como divergência",
+         repo(adiantado % data_hoje, tag="v1.02.01"), 0)
+
+    # 3.2 E A TOLERÂNCIA TEM DE SE ANUNCIAR. O risco dela não é aceitar a
+    #     divergência errada -- versão atrás continua sendo erro, caso 3 --, é
+    #     virar SILÊNCIO: alguém sobe a versão, nunca cria a tag, e o `.cff`
+    #     fica à frente para sempre sem nada dizer. A linha impressa é o que
+    #     impede isso, então ela é conferida.
+    buf_31 = io.StringIO()
+    with redirect_stdout(buf_31):
+        verificar(repo(adiantado % data_hoje, tag="v1.02.01"))
+    if "release em andamento" not in buf_31.getvalue():
+        print("  AUTOTESTE 3.2 FALHOU: a tolerância não se anunciou na saída")
+        falhas += 1
 
     # 4. Licença: o `.cff` afirmando MIT sobre um LICENSE que não é MIT manda
     #    quem reutiliza o material confiar num termo errado.
