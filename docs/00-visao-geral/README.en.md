@@ -162,8 +162,10 @@ silently), the record is **generated**:
 ```
 
 It reports what actually changes a result: CPU model and topology, **L3 cache
-domains**, TSC flags, *governor* and turbo, hugepages, the kernel and its command
-line, CPU mitigations, NIC and driver, and the DPDK, compiler and build versions.
+domains**, TSC flags, *governor*, frequency driver and *energy performance
+preference*, turbo, **presence of a graphical session**, hugepages, the kernel and
+its command line, CPU mitigations, NIC and driver, and the DPDK, compiler and
+build versions.
 
 Three of those fields have already changed a conclusion in this project:
 
@@ -175,11 +177,30 @@ Three of those fields have already changed a conclusion in this project:
 - **the L3 domains** (`0-5,12-17` and `6-11,18-23`) are what separates "same CCD"
   from "different CCDs" in the core-to-core communication measurements.
 
-> Run the script before comparing any number of yours with the ones here. If the
-> *governor* is on `powersave` with turbo enabled — which is the default on most
-> distributions, and this machine's — the frequency varies during the measurement,
-> and that is why the documents publish median and dispersion instead of a single
-> value.
+> **Run the script before comparing any number of yours with the ones here.** If
+> the *governor* is on `powersave` with turbo enabled — which is the default on
+> most distributions, and this machine's outside a campaign — the frequency varies
+> during the measurement, and that is why the documents publish median and
+> dispersion instead of a single value.
+
+> **The campaign pins the *governor*, and since 25/09/2026 that is its default.**
+> It was not: until 24/09 the project declared that it did not pin the frequency,
+> backed by a measurement taken **with a graphical session**, where the compositor
+> keeps the CPU warm and pinning the *governor* changed little. In text mode
+> nothing warms the CPU between invocations, and the conclusion inverts. Module
+> 03's `malloc/free` measures the difference with no overlap:
+>
+> | *governor* | collections | runs | value |
+> |---|---:|---:|---:|
+> | `powersave` | 4 | 20 | **2.78 ns** in all twenty |
+> | `performance` | 6 | 30 | 2.18 to 2.20 ns |
+>
+> That is 27%, and the separation is perfect. Hence
+> [`campanha.sh`](../../ferramental/qualidade/campanha.sh) pins the *governor* by
+> default and restores it at the end; `--nao-fixar-governor` still exists to
+> reproduce the `powersave` cell. **A binary run outside the campaign gets none of
+> this** — which is why the material publishes ratios, which survive the switch,
+> alongside absolutes, which do not.
 
 ### 5.1 When DPDK is the experiment's variable
 

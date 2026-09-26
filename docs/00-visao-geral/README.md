@@ -162,9 +162,10 @@ em silêncio), o registro é **gerado**:
 ```
 
 Ele reporta o que efetivamente muda um resultado: modelo e topologia da CPU,
-**domínios de cache L3**, sinalizadores de TSC, *governor* e turbo, hugepages,
-kernel e sua linha de comando, mitigações de CPU, NIC e driver, e as versões de
-DPDK, compilador e build.
+**domínios de cache L3**, sinalizadores de TSC, *governor*, driver de frequência
+e *energy performance preference*, turbo, **presença de sessão gráfica**,
+hugepages, kernel e sua linha de comando, mitigações de CPU, NIC e driver, e as
+versões de DPDK, compilador e build.
 
 Três desses campos já mudaram uma conclusão neste projeto:
 
@@ -176,11 +177,30 @@ Três desses campos já mudaram uma conclusão neste projeto:
 - **os domínios de L3** (`0-5,12-17` e `6-11,18-23`) são o que separa "mesmo CCD"
   de "CCDs diferentes" nas medições de comunicação entre núcleos.
 
-> Rode o script antes de comparar qualquer número seu com os daqui. Se o
+> **Rode o script antes de comparar qualquer número seu com os daqui.** Se o
 > *governor* estiver em `powersave` e o turbo ligado — que é o padrão da maioria
-> das distribuições, e o desta máquina — a frequência varia durante a medição, e
-> é por isso que os documentos publicam mediana e dispersão em vez de um valor
-> só.
+> das distribuições, e o desta máquina fora de uma campanha — a frequência varia
+> durante a medição, e é por isso que os documentos publicam mediana e dispersão
+> em vez de um valor só.
+
+> **A campanha fixa o *governor*, e desde 25/09/2026 esse é o padrão dela.** Não
+> era: até 24/09 o projeto declarava que não fixava a frequência, apoiado numa
+> medição feita **com sessão gráfica**, onde o compositor mantém a CPU quente e
+> fixar o *governor* mudava pouco. Em modo texto nada aquece a CPU entre
+> invocações, e a conclusão se inverte. O `malloc/free` do módulo 03 mede a
+> diferença sem sobreposição:
+>
+> | *governor* | coletas | execuções | valor |
+> |---|---:|---:|---:|
+> | `powersave` | 4 | 20 | **2,78 ns** nas vinte |
+> | `performance` | 6 | 30 | 2,18 a 2,20 ns |
+>
+> São 27% de diferença, e a separação é perfeita. Por isso a
+> [`campanha.sh`](../../ferramental/qualidade/campanha.sh) fixa o *governor* por
+> padrão e o restaura no fim; `--nao-fixar-governor` continua existindo para
+> reproduzir a célula `powersave`. **Um binário executado fora da campanha não
+> tem esse tratamento** — e é a razão de o material publicar razões, que
+> sobrevivem à troca, além dos absolutos, que não sobrevivem.
 
 ### 5.1 Quando o DPDK é a variável do experimento
 

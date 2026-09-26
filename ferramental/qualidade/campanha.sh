@@ -88,6 +88,29 @@
 #   esta certo ali. Se a previsao acima se sustentar, aquela conclusao passa a
 #   valer so para o modo em que foi feita, e o registro precisa dizer qual.
 #
+#   DESFECHO, APURADO EM 25/09/2026 SOBRE AS DEZ COLETAS ARQUIVADAS DO MODULO
+#   03 -- quatro em `powersave` e seis em `performance`, cinco repeticoes cada.
+#   A previsao acerta nos tres criterios que ela mesma fixou:
+#
+#     f0 contra f1        powersave  4,33 -> 4,89..5,58 GHz, ate 28,9% de
+#                                    diferenca dentro da MESMA execucao
+#                         performance  5,53..5,60, no maximo 0,7%
+#                         -> previsto "menos de 3%"; deu 0,7%.
+#
+#     `malloc`            powersave  2,78 ns nas VINTE execucoes
+#                         performance  2,18 a 2,20 nas TRINTA
+#                         -> o criterio de refutacao era "continuar em 2,78".
+#                            Nao continuou, e a separacao e perfeita.
+#
+#     `NO cache`          powersave  alternava 11,88 e 13,42
+#                         performance  10,44 a 10,51, faixa de 0,1%
+#                         -> previsto "para de alternar". Parou.
+#
+#   CONSEQUENCIA. A conclusao "fixar o governor ajuda pouco" passa a valer SO
+#   para o modo grafico, e o `ambiente-medicao.sh` ja diz qual. E como a
+#   intervencao decidiu, ela deixou de ser flag: fixar virou o padrao desta
+#   campanha, com `--nao-fixar-governor` guardando a celula `powersave`.
+#
 # O EXPERIMENTO QUE ORIGINOU ESTE SCRIPT
 #
 # PRE-REGISTRO -- ESCRITO ANTES DA COLETA, E E POR ISSO QUE ESTE CABECALHO
@@ -256,7 +279,10 @@ cd "$RAIZ"
 CONTINUAR=0
 SO_HARDWARE=0
 SO_RUIDO=0
-FIXAR_GOV=0
+# GOVERNOR FIXO E O PADRAO desde 25/09/2026, e a opcao agora e para DESLIGAR.
+# A justificativa esta no bloco comentado mais abaixo, junto do codigo que o
+# fixa.
+FIXAR_GOV=1
 MODO=""
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -265,7 +291,10 @@ while [ $# -gt 0 ]; do
         --continuar)    CONTINUAR=1; shift ;;
         --so-hardware)  SO_HARDWARE=1; shift ;;
         --so-ruido)     SO_RUIDO=1; shift ;;
+        # Aceita e ignora: era a forma de LIGAR quando o padrao era nao fixar,
+        # e as chamadas que a passam continuam corretas.
         --fixar-governor) FIXAR_GOV=1; shift ;;
+        --nao-fixar-governor) FIXAR_GOV=0; shift ;;
         -*) echo "opcao desconhecida: $1" >&2; exit 2 ;;
         *)  break ;;
     esac
@@ -275,7 +304,7 @@ done
 # este projeto passou o mes inteiro corrigindo.
 if [ -z "$MODO" ]; then
     echo "uso: $0 --texto|--grafico [--continuar]" >&2
-    echo "         [--so-hardware | --so-ruido] [--fixar-governor] <configuracao>" >&2
+    echo "         [--so-hardware | --so-ruido] [--nao-fixar-governor] <configuracao>" >&2
     echo >&2
     echo "  --texto    servidor ou console. Exige ausencia de sessao grafica." >&2
     echo "             Menor jitter; use para dispersao, p99 e cauda." >&2
@@ -359,13 +388,22 @@ id "$DONO" >/dev/null 2>&1 || { echo "FALHA: nao identifiquei o usuario dono ($D
 # aberto sobre uma sessao grafica ainda viva mediria a condicao errada e o
 # resultado pareceria valido.
 # --------------------------------------------------------------------------
-alvo=$(systemctl get-default 2>/dev/null)
+# ALVO PADRAO NAO E ALVO EM EXECUCAO, e confundir os dois engana quem le a
+# coleta depois. `systemctl get-default` devolve o que a maquina usa NO
+# PROXIMO boot; um boot unico por `grub-reboot modo-texto` nao o altera. A
+# coleta 2026-09-25-1720 e exatamente esse caso: gravou `graphical.target` e
+# correu sem sessao grafica nenhuma, e quem a lesse pelo alvo a classificaria
+# errado. Por isso os dois campos ficam, com o nome do que cada um e.
+alvo_padrao=$(systemctl get-default 2>/dev/null)
+alvo_ativo=$(systemctl is-active graphical.target 2>/dev/null)
+alvo_ativo=${alvo_ativo:-desconhecido}
 # `pgrep -c` imprime "0" E sai com 1 quando nao acha nada; um `|| echo 0`
 # somaria um segundo "0" e o teste inteiro abaixo quebraria.
 graficos=$(pgrep -c -x "Xorg|Xwayland|gnome-shell|kwin_wayland|sway" 2>/dev/null)
 graficos=${graficos:-0}
 echo "==> conferindo a condicao"
-echo "    alvo padrao do systemd : $alvo"
+echo "    alvo padrao do systemd : $alvo_padrao"
+echo "    graphical.target ativo : $alvo_ativo"
 echo "    processos graficos     : $graficos"
 # O PORTAO E ASSIMETRICO DE PROPOSITO.
 #
@@ -383,9 +421,9 @@ if [ "$MODO" = "texto" ] && [ "$graficos" -ne 0 ]; then
     exit 1
 fi
 if [ "$MODO" = "texto" ]; then
-    case "$alvo" in
+    case "$alvo_padrao" in
         multi-user.target) ;;
-        *) echo "AVISO: alvo padrao e '$alvo', nao multi-user.target."
+        *) echo "AVISO: alvo padrao e '$alvo_padrao', nao multi-user.target."
            echo "       Sem processo grafico vivo a condicao vale, mas o proximo"
            echo "       boot volta ao grafico. Seguindo." ;;
     esac
@@ -406,20 +444,36 @@ mkdir -p "$SAIDA"
 # pior momento possivel para descobrir.
 chown -R "$DONO" "$SAIDA"
 # --------------------------------------------------------------------------
-# GOVERNOR FIXO, e por que isto e uma FLAG e nao um padrao.
+# GOVERNOR FIXO, E POR QUE ELE DEIXOU DE SER FLAG E VIROU PADRAO.
 #
-# O `ambiente-medicao.sh` registra, de medicao propria, que "fixar o governor
+# O `ambiente-medicao.sh` registrava, de medicao propria, que "fixar o governor
 # ajuda pouco; DESCARTAR A PRIMEIRA EXECUCAO ajuda muito". Aquilo foi medido em
 # modo grafico, onde o compositor mantem a CPU quente e so a primeira execucao
 # apos ociosidade e fria.
 #
 # Em modo texto nada aquece a CPU, entao TODA execucao e a primeira apos
-# ociosidade -- e o descarte nao alcanca o problema. A previsao e que ali o
-# governor deixe de "ajudar pouco" e passe a ser a variavel dominante.
+# ociosidade, e o descarte nao alcanca o problema. A previsao era que ali o
+# governor deixasse de "ajudar pouco" e passasse a ser a variavel dominante.
+# Ela foi registrada ANTES de medir, e esta e a flag que a testou: uma celula
+# com ela, outra sem, o resto identico.
 #
-# Previsao contraria a conclusao ja registrada merece intervencao de variavel
-# unica, nao mudanca de padrao. Dai a flag: uma celula com ela, outra sem, e o
-# resto identico.
+# A PREVISAO SE CONFIRMOU, e com separacao perfeita. Nas coletas arquivadas do
+# modulo 03, o `malloc/free`:
+#
+#   powersave     4 coletas, 20 execucoes:  2,78 ns em TODAS as 20
+#   performance   6 coletas, 30 execucoes:  2,18 a 2,20 ns
+#
+# Sao 27% de diferenca sem uma unica sobreposicao em 50 execucoes. E nao e so
+# o `malloc`: comparando a coleta grafica de 23/09 com as de texto, por teste
+# de postos, cinco grandezas ficam MAIORES em texto sob `powersave` --
+# `atomic seq_cst` +8,0%, `atomic relaxed` +2,6%, `mutex lock+unlock` +0,9% --
+# e NENHUMA fica maior sob `performance`.
+#
+# Intervencao de variavel unica existe para decidir, e esta decidiu. Manter a
+# flag desligada por padrao seria deixar a condicao pior como a herdada, que e
+# o defeito que este projeto passou o mes corrigindo. O padrao inverteu; a
+# opcao `--nao-fixar-governor` continua existindo para que a celula
+# `powersave` siga reproduzivel.
 GOV_ANTERIOR=""
 restaurar_governor() {
     [ -n "$GOV_ANTERIOR" ] || return 0
@@ -465,7 +519,8 @@ echo "    saida: ${SAIDA#$RAIZ/}"
 {
     echo "modo declarado   : $MODO"
     echo "governor fixado  : $([ "$FIXAR_GOV" -eq 1 ] && echo "sim (era $GOV_ANTERIOR)" || echo nao)"
-    echo "alvo systemd     : $alvo"
+    echo "alvo padrao      : $alvo_padrao"
+    echo "graphical ativo  : $alvo_ativo"
     echo "processos grafico: $graficos"
     echo "governor cpu2    : $(cat /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor 2>/dev/null)"
     echo "C3 disable cpu2  : $(cat /sys/devices/system/cpu/cpu2/cpuidle/state3/disable 2>/dev/null)"

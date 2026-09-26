@@ -121,14 +121,15 @@ dois na mesma máquina, com a mesma metodologia dos demais programas do projeto.
      falso positivo noutro documento ensina a ignorar o portão. O valor está
      declarado morto no texto acima, que é onde um leitor o procura. -->
 
-> **Por que o programa publica razões, e não só nanossegundos.** Sem fixar a
-> frequência do processador — e este projeto não a fixa, como suas
-> [limitações](../00-visao-geral/README.md#5-o-ambiente-de-medição) declaram —,
-> os valores absolutos mudam entre execuções: o mesmo binário deu 2,19 ns e
-> 2,77 ns para o `malloc`, conforme o turbo engatasse. As **razões** ficaram
-> idênticas (2,23× nas duas). É por isso que este módulo afirma "duas vezes mais
+> **Por que o programa publica razões, e não só nanossegundos.** O valor
+> absoluto da primeira linha depende do *governor*: o mesmo binário deu
+> **2,78 ns** com `powersave` e **2,18 ns** com `performance` para o `malloc` de
+> um objeto só — 27%, e sem uma sobreposição em cinquenta execuções arquivadas.
+> A razão do lote de 128 objetos, na mesma medição, fica entre **44,0× e 45,7×**
+> nas mesmas cinquenta. É por isso que este módulo afirma "duas vezes mais
 > rápido" e não "1,25 nanossegundos": a razão é a afirmação; o nanossegundo é
-> circunstância.
+> circunstância. A [metodologia](metodologia.md#1-1--por-que-o-programa-publica-razões-e-não-só-nanossegundos)
+> explica por que a primeira linha é a que mais sofre.
 >
 > <!-- cita-retratado: 2,19 2.19 2,77 2.77 2,23 2.23 -->
 

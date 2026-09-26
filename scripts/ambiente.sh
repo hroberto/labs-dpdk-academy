@@ -56,6 +56,33 @@ GOVERNOR=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null
 TURBO_INTEL=$(cat /sys/devices/system/cpu/intel_pstate/no_turbo 2>/dev/null || echo "-")
 TURBO_AMD=$(cat /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || echo "-")
 
+# O DRIVER E O EPP NÃO SÃO DETALHE DO GOVERNOR: são a outra metade dele.
+#
+# Com `amd-pstate-epp` (ou `intel_pstate` em modo ativo) quem escolhe a
+# frequência é o hardware, e o governor entra só como uma das duas entradas
+# dessa escolha; a outra é o *energy performance preference*. Duas coletas com
+# `governor=performance` e EPP diferentes não são a mesma condição, e até
+# 25/09/2026 o arquivo não guardava nada que as distinguisse.
+FREQ_DRIVER=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver 2>/dev/null || echo "-")
+FREQ_EPP=$(cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference 2>/dev/null || echo "nao-exposto")
+PSTATE_MODO=$(cat /sys/devices/system/cpu/amd_pstate/status 2>/dev/null || echo "-")
+
+# A CONDIÇÃO DA SESSÃO, e por que são três campos e não um.
+#
+# `systemctl get-default` devolve o alvo do PRÓXIMO boot, não o desta execução:
+# um boot único por `grub-reboot` não o altera. A coleta 2026-09-25-1720 é esse
+# caso -- correu sem sessão gráfica nenhuma e o alvo padrão dizia
+# `graphical.target`. Quem a lesse pelo alvo a classificaria errado, e foi o
+# que aconteceu em 25/09 ao comparar as eras gráfica e texto.
+#
+# Quem decide é a CONTAGEM DE PROCESSOS gráficos vivos, que é o mesmo critério
+# do portão da `campanha.sh`. Os outros dois ficam porque explicam a diferença
+# entre o que a máquina fez e o que ela fará de novo.
+SESSAO_ALVO=$(systemctl get-default 2>/dev/null || echo "-")
+SESSAO_ATIVA=$(systemctl is-active graphical.target 2>/dev/null || echo "-")
+SESSAO_PROCS=$(pgrep -c -x "Xorg|Xwayland|gnome-shell|kwin_wayland|sway" 2>/dev/null)
+SESSAO_PROCS=${SESSAO_PROCS:-0}
+
 NUMA_NOS=$(lscpu_col NODE)
 HUGE_TOTAL=$(awk '/^HugePages_Total:/{print $2}' /proc/meminfo)
 HUGE_LIVRES=$(awk '/^HugePages_Free:/{print $2}' /proc/meminfo)
@@ -248,6 +275,8 @@ cat <<EOF
 
   Estado de frequencia (decide se a medicao e comparavel entre execucoes)
     governor ............... $GOVERNOR
+    driver / modo .......... $FREQ_DRIVER / $PSTATE_MODO
+    energy perf pref ....... $FREQ_EPP
     turbo .................. intel_no_turbo=$TURBO_INTEL  amd_boost=$TURBO_AMD
 
   Memoria
@@ -264,6 +293,7 @@ cat <<EOF
   Sistema
     kernel ................. $KERNEL
     distribuicao ........... $DISTRO
+    sessao grafica ......... $SESSAO_PROCS processo(s); graphical.target $SESSAO_ATIVA; alvo padrao $SESSAO_ALVO
     linha de comando ....... $CMDLINE
     mitigacoes ativas ...... $MITIG_ATIVAS
     nao aplicaveis ......... $MITIG_INATIVAS

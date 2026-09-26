@@ -115,13 +115,15 @@ on the same machine, with the same methodology as the project's other programs.
 > programs, not of this one.
 > <!-- cita-retratado: 2,11 2.11 0,99 0.99 1,03 1.03 -->
 
-> **Why the program publishes ratios, and not only nanoseconds.** Without pinning the
-> processor's frequency — and this project does not pin it, as its
-> [limitations](../00-visao-geral/README.en.md#5-the-measurement-environment) declare — the
-> absolute values change between runs: the same binary gave 2.19 ns and 2.77 ns for
-> `malloc`, depending on whether turbo engaged. The **ratios** were identical (2.23×
-> in both). That is why this module claims "twice as fast" and not "1.25
-> nanoseconds": the ratio is the claim; the nanosecond is circumstance.
+> **Why the program publishes ratios, and not only nanoseconds.** The absolute
+> value of the first row depends on the *governor*: the same binary gave
+> **2.78 ns** under `powersave` and **2.18 ns** under `performance` for the
+> single-object `malloc` — 27%, with no overlap across fifty archived runs. The
+> 128-object batch ratio, in the same measurement, stays between **44.0× and
+> 45.7×** across those same fifty. That is why this module claims "twice as fast"
+> and not "1.25 nanoseconds": the ratio is the claim; the nanosecond is
+> circumstance. The [methodology](metodologia.en.md#1-1--why-the-program-publishes-ratios-not-just-nanoseconds)
+> explains why the first row suffers most.
 >
 > <!-- cita-retratado: 2,19 2.19 2,77 2.77 2,23 2.23 -->
 

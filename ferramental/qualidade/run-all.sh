@@ -389,16 +389,19 @@ fi
 # --------------------------------------------------------------------------
 echo
 echo "==> ETAPA 3/4  campanha completa  ($(date +%T))"
-# O MODO VAI DETECTADO, nao fixo. `--fixar-governor` vale nos dois: em texto
-# porque nada aquece a CPU, em grafico porque tira a unica variavel que o
-# compositor ainda move sem declarar.
+# O MODO VAI DETECTADO, nao fixo. O GOVERNOR NAO VAI MAIS NA CHAMADA: desde
+# 25/09/2026 a `campanha.sh` o fixa por padrao e o restaura no fim, nos dois
+# modos -- em texto porque nada aquece a CPU, em grafico porque tira a unica
+# variavel que o compositor ainda move sem declarar. Enquanto era flag, quem
+# chamasse a campanha direto herdava `powersave` e os 27% de diferenca no
+# `malloc` de um objeto so.
 # O NOME VAI JA CARIMBADO. A campanha detecta o carimbo e nao aplica outro --
 # sem isso ela usaria o horario de QUANDO ELA comeca, que e minutos depois das
 # etapas anteriores, e a mesma execucao apareceria sob dois nomes.
 EXTRA=""
 [ "$SO_RUIDO" -eq 1 ] && EXTRA="--so-ruido"
 # shellcheck disable=SC2086
-./ferramental/qualidade/campanha.sh "--$MODO" $EXTRA --fixar-governor "$CARIMBO-$CONFIG"
+./ferramental/qualidade/campanha.sh "--$MODO" $EXTRA "$CARIMBO-$CONFIG"
 rc=$?
 
 # --------------------------------------------------------------------------
