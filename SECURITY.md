@@ -61,8 +61,14 @@ prioridade sobre qualquer outra coisa, inclusive conteúdo novo.
 
 ## Procedência do conteúdo
 
-Todo commit é **assinado com GPG**, e a branch `main` exige assinatura
-verificada. A chave pública está no perfil do mantenedor no GitHub.
+Todo commit é **assinado**, e a branch `main` exige assinatura **verificada**.
+A chave pública está no perfil do mantenedor no GitHub.
+
+O mecanismo varia, e a propriedade que importa não: o histórico tem commits
+assinados com **SSH** e commits de merge assinados com **GPG** pelo próprio
+GitHub. `git log --format="%G?"` mostra os dois. Dizer "GPG" no lugar de
+"assinado" descrevia um mecanismo, e não a garantia — e o que a `main` exige é
+a garantia.
 
 Se você encontrar um commit sem assinatura verificada em `main`, isso é por si
 só um incidente: relate.
@@ -85,11 +91,39 @@ O que está ligado, e o princípio por trás:
 - `main` protegida por ruleset: assinatura verificada obrigatória, sem force
   push e sem deleção.
 
-**Não há CodeQL**, e não é esquecimento. O *default setup* precisa compilar o
-código, e compilar aqui exige DPDK instalado — ele falharia. Além disso,
-`pipeline_ring_vazado` vaza de propósito e seria apontado como defeito a cada
-execução; supressão mal feita em ferramenta de segurança é o começo de
-ignorá-la inteira. É item de ROADMAP, não configuração às pressas.
+**O que o ruleset NÃO impõe**, e vale dizer porque a prática diária sugere o
+contrário:
+
+- **não exige pull request.** Quem tem permissão de escrita pode empurrar
+  direto para a `main`, desde que o commit esteja assinado. Passar por PR é
+  prática adotada, não garantia da configuração;
+- **exige apenas um check:** `build-and-test`. `sanitizers` e as duas
+  `releases-dpdk` rodam e podem estar vermelhas sem impedir o merge — e são
+  justamente as que pegam defeito dependente de versão e de conjunto de
+  instruções.
+
+As duas coisas são decisões em aberto, não descuido, e estão escritas aqui para
+que ninguém confunda o que a ferramenta garante com o que o hábito faz.
+
+**O CodeQL está ativo**, com os alvos `actions`, `python` e `c-cpp`, e roda em
+todo push para `main` e em todo pull request.
+
+Este parágrafo dizia o contrário — "não há CodeQL, e não é esquecimento" — e a
+razão registrada era boa na época: o *default setup* precisa compilar, compilar
+aqui exige DPDK, e `pipeline_ring_vazado` vaza de propósito e seria apontado a
+cada execução. O que mudou foi a configuração, não o argumento.
+
+O texto ficou para trás da realidade, o que num documento de segurança é pior
+que não dizer nada: quem o lê para saber o que protege a árvore recebia a
+resposta invertida. E há duas ressalvas que continuam valendo:
+
+- **o CodeQL não é verificação exigida para merge** — só `build-and-test` é;
+- **a configuração dele não está nesta árvore.** Ele roda pelo *default setup*,
+  ajustado na interface do GitHub, e não por um workflow versionado. Não há
+  `.github/workflows/codeql.yml`: quem clonar o repositório não consegue
+  reconstruir nem auditar quais consultas rodaram. Num projeto cuja tese é que
+  todo resultado tem um programa que o produz, isso é uma exceção — e está
+  escrita aqui em vez de passar despercebida.
 
 ---
 
@@ -113,7 +147,9 @@ during an embargo, and open discussion serves readers better. The exception is
 exposed credentials or personal data in history — use GitHub's *Private
 vulnerability reporting* for those.
 
-All commits are GPG-signed and `main` requires verified signatures. An unsigned
+All commits are signed and `main` requires **verified** signatures; the
+mechanism varies (SSH for authored commits, GPG for GitHub merge commits) and
+the guarantee does not. An unsigned
 commit on `main` is itself an incident worth reporting.
 
 **Repository configuration:** Dependabot alerts and security updates are on,
@@ -122,5 +158,9 @@ disabled and `dependabot.yml` carries no `ignore` rule, so every security alert
 arrives intact and is judged by a human. Secret scanning with push protection is
 on; private vulnerability reporting is on; `main` is protected by a ruleset
 requiring verified signatures and rejecting force pushes and deletion. CodeQL is
-deliberately absent: its default setup must build the code, which requires DPDK,
-and `pipeline_ring_vazado` leaks on purpose and would be flagged every run.
+**active**, covering `actions`, `python` and `c-cpp`, on every push to `main`
+and every pull request. This paragraph used to state the opposite, for reasons
+that were sound at the time -- the default setup must build the code, which
+requires DPDK, and `pipeline_ring_vazado` leaks on purpose. The configuration
+changed; the text did not. Note that CodeQL is **not a required check for
+merge**: only `build-and-test` is.

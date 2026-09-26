@@ -229,6 +229,49 @@ PLACA="$(v cat /sys/class/dmi/id/board_vendor) $(v cat /sys/class/dmi/id/board_n
 BIOS="$(v cat /sys/class/dmi/id/bios_version) de $(v cat /sys/class/dmi/id/bios_date)"
 
 
+# --- sobreposicoes que mudam a medicao ------------------------------------
+#
+# POR QUE ISTO ENTRA NO REGISTRO DE AMBIENTE
+#
+# `DPDK_ACADEMY_AMOSTRAS` e `DPDK_ACADEMY_RODADAS` existem para a CI caber no
+# teto de tempo: a primeira reduz quantas amostras cada programa coleta, a
+# segunda quantas operacoes entram em cada amostra. As duas mudam o NUMERO
+# publicado -- menos rodadas fazem o custo de ler o relogio virar fracao maior
+# da amostra; menos amostras mudam quartis e selos -- e nenhuma delas aparecia
+# aqui. Duas coletas com o mesmo commit, o mesmo hardware e o mesmo banner
+# podiam ter sido produzidas com protocolos diferentes, sem nada no arquivo
+# que permitisse distinguir.
+#
+# `DPDK_ACADEMY_CPU_RUIDO` muda deliberadamente o fenomeno de contencao, e as
+# tres `INJECT_*` quebram o programa de proposito para exercitar caminhos de
+# falha -- uma coleta produzida com qualquer delas ligada NAO e uma medicao.
+#
+# AUSENCIA E DECLARADA, e nao omitida: imprimir a linha com `(padrao)` diz que
+# a pergunta foi feita. Omitir a linha quando a variavel nao esta definida
+# deixaria o leitor sem saber se o protocolo era o padrao ou se esta versao do
+# script nao olhava.
+SOBREPOSICOES=""
+for _v in DPDK_ACADEMY_AMOSTRAS DPDK_ACADEMY_RODADAS DPDK_ACADEMY_CPU_RUIDO \
+         DPDK_ACADEMY_TICKS DPDK_ACADEMY_ESPERA \
+         DPDK_ACADEMY_INJECT_PAUSE DPDK_ACADEMY_INJECT_LEAK \
+         DPDK_ACADEMY_INJECT_INVALID_SAMPLE; do
+    _val=$(eval "printf '%s' \"\${$_v:-}\"")
+    if [ -n "$_val" ]; then
+        SOBREPOSICOES="$SOBREPOSICOES$_v=$_val "
+    fi
+done
+SOBREPOSICOES=${SOBREPOSICOES% }
+[ -n "$SOBREPOSICOES" ] || SOBREPOSICOES="(nenhuma; protocolo padrao)"
+
+# Variaveis de build que mudam o binario medido sem mudar o commit.
+FLAGS_BUILD=""
+for _v in CFLAGS CXXFLAGS CPPFLAGS LDFLAGS LD_PRELOAD PKG_CONFIG_PATH LD_LIBRARY_PATH; do
+    _val=$(eval "printf '%s' \"\${$_v:-}\"")
+    [ -n "$_val" ] && FLAGS_BUILD="$FLAGS_BUILD$_v=$_val "
+done
+FLAGS_BUILD=${FLAGS_BUILD% }
+[ -n "$FLAGS_BUILD" ] || FLAGS_BUILD="(nenhuma)"
+
 # --- saída ----------------------------------------------------------------
 if [ "$MODO" = "--markdown" ]; then
     cat <<EOF
@@ -257,6 +300,8 @@ if [ "$MODO" = "--markdown" ]; then
 | Meson / Ninja | $MESON / $NINJA |
 | Mitigações ativas | $MITIG_ATIVAS |
 | Mitigações não aplicáveis | $MITIG_INATIVAS |
+| Sobreposições de protocolo | \`$SOBREPOSICOES\` |
+| Variáveis de build | \`$FLAGS_BUILD\` |
 EOF
     exit 0
 fi
@@ -306,6 +351,10 @@ cat <<EOF
     DPDK ................... $DPDK
     compilador ............. $CC
     meson / ninja .......... $MESON / $NINJA
+
+  Protocolo da coleta (muda o NUMERO sem mudar o commit)
+    sobreposicoes .......... $SOBREPOSICOES
+    variaveis de build ..... $FLAGS_BUILD
 
   Para colar num documento: ./scripts/ambiente.sh --markdown
 

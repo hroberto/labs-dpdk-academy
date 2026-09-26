@@ -302,7 +302,22 @@ else
         [ "$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)" = "$1" ]
     }
     # O governor volta ao que era mesmo se o script morrer no meio.
-    trap 'fixar_gov "$GOV_ANTES" >/dev/null 2>&1; echo "==> governor restaurado para $GOV_ANTES"' EXIT INT TERM
+    # DUAS RESPONSABILIDADES SEPARADAS, e antes estavam misturadas.
+    #
+    # Um unico trap em `EXIT INT TERM` restaurava o governor e DEVOLVIA O
+    # CONTROLE: terminado o handler, o fluxo seguia. Um SIGTERM no meio de uma
+    # campanha de horas nao interrompia nada -- o operador achava ter parado, e
+    # a coleta continuava, podendo terminar como completa.
+    #
+    # `EXIT` limpa; `INT` e `TERM` limpam E TERMINAM, com os codigos que a
+    # convencao de shell usa para cada sinal.
+    limpar_governor() {
+        fixar_gov "$GOV_ANTES" >/dev/null 2>&1
+        echo "==> governor restaurado para $GOV_ANTES"
+    }
+    trap limpar_governor EXIT
+    trap 'echo "==> interrompido (SIGINT)" >&2; exit 130' INT
+    trap 'echo "==> terminado (SIGTERM)" >&2; exit 143' TERM
 
     {
         echo "modo detectado  : $MODO"
@@ -425,6 +440,47 @@ EXTRA=""
 ./ferramental/qualidade/campanha.sh "--$MODO" $EXTRA "$CARIMBO-$CONFIG"
 rc=$?
 
+# O ESTADO AGREGADO, e nao `set -e`.
+#
+# `run-all` so pode devolver sucesso se TODAS as etapas que declarou executar
+# tiverem sucesso. Abortar na primeira falha perderia o diagnostico das
+# seguintes -- e numa execucao de horas, o diagnostico e metade do valor --,
+# entao o script segue enquanto for seguro e acumula aqui.
+#
+# 2 significa INCOMPLETA (pre-requisito ausente), como no resto do projeto;
+# 1 significa que algo correu e falhou. Falha ganha de incompleta.
+rc_final=0
+marcar_falha() { # <mensagem>
+    echo "    FALHA: $1" >&2
+    rc_final=1
+}
+marcar_incompleta() { # <mensagem>
+    echo "    INCOMPLETA: $1" >&2
+    [ "$rc_final" -eq 0 ] && rc_final=2
+    return 0
+}
+case "$rc" in
+    0) ;;
+    2) marcar_incompleta "a campanha terminou incompleta (rc=2)" ;;
+    *) marcar_falha "a campanha terminou com rc=$rc" ;;
+esac
+
+# UMA FUNCAO PARA AS DUAS SAIDAS, e a duplicacao ja cobrou o preco.
+#
+# O texto do veredito aparecia em dois lugares, uma substituicao casou nos
+# dois, e o resultado foi um `if` aninhado que o `bash -n` aceita e que decide
+# errado -- o teste leu `rc=2` como veredito quando era erro de sintaxe do
+# recorte. O veredito e um so; imprimi-lo em dois lugares era o convite.
+veredito_linha() {
+    case "$rc_final" in
+        0) echo "  run-all CONCLUIDO  $(date -Is)   (campanha rc=$rc)" ;;
+        2) echo "  run-all INCOMPLETO  $(date -Is)   (campanha rc=$rc)"
+           echo "  Alguma etapa nao foi executada por pre-requisito ausente." ;;
+        *) echo "  run-all NAO CONCLUIDO  $(date -Is)   (campanha rc=$rc)"
+           echo "  Alguma etapa correu e FALHOU; a coleta nao esta completa." ;;
+    esac
+}
+
 # --------------------------------------------------------------------------
 # ETAPA 4: as invocacoes unicas da trilha.
 #
@@ -448,9 +504,13 @@ if [ "$SO_RUIDO" -eq 1 ]; then
     echo "    PULADA (--so-ruido)"
     echo
     echo "=========================================================="
-    echo "  run-all CONCLUIDO  $(date -Is)"
+    # O `exit 0` AQUI DESCARTAVA O `rc` DA CAMPANHA, capturado vinte linhas
+    # acima. Com `--so-ruido`, uma campanha que falhasse com 42 produzia um
+    # `run-all CONCLUIDO` e codigo 0 -- e era o unico caminho do script que
+    # fazia isso, justamente o mais curto e o mais usado para ensaio.
+    veredito_linha
     echo "=========================================================="
-    exit 0
+    exit "$rc_final"
 fi
 T02=trilha/01-fundamentos/02-mempool-ring
 SAIDA_T02="$T02/historico/$CARIMBO-$CONFIG"
@@ -491,20 +551,47 @@ else
     # linha literal contra arquivo, e mediana entre rodadas nao existe em rodada
     # nenhuma -- a r1 e a que vai ao documento. As demais sustentam a prosa que
     # fala de faixa.
+    # CADA INVOCACAO CONFERE O RETORNO, e o arquivo so e promovido se ela
+    # tiver dado certo.
+    #
+    # Antes, o redirecionamento criava a saida em qualquer caso: dez execucoes
+    # falhando produziam dez arquivos e um `CONCLUIDO`. E como a completude e
+    # conferida por NOME, a coleta parecia intacta em disco -- o mesmo defeito
+    # que o manifesto fechou um nivel abaixo, sobrevivendo aqui.
+    #
+    # O temporario e o `mv` sao o ponto: um arquivo em `historico/` passa a
+    # significar "esta execucao terminou bem", e nao "esta execucao foi
+    # tentada".
+    rodar_bloco() { # <arquivo-final> <comando...>
+        local final=$1; shift
+        local tmp="$final.parcial"
+        if sudo -u "$DONO" -H "$@" > "$tmp" 2>&1; then
+            mv "$tmp" "$final"
+            return 0
+        fi
+        local rc_bloco=$?
+        echo "    FALHA: $(basename "$final") -- rc=$rc_bloco; a saida fica em $tmp" >&2
+        rc_final=1
+        return 0
+    }
+
     for r in $(seq 1 10); do
-        sudo -u "$DONO" -H "$PR"  -l 0   --no-huge --file-prefix=topico02 -- -n 10 \
-            > "$SAIDA_T02/pipeline_ring.n10.r$r.txt" 2>&1
-        sudo -u "$DONO" -H "$PKT" -n 10 \
-            > "$SAIDA_CPP/packet_pipeline.n10.r$r.txt" 2>&1
+        rodar_bloco "$SAIDA_T02/pipeline_ring.n10.r$r.txt" \
+            "$PR" -l 0 --no-huge --file-prefix=topico02 -- -n 10
+        rodar_bloco "$SAIDA_CPP/packet_pipeline.n10.r$r.txt" \
+            "$PKT" -n 10
     done
     # Cinco para as de 2 milhoes: cada uma leva segundos, e a dispersao delas ja
     # e pequena -- dez seriam minutos comprados por casa decimal que nao muda
     # leitura nenhuma.
     for r in $(seq 1 5); do
-        sudo -u "$DONO" -H "$PR"  -l 0,2 --no-huge --file-prefix=topico02 -- -n 2000000 -b 256 \
-            > "$SAIDA_T02/pipeline_ring.2m-b256.r$r.txt" 2>&1
+        rodar_bloco "$SAIDA_T02/pipeline_ring.2m-b256.r$r.txt" \
+            "$PR" -l 0,2 --no-huge --file-prefix=topico02 -- -n 2000000 -b 256
+        # `pipeline_ring_vazado` VAZA DE PROPOSITO e sinaliza isso pela saida:
+        # aqui rc != 0 e o RESULTADO ESPERADO, e trata-lo como falha marcaria
+        # a coleta inteira por causa do unico programa que deve falhar.
         sudo -u "$DONO" -H "$PRV" -l 0,2 --no-huge --file-prefix=topico02 -- -n 2000000 -b 256 \
-            > "$SAIDA_T02/pipeline_ring_vazado.2m-b256.r$r.txt" 2>&1
+            > "$SAIDA_T02/pipeline_ring_vazado.2m-b256.r$r.txt" 2>&1 || true
     done
 
     # A EXCECAO DESTA ETAPA, E ELA E DECLARADA.
@@ -520,12 +607,12 @@ else
     if [ -x "$ANELCPP" ]; then
         echo "    custo-anel-cpp: 10 execucoes (o README publica medianas de 10)"
         for r in $(seq 1 10); do
-            sudo -u "$DONO" -H "$ANELCPP" > "$SAIDA_CPP/custo-anel-cpp.r$r.txt" 2>&1
+            rodar_bloco "$SAIDA_CPP/custo-anel-cpp.r$r.txt" "$ANELCPP"
         done
         n=$(ls "$SAIDA_CPP"/custo-anel-cpp.r*.txt 2>/dev/null | wc -l)
         echo "    custo-anel-cpp: $n de 10 saidas"
     else
-        echo "    PULADO: custo-anel-cpp ausente em $ANELCPP"
+        marcar_incompleta "custo-anel-cpp ausente em $ANELCPP"
     fi
 
     for pref in pipeline_ring.n10 pipeline_ring.2m-b256 pipeline_ring_vazado.2m-b256; do
@@ -545,7 +632,7 @@ fi
 
 echo
 echo "=========================================================="
-echo "  run-all CONCLUIDO  $(date -Is)   (campanha rc=$rc)"
+veredito_linha
 echo
 echo "  Para voltar ao modo grafico: reinicie."
 echo "    sudo reboot"
@@ -553,4 +640,4 @@ echo '  O grub-reboot e de BOOT UNICO -- a entrada de modo texto ja expirou,'
 echo "  e nao ha sessao grafica aqui inibindo o desligamento. Sem -i, sem"
 echo "  set-default: os dois so fazem falta no sentido contrario."
 echo "=========================================================="
-exit "$rc"
+exit "$rc_final"

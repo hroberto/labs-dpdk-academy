@@ -10,6 +10,9 @@
 // Sem `#define _GNU_SOURCE` aqui: ao contrario do lado C, o g++ ja o define
 // por padrao em C++, e redefini-lo emite -Wmacro-redefined.
 #include <pthread.h>
+#include <cerrno>
+#include <limits>
+
 #include <sched.h>
 
 #include <atomic>
@@ -61,9 +64,22 @@ void warmup(std::size_t burst) {
     }
 }
 
-// Frequência corrente do núcleo, em GHz, ou 0 se o sistema não a expuser.
-double freq_ghz() {
-    std::FILE* f = std::fopen("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", "r");
+// Frequência que o CPUFreq REPORTA para uma CPU, em GHz, ou 0 se não houver.
+//
+// A CPU E A QUE ESTA EXECUTANDO, e não a zero. A versão anterior lia sempre
+// `cpu0/cpufreq/scaling_cur_freq`, e no modo de uma thread este programa não
+// fixa a execução em lugar nenhum: o número impresso podia ser a frequência de
+// um núcleo que não participou da medição.
+//
+// E O QUE ELE REPORTA NAO E "A FREQUENCIA". `scaling_cur_freq` é, na maioria
+// dos casos, o último P-state solicitado, e a documentação do kernel não
+// promete que reflita a frequência executada. O rótulo diz isso.
+double freq_ghz(int cpu) {
+    if (cpu < 0) return 0.0;
+    char caminho[128];
+    std::snprintf(caminho, sizeof(caminho),
+                  "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq", cpu);
+    std::FILE* f = std::fopen(caminho, "r");
     if (f == nullptr) return 0.0;
     long khz = 0;
     if (std::fscanf(f, "%ld", &khz) != 1) khz = 0;
@@ -76,10 +92,36 @@ std::expected<Config, std::string_view> parse_config(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         std::string_view arg{argv[i]};
         if ((arg == "-n" || arg == "-b" || arg == "-c") && i + 1 < argc) {
-            const auto valor = std::strtoull(argv[++i], nullptr, 10);
+            // A CONVERSAO E CONFERIDA. `strtoull` com `nullptr` no `end`
+            // descarta a unica evidencia de que algo foi convertido: `-n abc`
+            // virava 0 em silencio, `-b 12x` virava 12, e um valor acima do
+            // limite virava ULLONG_MAX com errno posto e ninguem olhando.
+            // Num programa cujo `-n` determina o tamanho da medicao, isso e a
+            // mesma familia de "a condicao declarada nao ocorreu".
+            const char* const texto = argv[++i];
+            // `std::strtoull("-1")` converte e NEGA: devolve o maior unsigned,
+            // sem erro. Um `-n -1` passaria como 18 quintilhoes de pacotes.
+            if (*texto == '-')
+                return std::unexpected("numeric argument cannot be negative");
+            char* fim = nullptr;
+            errno = 0;
+            const auto valor = std::strtoull(texto, &fim, 10);
+            if (fim == texto || *fim != '\0' || errno == ERANGE)
+                return std::unexpected("numeric argument is not a valid number");
             if (arg == "-n") cfg.num_packets = valor;
             else if (arg == "-b") cfg.burst = valor;
-            else cfg.consumer_cpu = static_cast<int>(valor);
+            else {
+                // `-c` TEM DOMINIO PROPRIO, e conferir so a conversao nao
+                // bastava. `static_cast<int>` de um valor acima de INT_MAX e
+                // definido pela implementacao, e mesmo um `int` valido pode
+                // ser >= CPU_SETSIZE e chegar ao `CPU_SET`, que nao aceita.
+                // O numero identifica uma CPU: o intervalo E parte do contrato.
+                if (valor > static_cast<unsigned long long>(
+                                std::numeric_limits<int>::max()) ||
+                    valor >= static_cast<unsigned long long>(CPU_SETSIZE))
+                    return std::unexpected("consumer CPU is out of range");
+                cfg.consumer_cpu = static_cast<int>(valor);
+            }
         } else {
             return std::unexpected("Usage: packet_pipeline [-n packets] [-b batch (1..256)] [-c consumer_cpu]");
         }
@@ -184,8 +226,12 @@ int main(int argc, char** argv) {
         const auto media = ns_total / static_cast<double>(r.packets);
         if (r.packets >= min_to_measure) {
             std::println("Mean time: {:.1f} ns/packet", media);
-            if (const auto f = freq_ghz(); f > 0.0)
-                std::println("Frequency of lcore 0: {:.2f} GHz (the time above varies with it)", f);
+            // `lcore` E VOCABULARIO DA EAL, e este programa existe para ser a
+            // alternativa SEM DPDK. Aqui há thread e CPU, não lcore.
+            if (const int onde = sched_getcpu(); onde >= 0)
+                if (const auto f = freq_ghz(onde); f > 0.0)
+                    std::println("CPUFreq reports {:.2f} GHz for CPU {} "
+                                 "(the time above varies with it)", f, onde);
         } else {
             std::println("Mean time: {:.1f} ns/packet  <- NOT A MEASUREMENT", media);
         }
@@ -223,8 +269,10 @@ int main(int argc, char** argv) {
     const auto media = ns / static_cast<double>(total.packets);
     if (total.packets >= min_to_measure) {
         std::println("Mean time: {:.1f} ns/packet", media);
-        if (const auto f = freq_ghz(); f > 0.0)
-            std::println("Frequency of lcore 0: {:.2f} GHz (the time above varies with it)", f);
+        if (const int onde = sched_getcpu(); onde >= 0)
+            if (const auto f = freq_ghz(onde); f > 0.0)
+                std::println("CPUFreq reports {:.2f} GHz for CPU {} "
+                             "(the time above varies with it)", f, onde);
     } else {
         std::println("Mean time: {:.1f} ns/packet  <- NOT A MEASUREMENT", media);
         std::println("  {} packets are far too few: the cost of reading the clock is of the same",

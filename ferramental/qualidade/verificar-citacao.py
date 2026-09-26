@@ -46,14 +46,20 @@ Este verificador compara `version` com a TAG DE MAIOR VERSÃO já existente.
 Enquanto a tag não existe, ele acusa divergência -- e a tag não pode existir
 antes do commit que ela aponta. A sequência que funciona é:
 
-    1. bumpar `version` e `date-released` no CITATION.cff
-    2. commitar (o portão acusa a divergência; é esperado)
+    1. bumpar `version` e `date-released` no CITATION.cff e a `version` do meson
+    2. commitar
     3. criar a tag assinada sobre esse commit
-    4. rodar o portão de novo: agora passa
+    4. rodar o portão de novo
 
-O passo 2 é o único do projeto em que o portão fica vermelho por construção.
-Quem não souber disso desiste do bump ou edita o verificador -- e as duas
-saídas são piores que a espera de um comando.
+O PASSO 2 DEIXOU DE FICAR VERMELHO. Enquanto a versão está à frente da maior
+tag existente E não há tag com esse nome, o verificador reconhece "release em
+andamento", ANUNCIA isso no stdout e passa. Antes ele reprovava por construção,
+e quem não soubesse disso desistia do bump ou editava o verificador -- as duas
+saídas piores que esperar um comando.
+
+O anúncio não é cosmético: silêncio aqui seria indistinguível de "a versão
+bate", e a distinção entre release em andamento e divergência real é
+exatamente o que este verificador existe para manter.
 
 O QUE ELE NÃO CONFERE
 

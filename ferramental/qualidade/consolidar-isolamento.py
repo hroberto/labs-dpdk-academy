@@ -259,15 +259,43 @@ def mann_whitney(a, b):
     Sem correcao de continuidade: com 35 contra 35 a aproximacao normal ja e
     boa, e a correcao mudaria a terceira casa. Com amostra pequena o numero
     daqui seria otimista, e e por isso que esta escrito.
+
+    COM CORRECAO DE VARIANCIA POR EMPATES. O `0.5` acima trata o empate no U, e
+    so nele: a variancia usada para o `z` presumia que nao ha valores repetidos.
+
+    A DIRECAO DO ERRO E UMA SO, e a primeira versao deste comentario dizia que
+    dependia do sinal -- estava errado. Empate REDUZ a variancia verdadeira;
+    ignora-lo usa um `sd` maior que o correto, o que encolhe `|z|` e, como o
+    `p` daqui e BILATERAL (`erfc(|z|/sqrt(2))`), aumenta o `p` sempre. Nao e
+    otimista em direcao nenhuma: e conservador quanto a rejeitar a hipotese
+    nula, o que e mais seguro e ainda assim errado.
+
+    O proprio numero medido ja dizia isso: no conjunto com empates do
+    autoteste, `p` sem correcao da 0,0845 e com correcao da 0,0746.
+
+    MEDIDO ANTES DE ESCREVER: sobre as coletas de 26/09/2026, P0 contra
+    P0+ipi-thread, sao 70 observacoes com 70 valores DISTINTOS -- zero grupos de
+    empate, zero pares cruzados empatados. A correcao e no-op ali: `sd` de
+    85.134697 nos dois casos, e `p` de 0.368879 nos dois. Ela entra porque o
+    proximo conjunto de dados pode empatar, e porque uma formula certa nao
+    depende de os dados serem gentis; nao entra porque mudou algum numero
+    publicado, e dizer isso e melhor que deixar supor que mudou.
     """
     import math
+    import collections
     n1, n2 = len(a), len(b)
     if not n1 or not n2:
         return 0.0, 0.0, 1.0, 0.5
     U = sum(1 for x in a for y in b if x < y) + \
         0.5 * sum(1 for x in a for y in b if x == y)
     mu = n1 * n2 / 2
-    sd = (n1 * n2 * (n1 + n2 + 1) / 12) ** 0.5
+    n = n1 + n2
+    # sum(t^3 - t) sobre os grupos de empate das DUAS amostras juntas, que e a
+    # forma padrao da correcao. Sem empates a soma e zero e o termo desaparece.
+    contagem = collections.Counter(list(a) + list(b))
+    soma_t = sum(t ** 3 - t for t in contagem.values())
+    variancia = (n1 * n2 / 12.0) * ((n + 1) - soma_t / (n * (n - 1))) if n > 1 else 0.0
+    sd = variancia ** 0.5 if variancia > 0 else 0.0
     z = (U - mu) / sd if sd else 0.0
     return U, z, math.erfc(abs(z) / math.sqrt(2)), U / (n1 * n2)
 
@@ -396,6 +424,25 @@ def autoteste():
     caso(14, "amostras separadas: p pequeno", pv < 0.01, True)
     _, _, pv2, prob2 = mann_whitney([1, 2, 3], [1, 2, 3])
     caso(15, "amostras identicas: probabilidade 0,5", prob2, 0.5)
+
+    # A CORRECAO POR EMPATES AGE, e este caso e o que prova.
+    #
+    # Sobre os dados reais ela e no-op: 70 observacoes, 70 valores distintos.
+    # Um teste so com eles nao distinguiria a formula certa da anterior -- e
+    # uma correcao que nunca dispara e indistinguivel de uma que nao existe.
+    # Aqui os empates sao construidos, e o `p` corrigido fica MENOR: empate
+    # reduz a variancia, o `z` cresce em modulo, e ignorar isso era otimista.
+    _, _, p_emp, _ = mann_whitney([1, 2, 2, 3, 3, 3, 4], [2, 3, 3, 4, 4, 5, 5])
+    n1 = n2 = 7
+    sd_sem = (n1 * n2 * (n1 + n2 + 1) / 12) ** 0.5
+    u_emp = sum(1 for x in [1, 2, 2, 3, 3, 3, 4] for y in [2, 3, 3, 4, 4, 5, 5] if x < y) \
+            + 0.5 * sum(1 for x in [1, 2, 2, 3, 3, 3, 4] for y in [2, 3, 3, 4, 4, 5, 5] if x == y)
+    import math as _m
+    p_sem = _m.erfc(abs((u_emp - n1 * n2 / 2) / sd_sem) / _m.sqrt(2))
+    caso(20, "com empates, o p corrigido e menor que o sem correcao",
+         p_emp < p_sem, True)
+    caso(21, "e a diferenca nao e ruido de arredondamento",
+         round(p_sem - p_emp, 4), 0.0099)
     caso(17, "rotulo curto guarda hora, memoria e canais",
          rotulo_curto("2026-09-24-0955-jedec4800-canal-unico-texto"), "0955 4800 1c")
     caso(18, "rotulo curto do canal duplo em 6000",
