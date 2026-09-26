@@ -129,6 +129,16 @@ def main():
                         (output / 'sessions.json').write_text(json.dumps(events, indent=2) + '\n')
                         print(json.dumps(event), flush=True)
             if success:
+                # QUEM CONHECE O CRITERIO DE VALIDADE ANUNCIA A SESSAO VALIDA.
+                #
+                # `campanha-hardware.sh` precisa saber de QUAL tentativa copiar,
+                # e ate aqui reconstruia isso com `ls -d session-* | tail -1`.
+                # Funcionava por acidente -- o laco devolve assim que uma
+                # tentativa vence, entao a ultima criada era a boa --, mas e
+                # escolha ESTRUTURAL de uma decisao SEMANTICA que so existe
+                # aqui: `success` e "Book validity: VALID;" no secundario.
+                # Qualquer mudanca neste laco quebraria o shell em silencio.
+                (output / 'successful-session').write_text(folder.name + '\n')
                 return 0
         return 1
     except KeyboardInterrupt:

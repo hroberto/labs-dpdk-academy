@@ -857,26 +857,64 @@ faltando_em() { # <configuracao> <modulo>  -> nomes da referencia ausentes
 # e NAO "PASS": as coletas anteriores a 26/09/2026 nao o tem, e presumir
 # aprovacao delas seria inventar um dado que ninguem registrou. Nesses casos
 # vale a conferencia por nomes, que e o que havia.
-estado_da_celula() { # <configuracao> <modulo> <celula>  -> PASS|SKIP|FAIL ou vazio
-    local man="docs/$2/medicoes/historico/$1/manifesto.txt"
-    [ -r "$man" ] || return 0
-    awk -v c="$3" '$1 == c { print $2; exit }' "$man"
+# SILENCIO DENTRO DO MANIFESTO NAO E APROVACAO, e a primeira versao desta
+# funcao errava nisso: ela devolvia vazio TANTO para "nao ha manifesto" quanto
+# para "ha manifesto e a celula nao esta nele", e tratava os dois como PASS. O
+# contrato que dai resultava nao era o anunciado --
+#
+#     arquivo existe + manifesto diz PASS -> celula valida
+#
+# -- e sim o bem mais fraco
+#
+#     arquivo existe + manifesto nao diz FAIL/SKIP -> celula valida
+#
+# que e uma inferencia por ausencia, exatamente o que o manifesto veio
+# substituir. Os dois casos agora tem nome proprio:
+#
+#   SEM_MANIFESTO  coleta anterior a 26/09/2026. NAO ha o que reconstruir, e
+#                  vale a conferencia por nomes, que e o que havia. Recusar
+#                  aqui reprovaria retroativamente todo o historico.
+#   SEM_REGISTRO   ha manifesto e a celula nao esta nele. Uma vez que o
+#                  manifesto e a autoridade, isso e lacuna, nao aprovacao.
+estado_da_celula() { # <configuracao> <modulo> <celula>
+    local man="docs/$2/medicoes/historico/$1/manifesto.txt" e
+    [ -r "$man" ] || { echo "SEM_MANIFESTO"; return 0; }
+    e=$(awk -v c="$3" '$1 == c { print $2; exit }' "$man")
+    echo "${e:-SEM_REGISTRO}"
 }
-nao_passaram_em() { # <configuracao> <modulo>  -> celulas presentes que nao mediram
+nao_passaram_em() { # <configuracao> <modulo>  -> celulas da matriz que nao mediram
     local c="$1" m="$2" cel estado
     for cel in $(repeticoes_de "docs/$m/medicoes/historico/$REF"); do
         estado=$(estado_da_celula "$c" "$m" "$cel")
         case "$estado" in
-            ""|PASS) ;;
+            SEM_MANIFESTO|PASS) ;;
             *) echo "$cel($estado)" ;;
         esac
     done
 }
-completa() { # <configuracao>  -> 0 se os tres modulos contem a matriz da referencia E ela mediu
+# O MANIFESTO INTEIRO, e nao so as celulas da matriz.
+#
+# `nao_passaram_em` percorre `repeticoes_de "$REF"`, que sao os `*.r<N>.txt`.
+# Etapas como `ambiente.txt` e `teste-estado-maquina.txt` nao estao nessa lista
+# e ficariam de fora -- um FAIL nelas era visto pelo `veredito_hw` na hora da
+# coleta e desaparecia depois, ao reabrir a pasta meses adiante. Isso contradiz
+# a razao de os contadores em memoria terem saido: o historico precisa
+# reconstruir o veredito SO com o manifesto.
+#
+# A `ambiente.txt` e o caso que mais dói: e dela que sai a condicao
+# texto/grafico, e uma coleta cuja condicao nao foi registrada contamina toda
+# comparacao posterior.
+manifesto_reprova() { # <configuracao> <modulo>  -> linhas nao-PASS, vazio se nao ha manifesto
+    local man="docs/$2/medicoes/historico/$1/manifesto.txt"
+    [ -r "$man" ] || return 0
+    awk '$2 == "FAIL" || $2 == "SKIP" { print $1 "(" $2 " " $3 ")" }' "$man"
+}
+completa() { # <configuracao>  -> 0 se a matriz esta la E mediu
     local c="$1" m
     for m in 01-fundamentos 02-runtime-dpdk 03-mempool-ring-mbuf; do
         [ -n "$(repeticoes_de "docs/$m/medicoes/historico/$REF")" ] || return 1
         [ -z "$(faltando_em "$c" "$m")" ] || return 1
+        [ -z "$(manifesto_reprova "$c" "$m")" ] || return 1
         [ -z "$(nao_passaram_em "$c" "$m")" ] || return 1
     done
     return 0
@@ -894,7 +932,8 @@ elif [ -d "docs/01-fundamentos/medicoes/historico/$CONF" ]; then
         # que nao existe e campanha interrompida; celula que existe e nao
         # passou e medicao que correu e reprovou. Refazer a coleta resolve a
         # primeira; a segunda pede olhar o programa.
-        reprovadas=$(nao_passaram_em "$CONF" "$m" | tr '\n' ' ')
+        reprovadas=$( { nao_passaram_em "$CONF" "$m"; manifesto_reprova "$CONF" "$m"; } \
+                      | sort -u | tr '\n' ' ')
         printf "              %-22s %s de %s saidas de repeticao%s%s\n" "$m" \
             "$(ls docs/$m/medicoes/historico/$CONF/*.r[0-9]*.txt 2>/dev/null | wc -l)" \
             "$(ls docs/$m/medicoes/historico/$REF/*.r[0-9]*.txt  2>/dev/null | wc -l)" \

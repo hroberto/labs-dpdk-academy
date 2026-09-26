@@ -32,8 +32,8 @@ raiz=$(cd "$(dirname "$0")/../.." && pwd)
 fonte="$raiz/ferramental/qualidade/campanha.sh"
 [ -r "$fonte" ] || { echo "FALHA: nao achei $fonte"; exit 1; }
 
-eval "$(sed -n '/^repeticoes_de() {/,/^}/p;/^faltando_em() {/,/^}/p;/^estado_da_celula() {/,/^}/p;/^nao_passaram_em() {/,/^}/p;/^completa() {/,/^}/p' "$fonte")"
-for f in repeticoes_de faltando_em estado_da_celula nao_passaram_em completa; do
+eval "$(sed -n '/^repeticoes_de() {/,/^}/p;/^faltando_em() {/,/^}/p;/^estado_da_celula() {/,/^}/p;/^nao_passaram_em() {/,/^}/p;/^manifesto_reprova() {/,/^}/p;/^completa() {/,/^}/p' "$fonte")"
+for f in repeticoes_de faltando_em estado_da_celula nao_passaram_em manifesto_reprova completa; do
     declare -F "$f" >/dev/null || { echo "FALHA: nao consegui extrair $f() de campanha.sh"; exit 1; }
 done
 
@@ -158,17 +158,58 @@ for m in $MODULOS; do
 done
 caso "sem manifesto, decide pelos nomes (compatibilidade)" 0
 
-# UMA CELULA FORA DO MANIFESTO tambem e desconhecida, e nao reprovada: o
-# manifesto pode ser de uma versao da campanha que nao produzia aquela celula.
+# SILENCIO DENTRO DO MANIFESTO NAO E APROVACAO.
+#
+# Esta assercao ja esteve INVERTIDA aqui -- "celula ausente do manifesto nao
+# reprova", esperando 0 --, e o teste passava. O defeito era que
+# `estado_da_celula` devolvia vazio tanto para "nao ha manifesto" quanto para
+# "ha manifesto e a celula nao esta nele", e o `case` tratava os dois como
+# aprovados. O contrato real era "nao diz FAIL/SKIP -> valida", que e
+# inferencia por ausencia: o que o manifesto veio substituir.
 for m in $MODULOS; do
     criar ref  "$m" A.r1.txt B.r1.txt
     criar nova "$m" A.r1.txt B.r1.txt
     manifesto nova "$m" "A.r1.txt PASS 0"
 done
-caso "celula ausente do manifesto nao reprova" 0
+caso "com manifesto, celula SEM REGISTRO nao e completa" 1
+
+conferir_estado() { # <descricao> <obtido> <esperado>
+    if [ "$2" != "$3" ]; then
+        echo "  FALHOU: $1 (esperado '$3', obtido '$2')"
+        falhas=$((falhas + 1))
+    fi
+}
+# OS DOIS VAZIOS TEM NOME PROPRIO, e e isso que impede o `case` de confundi-los.
+for m in $MODULOS; do criar nova "$m" A.r1.txt; done
+conferir_estado "sem manifesto -> SEM_MANIFESTO" \
+    "$(estado_da_celula nova 01-fundamentos A.r1.txt)" "SEM_MANIFESTO"
+manifesto nova 01-fundamentos "B.r1.txt PASS 0"
+conferir_estado "com manifesto, celula fora dele -> SEM_REGISTRO" \
+    "$(estado_da_celula nova 01-fundamentos A.r1.txt)" "SEM_REGISTRO"
+conferir_estado "com manifesto, celula nele -> o estado registrado" \
+    "$(estado_da_celula nova 01-fundamentos B.r1.txt)" "PASS"
+rm -rf docs
+
+# ETAPAS FORA DA MATRIZ TAMBEM CONTAM. `ambiente.txt` nao e um `*.r<N>.txt`,
+# entao nao aparece em `repeticoes_de` e escapava da conferencia -- um FAIL
+# nela era visto na hora da coleta e sumia ao reabrir a pasta depois. E dela
+# que sai a condicao texto/grafico de toda comparacao posterior.
+for m in $MODULOS; do
+    criar ref  "$m" A.r1.txt
+    criar nova "$m" A.r1.txt
+    manifesto nova "$m" "A.r1.txt PASS 0" "ambiente.txt FAIL 1"
+done
+caso "FAIL em etapa fora da matriz reprova a coleta" 1
+
+for m in $MODULOS; do
+    criar ref  "$m" A.r1.txt
+    criar nova "$m" A.r1.txt
+    manifesto nova "$m" "A.r1.txt PASS 0" "teste-estado-maquina.txt SKIP 77"
+done
+caso "SKIP em etapa fora da matriz reprova a coleta" 1
 
 if [ "$falhas" -gt 0 ]; then
     echo "  $falhas assercao(oes) falharam"
     exit 1
 fi
-echo "  ok: 12 casos; completude por matriz E por estado, nao por presenca"
+echo "  ok: 17 assercoes; completude por matriz E por estado registrado"

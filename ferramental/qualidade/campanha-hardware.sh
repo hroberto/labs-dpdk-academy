@@ -156,20 +156,60 @@ corre_feed() { # <rodada>
     python3 ./scripts/feed-supervisor.py --primary "$B2/feed-primario" \
         --secondary "$B2/feed-secundario" --huge-dir "$DPDK_ACADEMY_HUGE_DIR" \
         --output "$t/saida" --ticks 200000 >/dev/null 2>&1
-    local d; d=$(ls -d "$t"/saida/session-* 2>/dev/null | tail -1)
-    if [ -n "$d" ]; then
-        cp "$d/secondary.txt" "$D2/feed-secundario.r$1.txt"
-        cp "$d/primary.txt"   "$D2/feed-primario.r$1.txt"
+    local rc=$?
+    # A SESSAO VALIDA E A QUE O SUPERVISOR NOMEIA, e nao a ultima da ordenacao.
+    #
+    # `ls -d session-* | tail -1` acertava por acidente: o laco do supervisor
+    # devolve assim que uma tentativa vence, entao a ultima criada era a boa.
+    # Mas isso e reconstruir estruturalmente uma decisao semantica que so ele
+    # tem -- `success` e "Book validity: VALID;" no secundario -- e qualquer
+    # mudanca naquele laco quebraria isto aqui em silencio. Agora ele escreve o
+    # nome em `successful-session`, e este arquivo so existe quando venceu.
+    local nome; nome=$(cat "$t/saida/successful-session" 2>/dev/null)
+    local d=""; [ -n "$nome" ] && d="$t/saida/$nome"
+
+    # O `rc` DO SUPERVISOR E A AUTORIDADE, e nao a existencia do diretorio.
+    #
+    # `feed-supervisor.py` cria `session-<tentativa>` para CADA tentativa e
+    # grava `primary.txt`/`secondary.txt` nas duas ANTES de saber se a sessao
+    # sera valida; `success` so e verdadeiro quando o secundario publica
+    # "Book validity: VALID;". Ele devolve 0 assim que uma tentativa vence, e 1
+    # quando todas falham.
+    #
+    # Ate aqui esta funcao perguntava "existe alguma tentativa?", e nao "existe
+    # uma tentativa VALIDA?". Com as duas falhando, o diretorio da ultima
+    # existia com os dois arquivos dentro, e a coleta recebia a saida de uma
+    # sessao DEGENERADA com nome de celula normal -- promovida a evidencia, e
+    # consumida pelos comparadores como tal. O `>/dev/null 2>&1` e o retorno
+    # descartado escondiam isso por inteiro.
+    #
+    # A COPIA E A FRONTEIRA DE PUBLICACAO. `session-N/` e evidencia diagnostica
+    # da tentativa e fica no temporario; `historico/` e afirmacao de que o
+    # protocolo de validade foi satisfeito. So atravessa quem o componente que
+    # CONHECE o criterio disse que passou.
+    #
+    # OS NOMES REGISTRADOS SAO OS DAS CELULAS, e nao um "feed.rN" generico: o
+    # manifesto so serve de autoridade se falar a mesma lingua da matriz que o
+    # `campanha.sh` confere.
+    if [ "$rc" -eq 0 ] && [ -n "$d" ] \
+       && cp "$d/secondary.txt" "$D2/feed-secundario.r$1.txt" \
+       && cp "$d/primary.txt"   "$D2/feed-primario.r$1.txt"; then
+        registrar "feed-primario.r$1.txt"   PASS 0
+        registrar "feed-secundario.r$1.txt" PASS 0
         echo "  feed r$1: $(basename "$d")" >> "$D/diario.txt"
 cat "$D/diario.txt.tmp" >> "$D/diario.txt" 2>/dev/null; rm -f "$D/diario.txt.tmp"
     else
         # FALHA, E NAO AVISO. Chegar aqui significa que havia hugetlbfs
         # gravavel -- a funcao retorna cedo quando nao ha -- e que mesmo assim
-        # o supervisor nao produziu sessao. Hugetlbfs ausente e PULO, decidido
-        # em `campanha.sh`; hugetlbfs presente e feed que nao saiu e outra
-        # coisa: a coleta foi tentada e nao aconteceu.
-        echo "  feed r$1: SEM SAIDA" >> "$D/diario.txt"
-        registrar "feed.r$1" FAIL 1
+        # o feed nao saiu. Hugetlbfs ausente e PULO, decidido em `campanha.sh`;
+        # hugetlbfs presente e feed que nao saiu e outra coisa: a coleta foi
+        # tentada e nao aconteceu.
+        echo "  feed r$1: SEM SAIDA VALIDA (supervisor rc=$rc)" >> "$D/diario.txt"
+        registrar "feed-primario.r$1.txt"   FAIL "$rc"
+        registrar "feed-secundario.r$1.txt" FAIL "$rc"
+        # A SAIDA DEGENERADA NAO FICA NA COLETA. Deixa-la ali com o nome certo
+        # convidaria a conferencia por nomes a da-la por medida.
+        rm -f "$D2/feed-secundario.r$1.txt" "$D2/feed-primario.r$1.txt"
     fi
     rm -rf "$t"
 }
@@ -248,19 +288,44 @@ echo "fim: $(date -Is)  carga: $(cut -d' ' -f1-3 /proc/loadavg)" >> "$D/diario.t
 # O `2>/dev/null` seguido de pipe ESCONDIA A FALHA DUAS VEZES: o erro sumia e
 # o `$?` do pipe era o do `awk`, que tem sucesso sobre entrada vazia. O
 # resultado era um arquivo de diagnostico com colunas em branco e nenhum sinal.
+# O ESTADO SAI PELO RETORNO, e nao por variavel -- e a primeira correcao deste
+# arquivo errava exatamente nisso.
+#
+# `le` e chamada como `a=$(le)`, e substituicao de comando roda em SUBSHELL.
+# Um `LE_FALHOU=1` la dentro morre com o subshell: o pai continua vendo 0, e o
+# manifesto recebia PASS para uma etapa que nao correu. Trocar um fail-open por
+# outro fail-open nao e correcao, e este so apareceu porque alguem foi conferir
+# a semantica do shell em vez de ler o codigo e concordar com ele.
+#
+# Medido:  FLAG=0; f() { FLAG=1; }; a=$(f); echo $FLAG   ->  0
 le() {
     local saida
-    saida=$("./$B/custo-comunicacao" 2>/dev/null) || { LE_FALHOU=1; return 1; }
+    saida=$("./$B/custo-comunicacao" 2>/dev/null) || return 1
     printf '%s' "$saida" | awk '/within domain/{d=$8} /^  BETWEEN domains/{e=$7} END{printf "%s %s",d,e}'
 }
-LE_FALHOU=0
-{ echo "ciclo  apos-ocio(dentro entre)  imediata(dentro entre)"
-  for c in 1 2 3 4; do sleep 30; a=$(le); b=$(le); echo "  $c      $a               $b"; done
-} > "$D/teste-estado-maquina.txt"
-if [ "$LE_FALHOU" -ne 0 ]; then
-    registrar "teste-estado-maquina.txt" FAIL 1
-else
+# O LACO E FUNCAO PARA PODER SER TESTADO. Solto dentro de um `{ }` ele nao
+# tinha como ser exercitado sem rodar a campanha inteira -- e foi justamente
+# aqui que um fail-open passou despercebido por vir da semantica do shell, e
+# nao de um retorno ignorado.
+#
+# `falhou` e local e a redirecao acontece na CHAMADA: redirecionar uma funcao
+# nao cria subshell, entao o estado chega ao `if`. Nao ha variavel global no
+# caminho, que e o que tornava a versao anterior fragil.
+coletar_estado_maquina() { # <ciclos> <segundos-de-ocio>
+    local ciclos=$1 ocio=$2 c a b falhou=0
+    echo "ciclo  apos-ocio(dentro entre)  imediata(dentro entre)"
+    for c in $(seq 1 "$ciclos"); do
+        sleep "$ocio"
+        a=$(le) || falhou=1
+        b=$(le) || falhou=1
+        echo "  $c      $a               $b"
+    done
+    return "$falhou"
+}
+if coletar_estado_maquina 4 30 > "$D/teste-estado-maquina.txt"; then
     registrar "teste-estado-maquina.txt" PASS 0
+else
+    registrar "teste-estado-maquina.txt" FAIL 1
 fi
 
 # O VEREDITO, e ele sai no codigo de saida. Os tres estados sao os mesmos que
