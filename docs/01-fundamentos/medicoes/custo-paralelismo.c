@@ -59,6 +59,8 @@
 #include "cadeia.h"
 #include "clock_ns.h"
 #include "fixar_cpu.h"
+#include "largada.h"
+#include "topologia.h"
 #include "statistics.h"
 
 #define REGIAO_BYTES (256ull * 1024 * 1024)
@@ -183,17 +185,16 @@ static int n_cpus_fisicas;
  * SMT (ver secao 5.1.1 "SMT: duas CPUs logicas nao sao dois nucleos"), nao a banda de memoria. */
 static void descobrir_cpus_fisicas(void)
 {
-    int vistos[NUCLEOS_MAX];
+    /* PACOTE E NUCLEO, e nao `core_id` sozinho: ele e numerado POR PACOTE, e
+     * numa maquina de dois soquetes o nucleo 3 de cada um compartilha o mesmo
+     * numero. Deduplicar so por ele contaria um nucleo onde ha dois, e esta
+     * fase -- que mede o caminho de memoria com N nucleos ativos -- usaria
+     * metade da maquina achando que usou inteira. */
+    long vistos[NUCLEOS_MAX];
     int n_vistos = 0;
     for (int cpu = 0; cpu < 4 * NUCLEOS_MAX && n_cpus_fisicas < NUCLEOS_MAX; cpu++) {
-        char caminho[128];
-        snprintf(caminho, sizeof(caminho),
-                 "/sys/devices/system/cpu/cpu%d/topology/core_id", cpu);
-        FILE *f = fopen(caminho, "r");
-        if (f == NULL)
-            continue;
-        int core = -1;
-        if (fscanf(f, "%d", &core) == 1) {
+        long core = -1;
+        if (academy_nucleo_fisico(cpu, &core) == 0) {
             int novo = 1;
             for (int i = 0; i < n_vistos; i++)
                 if (vistos[i] == core)
@@ -203,7 +204,6 @@ static void descobrir_cpus_fisicas(void)
                 cpus_fisicas[n_cpus_fisicas++] = cpu;
             }
         }
-        fclose(f);
     }
 }
 
@@ -211,7 +211,7 @@ struct tarefa {
     int cpu;
     int primeira_cadeia;      /* fatia de cadeias que este nucleo percorre */
     const size_t *inicios;
-    pthread_barrier_t *largada;
+    struct academy_largada *largada;
     double ns_por_acesso;     /* saida */
 };
 
@@ -227,8 +227,15 @@ static void *trabalhar(void *arg)
     const size_t iteracoes = ACESSOS_POR_NUCLEO / K_POR_NUCLEO;
     /* Todos comecam juntos: medir um nucleo enquanto os outros ainda montam
      * daria a ele um controlador de memoria vazio -- exatamente o que esta fase
-     * existe para nao medir. */
-    pthread_barrier_wait(t->largada);
+     * existe para nao medir.
+     *
+     * E A LARGADA PODE SER CANCELADA. Com `pthread_barrier_t`, uma falha de
+     * `pthread_create` deixava esta thread esperando por participantes que
+     * nunca viriam, e o `join` do main esperava por ela: deadlock. */
+    if (!academy_largada_esperar(t->largada)) {
+        t->ns_por_acesso = -1.0;   /* cancelada: nao ha medicao nesta thread */
+        return NULL;
+    }
     const uint64_t t0 = academy_now_ns();
     for (size_t i = 0; i < iteracoes; i++)
         for (int c2 = 0; c2 < K_POR_NUCLEO; c2++)
@@ -253,11 +260,8 @@ static double medir_n_nucleos(int n)
         return -1.0;
     montar_cadeias(total_cadeias, inicios);
 
-    pthread_barrier_t largada;
-    if (pthread_barrier_init(&largada, NULL, (unsigned)n) != 0) {
-        free(inicios);
-        return -1.0;
-    }
+    struct academy_largada largada;
+    academy_largada_init(&largada);
     pthread_t fios[NUCLEOS_MAX];
     struct tarefa tarefas[NUCLEOS_MAX];
     for (int i = 0; i < n; i++) {
@@ -266,20 +270,27 @@ static double medir_n_nucleos(int n)
                                       .inicios = inicios,
                                       .largada = &largada };
         if (pthread_create(&fios[i], NULL, trabalhar, &tarefas[i]) != 0) {
+            /* SOLTAR ANTES DE ESPERAR. As `i` threads ja criadas estao na
+             * largada; sem cancela-la, o `join` abaixo espera por quem espera
+             * por participantes que nunca virao. Era um deadlock
+             * determinístico, reproduzido com injecao de EAGAIN. */
+            academy_largada_soltar(&largada, 0);
             for (int j = 0; j < i; j++)
                 pthread_join(fios[j], NULL);
-            pthread_barrier_destroy(&largada);
             free(inicios);
             return -1.0;
         }
     }
+    /* Espera TODOS anunciarem que chegaram, e so entao solta: sem isto o `t0`
+     * de cada trabalhador incluiria o tempo de partida dos outros. */
+    academy_largada_aguardar(&largada, n);
+    academy_largada_soltar(&largada, 1);
     double pior = 0.0;
     for (int i = 0; i < n; i++) {
         pthread_join(fios[i], NULL);
         if (tarefas[i].ns_por_acesso > pior)
             pior = tarefas[i].ns_por_acesso;
     }
-    pthread_barrier_destroy(&largada);
     free(inicios);
     return pior;
 }

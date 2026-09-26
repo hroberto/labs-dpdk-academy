@@ -2,7 +2,7 @@ project(
   'dpdk-academy',
   'c',
   'cpp',
-  version : '0.08.00',
+  version : '0.09.00',
   meson_version : '>=1.1',
   default_options : [
     'warning_level=3',
@@ -465,6 +465,32 @@ test('scripts - L1 (completude da campanha e por matriz)', bash,
 # historico como boa -- o instrumento existe e o orquestrador apaga o sinal.
 test('scripts - L1 (estado das celulas sobe da subcampanha)', bash,
      args : [meson.project_source_root() / 'scripts/tests/l1_campanha_hardware_estado.sh'],
+     suite : ['l1', 'scripts'], timeout : 60)
+
+# O parceiro de comparacao do bench-ccd sai da topologia lida, e nao de `A+2`:
+# escolher por aritmetica acerta por coincidencia do enumerador desta maquina e
+# compara ENTRE dominios noutra, com o rotulo de "mesmo dominio".
+test('scripts - L1 (parceiro de CCD sai da topologia)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_bench_ccd_topologia.sh'],
+     suite : ['l1', 'scripts'], timeout : 60)
+
+# O que muda o NUMERO sem mudar o commit precisa ficar no registro de ambiente:
+# duas coletas com o mesmo banner podiam ter protocolos diferentes.
+test('scripts - L1 (protocolo da coleta fica registrado)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_ambiente_sobreposicoes.sh'],
+     suite : ['l1', 'scripts'], timeout : 120)
+
+# Todo numero deste repositorio e medido contra o prefixo do DPDK, e ate aqui
+# nada conferia que o tarball baixado era o mesmo de antes.
+test('scripts - L1 (o tarball do DPDK e conferido)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_dpdk_soma.sh'],
+     suite : ['l1', 'scripts'], timeout : 60)
+
+# O `run-all` esta acima da campanha e tinha os mesmos caminhos de falso
+# sucesso que ela: `--so-ruido` descartava o resultado, SIGTERM nao terminava,
+# e a etapa 4 criava arquivos sem conferir retorno.
+test('scripts - L1 (run-all so conclui se tudo concluir)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_run_all_veredito.sh'],
      suite : ['l1', 'scripts'], timeout : 60)
 
 test('02-runtime - L1 (FAIL e SKIP dos runners multiprocesso)', bash,

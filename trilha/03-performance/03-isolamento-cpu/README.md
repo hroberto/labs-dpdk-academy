@@ -227,7 +227,9 @@ esta Parte A executa.
 
 > **P2 foi coletado; P1 continua de fora.** Os dois exigem privilégio, e a
 > máquina de referência pede senha. O P2 foi obtido numa coleta dedicada e o
-> desfecho está na §6.6.1: **efeito nulo sobre a cauda nesta máquina**. O P1 —
+> desfecho está na §6.6.1: **nenhum efeito detectável sobre a cauda nesta
+> máquina**, o que não é o mesmo que efeito nulo — com 20 execuções por braço,
+> um efeito moderado passaria despercebido. O P1 —
 > afinidade de IRQ e `vm.stat_interval` — segue pendente.
 
 > **E as sessenta execuções dizem algo sobre o quanto o P1 ainda importa
@@ -492,7 +494,7 @@ curtas, e a taxa de preempção não acompanha o modo alto.
 Cada candidato abaixo foi submetido a **uma intervenção de variável única**,
 com o critério de refutação fixado antes da coleta.
 
-#### 6.6.1 Estado C profundo — eliminado
+#### 6.6.1 Estado C profundo — não sustentado
 
 A latência de saída do C3 nesta máquina é de **350 µs**, a mesma ordem de
 grandeza do modo alto. O mecanismo proposto: a preempção tira a sonda da CPU, a
@@ -504,14 +506,25 @@ precisar de fonte nova.
 desabilitado nas 24 CPUs, o que nesta máquina desliga o C3 e preserva o C2
 (18 µs). Coleta B contra coleta C, sem nenhuma outra diferença.
 
-**Desfecho: eliminado.** 3/20 contra 5/20, medianas de 29,0 e 25,2 µs,
+**Desfecho: não sustentado.** 3/20 contra 5/20, medianas de 29,0 e 25,2 µs,
 Mann-Whitney **p = 0,304**. O modo alto permanece com o C3 desligado.
+
+O desfecho dizia **eliminado**, e era forte demais. `p = 0,304` significa que
+estes dados não distinguem os dois regimes — não que os regimes sejam iguais.
+Com 20 execuções por braço, um efeito real de tamanho moderado passaria
+despercebido com facilidade, e **ausência de significância não é evidência de
+ausência**. A §6.6.3 já usava a palavra certa para o mesmo tipo de desfecho;
+estas duas não usavam.
+
+O que está demonstrado é o que a intervenção mostrou: desligar o C3 não fez o
+modo alto desaparecer. Eliminar a hipótese exigiria o `cpuidle` instrumentado
+por evento, que é o que o parágrafo seguinte pede.
 
 A cadeia falha em algum elo — ou a CPU não chega a descer ao C3 nesse
 intervalo, ou desce e a volta não custa o que a tabela de latência declara. Os
 dois casos são distinguíveis, e exigem `cpuidle` instrumentado por evento.
 
-#### 6.6.2 Disputa de CPU por outras tarefas — eliminado
+#### 6.6.2 Disputa de CPU por outras tarefas — não sustentado
 
 Uma tarefa executável concorrente explicaria paradas longas sem aparecer em
 `/proc/interrupts`: a sonda perde a CPU e espera a fatia da outra.
@@ -520,7 +533,17 @@ Uma tarefa executável concorrente explicaria paradas longas sem aparecer em
 coleta A quanto na C, com carga média de 1,69 e 1,10. A coleta A tem 16/20 de
 modo alto e a C tem 5/20, com a mesma fila.
 
-**Desfecho: eliminado.** A fila de execução não distingue os dois regimes.
+**Desfecho: não sustentado.** A fila de execução não distingue os dois regimes.
+
+E ela não teria como distinguir, mesmo que a disputa existisse. O desfecho
+desta medição é a **maior parada em janelas curtas**, e a fila de execução do
+`sysstat` é uma agregação com resolução de segundos: uma tarefa executável que
+dispute a CPU por dezenas de microssegundos, exatamente na janela do evento
+extremo, não move essa média. O indicador é agregado e o fenômeno é pontual.
+
+O que está demonstrado é que **o indicador agregado não sustenta a hipótese** —
+não que a disputa não ocorra. Distingui-las exige atribuição temporal por
+evento, como a §6.5 faz com o `osnoise`.
 
 #### 6.6.3 Pressão de memória como estado — não sustentado
 
@@ -890,12 +913,20 @@ a reportar seria "sem efeito observável", não "hipótese refutada".
 |---|---|---|
 | IPI de invalidação de TLB | produz paradas **curtas** | §6.2, §6.3 |
 | preempção comum | taxa não acompanha o modo alto | §6.4 |
-| estado C profundo | **eliminado** | B × C, p = 0,304 |
-| disputa de CPU | **eliminado** | fila de execução = 1 em A e C |
+| estado C profundo | **não sustentado** | B × C, p = 0,304 |
+| disputa de CPU | **não sustentado** | fila de execução = 1 em A e C |
 | pressão de memória como estado | **não sustentado** | réplica E″, p = 0,269 |
 | atividade de recuperação | descritivo, não causal | §6.6.4 |
 | SMI de firmware | **eliminado** | `HW = 0` em dez minutos |
 | ***workqueue* do driver `amdgpu`** | **confirmado** | §6.6.5, §6.6.6 |
+
+> **"Não sustentado" e "eliminado" não são a mesma coisa, e a tabela distingue
+> os dois de propósito.** As duas primeiras linhas assim marcadas vêm de
+> `p > 0,05` e de um indicador agregado: nenhum dos dois demonstra ausência —
+> apenas que estes dados, neste tamanho de amostra, não distinguem os regimes.
+> A linha do SMI é outra coisa: `HW = 0` é a contagem do próprio contador de
+> hardware, e o mecanismo proposto exige que ela seja diferente de zero. Ali a
+> ausência foi **observada**, não inferida de uma não-rejeição.
 
 A fonte constava da tabela da §2 desde o início, na linha *"Workqueues por
 CPU"*. O elemento ausente não era a hipótese, e sim o instrumento capaz de

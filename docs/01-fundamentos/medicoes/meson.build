@@ -22,6 +22,22 @@ coleta_zero = executable(
 test('fundamentos - L1 (coleta que nao aconteceu deve abortar)', coleta_zero,
      suite : ['l1', 'fundamentos'], timeout : 30, should_fail : true)
 
+# --- L1: argumento de linha de comando converte ou recusa ------------------
+#
+# O valor de erro de `atoi`/`strtoull` cai DENTRO do dominio valido -- zero e
+# uma CPU, doze e uma contagem --, entao so a conversao denuncia. E
+# `strtoull("-1")` nao e erro: converte, nega, e devolve o maior unsigned.
+argumento_l1 = executable('l1-argumento', 'tests/l1_argumento.c',
+  include_directories : include_directories('.'), install : false)
+test('fundamentos - L1 (argumento converte ou recusa)', argumento_l1,
+     suite : ['l1', 'fundamentos'], timeout : 30)
+
+# --- L1: a topologia decide a CPU parceira ---------------------------------
+topologia_l1 = executable('l1-topologia', 'tests/l1_topologia.c',
+  include_directories : include_directories('.'), install : false)
+test('fundamentos - L1 (parceira e nucleo saem da topologia)', topologia_l1,
+     suite : ['l1', 'fundamentos'], timeout : 30)
+
 # --- L1: a fixacao de CPU falha FECHADA ------------------------------------
 #
 # Nao e `should_fail`: o teste precisa distinguir o codigo 86 de um aborto
@@ -194,6 +210,26 @@ test('fundamentos - custo-paralelismo (L3)', custo_paralelismo,
 custo_comunicacao = executable('custo-comunicacao', 'custo-comunicacao.c', versao_h,
                                c_args : alinhamento,
                                dependencies : [dependency('threads'), libm], install : false)
+
+# --- L1: criacao parcial de trabalhadores termina, e reprova ----------------
+#
+# `pthread_create` quase nunca falha numa maquina de estudo, e por isso o
+# caminho de erro dela ficou sem teste enquanto continha um deadlock
+# determinístico. O objeto compartilhado abaixo devolve EAGAIN -- o que o
+# kernel devolve ao bater RLIMIT_NPROC -- quando ja ha thread viva, que e a
+# condicao de criacao parcial.
+falhar_create = shared_library(
+  'falhar_create',
+  'tests/falhar_create.c',
+  dependencies : [dependency('threads'), meson.get_compiler('c').find_library('dl', required : false)],
+  install : false,
+)
+
+test('fundamentos - L1 (criacao parcial de threads nao trava)', bash,
+     args : [meson.project_source_root() / 'docs/01-fundamentos/medicoes/tests/l1_largada_cancelavel.sh',
+             falhar_create, custo_paralelismo, custo_comunicacao],
+     suite : ['l1', 'fundamentos'], timeout : 180)
+
 # Reproduz a Tabela 3.1 de McKenney nesta maquina, para confronto direto com a
 # referencia canonica da area.
 custo_mckenney = executable('custo-mckenney', 'custo-mckenney.c', versao_h,

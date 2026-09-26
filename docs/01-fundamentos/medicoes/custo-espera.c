@@ -232,7 +232,14 @@ static double com_outra_thread(void)
     pthread_t t;
     atomic_store(&parar_ruido, 0);
     if (pthread_create(&t, NULL, thread_ruido, NULL) != 0)
-        return 0.0;
+        {
+            fprintf(stderr, "  AMOSTRA INVALIDA: pthread_create falhou (thread de ruido)\n");
+            /* NEGATIVO, E NAO ZERO. `statistics.h` declara a convencao tres
+             * linhas acima de `collection_state`: "ou NaN em falha, nunca
+             * zero". Zero e um tempo plausivel -- entra na mediana e some.
+             * Negativo dispara `e.minimum < 0` e a coleta e recusada. */
+            return -1.0;
+        }
     const struct timespec d = {0, 20000000};
     nanosleep(&d, NULL);
 
@@ -392,7 +399,14 @@ static double m_repasse_atomica(void)
     pthread_t t;
     atomic_store(&bola, 0);
     if (pthread_create(&t, NULL, par_atomica, NULL) != 0)
-        return 0.0;
+        {
+            fprintf(stderr, "  AMOSTRA INVALIDA: pthread_create falhou (par de repasse por atomica)\n");
+            /* NEGATIVO, E NAO ZERO. `statistics.h` declara a convencao tres
+             * linhas acima de `collection_state`: "ou NaN em falha, nunca
+             * zero". Zero e um tempo plausivel -- entra na mediana e some.
+             * Negativo dispara `e.minimum < 0` e a coleta e recusada. */
+            return -1.0;
+        }
     nanosleep(&assentar, NULL);
     const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < n_rodadas; i++) {
@@ -411,7 +425,14 @@ static double m_repasse_mutex_ativo(void)
     pthread_t t;
     estado = 0;
     if (pthread_create(&t, NULL, par_mutex_ativo, NULL) != 0)
-        return 0.0;
+        {
+            fprintf(stderr, "  AMOSTRA INVALIDA: pthread_create falhou (par de repasse por mutex ativo)\n");
+            /* NEGATIVO, E NAO ZERO. `statistics.h` declara a convencao tres
+             * linhas acima de `collection_state`: "ou NaN em falha, nunca
+             * zero". Zero e um tempo plausivel -- entra na mediana e some.
+             * Negativo dispara `e.minimum < 0` e a coleta e recusada. */
+            return -1.0;
+        }
     nanosleep(&assentar, NULL);
     const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < n_rodadas; i++) {
@@ -439,7 +460,14 @@ static double m_repasse_condvar(void)
     pthread_t t;
     estado = 0;
     if (pthread_create(&t, NULL, par_condvar, NULL) != 0)
-        return 0.0;
+        {
+            fprintf(stderr, "  AMOSTRA INVALIDA: pthread_create falhou (par de repasse por condvar)\n");
+            /* NEGATIVO, E NAO ZERO. `statistics.h` declara a convencao tres
+             * linhas acima de `collection_state`: "ou NaN em falha, nunca
+             * zero". Zero e um tempo plausivel -- entra na mediana e some.
+             * Negativo dispara `e.minimum < 0` e a coleta e recusada. */
+            return -1.0;
+        }
     nanosleep(&assentar, NULL);
     const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < n_rodadas; i++) {
@@ -462,7 +490,14 @@ static double m_repasse_semaforo(void)
     sem_init(&sem_ida, 0, 0);
     sem_init(&sem_volta, 0, 0);
     if (pthread_create(&t, NULL, par_semaforo, NULL) != 0)
-        return 0.0;
+        {
+            fprintf(stderr, "  AMOSTRA INVALIDA: pthread_create falhou (par de repasse por semaforo)\n");
+            /* NEGATIVO, E NAO ZERO. `statistics.h` declara a convencao tres
+             * linhas acima de `collection_state`: "ou NaN em falha, nunca
+             * zero". Zero e um tempo plausivel -- entra na mediana e some.
+             * Negativo dispara `e.minimum < 0` e a coleta e recusada. */
+            return -1.0;
+        }
     nanosleep(&assentar, NULL);
     const uint64_t t0 = academy_now_ns();
     for (int i = 0; i < n_rodadas; i++) {

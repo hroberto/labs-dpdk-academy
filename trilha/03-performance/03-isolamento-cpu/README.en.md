@@ -497,7 +497,7 @@ short stalls, and the preemption rate does not track the high mode.
 Each candidate below was subjected to **one single-variable intervention**,
 with the refutation criterion fixed before the collection.
 
-#### 6.6.1 Deep C-state — eliminated
+#### 6.6.1 Deep C-state — not supported
 
 C3's exit latency on this machine is **350 µs**, the same order of magnitude as
 the high mode. The proposed mechanism: preemption takes the probe off the CPU,
@@ -509,7 +509,7 @@ the high mode without needing a new source.
 disabled on all 24 CPUs, which on this machine turns off C3 and preserves C2
 (18 µs). Collection B against collection C, with no other difference.
 
-**Outcome: eliminated.** 3/20 against 5/20, medians of 29.0 and 25.2 µs,
+**Outcome: not supported.** 3/20 against 5/20, medians of 29.0 and 25.2 µs,
 Mann-Whitney **p = 0.304**. The high mode remains with C3 disabled.
 
 The chain fails at some link — either the CPU does not descend to C3 within
@@ -517,7 +517,7 @@ that interval, or it does and the return does not cost what the latency table
 declares. Both cases are distinguishable, and require per-event `cpuidle`
 instrumentation.
 
-#### 6.6.2 CPU contention from other tasks — eliminated
+#### 6.6.2 CPU contention from other tasks — not supported
 
 A concurrent runnable task would explain long stalls without appearing in
 `/proc/interrupts`: the probe loses the CPU and waits for the other's slice.
@@ -526,7 +526,7 @@ A concurrent runnable task would explain long stalls without appearing in
 and collection C, with load averages of 1.69 and 1.10. Collection A has 16/20
 of high mode and C has 5/20, with the same queue.
 
-**Outcome: eliminated.** The run-queue size does not distinguish the two
+**Outcome: not supported.** The run-queue size does not distinguish the two
 regimes.
 
 #### 6.6.3 Memory pressure as a state — not supported
@@ -903,12 +903,20 @@ to report would be "no observable effect", not "hypothesis refuted".
 |---|---|---|
 | TLB invalidation IPI | produces **short** stalls | §6.2, §6.3 |
 | ordinary preemption | rate does not track the high mode | §6.4 |
-| deep C-state | **eliminated** | B × C, p = 0.304 |
-| CPU contention | **eliminated** | run-queue = 1 in A and C |
+| deep C-state | **not supported** | B × C, p = 0.304 |
+| CPU contention | **not supported** | run-queue = 1 in A and C |
 | memory pressure as a state | **not supported** | replication E″, p = 0.269 |
 | reclaim activity | descriptive, not causal | §6.6.4 |
 | firmware SMI | **eliminated** | `HW = 0` over ten minutes |
 | ***amdgpu* driver workqueue** | **confirmed** | §6.6.5, §6.6.6 |
+
+> **"Not supported" and "eliminated" are not the same, and the table keeps them
+> apart on purpose.** The first two rows marked that way rest on `p > 0.05` and
+> on an aggregate indicator: neither demonstrates absence -- only that these
+> data, at this sample size, do not distinguish the regimes. The SMI row is a
+> different claim: `HW = 0` is the hardware counter itself, and the proposed
+> mechanism requires it to be non-zero. There the absence was **observed**, not
+> inferred from a failure to reject.
 
 The source was present in the §2 table from the outset, in the row *"Per-CPU
 workqueues"*. What was missing was not the hypothesis but the instrument

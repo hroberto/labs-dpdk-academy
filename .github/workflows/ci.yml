@@ -67,7 +67,18 @@ jobs:
           # GCC 14 e o minimo para <print>/<expected>, que check-env.sh exige.
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
-          python3 -m pip install --upgrade meson
+          # MESON FIXADO, e nao `--upgrade`.
+          #
+          # A CI fixa a imagem do runner, as actions por SHA, o googletest por
+          # hash no wrap e as versoes do DPDK -- e deixava o Meson flutuar para
+          # o que o PyPI servisse naquele dia. A build de amanha podia usar
+          # outra versao sem nenhuma alteracao no repositorio, e num projeto
+          # cuja tese e procedencia essa era a excecao que restava.
+          #
+          # 1.10.1 e a versao da maquina de referencia, onde as suites acima
+          # sao verdes. Subir de versao passa a ser uma alteracao VISIVEL no
+          # diff, que e o que se quer de uma dependencia de build.
+          python3 -m pip install 'meson==1.10.1'
           pkg-config --modversion libdpdk
 
       - name: Diagnosticar ambiente
@@ -173,7 +184,7 @@ jobs:
           sudo apt-get install -y dpdk-dev pkg-config ninja-build python3-pip g++-14
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
-          python3 -m pip install --upgrade meson
+          python3 -m pip install 'meson==1.10.1'
 
       - name: Configurar com ASan e UBSan
         run: meson setup build-san -Db_sanitize=address,undefined
@@ -238,7 +249,7 @@ jobs:
                                   libnuma-dev libpcap-dev
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
-          python3 -m pip install --upgrade meson pyelftools
+          python3 -m pip install 'meson==1.10.1' pyelftools
 
       - name: Cache do DPDK ${{ matrix.versao }}
         id: cache-dpdk

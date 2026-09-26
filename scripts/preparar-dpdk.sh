@@ -35,6 +35,7 @@
 #   scripts/preparar-dpdk.sh --minimo 25.11   # so os drivers que o estudo usa
 #   scripts/preparar-dpdk.sh --sem-stats --minimo 25.11   # para medir TEMPO
 #   scripts/preparar-dpdk.sh --portatil --minimo 26.07   # para CI, NAO para medir
+#   scripts/preparar-dpdk.sh --sem-conferencia 27.03     # versao sem soma fixada
 #
 # O MODO --minimo EXISTE PARA REPRODUZIR O QUE FOI PUBLICADO
 #
@@ -116,6 +117,7 @@ modo=construir
 MINIMO=0
 SEM_STATS=0
 PORTATIL=0
+SEM_CONFERENCIA=0
 while true; do
     case "${1:-}" in
         -h|--help) uso 0 ;;
@@ -123,6 +125,7 @@ while true; do
         --minimo) MINIMO=1; shift ;;
         --sem-stats) SEM_STATS=1; shift ;;
         --portatil) PORTATIL=1; shift ;;
+        --sem-conferencia) SEM_CONFERENCIA=1; shift ;;
         *) break ;;
     esac
 done
@@ -147,6 +150,33 @@ for f in meson ninja tar; do
     command -v "$f" >/dev/null || { echo "ausente: $f"; exit 1; }
 done
 
+# SOMAS DO ARTEFATO QUE PRODUZIU OS NUMEROS PUBLICADOS.
+#
+# O QUE ISTO PROVA, E O QUE NAO PROVA -- e a distincao importa mais que a
+# conferencia em si.
+#
+# NAO e atestacao upstream. O DPDK nao publica soma alcancavel por URL: em
+# 26/09/2026, `fast.dpdk.org/rel/sha256sums.txt`, `.../dpdk-<v>.tar.xz.sha256`
+# e `.asc` respondem 404, e a pagina de download nao traz nenhum hash. Quem
+# conferir isto nao esta conferindo contra o que o projeto DPDK assinou.
+#
+# O que ele PROVA: que o tarball baixado hoje e byte a byte o mesmo que
+# produziu os prefixos contra os quais este repositorio mediu. Um espelho que
+# troque o conteudo em silencio, um download truncado ou um proxy que devolva
+# outra coisa param aqui em vez de virar numero publicado. Isso e confianca no
+# primeiro uso -- e dize-lo e melhor que chamar de verificacao o que nao e.
+#
+# A ASSIMETRIA QUE MOTIVOU: `subprojects/gtest.wrap` ja fixa o googletest com
+# `source_hash` e `patch_hash`. O projeto sabia fixar dependencia; nao fazia
+# isso justamente com aquela contra a qual todos os numeros sao medidos.
+soma_conhecida() { # <versao> -> sha256 ou vazio
+    case "$1" in
+        25.11) echo "52e90d2a531ef3ded0283bd91abc94980698f1f6471fa09658a0217cf6609526" ;;
+        26.07) echo "7141a8b5bad9d7d965483ac0d75317ac0c21dcee1d13d373693c655f9e3fabe6" ;;
+        *)     echo "" ;;
+    esac
+}
+
 mkdir -p "$DIR_SRC"
 TAR="$DIR_SRC/dpdk-$VERSAO.tar.xz"
 if [ ! -f "$TAR" ]; then
@@ -154,6 +184,43 @@ if [ ! -f "$TAR" ]; then
     curl -fsSL -o "$TAR.parcial" "$ESPELHO/dpdk-$VERSAO.tar.xz"
     mv "$TAR.parcial" "$TAR"
 fi
+
+# FUNCAO PARA PODER SER TESTADA: inline, os quatro desfechos so seriam
+# exercitados baixando o DPDK quatro vezes.
+conferir_tarball() { # <versao> <caminho> <sem_conferencia 0|1>
+    local esperada obtida
+    esperada=$(soma_conhecida "$1")
+    obtida=$(sha256sum "$2" | cut -d' ' -f1)
+    if [ -n "$esperada" ]; then
+        if [ "$obtida" != "$esperada" ]; then
+            echo "FALHA: o tarball de dpdk-$1 nao e o que produziu os numeros publicados." >&2
+            echo "  esperado: $esperada" >&2
+            echo "  obtido:   $obtida" >&2
+            echo "  arquivo:  $2" >&2
+            echo "  Apague o arquivo e baixe de novo. Se a soma persistir diferente, o" >&2
+            echo "  espelho mudou o conteudo e o prefixo NAO e comparavel com o historico." >&2
+            return 1
+        fi
+        echo "==> soma conferida (dpdk-$1)"
+        return 0
+    fi
+    if [ "$3" -eq 1 ]; then
+        # DECLARADO, E NAO SILENCIOSO. A linha sai no diario da campanha, que e
+        # onde alguem vai procurar quando um numero nao bater.
+        echo "==> AVISO: dpdk-$1 nao tem soma fixada, e --sem-conferencia foi pedido."
+        echo "    soma deste tarball: $obtida"
+        echo "    Um prefixo construido assim NAO e comparavel com o historico."
+        return 0
+    fi
+    echo "FALHA: dpdk-$1 nao tem soma fixada neste script." >&2
+    echo "  soma do tarball baixado: $obtida" >&2
+    echo "  Para adotar esta versao, acrescente a linha acima em soma_conhecida()." >&2
+    echo "  Para construir mesmo assim, passe --sem-conferencia -- e saiba que o" >&2
+    echo "  prefixo resultante nao e comparavel com o historico publicado." >&2
+    return 1
+}
+
+conferir_tarball "$VERSAO" "$TAR" "$SEM_CONFERENCIA" || exit 1
 
 TRAB=$(mktemp -d)
 trap 'rm -rf "$TRAB"' EXIT

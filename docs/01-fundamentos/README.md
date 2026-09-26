@@ -2044,17 +2044,17 @@ correspondência é direta:
 
 | Linha da tabela | Função cronometrada | Quem a chama |
 |---|---|---|
-| `atomica relaxed (store+load)` | [`m_atomica_relaxed`](medicoes/custo-espera.c#L171) | [`grupo_primitivo`](medicoes/custo-espera.c#L304) |
-| `atomica seq_cst (store+load)` | [`m_atomica_seqcst`](medicoes/custo-espera.c#L266) | idem |
+| `atomica relaxed (store+load)` | [`m_atomica_relaxed`](medicoes/custo-espera.c#L171) | [`grupo_primitivo`](medicoes/custo-espera.c#L311) |
+| `atomica seq_cst (store+load)` | [`m_atomica_seqcst`](medicoes/custo-espera.c#L273) | idem |
 | `mutex lock+unlock` | [`m_mutex_simples`](medicoes/custo-espera.c#L182) | idem |
-| `spinlock lock+unlock` | [`m_spinlock`](medicoes/custo-espera.c#L277) | idem |
-| `semaforo post+wait` | [`m_semaforo_livre`](medicoes/custo-espera.c#L289) | idem |
-| `atomica + espera ativa` | [`m_repasse_atomica`](medicoes/custo-espera.c#L389) | [`main`](medicoes/custo-espera.c#L479) |
-| `mutex + espera ativa` | [`m_repasse_mutex_ativo`](medicoes/custo-espera.c#L408) | idem |
-| `mutex + condvar (DORME)` | [`m_repasse_condvar`](medicoes/custo-espera.c#L436) | idem |
-| `semaforo POSIX (DORME)` | [`m_repasse_semaforo`](medicoes/custo-espera.c#L458) | idem |
+| `spinlock lock+unlock` | [`m_spinlock`](medicoes/custo-espera.c#L284) | idem |
+| `semaforo post+wait` | [`m_semaforo_livre`](medicoes/custo-espera.c#L296) | idem |
+| `atomica + espera ativa` | [`m_repasse_atomica`](medicoes/custo-espera.c#L396) | [`main`](medicoes/custo-espera.c#L514) |
+| `mutex + espera ativa` | [`m_repasse_mutex_ativo`](medicoes/custo-espera.c#L422) | idem |
+| `mutex + condvar (DORME)` | [`m_repasse_condvar`](medicoes/custo-espera.c#L457) | idem |
+| `semaforo POSIX (DORME)` | [`m_repasse_semaforo`](medicoes/custo-espera.c#L486) | idem |
 
-As cinco primeiras passam por [`measure_default`](medicoes/custo-espera.c#L260),
+As cinco primeiras passam por [`measure_default`](medicoes/custo-espera.c#L267),
 que executa a medição dentro de
 [`com_outra_thread`](medicoes/custo-espera.c#L230). É aí que se cumpre a
 condição declarada acima — haver sempre outra thread no processo. Não é
@@ -2277,11 +2277,11 @@ primitivo é só metade da decisão; a outra metade é **onde** as threads rodam
 |---|---|---|---|
 | Cada núcleo tem seu próprio estado | **nenhum** | sem compartilhamento não há o que sincronizar | — |
 | Um contador, uma flag, um ponteiro | atômica `relaxed` | a operação já é indivisível; a ordem não importa | [`m_atomica_relaxed`](medicoes/custo-espera.c#L171) |
-| Publicar dado e depois um sinal | atômica `acquire`/`release` | garante que quem vê o sinal vê o dado | [`m_repasse_atomica`](medicoes/custo-espera.c#L389) |
+| Publicar dado e depois um sinal | atômica `acquire`/`release` | garante que quem vê o sinal vê o dado | [`m_repasse_atomica`](medicoes/custo-espera.c#L396) |
 | Passar objetos entre núcleos | [`rte_ring`][guiaring] | fila sem trava, feita para isso | [`pipeline_ring.c`](../../trilha/01-fundamentos/02-mempool-ring/pipeline_ring.c) |
-| Invariante entre várias variáveis, seção curta | spinlock | trava de verdade, sem custo de dormir | [`m_spinlock`](medicoes/custo-espera.c#L277) |
-| Seção de duração imprevisível | mutex | dormir é aceitável fora do caminho quente | [`m_mutex_simples`](medicoes/custo-espera.c#L182), [`m_repasse_mutex_ativo`](medicoes/custo-espera.c#L408) |
-| Esperar evento que pode demorar | condvar / semáforo | libera a CPU; **nunca** no caminho quente | [`m_repasse_condvar`](medicoes/custo-espera.c#L436), [`m_repasse_semaforo`](medicoes/custo-espera.c#L458) |
+| Invariante entre várias variáveis, seção curta | spinlock | trava de verdade, sem custo de dormir | [`m_spinlock`](medicoes/custo-espera.c#L284) |
+| Seção de duração imprevisível | mutex | dormir é aceitável fora do caminho quente | [`m_mutex_simples`](medicoes/custo-espera.c#L182), [`m_repasse_mutex_ativo`](medicoes/custo-espera.c#L422) |
+| Esperar evento que pode demorar | condvar / semáforo | libera a CPU; **nunca** no caminho quente | [`m_repasse_condvar`](medicoes/custo-espera.c#L457), [`m_repasse_semaforo`](medicoes/custo-espera.c#L486) |
 
 A última coluna leva **direto à linha** da função que produziu cada número, em
 [`medicoes/custo-espera.c`](medicoes/custo-espera.c): recomendação e evidência

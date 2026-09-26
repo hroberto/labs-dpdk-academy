@@ -26,10 +26,36 @@
  * programa recusa em vez de imprimir número errado — que é o defeito que ele
  * existe para corrigir.
  */
-#include <cpuid.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
+/* GUARDA DE ARQUITETURA, e ela existe porque a porta de entrada promete arm64.
+ *
+ * `<cpuid.h>` e `__get_cpuid` sao exclusivos de x86: em AArch64 este arquivo
+ * nao compila, e ele era registrado no meson sem condicao nenhuma. O
+ * `README.md` declara "Linux x86_64 ou arm64" como requisito, e a arvore nao
+ * sustentava a segunda metade -- o mesmo desencontro que o `cpu_pause.h`
+ * corrigiu para a dica de espera.
+ *
+ * Fora de x86 o programa COMPILA e PULA com 77. Nao compilar seria pior que
+ * pular: quebraria a build inteira num alvo que o projeto diz suportar, e a
+ * unica coisa que falta ali e este instrumento, nao o material. */
+#if !defined(__x86_64__) && !defined(__i386__)
+
+int main(void)
+{
+    printf("PULADO: a leitura da TLB por CPUID e especifica de x86.\n");
+    printf("  Esta arquitetura expoe a geometria da TLB por outro caminho\n");
+    printf("  (em AArch64, os registradores de ID do sistema), e este programa\n");
+    printf("  nao o implementa. O modulo 01 publica o alcance da TLB medido\n");
+    printf("  na maquina de referencia, que e x86-64.\n");
+    return 77;   /* PULADO para o Meson, e nao sucesso */
+}
+
+#else
+
+#include <cpuid.h>
 
 /* Um nível de TLB, já com o multiplicador aplicado. */
 struct nivel {
@@ -150,3 +176,5 @@ int main(void)
     printf("  not by the 512x the page size alone would suggest.\n");
     return 0;
 }
+
+#endif /* x86 */
