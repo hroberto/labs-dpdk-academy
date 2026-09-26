@@ -105,8 +105,8 @@ fi
 # --- 2. Consistência específica deste projeto -----------------------------
 titulo "2. Consistência do projeto"
 
-# INCIDENTE: `--in-memory --no-huge` juntos são rejeitados até o DPDK 23.11
-# (`--no-huge` liga `--legacy-mem`, incompatível com `--in-memory`). Passava
+# INCIDENTE: `--in-memory --no-huge` juntos são rejeitados até o DPDK 25.07
+# (`--no-huge` liga `legacy_mem`, incompatível com `--in-memory`). Passava
 # aqui, quebrava na CI. Só vale para INVOCAÇÕES; a prosa pode citar a
 # combinação, e cita, para ensinar por que ela falha.
 # `-e` e nao `--`: com `--` o grep trata `--include` como NOME DE ARQUIVO, e

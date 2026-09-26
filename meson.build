@@ -34,8 +34,10 @@ project(
 # suite passa de ponta a ponta. A maquina de referencia roda 25.11, e a
 # diferenca entre as duas ja produziu dois defeitos que so apareceram no par:
 #
-#   - `--in-memory --no-huge` juntos: rejeitado ate o 23.11, aceito no 25.11,
-#     porque `--no-huge` ligava `--legacy-mem`;
+#   - `--in-memory --no-huge` juntos: rejeitado ATE O 25.07, aceito no 25.11.
+#     `--no-huge` liga `legacy_mem` na configuracao derivada nas cinco
+#     releases; o que mudou no 25.11 foi o conflito passar a ser conferido
+#     sobre os argumentos DIGITADOS, onde `legacy_mem` fica zero;
 #   - codigo de saida e mensagem de argumento desconhecido: vem de
 #     `librte_argparse`, que so existe a partir do 24.03.
 #
