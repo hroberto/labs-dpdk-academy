@@ -93,6 +93,9 @@ struct provocador {
     int cpu;
     _Atomic int estado;
     _Atomic unsigned long voltas;   /* prova que a carga rodou, e nao so subiu */
+#ifdef DPDK_ACADEMY_INJECAO
+    int parar_apos_primeira;
+#endif
     /* Escrito pela thread principal, lido pela provocadora.
      *
      * `volatile` impede o compilador de eliminar a releitura e nao faz mais que
@@ -116,7 +119,39 @@ static void *provocar(void *arg)
         atomic_store_explicit(&pv->estado, PROV_SEM_AFINIDADE, memory_order_release);
         return NULL;
     }
+#ifdef DPDK_ACADEMY_INJECAO
+    /* VARIANTE DE INJECAO, so existe na build de teste.
+     *
+     * O handshake antes da janela nunca roda numa execucao normal: o
+     * provocador sobe em microssegundos. Um caminho que a suite nao exercita e
+     * indistinguivel de um que nao existe, e este decide se a janela medida
+     * tem carga.
+     *
+     * SAO TRES CENARIOS DIFERENTES, e um so nao basta -- a primeira versao
+     * deste teste tinha apenas o primeiro, e dois mutantes sobreviveram:
+     *
+     *   LENTO     demora a ficar ATIVO       -> o handshake expira
+     *   SEM_VOLTA fica ATIVO e nao trabalha  -> o handshake exige a 1a volta
+     *   PARA      trabalha e para logo apos  -> a conferencia do fim exige
+     *                                           continuidade durante a janela
+     *
+     * O ambiente e lido UMA VEZ, fora de qualquer laco: o portao de medicao
+     * recusa `getenv()` por iteracao, e com razao. */
+    const char *e_lento = getenv("INJETAR_LENTO");
+    const char *e_sem_volta = getenv("INJETAR_SEM_VOLTA");
+    pv->parar_apos_primeira = getenv("INJETAR_PARA") != NULL;
+    if (e_lento != NULL) {
+        const struct timespec atraso = { atoi(e_lento), 0 };
+        nanosleep(&atraso, NULL);
+    }
+#endif
     atomic_store_explicit(&pv->estado, PROV_ATIVO, memory_order_release);
+#ifdef DPDK_ACADEMY_INJECAO
+    if (e_sem_volta != NULL) {
+        const struct timespec atraso = { atoi(e_sem_volta), 0 };
+        nanosleep(&atraso, NULL);
+    }
+#endif
     const size_t bytes = 8u * 1024u * 1024u;
     while (!atomic_load_explicit(&pv->parar, memory_order_relaxed)) {
         void *p = mmap(NULL, bytes, PROT_READ | PROT_WRITE,
@@ -125,11 +160,26 @@ static void *provocar(void *arg)
             atomic_store_explicit(&pv->estado, PROV_SEM_MEMORIA, memory_order_release);
             break;
         }
-        atomic_fetch_add_explicit(&pv->voltas, 1u, memory_order_relaxed);
+
         /* Tocar e obrigatorio: sem pagina residente nao ha o que invalidar,
          * e o `munmap` nao gera IPI para ninguem. */
         memset(p, 1, bytes);
         munmap(p, bytes);
+        /* O INCREMENTO FICA AQUI, DEPOIS DO TRABALHO.
+         *
+         * Contando logo apos o `mmap`, `voltas > 0` significava apenas que a
+         * volta COMECOU -- e a thread pode ser preemptada entre o incremento e
+         * o `memset`, que e onde a pressao de memoria de fato acontece. O
+         * handshake liberaria a janela com a carga ainda por vir, que e
+         * exatamente o que ele existe para impedir.
+         *
+         * `release` para que o `acquire` do leitor veja o trabalho concluido,
+         * e nao so o contador. */
+        atomic_fetch_add_explicit(&pv->voltas, 1u, memory_order_release);
+#ifdef DPDK_ACADEMY_INJECAO
+        if (pv->parar_apos_primeira)
+            break;   /* trabalhou uma vez e parou: a janela fica sem carga */
+#endif
     }
     return NULL;
 }
@@ -267,7 +317,11 @@ int main(int argc, char **argv)
     if (argc == 5 && academy_arg_int(argv[4], "provoker_cpu", 0, CPU_SETSIZE - 1,
                                      &cpu_prov) != 0)
         return 2;
+#ifdef DPDK_ACADEMY_INJECAO
+    struct provocador pv = { cpu_prov, PROV_NAO_INICIOU, 0, 0, 0 };
+#else
     struct provocador pv = { cpu_prov, PROV_NAO_INICIOU, 0, 0 };
+#endif
     pthread_t th;
     int tem_provocador = 0;
     if (cpu_prov >= 0) {
@@ -342,7 +396,8 @@ int main(int argc, char **argv)
      * JA trabalhava; este marcador prova que ele CONTINUOU durante a medicao.
      * Sao duas afirmacoes diferentes, e a conferencia do fim precisa das duas. */
     const unsigned long voltas_no_inicio =
-        tem_provocador ? atomic_load_explicit(&pv.voltas, memory_order_relaxed) : 0;
+        tem_provocador ? atomic_load_explicit(&pv.voltas, memory_order_acquire) : 0;
+    unsigned long voltas_no_fim = 0;
     const uint64_t t0 = agora_ns();
     const uint64_t fim = t0 + (uint64_t)(segundos * 1e9);
     uint64_t anterior = agora_ns(), acima = 0;
@@ -357,6 +412,12 @@ int main(int argc, char **argv)
     }
 
     if (tem_provocador) {
+        /* A FOTOGRAFIA E TIRADA ANTES DO `parar`, e nao depois do `join`.
+         *
+         * Lendo depois, uma volta iniciada pouco antes do fim da janela e
+         * concluida fora dela entrava na conta -- e o rotulo "durante a
+         * janela" passava a contar trabalho que aconteceu fora dela. */
+        voltas_no_fim = atomic_load_explicit(&pv.voltas, memory_order_acquire);
         atomic_store_explicit(&pv.parar, 1, memory_order_relaxed);
         pthread_join(th, NULL);
         /* O QUE FOI PEDIDO PRECISA TER ACONTECIDO. `pthread_create` ter
@@ -364,7 +425,7 @@ int main(int argc, char **argv)
          * esta conferencia a medicao sai rotulada com um provocador que pode
          * nao ter existido de fato. */
         const int est = atomic_load_explicit(&pv.estado, memory_order_acquire);
-        const unsigned long voltas = atomic_load_explicit(&pv.voltas, memory_order_relaxed);
+        const unsigned long voltas = voltas_no_fim;
         if (est != PROV_ATIVO || voltas == 0 || voltas <= voltas_no_inicio) {
             fprintf(stderr, "provoker did not run as declared: %s (%lu rounds)\n",
                     est == PROV_SEM_AFINIDADE ? "could not pin to the requested CPU"
@@ -391,9 +452,9 @@ int main(int argc, char **argv)
      * duas coletas com contagens de ordem diferente nao sao comparaveis,
      * mesmo que as duas digam "verified". */
     if (tem_provocador)
-        printf("provoker rounds during the window: %lu"
+        printf("provoker rounds completed during the window: %lu"
                " (8 MiB mapped, touched and unmapped each)\n",
-               atomic_load_explicit(&pv.voltas, memory_order_relaxed) - voltas_no_inicio);
+               voltas_no_fim - voltas_no_inicio);
     printf("samples: %" PRIu64 "\n", h.amostras);
     printf("stalls above threshold: %" PRIu64 "\n", acima);
     /* Percentis saem do histograma e sao PISOS de balde; o maior e exato.

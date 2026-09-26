@@ -22,6 +22,16 @@ coleta_zero = executable(
 test('fundamentos - L1 (coleta que nao aconteceu deve abortar)', coleta_zero,
      suite : ['l1', 'fundamentos'], timeout : 30, should_fail : true)
 
+# --- L1: argumento de linha de comando converte ou recusa ------------------
+#
+# O valor de erro de `atoi`/`strtoull` cai DENTRO do dominio valido -- zero e
+# uma CPU, doze e uma contagem --, entao so a conversao denuncia. E
+# `strtoull("-1")` nao e erro: converte, nega, e devolve o maior unsigned.
+argumento_l1 = executable('l1-argumento', 'tests/l1_argumento.c',
+  include_directories : include_directories('.'), install : false)
+test('fundamentos - L1 (argumento converte ou recusa)', argumento_l1,
+     suite : ['l1', 'fundamentos'], timeout : 30)
+
 # --- L1: a topologia decide a CPU parceira ---------------------------------
 topologia_l1 = executable('l1-topologia', 'tests/l1_topologia.c',
   include_directories : include_directories('.'), install : false)

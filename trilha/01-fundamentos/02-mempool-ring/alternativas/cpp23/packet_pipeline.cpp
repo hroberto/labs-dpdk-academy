@@ -99,6 +99,10 @@ std::expected<Config, std::string_view> parse_config(int argc, char** argv) {
             // Num programa cujo `-n` determina o tamanho da medicao, isso e a
             // mesma familia de "a condicao declarada nao ocorreu".
             const char* const texto = argv[++i];
+            // `std::strtoull("-1")` converte e NEGA: devolve o maior unsigned,
+            // sem erro. Um `-n -1` passaria como 18 quintilhoes de pacotes.
+            if (*texto == '-')
+                return std::unexpected("numeric argument cannot be negative");
             char* fim = nullptr;
             errno = 0;
             const auto valor = std::strtoull(texto, &fim, 10);

@@ -17,6 +17,26 @@ stall_probe = executable(
   install : false,
 )
 
+# VARIANTE COM O PROVOCADOR LENTO, para exercitar o handshake.
+#
+# O programa espera o provocador anunciar que esta ativo E que deu a primeira
+# volta antes de abrir a janela medida. Numa execucao normal isso acontece em
+# microssegundos, e o caminho de recusa nunca roda -- indistinguivel de nao
+# existir. Aqui a thread demora 3 s de proposito, contra o limite de 2 s.
+stall_probe_inj = executable(
+  'stall_probe_injecao',
+  ['stall_probe.c', 'gap_hist.c', 'procstat.c'],
+  c_args : ['-DDPDK_ACADEMY_INJECAO'],
+  dependencies : [dependency('threads')],
+  include_directories : isolamento_inc,
+  install : false,
+)
+
+test('03-performance - L1 (provocador sem carga nao abre a janela)', bash,
+     args : [meson.project_source_root() / 'trilha/03-performance/03-isolamento-cpu/tests/l1_provocador_lento.sh',
+             stall_probe_inj, stall_probe],
+     suite : ['l1', 'performance'], timeout : 60)
+
 executable(
   'ipi_provoker',
   'ipi_provoker.c',

@@ -37,6 +37,24 @@ static inline int academy_arg_u64(const char *texto, const char *nome,
                                   unsigned long long maximo,
                                   unsigned long long *fora)
 {
+    /* O SINAL E RECUSADO AQUI, e nao em cada chamador.
+     *
+     * `strtoull("-1", ...)` nao e erro: a norma manda converter e NEGAR, e o
+     * resultado e ULLONG_MAX com `fim` no final da string. Nada acusa. Quem
+     * aceitasse a faixa ate UINT64_MAX -- e havia dois -- recebia o maior
+     * valor possivel de um usuario que digitou "menos um".
+     *
+     * Medido antes: `pipeline_ring -n -1` nao reclamava e passava a processar
+     * 18 quintilhoes de pacotes; o comando teve de ser morto.
+     *
+     * Fechar a classe aqui e melhor que confiar no teto de cada chamador, que
+     * capturaria o complemento por acidente e so quando o teto fosse baixo. */
+    if (texto[0] == '-') {
+        fprintf(stderr, "%s: '%s' e negativo, e este argumento nao aceita sinal\n",
+                nome, texto);
+        return -1;
+    }
+
     char *fim = NULL;
     errno = 0;
     const unsigned long long v = strtoull(texto, &fim, 10);
@@ -62,8 +80,9 @@ static inline int academy_arg_int(const char *texto, const char *nome,
                                   int minimo, int maximo, int *fora)
 {
     unsigned long long v;
-    /* O sinal e recusado antes de `strtoull`, que aceitaria "-1" e devolveria
-     * um numero enorme por complemento -- erro que so apareceria depois. */
+    /* A mensagem aqui nomeia a FAIXA, que e mais util para um inteiro com
+     * minimo declarado; `academy_arg_u64` tambem recusa o sinal, e recusar
+     * duas vezes e melhor que depender de qual das duas foi chamada. */
     if (texto[0] == '-') {
         fprintf(stderr, "%s: '%s' e negativo, e a faixa aceita comeca em %d\n",
                 nome, texto, minimo);
