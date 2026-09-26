@@ -325,6 +325,17 @@ int main(int argc, char **argv)
            cpu, segundos, limiar);
     printf("provoker thread: %s\n",
            tem_provocador ? "same process, other CPU (verified: pinned and ran)" : "none");
+    /* A CONTAGEM SAI NA TABELA, e nao so a afirmacao de que houve provocador.
+     *
+     * `voltas > 0` prova que a carga comecou; nao prova a TAXA. Um provocador
+     * que deu tres voltas numa janela de dez segundos passa na conferencia e
+     * nao gerou pressao comparavel a uma execucao normal. Publicar o numero
+     * deixa isso visivel a quem le, em vez de exigir confianca no binario:
+     * duas coletas com contagens de ordem diferente nao sao comparaveis,
+     * mesmo que as duas digam "verified". */
+    if (tem_provocador)
+        printf("provoker rounds: %lu (8 MiB mapped, touched and unmapped each)\n",
+               atomic_load_explicit(&pv.voltas, memory_order_relaxed));
     printf("samples: %" PRIu64 "\n", h.amostras);
     printf("stalls above threshold: %" PRIu64 "\n", acima);
     /* Percentis saem do histograma e sao PISOS de balde; o maior e exato.

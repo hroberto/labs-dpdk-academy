@@ -91,6 +91,20 @@ O que está ligado, e o princípio por trás:
 - `main` protegida por ruleset: assinatura verificada obrigatória, sem force
   push e sem deleção.
 
+**O que o ruleset NÃO impõe**, e vale dizer porque a prática diária sugere o
+contrário:
+
+- **não exige pull request.** Quem tem permissão de escrita pode empurrar
+  direto para a `main`, desde que o commit esteja assinado. Passar por PR é
+  prática adotada, não garantia da configuração;
+- **exige apenas um check:** `build-and-test`. `sanitizers` e as duas
+  `releases-dpdk` rodam e podem estar vermelhas sem impedir o merge — e são
+  justamente as que pegam defeito dependente de versão e de conjunto de
+  instruções.
+
+As duas coisas são decisões em aberto, não descuido, e estão escritas aqui para
+que ninguém confunda o que a ferramenta garante com o que o hábito faz.
+
 **O CodeQL está ativo**, com os alvos `actions`, `python` e `c-cpp`, e roda em
 todo push para `main` e em todo pull request.
 

@@ -10,6 +10,8 @@
 // Sem `#define _GNU_SOURCE` aqui: ao contrario do lado C, o g++ ja o define
 // por padrao em C++, e redefini-lo emite -Wmacro-redefined.
 #include <pthread.h>
+#include <cerrno>
+
 #include <sched.h>
 
 #include <atomic>
@@ -89,7 +91,18 @@ std::expected<Config, std::string_view> parse_config(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         std::string_view arg{argv[i]};
         if ((arg == "-n" || arg == "-b" || arg == "-c") && i + 1 < argc) {
-            const auto valor = std::strtoull(argv[++i], nullptr, 10);
+            // A CONVERSAO E CONFERIDA. `strtoull` com `nullptr` no `end`
+            // descarta a unica evidencia de que algo foi convertido: `-n abc`
+            // virava 0 em silencio, `-b 12x` virava 12, e um valor acima do
+            // limite virava ULLONG_MAX com errno posto e ninguem olhando.
+            // Num programa cujo `-n` determina o tamanho da medicao, isso e a
+            // mesma familia de "a condicao declarada nao ocorreu".
+            const char* const texto = argv[++i];
+            char* fim = nullptr;
+            errno = 0;
+            const auto valor = std::strtoull(texto, &fim, 10);
+            if (fim == texto || *fim != '\0' || errno == ERANGE)
+                return std::unexpected("numeric argument is not a valid number");
             if (arg == "-n") cfg.num_packets = valor;
             else if (arg == "-b") cfg.burst = valor;
             else cfg.consumer_cpu = static_cast<int>(valor);

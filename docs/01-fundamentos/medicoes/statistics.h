@@ -290,8 +290,30 @@ collect_paired(double (*ma)(void), double (*mb)(void), int n)
     }
 
     for (int i = 0; i < n; i++) {
-        va[i] = ma();
-        vb[i] = mb();               /* na MESMA volta: é isto que pareia */
+        /* CONTRABALANCEAMENTO: a ordem dentro do par ALTERNA.
+         *
+         * Coletar na mesma volta remove a deriva lenta entre as duas medições,
+         * e era o que esta função já fazia. Mas a ordem FIXA deixa um efeito
+         * sistemático: quem corre primeiro aquece cache, eleva frequência,
+         * condiciona preditor e muda estado de coerência, e quem corre em
+         * segundo herda tudo isso em TODAS as amostras. A vantagem -- ou a
+         * desvantagem -- vai inteira para o mesmo lado.
+         *
+         * Alternando, metade dos pares tem A primeiro e metade tem B, e o
+         * efeito de ordem entra nas duas medições em partes iguais. Ele não
+         * desaparece; deixa de ser sistemático, que é o que uma razão
+         * publicada precisa.
+         *
+         * `va` SEMPRE GUARDA `ma`, independente de quem correu antes: o que
+         * alterna é a ordem de execução, não o rótulo. Trocar os dois faria a
+         * razão publicada inverter em metade das amostras. */
+        if ((i & 1) == 0) {
+            va[i] = ma();
+            vb[i] = mb();           /* na MESMA volta: é isto que pareia */
+        } else {
+            vb[i] = mb();
+            va[i] = ma();
+        }
         /* AMOSTRA INVÁLIDA PARA A COLETA PAREADA TAMBÉM.
          *
          * `collection_state` já recusava negativo e não-finito no caminho de

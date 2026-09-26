@@ -290,7 +290,9 @@ int main(int argc, char **argv)
     printf("   noise thread malloc would measure a cost no real server pays)\n\n");
 
     printf("  --- one object at a time, in NANOSECONDS PER OBJECT ---\n\n");
-    const double f0 = freq_ghz(cpu_do_lcore(rte_lcore_id()));
+    /* A MESMA CPU para a leitura e para o rotulo, guardada uma vez. */
+    const int cpu_da_medicao = (int)cpu_do_lcore(rte_lcore_id());
+    const double f0 = freq_ghz((unsigned)cpu_da_medicao);
     print_header();
     const struct statistics e_malloc = collect(m_malloc_unitario, n);
     const struct statistics e_cache = collect(m_pool_com_cache, n);
@@ -306,7 +308,7 @@ int main(int argc, char **argv)
     print_row("malloc/free", e_malloc);
     print_row("mempool get/put, with cache", e_cache);
     print_row("mempool get/put, NO cache", e_sem);
-    const double f1 = freq_ghz(cpu_do_lcore(rte_lcore_id()));
+    const double f1 = freq_ghz((unsigned)cpu_da_medicao);
 
     /* AS RAZOES SAO O RESULTADO; os nanossegundos sao circunstancia.
      *
@@ -315,9 +317,24 @@ int main(int argc, char **argv)
      * para o malloc, conforme o turbo engatasse ou nao. As RAZOES, no entanto,
      * ficaram identicas (2,23x nas duas). E por isso que este modulo afirma
      * "duas vezes mais rapido" e nao "0,98 nanossegundos". */
-    printf("\n  frequency of core %u during the measurement: %.2f -> %.2f GHz\n",
-           rte_lcore_id(), f0, f1);
-    printf("  ratios, which do NOT depend on frequency:\n");
+    /* O QUE E LIDO E O QUE E ROTULADO PRECISAM SER A MESMA COISA.
+     *
+     * A leitura vem da CPU FISICA derivada do cpuset; o rotulo imprimia
+     * `rte_lcore_id()`, que e outro identificador. Com `--lcores` os dois
+     * divergem, e a etiqueta passava a nomear um nucleo que nao foi lido.
+     *
+     * E `scaling_cur_freq` nao e "a frequencia do nucleo": e o que o cpufreq
+     * REPORTA, e a documentacao do kernel nao promete que reflita a frequencia
+     * executada. */
+    printf("\n  CPUFreq reported for CPU %d during the measurement: %.2f -> %.2f GHz\n",
+           cpu_da_medicao, f0, f1);
+    /* "NAO DEPENDEM DA FREQUENCIA" E ABSOLUTO DEMAIS, e o `PADROES.md` ja usa a
+     * formulacao correta: razoes resistem melhor que absolutos, e "resiste
+     * melhor" nao e "e estavel". A razao cancela o componente COMUM de
+     * frequencia; se os dois caminhos respondem de forma diferente a turbo,
+     * memoria, stalls ou cache, ela nao cancela nada. O que esta medido aqui e
+     * que ELAS RESISTIRAM: 2,23x nas duas execucoes que a nota acima descreve. */
+    printf("  ratios, which resist frequency changes better than absolutes:\n");
     printf("    mempool with cache is %.2fx faster than malloc\n",
            e_cache.median > 0 ? e_malloc.median / e_cache.median : 0.0);
     printf("    the per-lcore cache is worth %.1fx (with cache against without)\n",
