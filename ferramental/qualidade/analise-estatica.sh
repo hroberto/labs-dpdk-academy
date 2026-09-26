@@ -26,13 +26,25 @@ cd "$(dirname "$0")/../.."
 CPPCHECK=${CPPCHECK:-$(command -v cppcheck || echo "$HOME/opt/cppcheck-2.22.0/bin/cppcheck")}
 BUILD=${1:-build}
 
-if [ ! -x "$CPPCHECK" ]; then
-    echo "  PULADO: cppcheck ausente (CPPCHECK=<caminho> para apontar)"
+# PULAR NA MAQUINA DE QUEM ESTUDA, FALHAR NA CI.
+#
+# Ausencia de ferramenta e fato legitimo no laptop de quem acompanha o
+# material, e exigir cppcheck ali afastaria quem so quer compilar. Na CI e
+# outra coisa: o job instala a ferramenta de proposito, e um PULADO ali
+# significa que a instalacao quebrou -- e o verde passaria a afirmar uma
+# analise que nao aconteceu.
+exigir() { [ -n "${CI:-}" ] || [ -n "${ANALISE_ESTATICA_EXIGIR:-}" ]; }
+pular() {
+    echo "  PULADO: $1"
+    exigir && { echo "  (na CI isto e FALHA: a analise nao aconteceu)"; exit 1; }
     exit 0
+}
+
+if [ ! -x "$CPPCHECK" ]; then
+    pular "cppcheck ausente (CPPCHECK=<caminho> para apontar)"
 fi
 if [ ! -f "$BUILD/compile_commands.json" ]; then
-    echo "  PULADO: $BUILD/compile_commands.json ausente; rode scripts/build-all.sh"
-    exit 0
+    pular "$BUILD/compile_commands.json ausente; rode scripts/build-all.sh"
 fi
 
 saida=$(mktemp); trap 'rm -f "$saida"' EXIT
@@ -43,11 +55,34 @@ saida=$(mktemp); trap 'rm -f "$saida"' EXIT
     --suppress=missingIncludeSystem --suppress=checkersReport \
     -j "$(nproc)" \
     --template='{file}:{line}: [{severity}/{id}] {message}' \
-    2>"$saida" >/dev/null || true
+    2>"$saida" >/dev/null; rc_cppcheck=$?
+
+# TRES ESTADOS, E NAO DOIS. O `|| true` que estava aqui engolia o codigo de
+# saida: analisador que morre no meio produzia arquivo curto ou vazio, e o
+# script relatava "0 achado(s)" -- ou seja, ANALISE QUE NAO ACONTECEU virava
+# analise limpa. cppcheck devolve 1 quando ACHA algo, entao so os outros
+# codigos sao falha de execucao.
+if [ "$rc_cppcheck" -ne 0 ] && [ "$rc_cppcheck" -ne 1 ]; then
+    echo "  FALHA: cppcheck terminou com codigo $rc_cppcheck -- a analise nao concluiu"
+    sed -n '1,5p' "$saida" | sed 's/^/    /'
+    exit 1
+fi
 
 # So o que e NOSSO: o cppcheck tambem analisa os cabecalhos do DPDK e da glibc
 # que as unidades incluem, e o que esta em /usr nao e deste projeto consertar.
-nossos=$(grep -v '^/' "$saida" | sort -u || true)
+#
+# O CRITERIO E "FORA DA ARVORE", E NAO "COMECA COM /". A versao anterior
+# descartava toda linha iniciada por barra, o que funciona enquanto o
+# `compile_commands.json` guarda caminho relativo para as fontes do projeto --
+# e passa a descartar TODOS os achados nossos no dia em que ele guardar caminho
+# absoluto. O filtro que esconde o proprio achado e pior que filtro nenhum.
+raiz=$(pwd -P)
+nossos=$(awk -v raiz="$raiz/" '
+    {
+        caminho = $0; sub(/:.*/, "", caminho)
+        if (caminho ~ /^\//) { if (index(caminho, raiz) == 1) print }
+        else print
+    }' "$saida" | sort -u || true)
 n=$(printf '%s' "$nossos" | grep -c . || true)
 
 if [ "$n" -eq 0 ]; then

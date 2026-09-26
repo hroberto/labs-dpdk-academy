@@ -105,9 +105,22 @@ grep -q "Arguments left for the application: 3" <<<"$saida"; check "argumentos a
 #
 # `ldd` sobre o BINARIO responde a pergunta certa -- o que este executavel vai
 # carregar de fato --, e nao depende de onde a release foi instalada.
+# SAO TRES ESTADOS, e a primeira versao desta funcao colapsou dois deles.
+#
+# Ela perguntava ao `ldd` e, NAO ACHANDO, caia no `ldconfig`. Mas "o ldd
+# inspecionou e a biblioteca nao esta" e "o ldd nao conseguiu inspecionar" sao
+# respostas diferentes, e so a segunda justifica consultar o sistema. Com a
+# primeira caindo no recuo, um binario ligado contra um DPDK privado SEM
+# argparse seria classificado como tendo, se qualquer outra instalacao
+# estivesse registrada em `/etc/ld.so.cache` -- que e o mesmo erro de origem
+# que esta funcao veio corrigir, na direcao oposta.
 tem_argparse() {
-    ldd "$BIN" 2>/dev/null | grep -q 'librte_argparse' && return 0
-    ldconfig -p 2>/dev/null | grep -q 'librte_argparse'
+    local saida
+    if saida=$(ldd "$BIN" 2>/dev/null) && [ -n "$saida" ]; then
+        grep -q 'librte_argparse' <<<"$saida"   # o ldd respondeu: vale o que ele disse
+        return
+    fi
+    ldconfig -p 2>/dev/null | grep -q 'librte_argparse'   # so aqui o recuo cabe
 }
 
 saida=$("$BIN" --opcao-inexistente 2>&1); rc=$?

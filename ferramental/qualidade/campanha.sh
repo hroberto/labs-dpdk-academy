@@ -411,6 +411,45 @@ fi
 # minutos ja gastos.
 # --------------------------------------------------------------------------
 [ "$(id -u)" -eq 0 ] || { echo "FALHA: rode com sudo (o rtla exige root)."; exit 1; }
+
+# O VEREDITO DA CAMPANHA PRECISA DE CONTADOR, e ate 26/09/2026 nao tinha.
+#
+# Cada passo dizia `&& echo ok || echo FALHA`, e o `||` CONSOME o codigo de
+# saida: o passo falhava, a mensagem saia, e o script seguia ate o `exit 0`.
+# Uma campanha com o osnoise e o isolamento falhados -- os dois bracos que
+# medem ruido -- imprimia "CONCLUIDA" e o `run-all.sh` reportava `rc=0`.
+#
+# E o mesmo defeito que este repositorio ja pagou nos testes: PULO nao e verde,
+# e FALHA consumida e pior que PULO. Agora sao tres estados, e so um deles
+# permite dizer que a campanha esta completa.
+#
+#   FALHAS   o passo correu e falhou
+#   PULOS    o pre-requisito nao existe -- campanha INCOMPLETA, nao completa
+#   pulo pedido por flag (--so-ruido, --so-hardware) nao conta: foi escolha.
+FALHAS=0
+PULOS=0
+falhou()  { echo "    FALHA${1:+ $1}"; FALHAS=$((FALHAS + 1)); }
+pulou()   { echo "    PULADO: $1"; PULOS=$((PULOS + 1)); }
+# O VEREDITO SAI NO CODIGO DE SAIDA, e nao so na tela. Quem le o diario ve as
+# linhas de FALHA; quem automatiza le o `$?`, e ate aqui os dois discordavam --
+# era o `$?` que decidia se a coleta entrava no historico como completa.
+veredito() {
+    echo
+    if [ "$FALHAS" -gt 0 ]; then
+        echo "==> CAMPANHA COM FALHA: $FALHAS passo(s) correram e falharam" \
+             "${PULOS:+e $PULOS pulado(s) por pre-requisito}"
+        echo "    A coleta em ${SAIDA#$RAIZ/} NAO esta completa."
+        exit 1
+    fi
+    if [ "$PULOS" -gt 0 ]; then
+        echo "==> CAMPANHA INCOMPLETA: $PULOS passo(s) pulado(s) por pre-requisito ausente"
+        echo "    Nao e falha de medicao, e tambem nao e campanha completa: os"
+        echo "    bracos pulados nao foram medidos, e o historico precisa saber."
+        exit 2
+    fi
+    echo "==> CAMPANHA COMPLETA: nenhum passo falhou nem foi pulado por falta de pre-requisito"
+    exit 0
+}
 DONO=${SUDO_USER:-$(logname 2>/dev/null || echo root)}
 id "$DONO" >/dev/null 2>&1 || { echo "FALHA: nao identifiquei o usuario dono ($DONO)"; exit 1; }
 # O `-H` NAO E OPCIONAL nas chamadas abaixo: sem ele o sudo mantem HOME=/root, e
@@ -595,10 +634,11 @@ if [ -s "$SAIDA/osnoise-hist.txt" ] && grep -q "^count:" "$SAIDA/osnoise-hist.tx
     grep -E "^(over|count|min|avg|max):" "$SAIDA/osnoise-hist.txt" | sed 's/^/    /'
 elif command -v rtla >/dev/null; then
     rtla osnoise hist -c 2 -d 10m -T 1 > "$SAIDA/osnoise-hist.txt" 2>&1 \
-        && echo "    ok" || echo "    FALHA (saida em osnoise-hist.txt)"
+        && echo "    ok" || falhou "(saida em osnoise-hist.txt)"
     grep -E "^(over|count|min|avg|max):" "$SAIDA/osnoise-hist.txt" | sed 's/^/    /'
 else
-    echo "    PULADO: rtla ausente" | tee "$SAIDA/osnoise-hist.txt"
+    echo "PULADO: rtla ausente" > "$SAIDA/osnoise-hist.txt"
+    pulou "rtla ausente"
 fi
 
 # --------------------------------------------------------------------------
@@ -610,9 +650,9 @@ echo
 echo "==> 2/6 campanha de isolamento, 4 celulas x 5 repeticoes  ($(date +%T))"
 if [ -x build/trilha/03-performance/03-isolamento-cpu/stall_probe ]; then
     sudo -u "$DONO" -H ./ferramental/qualidade/campanha-isolamento.sh "$SAIDA/isolamento" 5 \
-        && echo "    ok" || echo "    FALHA"
+        && echo "    ok" || falhou
 else
-    echo "    PULADO: stall_probe ausente; rode scripts/build-all.sh antes"
+    pulou "stall_probe ausente; rode scripts/build-all.sh antes"
 fi
 
 # --------------------------------------------------------------------------
@@ -631,7 +671,9 @@ if [ "$SO_RUIDO" -eq 1 ]; then
     echo
     echo "==> CONCLUIDA  $(date -Is)"
     echo "    saida: ${SAIDA#$RAIZ/}"
-    exit 0
+    # Os passos 3 a 6 foram pulados POR ESCOLHA e nao contam; os 1 e 2, que sao
+    # o objeto deste modo, contam como em qualquer campanha.
+    veredito
 fi
 
 # --------------------------------------------------------------------------
@@ -643,9 +685,9 @@ echo
 echo "==> 3/6 campanha de tempo do mempool  ($(date +%T))"
 if [ -x build-25.11-sem-stats/trilha/01-fundamentos/02-mempool-ring/pipeline_ring ]; then
     sudo -u "$DONO" -H ./ferramental/qualidade/campanha-mempool-tempo.sh "$SAIDA/mempool-tempo" 21 \
-        && echo "    ok" || echo "    FALHA"
+        && echo "    ok" || falhou
 else
-    echo "    PULADO: binarios -sem-stats ausentes"
+    pulou "binarios -sem-stats ausentes"
 fi
 
 
@@ -659,9 +701,9 @@ echo
 echo "==> 4/6 campanha de miss do mempool  ($(date +%T))"
 if [ -x build-25.11/trilha/01-fundamentos/02-mempool-ring/pipeline_ring ]; then
     sudo -u "$DONO" -H ./ferramental/qualidade/campanha-mempool-cache.sh "$SAIDA/mempool-cache" 6 \
-        && echo "    ok" || echo "    FALHA"
+        && echo "    ok" || falhou
 else
-    echo "    PULADO: binarios COM estatisticas ausentes"
+    pulou "binarios COM estatisticas ausentes"
 fi
 
 fi   # fim dos passos 1 a 4
@@ -813,7 +855,7 @@ elif [ -x build/docs/01-fundamentos/medicoes/custo-syscall ]; then
     sudo -u "$DONO" -H \
         DPDK_ACADEMY_HUGE_DIR="${DPDK_ACADEMY_HUGE_DIR:-}" \
         ./ferramental/qualidade/campanha-hardware.sh "$CONF" \
-        && echo "    ok" || echo "    FALHA"
+        && echo "    ok" || falhou
     # O feed some em silencio; conferir a contagem e o unico jeito de saber.
     nfeed=$(ls docs/02-runtime-dpdk/medicoes/historico/$CONF/feed-*.txt 2>/dev/null | wc -l)
     if [ "$nfeed" -eq 12 ]; then
@@ -823,7 +865,7 @@ elif [ -x build/docs/01-fundamentos/medicoes/custo-syscall ]; then
         echo "           do passo 6 perde esses rotulos"
     fi
 else
-    echo "    PULADO: binarios dos modulos ausentes; rode scripts/build-all.sh"
+    pulou "binarios dos modulos ausentes; rode scripts/build-all.sh"
 fi
 
 if [ "$HUGE_PREPARADA" -eq 1 ]; then
@@ -911,3 +953,12 @@ echo "    Para voltar ao modo grafico:"
 echo "      sudo systemctl set-default graphical.target && sudo reboot"
 echo "      (aqui e modo texto: nao ha sessao grafica inibindo, entao -i nao"
 echo "       faz falta. O set-default SIM: ele e persistente.)"
+
+# --------------------------------------------------------------------------
+# O VEREDITO, e ele sai no codigo de saida e nao so na tela.
+#
+# Quem le o diario ve as linhas de FALHA; quem automatiza le o `$?`. Ate aqui
+# os dois discordavam, e o segundo e que decide se a coleta entra no historico
+# como completa.
+# --------------------------------------------------------------------------
+veredito

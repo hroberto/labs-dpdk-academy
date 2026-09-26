@@ -205,6 +205,15 @@ int main(int argc, char **argv)
         fprintf(stderr, "invalid parameters\n");
         return 2;
     }
+    /* O teto vem da tabela de /proc/interrupts, nao do escalonador: um CPU
+     * valido para `sched_setaffinity` e alto demais para `por_cpu[]` daria
+     * contagem de interrupcao lida fora do vetor. Recusar aqui e melhor que
+     * medir e reportar numero de origem desconhecida. */
+    if (cpu >= PROC_MAX_CPUS) {
+        fprintf(stderr, "CPU %d acima do teto de %d desta ferramenta\n",
+                cpu, PROC_MAX_CPUS);
+        return 2;
+    }
     if (fixar_em(cpu) != 0) {
         fprintf(stderr, "sched_setaffinity to CPU %d failed\n", cpu);
         return 1;
