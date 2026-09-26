@@ -139,8 +139,13 @@ Topics:
 
 Topics of **offloading to the NIC** — the work that never costs a CPU cycle because
 the card already did it:
-- RSS (*Receive Side Scaling*): multiple hardware queues fed by a 5-tuple hash, one
-  per lcore, with no coordination in software
+- RSS (*Receive Side Scaling*): multiple hardware queues, distributed by a hash
+  over header fields — the 5-tuple is the most common set, but which fields
+  participate is configurable through `rte_eth_rss_conf`, and different NICs
+  support different sets. Mapping **one queue per lcore** is the usual
+  configuration, not a property of RSS: the number of queues and the number of
+  lcores are independent, and it is the absence of a shared queue — not RSS
+  itself — that removes the need for coordination in software
 - checksum offloading (RX and TX)
 - TSO (*TCP Segmentation Offload*) and LRO (*Large Receive Offload*)
 - [`rte_flow`][guiaflow]: programming classification, filtering, mirroring and
@@ -317,13 +322,26 @@ here crossing the user/kernel boundary instead of cores.
 
 | Criterion | DPDK | AF_XDP |
 |---|---|---|
-| Relationship with the kernel | ignores it completely | a fast path inside it |
+| Relationship with the kernel | bypasses the network stack; **how much of the device it takes over depends on the PMD** (see the note) | a fast path inside it |
 | Driver | an exclusive user-space PMD | Linux's standard driver |
 | The NIC in the system | disappears (`vfio-pci`) | remains visible and manageable |
 | Non-critical traffic | the application handles **everything** | eBPF filters; the rest goes on to the native stack |
 | Tooling | loses `tcpdump`, `iproute2` on the data path | `ip`/`ethtool` remain; see the caveat |
 | Learning curve | high: hugepages, NUMA, binding | medium: the sockets API |
 | Performance ceiling | higher | lower, but close with zero-copy |
+
+> **"Ignores the kernel" holds for the most common driver model, not for every
+> one.** With `vfio-pci` the device leaves the kernel and the line above is
+> literally true. But there are **bifurcated** PMDs — `mlx5` is the case — in
+> which kernel and DPDK manage the same device: no `vfio-pci`, the interface
+> stays visible to `ip`, and DPDK operates on top of `rdma-core`. The next three
+> rows ("Driver", "The NIC in the system", "Tooling") take different values under
+> that model, and the [ROADMAP](../ROADMAP.md) records that the NIC planned for
+> the RX/TX modules is one of them.
+>
+> The contrast with AF_XDP still holds, and it sharpens when stated precisely:
+> the difference is not "kernel or no kernel", it is **where the data path lives**
+> and **who maintains the driver**.
 
 Two caveats the table alone hides:
 

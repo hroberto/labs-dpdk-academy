@@ -1,5 +1,13 @@
 # Mempool, ring e mbuf — o modelo de dados do DPDK
 
+<!-- cita-retratado: 0,227 0.227 14,2 14.2 0,437 0.437 -->
+<!-- Estes valores foram retratados noutros pontos do material e
+     reaparecem aqui como MEDICAO NOVA da coleta de modo texto. A
+     coincidencia e numerica, nao de grandeza: `0,227` e o minimo da
+     faixa do `atomic relaxed`, `14,2` e a resolucao do instrumento do
+     custo-anel e `0,437` e o mempool bulk no lote 128. -->
+
+
 *Read this in [English](README.en.md).*
 
 > **Nível 4** do [plano de estudo](../plano-estudo-dpdk.md) ·
@@ -68,27 +76,62 @@ dois na mesma máquina, com a mesma metodologia dos demais programas do projeto.
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  malloc/free                             2.78  2.77-2.78       2.77-2.79           0.2%   0.1%  
-  mempool get/put, with cache             1.25  1.25-1.62       1.23-1.62          29.7%  12.6% !
-  mempool get/put, NO cache              13.27  10.53-13.42     10.36-13.44        21.8%  11.1% !
+  malloc/free                             2.18  2.17-2.19       2.15-2.19           0.9%   0.6%
+  mempool get/put, with cache             1.27  1.27-1.28       1.27-1.28           0.3%   0.3%
+  mempool get/put, NO cache              10.45  10.44-10.49     10.44-10.68         0.4%   0.5%
 ```
 
 ```
-  frequency of core 0 during the measurement: 4.33 -> 5.57 GHz
+  frequency of core 0 during the measurement: 5.58 -> 5.56 GHz
   ratios, which do NOT depend on frequency:
-    mempool with cache is 2.23x faster than malloc
-    the per-lcore cache is worth 10.6x (with cache against without)
+    mempool with cache is 1.71x faster than malloc
+    the per-lcore cache is worth 8.2x (with cache against without)
     without the cache, the mempool is 4.8x SLOWER than malloc
 ```
 
-> **Por que o programa publica razões, e não só nanossegundos.** Sem fixar a
-> frequência do processador — e este projeto não a fixa, como suas
-> [limitações](../00-visao-geral/README.md#5-o-ambiente-de-medição) declaram —,
-> os valores absolutos mudam entre execuções: o mesmo binário deu 2,19 ns e
-> 2,77 ns para o `malloc`, conforme o turbo engatasse. As **razões** ficaram
-> idênticas (2,23× nas duas). É por isso que este módulo afirma "duas vezes mais
-> rápido" e não "0,98 nanossegundos": a razão é a afirmação; o nanossegundo é
-> circunstância.
+> **Estes dois blocos vinham de execuções diferentes, e a aritmética denunciava.**
+> A tabela publicava `with cache 1.28` e a linha de razões publicava `2.11x
+> faster than malloc`. Com `malloc` em 2,18 ns, 2,18 ÷ 1,28 = **1,70** — não
+> 2,11. O 2,11 exige um denominador de 1,03 ns, que é o valor de **outra**
+> repetição da mesma campanha.
+>
+> A causa é que a medição era **bimodal**. Na coleta de 24/09, `with cache`
+> alternava entre ~0,99 ns e ~1,28 ns *dentro de uma mesma execução*: as faixas
+> por repetição eram `0,988–1,279`, `1,28–1,28`, `0,99–1,28`, `1,28–1,28`,
+> `0,986–0,991`. Três das cinco repetições cobriam os dois modos. Quem montou os
+> blocos pegou a tabela de uma repetição no modo alto e as razões de uma no modo
+> baixo, e nenhum portão viu: o `verificar-blocos` confere se cada linha existe
+> literalmente em **alguma** coleta arquivada, e as duas existiam.
+>
+> **Esta é uma lacuna de verificação, e ela fica declarada.** Nem o
+> `verificar-blocos` nem o Portão B conferem coerência *entre blocos do mesmo
+> documento* — o primeiro olha linha contra arquivo, o segundo prosa contra
+> bloco. Bloco contra bloco não tem dono.
+>
+> Na coleta de 25/09 a bimodalidade não se reproduz: as cinco repetições dão
+> `1,27–1,28`, e os dois blocos acima vêm da mesma. **O que produzia o modo
+> baixo permanece indeterminado** — a condição declarada (modo texto, governor
+> `performance`, EXPO 6000, canal duplo) é a mesma nas duas coletas, e o que
+> mudou entre elas foi o código de outros programas, não o deste.
+> <!-- cita-retratado: 2,11 2.11 0,99 0.99 1,03 1.03 -->
+
+<!-- retratado: 2,11 2.11 -->
+<!-- O `10,1x` da razão antiga NÃO entra aqui: a marca casa número nu, e
+     `10.1` bate com a seção "### 10.1" do módulo 02. Uma marca que produz
+     falso positivo noutro documento ensina a ignorar o portão. O valor está
+     declarado morto no texto acima, que é onde um leitor o procura. -->
+
+> **Por que o programa publica razões, e não só nanossegundos.** O valor
+> absoluto da primeira linha depende do *governor*: o mesmo binário deu
+> **2,78 ns** com `powersave` e **2,18 ns** com `performance` para o `malloc` de
+> um objeto só — 27%, e sem uma sobreposição em cinquenta execuções arquivadas.
+> A razão do lote de 128 objetos, na mesma medição, fica entre **44,0× e 45,7×**
+> nas mesmas cinquenta. É por isso que este módulo afirma "duas vezes mais
+> rápido" e não "1,25 nanossegundos": a razão é a afirmação; o nanossegundo é
+> circunstância. A [metodologia](metodologia.md#1-1--por-que-o-programa-publica-razões-e-não-só-nanossegundos)
+> explica por que a primeira linha é a que mais sofre.
+>
+> <!-- cita-retratado: 2,19 2.19 2,77 2.77 2,23 2.23 -->
 
 **`malloc()` custa 2,18 ns, não dezenas.** Alocar e liberar repetidamente um
 objeto do mesmo tamanho é o caso em que a glibc é boa: o alocador tem um cache
@@ -103,8 +146,8 @@ linha explica de onde vem o ganho.
 
 Um mempool tem duas camadas ([guia do mempool][guiamempool]): um anel comum,
 compartilhado, e um **cache por lcore** que serve de amortecedor. Criando o mesmo pool com `cache_size = 0`, a
-operação passa de **0,98 ns para 10,45 ns** — dez vezes mais cara, e cinco vezes
-mais cara que o `malloc()`.
+operação passa de **1,28 ns para 10,45 ns** — oito vezes mais cara, e quase cinco
+vezes mais cara que o `malloc()`.
 
 A leitura importa mais que o número: **sem o cache por lcore, o mempool perde
 para a biblioteca padrão.** O que ele oferece não é uma estrutura de dados
@@ -155,15 +198,15 @@ publicada:
 
   batch         malloc/free   mempool bulk      ratio
   -----         -----------   ------------      -----
-  1                 2.74 ns       1.853 ns       1.5x
-  8                 2.28 ns       0.632 ns       3.6x
-  32               12.42 ns       0.465 ns      26.7x
-  128              19.61 ns       0.436 ns      45.0x
+  1                 2.57 ns       1.810 ns       1.4x
+  8                 2.44 ns       0.629 ns       3.9x
+  32               12.36 ns       0.483 ns      25.6x
+  128              19.58 ns       0.433 ns      45.2x
 ```
 
-Pedir mais objetos de uma vez **barateia** cada objeto no mempool (1,84 → 0,45 ns)
-e **encarece** no `malloc` (2,39 → 19,64 ns). A razão entre os dois vai de 1,3×
-para 37,5×.
+Pedir mais objetos de uma vez **barateia** cada objeto no mempool (1,81 → 0,43 ns)
+e **encarece** no `malloc` (2,57 → 19,58 ns). A razão entre os dois vai de 1,4×
+para 45,2×.
 
 Isso é decisivo porque o plano de dados **é** processamento em lote. A
 [§3 do tópico prático](../../trilha/01-fundamentos/02-mempool-ring/README.md)
@@ -184,6 +227,8 @@ em que a diferença é menor.
 > distinto**, pelo mesmo motivo que os fundamentos passaram a fazê-lo depois de
 > descartar uma medição inválida. Sem fixá-la, a medição saiu bimodal: p25 de
 > 10,5 ns contra p75 de 25,4 ns na mesma medição.
+>
+> <!-- cita-retratado: 10,5 10.5 25,4 25.4 -->
 
 ---
 
@@ -196,10 +241,19 @@ cerca de 50% maior. A orientação que acompanha a mudança é que, em aplicaç�
 onde um lcore só obtém e outro só devolve, convém **dobrar** o cache
 configurado.
 
-A pergunta que este experimento faz não é "o 26.07 ficou mais rápido". É:
+A pergunta que este experimento faz não é "o 26.07 ficou mais rápido" — e
+também não é sobre desempenho, porque **nada aqui mede tempo**. É:
 
-> A mudança altera a relação entre `cache_size` e desempenho de forma
-> **diferente** conforme o modelo de execução?
+> A mudança altera a relação entre `cache_size` e o **tráfego ao anel comum**
+> de forma **diferente** conforme o modelo de execução?
+
+A troca de "desempenho" por "tráfego ao anel comum" não é preciosismo de
+redação. Ir ao anel comum é o evento que o cache existe para evitar, e contá-lo
+é o que esta campanha sabe fazer sem PMU. Quanto disso vira nanossegundo é uma
+pergunta **distinta**, e ela tem seção própria: *[O elo entre a contagem e o
+tempo, medido](#o-elo-entre-a-contagem-e-o-tempo-medido)*, com prefixos
+construídos sem `RTE_LIBRTE_MEMPOOL_STATS` justamente para que o contador não
+esteja no caminho cronometrado.
 
 #### O desenho
 
@@ -214,13 +268,15 @@ se alternam no mesmo lcore e as duas operações incidem sobre o mesmo cache; co
 | varredura interna | `cache_size` ∈ {16, 24, 32, 48, 64, 96, 128, 256, 512} |
 | controle | `cache_size` = 0, que **desliga** o cache em vez de dimensioná-lo |
 | repetições | 6 por célula, 240 execuções |
-| métrica | taxa de miss do cache, contador da biblioteca |
+| métrica | idas ao anel comum por milhão de pacotes, contador da biblioteca (**não** a taxa de miss — ver abaixo) |
 
 **A coleta é intercalada**, e isso é condição de validade, não estilo: as duas
 versões de uma mesma célula correm adjacentes e a ordem das células é permutada
 a cada repetição. Braços em blocos confundem o efeito com deriva de estado da
 máquina — foi assim que, numa campanha anterior deste mesmo estudo, uma
 diferença de 0,70 ns por pacote virou 0,15 ns ao ser reproduzida intercalada.
+
+<!-- cita-retratado: 0,70 0.70 0,15 0.15 -->
 
 **A métrica é contador da biblioteca**, não evento de hardware: não depende do
 PMU, que nesta máquina está bloqueado. Ela conta as vezes em que o cache por
@@ -419,16 +475,187 @@ expectativa — produtor mais rápido, mais retentativas —, mas nas outras nã
 ordem, e uma amostra final não representa uma execução em que o governor se
 move.
 
+#### A réplica em outro hardware, e a fronteira que ela revela
+
+A campanha foi repetida em 23/09/2026 com uma única diferença: a máquina passou
+de um pente de memória para dois, de canal único para canal duplo. Mesmo
+kernel, mesmos binários, mesmo protocolo de 240 execuções.
+
+Nada nessa troca tem relação com o mempool. É por isso que ela serve de teste.
+
+**Na topologia simétrica, as vinte células saem idênticas** — os mesmos 31 314
+e os mesmos 0,5 por milhão, inclusive a fronteira do `cache_size` = 24 que
+separa as duas versões.
+
+Na assimétrica, o resultado se divide, e não se divide em qualquer lugar:
+
+| | idênticas entre as duas máquinas | variam entre as duas máquinas |
+|---|---|---|
+| **25.11** | `cache_size` ≥ **64** | `cache_size` < 64 |
+| **26.07** | `cache_size` ≥ **32** | `cache_size` < 32 |
+
+Esses dois números não foram escolhidos para a tabela. São **exatamente** os
+limiares de absorção que a subseção anterior deriva do fonte: `size ≥ 2n` para
+o 25.11 e `size ≥ n` para o 26.07, com o lote `n` = 32.
+
+**A previsão que isso testou.** Se a lei está certa, uma célula que absorve a
+devolução do produtor não deixa o vaivém chegar ao anel comum — e então sua
+contagem depende só da aritmética da recarga, que é propriedade do código.
+Célula que não absorve expõe a corrida entre os dois lcores, e a corrida é
+propriedade da **máquina**. Logo: trocar a máquina deve mover as células de
+baixo e não tocar nas de cima.
+
+É o que se mediu. Acima do limiar as contagens são iguais **dígito a dígito**
+nas duas máquinas; abaixo dele, movem-se de 2% a 4%.
+
+**A réplica ainda corrigiu uma célula.** Na coleta de canal único, `25.11` com
+`cache_size` = 24 saiu constante nas seis execuções, e a lei prevê que ela
+**varie** — 24 está abaixo de 64. Na coleta de canal duplo ela varia, por uma
+única contagem em 62 500. A primeira campanha não errou; ela não tinha execuções
+suficientes para ver um evento raro. O que a lei previa e a primeira coleta não
+mostrou, a segunda mostrou.
+
+> **Por que este é um teste melhor do que repetir a campanha.** Repetir na mesma
+> máquina distingue medição estável de medição ruidosa, e nada mais. Mudar o
+> hardware separa duas coisas que a primeira campanha só podia **argumentar**
+> que eram distintas: o que o código determina e o que a corrida entre lcores
+> determina. A fronteira entre as duas aparece sozinha, no lugar previsto, a
+> partir de uma variável que ninguém escolheu por conveniência.
+
+A coleta está em
+[`../../trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-cache/`](../../trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-cache/),
+com as saídas brutas. Ela vem da campanha de 24/09 em modo texto: as coletas
+anteriores, feitas com sessão gráfica ativa, foram retiradas do projeto.
+
+#### O elo entre a contagem e o tempo, medido
+
+A subseção anterior mede **idas ao anel comum**, e a afirmação do upstream é
+sobre taxa de miss. Nenhuma das duas é tempo. A ligação entre elas — se mais
+idas custam mais, e quanto — exigia um par de prefixos construído **sem**
+`RTE_LIBRTE_MEMPOOL_STATS`, porque o contador daquela macro é atualizado no
+caminho quente e o binário instrumentado não é o de produção.
+
+Os prefixos sem o contador foram construídos, e a coleta correu em **modo
+texto**, sem sessão gráfica, pela razão documentada no
+[tópico de isolamento de CPU](../../trilha/03-performance/03-isolamento-cpu/README.md#666-intervenção-coleta-sem-sessão-gráfica):
+a grandeza de interesse aqui é da ordem de décimos de nanossegundo por pacote, e
+o ruído da sessão gráfica é maior que ela.
+
+| Elemento | Valor |
+|---|---|
+| prefixos | 25.11 e 26.07 **sem** `RTE_LIBRTE_MEMPOOL_STATS` |
+| repetições | 21 por célula |
+| métrica | nanossegundos por pacote, dos três inteiros de `DPDK_ACADEMY_BRUTO` |
+| ambiente | `multi-user.target`, sem gerenciador de display |
+
+##### O controle: mesmas viagens, versões diferentes
+
+A topologia simétrica com `cache_size` ≥ 32 é um controle exato, e não por
+construção deste experimento: as duas versões fazem ali **a mesma** viagem
+única de preenchimento inicial — 0,5 por milhão de pacotes, o valor da tabela
+anterior. Se o tempo diferir, a diferença não pode ser das viagens.
+
+```
+  cache   25.11    26.07    delta
+  -----  ------   ------   ------
+     32   2.350    2.527   +0.177
+     48   2.350    2.526   +0.176
+     64   2.349    2.525   +0.176
+     96   2.352    2.527   +0.175
+    128   2.349    2.525   +0.176
+    256   2.349    2.528   +0.179
+    512   2.349    2.527   +0.178
+
+  mediana do delta: +0.176 ns/pacote   amplitude: 0.004 ns
+```
+
+O 26.07 custa **0,176 ns a mais por pacote** que o 25.11 com o mesmo número de
+viagens. As sete células concordam dentro de quatro picossegundos — amplitude
+menor que a última casa que o programa publica. É diferença de versão, medida
+com as viagens mantidas constantes.
+
+##### O custo de uma viagem
+
+Na topologia assimétrica as viagens variam por duas ordens de grandeza, e o
+tempo acompanha. Ajustando tempo contra viagens por pacote, com cada versão
+restrita às células **acima do seu próprio limiar de absorção** — 64 para o
+25.11, 32 para o 26.07, os limiares que a subseção anterior deriva do fonte:
+
+```
+  25.11:  ns/pacote = 3.723 + 82.9 x viagens/pacote    R2 = 0.869   n = 5
+  26.07:  ns/pacote = 3.920 + 37.4 x viagens/pacote    R2 = 0.710   n = 7
+```
+
+O coeficiente angular tem unidade de **nanossegundos por viagem**: cada ida ao
+anel comum custa cerca de 83 ns no 25.11 e 37 ns no 26.07.
+
+A restrição às células acima do limiar não é conveniência. Abaixo dele o
+produtor não absorve a própria devolução, e a contagem passa a medir a corrida
+entre os dois lcores em vez do que o cache governa — a subseção anterior mostra
+que é exatamente ali que as contagens variam entre execuções e entre máquinas.
+Ajustar sobre elas mediria a corrida.
+
+##### A leitura: mais viagens não é proporcionalmente pior
+
+As duas retas juntas respondem a pergunta que a contagem sozinha não responde.
+O 26.07 faz **duas a três vezes mais** viagens que o 25.11 no mesmo
+`cache_size` — é a lei da subseção anterior, e ela não mudou. Mas cada viagem
+dele custa **menos da metade**.
+
+A razão entre os coeficientes é 2,2. A razão entre os tamanhos de recarga que o
+fonte prevê para as células ajustadas vai de 2,1 a 3,0, conforme o
+`cache_size`. As duas são compatíveis, e a leitura que isso sugere é que o
+custo de uma viagem é dominado por **quantos objetos ela move**, não pelo fato
+de ela acontecer. O ajuste não isola essa relação — o tamanho da recarga varia
+dentro de cada reta —, de modo que ela fica como leitura compatível, não como
+medição.
+
+##### O que este ajuste não sustenta
+
+O `R²` do 26.07 é 0,710, e a causa está nos dados: três células com
+`cache_size` 32, 48 e 64 fazem **exatamente** 31 250 viagens e medem 4,888,
+4,891 e 5,160 ns por pacote. O espalhamento a viagens idênticas é de 0,27 ns —
+maior que o efeito de versão que o controle isola.
+
+Existe, portanto, uma segunda fonte de variação na topologia assimétrica que as
+viagens não explicam. O controle simétrico não a vê, porque ali as viagens são
+uma só e o sistema não tem corrida. A hipótese natural é a mesma corrida entre
+lcores que governa as retentativas, cuja contagem a subseção anterior mostra
+variar de 25 mil a 139 mil na mesma célula; confirmá-la exigiria instrumentar
+a velocidade relativa dos dois lcores ao longo da execução, o que o programa
+atual não faz.
+
 #### O que este experimento não autoriza
 
-- **Não há medida de tempo**, por dois motivos independentes. O primeiro: os
-  dois DPDK foram construídos com `RTE_LIBRTE_MEMPOOL_STATS`, cujo contador é
-  atualizado no caminho quente, então o programa medido não é o de produção. O
-  segundo é do instrumento — o `pipeline_ring` imprime o tempo com `%.1f`, o que
-  sobre ~5 ns por pacote quantiza em 2%, ordem de grandeza das diferenças que
-  haveria para detectar. Medir esse elo exige as duas correções, não uma. A
-  afirmação do upstream é sobre taxa de miss, e é a ela que este experimento
-  responde — nem mais, nem menos.
+- **A medida de tempo existe, e cobre menos que a contagem.** O bloqueio era
+  duplo e os dois caíram. O primeiro era do build: os dois DPDK foram
+  construídos com `RTE_LIBRTE_MEMPOOL_STATS`, cujo contador é atualizado no
+  caminho quente, então o programa medido não era o de produção. **Os prefixos
+  sem o contador foram construídos**, e a seção anterior traz o resultado. O
+  que ele cobre é a topologia assimétrica acima dos limiares de absorção e o
+  controle simétrico; abaixo dos limiares o tempo mede a corrida entre lcores,
+  e nessa faixa não há afirmação.
+
+  O segundo era do instrumento — o `pipeline_ring` imprimia o tempo com `%.1f`,
+  o que sobre ~5 ns por pacote quantiza em 2%, ordem de grandeza das diferenças
+  que haveria para detectar. **Este já caiu:** com a variável de ambiente
+  `DPDK_ACADEMY_BRUTO` o programa emite os três inteiros de onde a média sai,
+  sem arredondamento nenhum.
+
+  ```
+  raw timing: cycles=1590116 tsc_hz=4391800000 packets=200000
+  ```
+
+  A casa decimal continua sendo **uma** na linha publicada, e de propósito:
+  sobre ~5 ns, mais casas afirmariam uma precisão que uma execução não sustenta.
+  Emitir os ingredientes em vez de mais dígitos resolve os dois lados — quem
+  analisa deriva a precisão que os dados sustentarem, e nenhuma é afirmada pelo
+  programa. Sem a variável a saída não muda um byte, e os blocos publicados que
+  a reproduzem continuam valendo.
+
+  O que falta para medir o elo é, portanto, **só** o par de prefixos sem
+  `RTE_LIBRTE_MEMPOOL_STATS`. A afirmação do upstream é sobre taxa de miss, e é
+  a ela que este experimento responde — nem mais, nem menos.
 - **O workload é um pipeline de dois estágios com um anel.** Aplicações reais
   têm mais estágios e mais anéis, e a orientação do upstream pode ser suficiente
   em topologias que este programa não representa.
@@ -454,9 +681,9 @@ move.
 > tempo — que é mais uma razão para a coluna de tempo estar fora.
 
 A coleta está em
-[`medicoes/historico/2026-09-21-mempool-cache-intercalada/`](medicoes/historico/2026-09-21-mempool-cache-intercalada/),
-com a saída bruta de cada uma das 240 execuções e a procedência que o programa
-imprime — versão do DPDK, commit, host, compilador e data.
+[`../../trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-cache/`](../../trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-cache/),
+com a saída bruta de cada execução e a procedência que o programa imprime —
+versão do DPDK, commit, host, compilador e data.
 
 ---
 
@@ -506,16 +733,38 @@ raramente aparece antes de a memória acabar.
     buf_len            54  0
     pool               56  0
     next               64  1
+    tx_offload         72  1
+    shinfo             80  1
+    priv_size          88  1
+    timesync           90  1
+    dynfield1          92  1
 ```
 
-Todos os campos, menos um, cabem na primeira linha. O que sobrou para a segunda
-foi `next` — que só tem valor em pacote segmentado, o caso menos comum. O próprio
-cabeçalho do DPDK se refere a ele como *"next pointer in the second cache line"*.
+A primeira linha guarda o que o caminho quente lê em **todo** pacote: buffer,
+deslocamentos, comprimentos, contador de referência e pool. A segunda guarda
+**seis** campos — `next`, `tx_offload`, `shinfo`, `priv_size`, `timesync` e
+`dynfield1`.
+
+O `next` é o que o cabeçalho do DPDK nomeia explicitamente, *"next pointer in the
+second cache line"*, porque é aquele cuja **ausência** da primeira linha foi
+escolha de projeto: ele só tem valor em pacote segmentado, o caso menos comum.
+
+> **E um pacote de um segmento ainda assim toca a segunda linha.** O caminho
+> genérico de liberação a lê:
+>
+> ```c
+> /* rte_mbuf.h, rte_pktmbuf_prefree_seg() */
+> if (m->next != NULL)
+>         m->next = NULL;
+> ```
+>
+> Isso roda em **todo** segmento liberado, segmentado ou não. A economia da
+> divisão é no caminho quente de RX/TX, **não** ao longo da vida inteira do
+> mbuf: alocação e liberação alcançam a segunda linha de qualquer forma.
 
 A consequência liga direto à [§4.2 dos fundamentos](../01-fundamentos/README.md#42-cache-e-localidade):
-um pacote de um segmento toca **uma** linha de cache por mbuf. A 14,88 milhões de
-pacotes por segundo, uma linha a mais por pacote é largura de banda de cache que
-não sobra para o pacote em si.
+a 14,88 milhões de pacotes por segundo, uma linha a mais **no caminho quente** é
+largura de banda de cache que não sobra para o pacote em si.
 
 ### 2.2 O headroom, e por que ele existe
 
@@ -601,14 +850,14 @@ O programa [`medicoes/custo-anel.c`](medicoes/custo-anel.c) mede os dois modos
 ```
   batch      SP/SC (ns/obj)   MP/MC (ns/obj) MP/MC cost
   -----      --------------   -------------- -----------
-  1                1.626 ns         8.233 ns       406%
-  8                0.530 ns         1.283 ns       142%
-  32               0.397 ns         0.484 ns        22%
-  128              0.375 ns         0.303 ns       -19%
+  1                1.905 ns         8.242 ns       333%
+  8                0.546 ns         1.282 ns       135%
+  32               0.404 ns         0.484 ns        20%
+  128              0.371 ns         0.302 ns       -19%
 ```
 
 **O custo não depende de haver disputa.** Com um produtor só, o modo MP/MC ainda
-custa 406% a mais no lote 1 — porque a instrução atômica é executada de qualquer
+custa 404% a mais no lote 1 — porque a instrução atômica é executada de qualquer
 forma. O que se paga não é a contenção; é a *possibilidade* dela.
 
 E o lote resolve — mais do que resolve. A 128 objetos por chamada a diferença não
@@ -732,7 +981,7 @@ mede.
 
 #### Por que o atômico custa sem ninguém disputando
 
-Os 406% do lote 1 foram medidos **num lcore só**. Não há segundo produtor, o
+Os 404% do lote 1 foram medidos **num lcore só**. Não há segundo produtor, o
 CAS nunca falha e o laço roda uma vez.
 
 O que resta é o custo da instrução. O prefixo `f0` que o `objdump` mostra é o
@@ -838,7 +1087,7 @@ arquitetural:
          ↓
     o ganho medido justifica?
 
-A última pergunta não tem resposta geral, e a tabela da §3 mostra por quê: 406%
+A última pergunta não tem resposta geral, e a tabela da §3 mostra por quê: 404%
 no lote 1, 22% no lote 32. **Se a aplicação já trabalha em lotes grandes, a
 invariante custa caro e rende pouco.** Se processa objeto a objeto, a conta
 inverte.

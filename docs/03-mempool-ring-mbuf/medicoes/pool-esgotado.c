@@ -37,7 +37,7 @@
  *
  * USO: ./pool-esgotado -l 0 --no-huge --file-prefix=meu_teste
  *
- * NAO use `--in-memory --no-huge` juntos: antes do DPDK 24, `--no-huge` liga
+ * NAO use `--in-memory --no-huge` juntos: ate o DPDK 25.07, `--no-huge` liga
  * `--legacy-mem`, que e incompativel com `--in-memory`, e a EAL aborta.
  */
 #define _GNU_SOURCE

@@ -1,0 +1,7 @@
+EAL: Detected CPU lcores: 24
+EAL: Detected NUMA nodes: 1
+EAL: invalid lcore mapping list: '"'0@6,1@7,2@18'"'
+EAL: Error parsing command line arguments.
+estado-lcore: EAL did not initialise: Invalid argument
+  origin: estado-lcore @ v0.07.00-23-g75b86d7  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-25T13:50:23-0300  |  DPDK 25.11.0
+

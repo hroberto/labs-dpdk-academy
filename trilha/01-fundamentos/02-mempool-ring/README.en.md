@@ -13,7 +13,7 @@ program needs objects per packet.
 
 > **Beware of the folkloric version of this argument.** It is commonly said that
 > `malloc()` "costs tens of nanoseconds", and this was measured in this project:
-> allocating and freeing one object at a time costs **2.18 ns**, because glibc has a
+> allocating and freeing one object at a time costs **2.78 ns**, because glibc has a
 > per-thread cache and the pair falls into it. The mempool's real justification is
 > another, and it appears when you work in **batches** — the data plane's regime. The
 > numbers are in [§1 of the theory module](../../../docs/03-mempool-ring-mbuf/README.en.md#1-why-not-use-malloc--the-measured-answer).
@@ -231,7 +231,7 @@ Largest batch actually moved: enqueued 10, dequeued 10
 Mode: 1 lcore (0), producer and consumer interleaved
 Free objects in the pool at the end: 4095 of 4095
 mempool cache stats: UNAVAILABLE (DPDK built without RTE_LIBRTE_MEMPOOL_STATS)
-Mean time: 51.1 ns/packet  <- NOT A MEASUREMENT
+Mean time: 44.1 ns/packet  <- NOT A MEASUREMENT
   10 packets are far too few: the cost of reading the clock is of the same
   order as the work measured. Use -n 10000 or more for a defensible number.
 ```
@@ -501,8 +501,8 @@ Largest batch actually moved: enqueued 256, dequeued 256
 Mode: 2 lcores (producer 0, consumer 2)
 Free objects in the pool at the end: 1534 of 4095
 mempool cache stats: UNAVAILABLE (DPDK built without RTE_LIBRTE_MEMPOOL_STATS)
-Mean time: 2.8 ns/packet
-Frequency of lcore 0: 4.89 GHz (the time above varies with it)
+Mean time: 2.2 ns/packet
+Frequency of lcore 0: 5.60 GHz (the time above varies with it)
 ```
 
 ### 6.3 What the measurement shows
@@ -578,10 +578,34 @@ that does not reach its target. An implementation whose deadline covers only the
 producer loop is not a bounded wait: it moves the block to the next line.
 
 **Termination is requested, not imposed.** `struct consumer_context` holds the
-field `volatile int parar`, written by the producer and read by the consumer on
+field `_Atomic int parar`, written by the producer and read by the consumer on
 every iteration. The producer asserts it **before** entering the wait. Without
 it, giving up on the deadline would leave the consumer spinning after an
 unreachable target.
+
+> **Why `_Atomic` and not `volatile`, which is what one sees more often.**
+> `volatile` stops the compiler from eliding the re-read, and it does nothing
+> beyond that: it makes the access neither indivisible nor ordered against the
+> memory model. To C11, an object read by one thread while another writes it is a
+> **data race** — undefined behaviour, regardless of whether the architecture, in
+> practice, refuses to tear an aligned `int`. What breaks code that "used to
+> work" is not the processor: it is the licence the compiler holds to assume the
+> race does not exist.
+>
+> The ordering used is `memory_order_relaxed` in both directions, and the choice
+> has a criterion: the field **publishes no other data**. It is an isolated
+> signal, and what is required of it is atomicity and eventual visibility, not
+> ordering. A `release`/`acquire` here would pay for a guarantee with no consumer.
+> Where there is data to publish — the ring, the mempool — the ordering belongs to
+> the library, not to this field.
+>
+> The same holds for the `progresso` field the watchdog consults. It is
+> deliberately **separate** from `r.packets`: that one is the hot-path counter,
+> written and read only by the consumer, and making it atomic would change what
+> the program measures. `progresso` is written once per burst, not per packet.
+>
+> The check is `ThreadSanitizer`: with `_Atomic`, zero races; reverting both
+> fields to `volatile`, it reports the concurrent write and read by address.
 
 **The ring is drained before reporting.** Objects retained in the ring at the
 moment of giving up belong to the pool and have not yet returned to it. Without

@@ -38,7 +38,7 @@
 18	MEDIDO	o proprio texto declara "~18 ns (medido)" na tabela de polling
 25	CITADO	"< 25 ns ([Tom's Hardware][th])" na tabela de confronto da §10
 91	CALCULADO	subtracao do page walk: 101 menos 10 a 18 ns
-92	MEDIDO	ENTRE dominios, 91,75 arredondado na §4.2.1
+81	MEDIDO	ENTRE dominios, 81,49 arredondado na §4.3 e nas tabelas-sintese
 116	MEDIDO	linha K = 16 da tabela do custo-paralelismo
 120	CALCULADO	fila de 512 posicoes a 67,2 ns por pacote
 320	MEDIDO	linha de tabela do 6.3-aprofundamento
@@ -63,3 +63,71 @@
 # A licao de metodo: deixar o caso EM ABERTO, em vez de classifica-lo como
 # MEDIDO para silenciar o aviso, foi o que permitiu resolve-lo quando a
 # evidencia apareceu. Um aviso que incomoda e barato; um falso verde nao.
+24,9	MEDIDO	mediana da maior parada da celula do provocador-thread, 24 897 ns na coleta C do topico de isolamento
+82	MEDIDO	coluna "batch of K ready in" da linha K=4, rodada r1 de 2026-09-23-expo6000-canal-duplo
+183	MEDIDO	duracao osnoise em 4,23 s do rastro (§6.6.5); colide por acaso com 183,0 retratado noutro documento
+0,44	MEDIDO	mempool bulk no lote 128; bloco publica 0.436, colide por acaso com 0,437/0,447/0,449 retratados noutro modulo
+82.9	CALCULADO	coeficiente da regressao ns x viagens do 25.11 na §1.4; colide por acaso com 82,99 retratado
+38	MEDIDO	limite superior das duas distribuicoes unimodais da §6.7; colide por acaso com 38,1 e 38,50 retratados noutros modulos
+40	CITADO	jitter de 40 ms da literatura secundaria no modulo 01, e a janela de 40 us no topico de isolamento; colide por acaso com 40,5 retratado
+#
+# --------------------------------------------------------------------------
+# CELULAS DE TABELA MARKDOWN -- acrescentadas em 2026-09-25
+#
+# O `relatar-tabelas-medidas.py` confere celula com unidade de medida contra as
+# coletas arquivadas. As entradas abaixo sao as que NAO casam literalmente, e
+# cada uma diz por que.
+#
+# A classe MEDIDO aqui quase sempre significa MEDIANA ENTRE RODADAS: a mediana
+# de uma serie de tamanho par e a media dos dois centrais, e por construcao pode
+# nao existir em rodada nenhuma. Nao ha como o verificador distinguir isso de um
+# numero inventado -- com 128 526 numeros distintos no arquivo, qualquer valor
+# tem vizinhos apertados (medido: 0,298% para valor sorteado, 0,245% para
+# mediana real). Por isso a excecao e declarada, e nao inferida.
+# --------------------------------------------------------------------------
+37,2	CALCULADO	Mpps de 25 GbE com quadro de 64 B: 25e9/((64+20)*8); a conta esta na propria secao
+26,9	CALCULADO	ns por pacote a 37,2 Mpps: o inverso da linha acima
+1,97	CALCULADO	PCIe Gen4 x1: 16e9 * 128/130 / 8; derivado da especificacao, nao medido
+5,49	CALCULADO	frequencia implicita em 0,205 ns com 1,125 ciclos: 1,125/0,205
+34,4	CALCULADO	janela de 512 descritores a 67,2 ns por pacote: 512*67,2/1000
+137,6	CALCULADO	idem, 2048 descritores
+275,3	CALCULADO	idem, 4096 descritores
+18,17	CITADO	page walk em Core Duo T2600, tabela de confronto com a literatura da §10
+139,5	CITADO	falta de cache na tabela de McKenney; a coluna ao lado e a medicao desta maquina
+306,0	CITADO	CAS com falta de cache, mesma tabela de McKenney
+3,261	MEDIDO	mediana de 10 rodadas de custo-anel-cpp, lote 1 unitario; serie 3,234-3,376
+2,704	MEDIDO	mediana de 10 rodadas de custo-anel-cpp, lote 1 em bloco
+1,073	MEDIDO	mediana de 10 rodadas de custo-anel-cpp, lote 8 unitario
+#
+# --- MEDIDO EM COLETA QUE NAO EXISTE MAIS ---
+#
+# Esta classe existe por decisao do projeto: as coletas anteriores ao protocolo
+# de modo texto foram removidas em 24/09/2026. Cada entrada abaixo diz se o
+# valor e RECOLETAVEL, porque a resposta muda o que fazer com ele.
+#
+98,73	MEDIDO	latencia dependente ANTES do EXPO, tabela de antes/depois da metodologia. NAO RECOLETAVEL: o estado "antes" exige reverter a BIOS
+88,00	MEDIDO	a mesma tabela, coluna "depois"; par do 98,73 e igualmente historico
+5,62	MEDIDO	frequencia de partida de uma das 12 execucoes da tabela de dispersao do benchmarking. RECOLETAVEL: e um dump por amostra que a campanha nao arquiva
+2,95	MEDIDO	idem, outra execucao da mesma tabela
+515,5	MEDIDO	maior parada do estado A do isolamento (canal unico, swap 2,01 GiB). NAO RECOLETAVEL sem remover um pente fisicamente
+153,9	MEDIDO	maior parada do estado E (pressao global de memoria). NAO RECOLETAVEL sem reproduzir a mesma pressao de swap
+808,5	MEDIDO	maior execucao de amdgpu_device_delay_enable_gfx_off no rastro de osnoise da §6.6.5. RECOLETAVEL em modo grafico; o rastro nao foi arquivado
+2,455	MEDIDO	soma das 12 execucoes da mesma funcao, mesmo rastro
+51,9	MEDIDO	maior execucao de psi_avgs_work, mesmo rastro
+#
+# --- COLISAO DE DIGITOS COM VALOR RETRATADO, acrescentadas em 2026-09-25 ---
+#
+# O relatorio de arredondados casa o numero da prosa com o RETRATADO mais
+# proximo, sem contexto. As entradas abaixo sao colisoes: o numero da prosa nao
+# tem relacao nenhuma com o valor retratado que ele "parece" arredondar.
+#
+1,0	CALCULADO	o `100 GbE` e o `~100 paginas` da §1 e da §6.3; colide com 1,026 retratado do cpp23
+1,03	MEDIDO	razao de escala dos irmaos SMT no bloco do custo-comunicacao; colide com 1,026 e 1,037
+123	MEDIDO	a faixa "83 a 123 ns" da travessia de linha de cache na §10; colide com os 123,1 e 123,5 ms da EAL, que sao outra grandeza e outro modulo
+60	CALCULADO	"os outros 60 bytes" da linha de cache e "60 ms de aquecimento" da §7; colide com 60,87 retratado
+87	MEDIDO	87,18 ns da latencia dependente na RAM, arredondado na prosa da §4.2 e da §4.3
+3,12	MEDIDO	frequencia do irmao SMT saturado, 3,12 GHz, na tabela da metodologia; colide com 3,117 retratado do cpp23
+36,6	MEDIDO	maior parada de 36 559 ns na coleta 2026-09-25-0046, convertida a us pelo consolidar-isolamento.py
+39,6	MEDIDO	maior parada de 39 625 ns na coleta 2026-09-25-1317, convertida a us pelo consolidar-isolamento.py
+46,1	MEDIDO	maior parada de 46 078 ns na coleta 2026-09-25-1547, convertida a us pelo consolidar-isolamento.py
+784,1	MEDIDO	maior parada de 784 116 ns na coleta grafica 2026-09-25-2346, convertida a us pelo consolidar-isolamento.py

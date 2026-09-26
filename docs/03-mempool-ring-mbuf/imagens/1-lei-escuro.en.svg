@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 494" width="880" height="494" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">The cost is not measured: it is arithmetic, and measurement confirms it</title>
-<desc id="d">Common-ring trips per million packets, by cache size, for DPDK 25.11 and 26.07. The measured dots land on the curves predicted by each version's refill size, and the six runs of each cell coincide.</desc>
+<desc id="d">Common-ring trips per million packets, by cache size, for DPDK 25.11 and 26.07 on the asymmetric topology. The measured dots land on the curves predicted by each version's refill size, and the six runs of each cell coincide in a single dot.</desc>
 <rect width="880" height="494" fill="#1a1a19"/>
 <text x="28.0" y="34.0" fill="#ffffff" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">The cost is not measured: it is arithmetic, and measurement confirms it</text>
 <text x="28.0" y="55.0" fill="#c3c2b7" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">common-ring trips per million packets — asymmetric topology, six runs per cell</text>

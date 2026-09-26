@@ -57,7 +57,7 @@ a ordem importa mais que as ferramentas.
 
 | Etapa | Instrumento | O que produziu |
 |---|---|---|
-| **medir** | [`custo-init.c`](medicoes/custo-init.c) | os 123 ms, com dispersão |
+| **medir** | [`custo-init.c`](medicoes/custo-init.c) | os 118 ms, com dispersão |
 | **localizar** | `strace -T` | *onde* estão 100 desses milissegundos |
 | **explicar** | o código-fonte do DPDK | *por que* a espera existe |
 
@@ -70,14 +70,14 @@ amostragem **amostra a CPU**, e processo dormindo não consome CPU — os 100 ms
 espera seriam invisíveis para ele. O `strace` intercepta a **fronteira**, que é
 exatamente onde a espera acontece.
 
-> **Por que isso é metodologia e não curiosidade.** Publicar "123 ms, dos quais
+> **Por que isso é metodologia e não curiosidade.** Publicar "118 ms, dos quais
 > 100 são espera" como se fosse uma medição só esconde que são dois
 > experimentos com instrumentos diferentes e graus de confiança diferentes. O
 > primeiro tem dispersão publicada; o segundo é uma observação única.
 
 ---
 
-## 3. §2.2 — por que 123 ms aqui, e por que isso não é propriedade do DPDK
+## 3. §2.2 — por que 118 ms aqui, e por que isso não é propriedade do DPDK
 
 A calibração de ~100 ms roda porque esta máquina **não expõe `tsc_known_freq`**:
 
@@ -89,7 +89,7 @@ Sem o sinalizador, a EAL não confia na frequência declarada e a mede — e med
 frequência leva tempo de relógio, não de CPU.
 
 **Numa máquina que exponha o sinalizador, o mesmo `rte_eal_init()` custaria algo
-perto de 23 ms.** Os 123 ms são propriedade desta combinação de CPU e kernel, e
+perto de 18 ms.** Os 118 ms são propriedade desta combinação de CPU e kernel, e
 o módulo diz isso na própria seção.
 
 É por isso que o programa aceita as opções da EAL diretamente: medir na sua
@@ -133,7 +133,7 @@ caso favorável.
 
 **Validade externa — até onde generaliza?**
 
-Os 123 ms **não generalizam**, e a §2.2 explica o mecanismo. O que generaliza é
+Os 118 ms **não generalizam**, e a §2.2 explica o mecanismo. O que generaliza é
 a forma do argumento: a EAL paga calibração quando o kernel não declara a
 frequência do TSC, e isso é verificável em qualquer máquina com um `grep`.
 

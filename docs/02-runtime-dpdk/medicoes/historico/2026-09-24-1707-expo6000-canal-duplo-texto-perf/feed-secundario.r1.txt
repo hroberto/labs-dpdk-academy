@@ -1,0 +1,56 @@
+EAL: Detected CPU lcores: 24
+EAL: Detected NUMA nodes: 1
+EAL: Detected shared linkage of DPDK
+EAL: Multi-process socket /tmp/academy-runtime-7xh6kj57/dpdk/academy_session_6772_5508401218715338949_/mp_socket_6777_2c2616798ec
+EAL: Selected IOVA mode 'VA'
+  origin: feed-secundario @ v0.06.00-30-g7e66c68  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-24T17:16:49-0300  |  DPDK 25.11.0
+
+
+== Feed subscriber (secondary process) ==
+
+  memzone .............. "academia_feed_marketdata" (found by NAME)
+  virtual address ...... 0x1003bde40        <- compare with the primary's
+  endereco IOVA ........ 0x1003bde40
+  consumer lcore ....... 1 (index on node 1, NUMA node 0)
+  expected ticks ....... 200000
+
+  ACTIVE BOOK: generation=5508401218715338949 tick=1 sides=8
+  First batch consumed: 1
+  --- cross-process traversal, per tick (nanoseconds) ---
+
+  measurement                      minimum    median       p75       p99  samples
+  ------------------------------ --------- --------- --------- ---------  -------
+  publication -> observation         10.02     20.04     30.06     40.07   200000
+
+    instrument resolution: 15.3 ns (one consumer poll).
+    degenerate samples: 0 of 200000 (TSC aligned across the two cores)
+    The values above are an UPPER BOUND: between two polls the
+    consumer is blind, so the real traversal fits inside the
+    last step. Differences smaller than 15.3 ns are not measurable here.
+
+  --- subscription integrity ---
+
+    ticks accepted .......... 200000
+    dropped (duplicates) .... 0
+    gaps detected ........... 39 (the primary injected 39)
+    events with gaps ........ 39
+
+  --- book per instrument (top of market) ---
+
+    instrument          bid        ask   spread   applied
+    ----------          ---        ---   ------   -------
+    asset 0            3074       3079        5     50283
+    asset 1            3109       3113        4     49673
+    asset 2            3538       3545        7     50121
+    asset 3            3722       3726        4     49923
+
+    crossed books ........... 0 (none: bid always below ask)
+    prices in cents; spread is ask minus bid
+
+  Book validity: VALID; reconstructions: 39
+
+  Reading: the minimum approaches the cost of the cache line holding
+  the tick migrating from one core to the other; the median and p99 also
+  include the wait for the next poll. The p99 is what a production
+  system has to size for: the mean would hide that tail.
+

@@ -1,0 +1,19 @@
+stall probe: cpu 2, 30.0 s, threshold 1000 ns
+provoker thread: same process, other CPU
+samples: 1746788858
+stalls above threshold: 25498
+p99 floor: 16 ns
+p99.9 floor: 16 ns
+max stall: 21270 ns
+involuntary context switches: 170
+RX ring window (lower bound, 10 GbE, 64 B frames):
+   512 descriptors: 34.4 us
+  1024 descriptors: 68.8 us
+  2048 descriptors: 137.6 us
+  4096 descriptors: 275.3 us
+interrupts on cpu 2 during the run:
+  LOC      60029
+  CAL      37774
+  TLB      37752
+  NMI      4
+  PMI      4

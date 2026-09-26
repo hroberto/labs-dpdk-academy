@@ -31,6 +31,7 @@ REGRAS DE MARCA APLICADAS
 - tema escuro é escolhido passo a passo, não é inversão automática do claro
 """
 import pathlib
+import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -45,24 +46,145 @@ LARGURA = 880
 ORCAMENTO_NS = 67.2          # secao 1: 10 GbE, quadros de 64 B
 LINE_RATE_MPPS = 14.88       # secao 1: 14 880 952 pacotes/s
 
-# efeito-cache.c, coluna "dependente (LATENCIA)"
-ESCADA = [("L1d", "16 KB", 0.894), ("L2", "256 KB", 2.68),
-          ("L3", "8 MB", 9.75), ("RAM", "256 MB", 103.1)]
+# OS VALORES ABAIXO SAO FIXOS AQUI, E ISSO E DIVIDA DECLARADA.
+#
+# Cada constante nomeia a coleta de onde saiu, mas nada CONFERE que ela ainda
+# corresponde. Em 25/09/2026 as quatro apontavam para
+# `2026-09-23-expo6000-canal-duplo` -- uma coleta que o projeto DESCARTOU ao
+# adotar o protocolo de modo texto --, e os graficos seguiram publicando os
+# valores dela enquanto os blocos do README ja tinham sido refeitos.
+#
+# O portao de figuras compara `alt=` com `<desc>`: os dois saem daqui, entao
+# concordam entre si mesmo quando ambos estao velhos. O remedio certo e este
+# arquivo LER a coleta, como `consolidar-efeito-cache.py` ja faz para o bloco
+# da §4.2. Enquanto isso nao existe, a divida esta escrita aqui.
 
-# custo-paralelismo.c, coluna "mediana"
-PARALELISMO = [(1, 94.36), (2, 46.48), (4, 24.77), (8, 13.26),
-               (12, 9.19), (16, 7.25), (32, 4.59), (64, 3.44)]
+# --------------------------------------------------------------------------
+# OS DADOS SAEM DA COLETA, E NAO DESTE ARQUIVO
+#
+# Ate 25/09/2026 as quatro constantes abaixo eram digitadas, cada uma com um
+# comentario nomeando a coleta de origem -- e as quatro apontavam para
+# `2026-09-23-expo6000-canal-duplo`, que o projeto DESCARTOU ao adotar o
+# protocolo de modo texto. Os blocos do README ja tinham sido refeitos; os
+# graficos seguiram publicando os valores velhos por dois dias.
+#
+# O portao de figuras nao podia ver: ele compara `alt=` com `<desc>`, e os dois
+# saem daqui. Concordavam entre si estando ambos errados.
+#
+# Agora sao LIDAS da coleta mais recente, derivada do disco pelo carimbo -- o
+# mesmo criterio do `comparar-publicado.py`. Um grafico deixa de poder
+# discordar do bloco que ele ilustra.
+# --------------------------------------------------------------------------
+HISTORICO = pathlib.Path(__file__).resolve().parents[2] / "docs/01-fundamentos/medicoes/historico"
+
+
+def _coleta():
+    """A pasta da campanha mais nova. O carimbo `AAAA-MM-DD-HHMM` ordena."""
+    marcados = [(re.match(r"\d{4}-\d{2}-\d{2}-\d{4}", d.name), d)
+                for d in HISTORICO.glob("*/") if d.is_dir()]
+    validos = [(m.group(0), d) for m, d in marcados
+               if m and (d / "efeito-cache.r1.txt").exists()]
+    if not validos:
+        raise SystemExit("graficos-memoria: nenhuma coleta com efeito-cache.r1.txt em %s"
+                         % HISTORICO)
+    return max(validos)[1]
+
+
+def _linhas(arquivo):
+    return (_coleta() / arquivo).read_text(errors="replace").split("\n")
+
+
+def _repeticoes(padrao):
+    """Todas as rodadas menos a r0, que a campanha rotula aquecimento."""
+    return sorted(_coleta().glob(padrao.replace("*", "r[1-9]*")))
+
+
+# QUAL ESTATISTICA, E POR QUE ELA MUDA POR GRAFICO.
+#
+# O projeto tem DUAS convencoes, e nao por descuido:
+#
+#   bloco de CERCA        saida literal de UMA rodada. O `verificar-blocos`
+#                         exige que a linha exista tal e qual em arquivo, e
+#                         mediana entre rodadas nao existe em rodada nenhuma.
+#   tabela MONTADA        mediana ENTRE rodadas, como o
+#                         `consolidar-efeito-cache.py` faz para a §4.2.
+#
+# Um grafico ilustra um bloco, entao precisa da MESMA estatistica dele. A
+# escada e a banda ilustram a tabela montada da §4.2 -> mediana. O de
+# paralelismo ilustra o bloco de cerca da §4.3 -> a rodada r1.
+#
+# Misturar as duas faria o grafico discordar do bloco ao lado por um motivo
+# que nada na figura denunciaria -- que e exatamente o defeito que este leitor
+# existe para fechar.
+def _mediana(vs):
+    vs = sorted(vs)
+    n = len(vs)
+    if n == 0:
+        raise SystemExit("graficos-memoria: serie vazia na coleta")
+    return vs[n // 2] if n % 2 else (vs[n // 2 - 1] + vs[n // 2]) / 2.0
+
+
+def _efeito_cache():
+    """-> {(nivel, kb): {coluna: mediana ENTRE rodadas}}, como a §4.2 publica."""
+    series = {}
+    for f in _repeticoes("efeito-cache.*.txt"):
+        regiao = None
+        for l in f.read_text(errors="replace").split("\n"):
+            m = re.match(r"\s+(L1d|L2|L3|RAM)\s+\((\d+) KB\)", l)
+            if m:
+                regiao = (m.group(1), m.group(2))
+                continue
+            m = re.match(r"\s+(sequential|random|dependent)\s+\(\S+\)\s+([\d.]+)", l)
+            if m and regiao:
+                series.setdefault(regiao, {}).setdefault(m.group(1), []).append(
+                    float(m.group(2)))
+    return {k: {c: _mediana(v) for c, v in cols.items()} for k, cols in series.items()}
+
+
+def _paralelismo():
+    """-> ([(K, ns)], [(nucleos, ns)]) das fases 1 e 2 da r1."""
+    fase1, fase2 = [], []
+    for l in _linhas("custo-paralelismo.r1.txt"):
+        m = re.match(r"\s+(\d+)\s+([\d.]+)\s+[\d.]+\s+\d+ ns", l)
+        if m:
+            fase1.append((int(m.group(1)), float(m.group(2))))
+            continue
+        m = re.match(r"\s+(\d+) cores?\s+([\d.]+)\s", l)
+        if m:
+            fase2.append((int(m.group(1)), float(m.group(2))))
+    return fase1, fase2
+
+
+_EC = _efeito_cache()
+_F1, _F2 = _paralelismo()
+
+# efeito-cache.c, coluna "dependente (LATENCIA)"
+ESCADA = [("L1d", "16 KB", _EC[("L1d", "16")]["dependent"]),
+          ("L2", "256 KB", _EC[("L2", "256")]["dependent"]),
+          ("L3", "8 MB", _EC[("L3", "8192")]["dependent"]),
+          ("RAM", "256 MB", _EC[("RAM", "262144")]["dependent"])]
+
+# custo-paralelismo.c, fase 1: K cadeias independentes, um nucleo
+PARALELISMO = _F1
 
 # efeito-cache.c, bloco RAM. Banda = bytes MOVIDOS pela memória: cada acesso
 # traz uma linha de 64 B inteira, mesmo quando o programa usa 4 bytes dela.
 # No caso sequencial os 16 uint32_t da linha são todos usados, então os 64 B
 # custam 16 acessos.
-BANDA = [("sequencial (o prefetcher enfileira sozinho)", 64.0 / (0.198 * 16)),
-         ("aleatório, endereços independentes",          64.0 / 7.46),
-         ("aleatório, endereços encadeados",             64.0 / 103.1)]
+# O ACESSO SEQUENCIAL NAO ENTRA AQUI, e a ausencia e deliberada.
+#
+# O numero dele (0,187 ns/elemento) e o teto do laco de `medir()`, nao da
+# memoria -- ver o comentario de efeito-cache.c. Convertido em GB/s e posto ao
+# lado de dois valores que a memoria de fato limita, ele convidaria a
+# comparacao que nao se sustenta. Fica de fora, com a razao dita no README.
+BANDA = [("aleatório, endereços independentes", 64.0 / _EC[("RAM", "262144")]["random"]),
+         ("aleatório, endereços encadeados",    64.0 / _EC[("RAM", "262144")]["dependent"])]
 
-# custo-paralelismo.c, fase 2: N nucleos fisicos, 16 cadeias cada, mesma regiao
-NUCLEOS = [(1, 7.27), (2, 8.35), (4, 16.91), (8, 25.82), (12, 36.56)]
+# custo-paralelismo.c, fase 2: N nucleos fisicos, 16 cadeias cada, mesma regiao.
+# Coleta 2026-09-25-0046-expo6000-canal-duplo. O canal e parte da procedencia: a
+# curva de saturacao E a medida do teto de banda, e o teto depende de quantos
+# pentes servem a requisicao.
+NUCLEOS = _F2
 
 # --------------------------------------------------------------------------
 # TEXTOS — um gráfico por idioma
@@ -81,10 +203,10 @@ TEXTOS = {
         esc_sub="latência de um acesso dependente, por nível da hierarquia — efeito-cache.c",
         esc_eixo="nanossegundos", esc_orc="orçamento: 67,2 ns por pacote",
         esc_excede="excede o orçamento em {0:.0f} ns",
-        esc_desc=("Gráfico de barras horizontais. A latência de um acesso dependente é de "
-                  "0,89 ns na L1d, 2,68 ns na L2, 9,75 ns na L3 e 103,1 ns na RAM. O "
-                  "orçamento de um pacote de 64 B em 10 GbE é 67,2 ns: só o acesso à RAM "
-                  "já o excede."),
+        esc_desc=("Gráfico de barras horizontais com a latência de um acesso dependente por "
+                  "nível da hierarquia: {esc_l1} ns na L1d, {esc_l2} ns na L2, {esc_l3} ns na L3 e "
+                  "{esc_ram} ns na RAM. Uma linha tracejada marca o orçamento de 67,2 ns por "
+                  "pacote; só a barra da RAM já o ultrapassa, em {esc_exc} ns."),
         con_titulo="Vazão se compra com concorrência — e se paga com latência",
         con_sub="K acessos independentes em voo sobre a mesma região — custo-paralelismo.c",
         con_p1="1 · quanto a máquina entrega", con_p2="2 · e o que isso custa em espera",
@@ -93,32 +215,34 @@ TEXTOS = {
         con_x="K — acessos em voo ao mesmo tempo (escala log)",
         con_nota1="até K = 16 a curva laranja é plana:", con_nota2="a concorrência sai de graça",
         con_desc=("Dois gráficos empilhados com o mesmo eixo horizontal K em escala "
-                  "logarítmica, de 1 a 64 acessos em voo. No primeiro, a vazão sobe de 10,6 "
-                  "para 291 M acessos/s e satura; uma linha tracejada marca o line rate de "
+                  "logarítmica, de 1 a 64 acessos em voo. No primeiro, a vazão sobe de 12,9 "
+                  "para 410 M acessos/s e satura; uma linha tracejada marca o line rate de "
                   "10 GbE. No segundo, em escala log nos dois eixos, o custo amortizado por "
-                  "acesso cai de 94 para 3,44 ns enquanto o tempo até o lote ficar pronto "
-                  "permanece plano em torno de 100 ns até K = 16 e sobe para 220 ns em "
+                  "acesso cai de 77 para 2,44 ns enquanto o tempo até o lote ficar pronto "
+                  "permanece plano em torno de 80 ns até K = 16 e sobe para 156 ns em "
                   "K = 64. As duas curvas estão em nanossegundos; a segunda é a primeira "
                   "multiplicada por K."),
         ban_titulo="A banda que você usa é a que o seu padrão de acesso permite",
         ban_sub="um núcleo, a mesma região de 256 MB na mesma RAM — efeito-cache.c",
         ban_eixo="gigabytes por segundo", ban_un="GB/s",
-        ban_rot=["sequencial (o prefetcher enfileira sozinho)",
-                 "aleatório, endereços independentes",
+        ban_rot=["aleatório, endereços independentes",
                  "aleatório, endereços encadeados"],
         ban_fecho="{0:.0f}× de diferença — mesma máquina, mesma memória, mesmo núcleo.",
-        ban_desc=("Gráfico de barras horizontais. Sobre a mesma RAM, um núcleo move 20,2 "
-                  "GB/s em acesso sequencial, 8,6 GB/s em acesso aleatório com endereços "
-                  "independentes e 0,6 GB/s quando cada endereço depende do anterior."),
+        ban_desc=("Gráfico de barras horizontais com a banda efetiva de um núcleo sobre a mesma "
+                  "RAM: {ban_ale} GB/s em acesso aleatório com endereços independentes e "
+                  "{ban_dep} GB/s quando cada endereço depende do anterior — {ban_raz} vezes de "
+                  "diferença entre os dois padrões que a memória limita."),
         sca_titulo="A banda não se multiplica por núcleo — ela é dividida",
         sca_sub=("vazão agregada com N núcleos físicos empurrando a mesma região — "
                  "custo-paralelismo.c, fase 2"),
         sca_y="M acessos/s (soma de todos os núcleos)", sca_ideal="se escalasse por núcleo",
         sca_teto="{0:.0f} M/s — o teto", sca_ms="{0:.0f} M/s", sca_x="núcleos físicos ativos",
-        sca_fecho="Com 12 ativos, cada núcleo faz 20% do que fazia sozinho.",
-        sca_desc=("Gráfico de linha. A vazão agregada sobe de 138 M acessos/s com um núcleo "
-                  "para 328 M com doze, e satura por volta de oito. A linha de referência "
-                  "mostra onde ela estaria se escalasse por núcleo: 1 651 M com doze."),
+        sca_fecho="Com 12 ativos, cada núcleo faz 46% do que fazia sozinho.",
+        sca_desc=("Gráfico de linha da vazão agregada em função do número de núcleos físicos "
+                  "ativos. Ela sobe de 171 milhões de acessos por segundo com um núcleo "
+                  "para 948 milhões com doze, e a curva achata a partir de oito. Uma "
+                  "linha de referência cinza mostra onde estaria se escalasse por "
+                  "núcleo: 2 051 milhões com doze."),
     ),
     "en": dict(
         sufixo=".en", dec=".",
@@ -126,9 +250,10 @@ TEXTOS = {
         esc_sub="latency of one dependent access, per level of the hierarchy — efeito-cache.c",
         esc_eixo="nanoseconds", esc_orc="budget: 67.2 ns per packet",
         esc_excede="exceeds the budget by {0:.0f} ns",
-        esc_desc=("Horizontal bar chart. The latency of one dependent access is 0.89 ns in "
-                  "L1d, 2.68 ns in L2, 9.75 ns in L3 and 103.1 ns in RAM. The budget for a "
-                  "64 B packet on 10 GbE is 67.2 ns: the RAM access alone already exceeds it."),
+        esc_desc=("Horizontal bar chart of the latency of one dependent access per level of the "
+                  "hierarchy: {esc_l1} ns in L1d, {esc_l2} ns in L2, {esc_l3} ns in L3 and {esc_ram} ns in "
+                  "RAM. A dashed line marks the 67.2 ns per-packet budget; the RAM bar "
+                  "alone already exceeds it, by 19.4 ns."),
         con_titulo="Throughput is bought with concurrency — and paid for in latency",
         con_sub="K independent accesses in flight over the same region — custo-paralelismo.c",
         con_p1="1 · what the machine delivers", con_p2="2 · and what it costs in waiting",
@@ -138,31 +263,33 @@ TEXTOS = {
         con_nota1="up to K = 16 the orange curve is flat:", con_nota2="concurrency comes for free",
         con_desc=("Two stacked charts sharing the same horizontal axis K on a logarithmic "
                   "scale, from 1 to 64 accesses in flight. In the first, throughput rises "
-                  "from 10.6 to 291 M accesses/s and saturates; a dashed line marks the "
+                  "from 12.9 to 410 M accesses/s and saturates; a dashed line marks the "
                   "10 GbE line rate. In the second, on log scales on both axes, the "
-                  "amortized cost per access falls from 94 to 3.44 ns while the time until "
-                  "the batch is ready stays flat around 100 ns up to K = 16 and rises to "
-                  "220 ns at K = 64. Both curves are in nanoseconds; the second is the "
+                  "amortized cost per access falls from 77 to 2.44 ns while the time until "
+                  "the batch is ready stays flat around 80 ns up to K = 16 and rises to "
+                  "156 ns at K = 64. Both curves are in nanoseconds; the second is the "
                   "first multiplied by K."),
         ban_titulo="The bandwidth you get is the one your access pattern allows",
         ban_sub="one core, the same 256 MB region in the same RAM — efeito-cache.c",
         ban_eixo="gigabytes per second", ban_un="GB/s",
-        ban_rot=["sequential (the prefetcher queues on its own)",
-                 "random, independent addresses",
+        ban_rot=["random, independent addresses",
                  "random, chained addresses"],
         ban_fecho="{0:.0f}× difference — same machine, same memory, same core.",
-        ban_desc=("Horizontal bar chart. Over the same RAM, one core moves 20.2 GB/s with "
-                  "sequential access, 8.6 GB/s with random access using independent "
-                  "addresses and 0.6 GB/s when each address depends on the previous one."),
+        ban_desc=("Horizontal bar chart of the effective bandwidth of one core over the same "
+                  "RAM: {ban_ale} GB/s for random access with independent addresses and "
+                  "{ban_dep} GB/s when each address depends on the previous one — a {ban_raz}-fold "
+                  "difference between the two patterns memory actually limits."),
         sca_titulo="Bandwidth does not multiply per core — it is divided",
         sca_sub=("aggregate throughput with N physical cores pushing the same region — "
                  "custo-paralelismo.c, phase 2"),
         sca_y="M accesses/s (sum of all cores)", sca_ideal="if it scaled per core",
         sca_teto="{0:.0f} M/s — the ceiling", sca_ms="{0:.0f} M/s", sca_x="active physical cores",
-        sca_fecho="With 12 active, each core does 20% of what it did alone.",
-        sca_desc=("Line chart. Aggregate throughput rises from 138 M accesses/s with one "
-                  "core to 328 M with twelve, and saturates around eight. The reference "
-                  "line shows where it would be if it scaled per core: 1,651 M with twelve."),
+        sca_fecho="With 12 active, each core does 46% of what it did alone.",
+        sca_desc=("Line chart of aggregate throughput against the number of active physical "
+                  "cores. It rises from 171 million accesses per second with one core to "
+                  "948 million with twelve, and the curve flattens from eight onwards. A "
+                  "grey reference line shows where it would be if it scaled per core: "
+                  "2,051 million with twelve."),
     ),
 }
 
@@ -345,7 +472,7 @@ def banda(t, L):
         c.append(texto(E + gbs * px + 10, y + 19, f'{num(gbs, L, 1)} {L["ban_un"]}',
                        t["tinta"], 13, 600, tabular=True))
     c.append(texto(28, TOPO + PASSO * len(BANDA) + 40,
-                   L["ban_fecho"].format(BANDA[0][1] / BANDA[2][1]),
+                   L["ban_fecho"].format(BANDA[0][1] / BANDA[-1][1]),
                    t["tinta"], 13, 600))
     return documento(LARGURA, alt, t["superficie"], L["ban_titulo"], L["ban_desc"], c)
 
@@ -399,6 +526,34 @@ def escala(t, L):
 
 if __name__ == "__main__":
     SAIDA.mkdir(parents=True, exist_ok=True)
+    # A DESCRICAO SEGUE OS DADOS, e nao uma copia deles.
+    #
+    # Ate 25/09/2026 o `<desc>` era texto fixo no dicionario de idioma. Ao
+    # atualizar as constantes, as BARRAS mudavam e a DESCRICAO nao -- e o
+    # portao de figuras continuava verde, porque ele compara `alt=` com
+    # `<desc>` e os dois saem daqui. Uma figura podia contradizer a si mesma
+    # sem que nada acusasse.
+    #
+    # Agora os numeros entram por marcador. O texto continua escrito a mao,
+    # que e o certo: descricao acessivel e prosa, nao despejo de dados.
+    def _n(v, casas, virgula):
+        t = f"{v:.{casas}f}"
+        return t.replace(".", ",") if virgula else t
+
+    for _idioma, _L in TEXTOS.items():
+        _v = _L["sufixo"] == ""                     # sufixo vazio = portugues
+        _ram_ale = 64.0 / _EC[("RAM", "262144")]["random"]
+        _ram_dep = 64.0 / _EC[("RAM", "262144")]["dependent"]
+        _campos = dict(
+            esc_l1=_n(ESCADA[0][2], 2, _v), esc_l2=_n(ESCADA[1][2], 2, _v),
+            esc_l3=_n(ESCADA[2][2], 1, _v), esc_ram=_n(ESCADA[3][2], 1, _v),
+            esc_exc=_n(ESCADA[3][2] - ORCAMENTO_NS, 1, _v),
+            ban_ale=_n(_ram_ale, 1, _v), ban_dep=_n(_ram_dep, 1, _v),
+            ban_raz=f"{round(_ram_ale / _ram_dep):d}",
+        )
+        for _k in ("esc_desc", "ban_desc"):
+            _L[_k] = _L[_k].format(**_campos)
+
     for nome, fn in (("escada", escada), ("conflito", conflito),
                      ("banda", banda), ("escala", escala)):
         for idioma, L in TEXTOS.items():

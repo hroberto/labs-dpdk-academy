@@ -102,10 +102,32 @@ int main(void)
     const struct nivel l2_4k = {(b & 0xfff) * x, bruto_4k * x};
     const struct nivel l2_2m = {(a & 0xfff) * x, bruto_2m * x};
 
+    /* A LINHA DE 1 GB TAMBEM LEVA O MULTIPLICADOR, e conferir isso custou uma
+     * conclusao errada antes de custar a certa.
+     *
+     * A especificacao de CPUID (25481, de 2008) descreve o campo como
+     * "L2DTlb1GSize. L2 data TLB number of entries for 1-GB pages" -- mas ela
+     * antecede o Zen 5 e o bit L2TlbSizeX32, entao nao decide nada aqui.
+     *
+     * Quem decide e o hardware descrito pelo fabricante. O Software
+     * Optimization Guide para o Zen 5 traz "an additional 4-way
+     * set-associative 1G page L2 DTLB with 1024 entries". Esta maquina reporta
+     * tamanho BRUTO 32 e associatividade 4:
+     *
+     *     32 x 32 = 1024 entradas, 4-way  -- bate nos dois campos.
+     *
+     * Sem o multiplicador dariam 32 entradas, e a associatividade continuaria
+     * 4-way: so o par tamanho+associatividade fecha, e ele so fecha com o x32.
+     *
+     * O patch do Linux nao serve de referencia para esta folha: o
+     * `cpu_detect_tlb_amd` nao le 0x80000019. Os numeros "64, 64 e 32" que
+     * circularam sobre esse patch sao 4 KB, 2 MB e 4 MB -- o 4 MB do kernel e
+     * derivado como `2m >> 1`.
+     */
     if (!__get_cpuid(0x80000019, &a, &b, &c, &d))      /* 1 GB: EAX L1, EBX L2 */
         return 77;
     const struct nivel l1_1g = {a & 0xfff, (a >> 16) & 0xfff};
-    const struct nivel l2_1g = {b & 0xfff, (b >> 16) & 0xfff};
+    const struct nivel l2_1g = {(b & 0xfff) * x, ((b >> 16) & 0xfff) * x};
 
     printf("  page               L1 DTLB   L2 DTLB   L2 reach\n");
     printf("  ----------------   -------   -------   --------\n");
@@ -121,9 +143,10 @@ int main(void)
         printf("  If the number there does not match the L2 column above, this is why.\n");
     }
 
-    printf("\n  Note the 1 GB row: the second level holds FAR fewer entries.\n");
+    printf("\n  Note the 1 GB row: a SEPARATE structure, 4-way, 1024 entries.\n");
     printf("  The formula 'reach = entries x page' assumes the number of\n");
     printf("  entries does not change with page size -- a premise that holds\n");
-    printf("  from 4 KB to 2 MB and BREAKS at 1 GB.\n");
+    printf("  from 4 KB to 2 MB and BREAKS at 1 GB -- by a factor of 4,\n");
+    printf("  not by the 512x the page size alone would suggest.\n");
     return 0;
 }

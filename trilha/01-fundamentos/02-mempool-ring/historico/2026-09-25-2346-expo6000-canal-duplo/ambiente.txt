@@ -1,0 +1,47 @@
+
+== Ambiente de medição ==
+
+  Processador
+    modelo ................. AMD Ryzen 9 9900X 12-Core Processor
+    nucleos/threads ........ 12 fisicos, 24 logicos (2 por nucleo)
+    soquetes / nos NUMA .... 1 / 1
+    L3 ..................... 32768K x 2 instancia(s)
+    dominios de cache L3 ... 0-5,12-17 6-11,18-23 
+    sinalizadores de TSC ... constant_tsc nonstop_tsc 
+
+  Estado de frequencia (decide se a medicao e comparavel entre execucoes)
+    governor ............... powersave
+    driver / modo .......... amd-pstate-epp / active
+    energy perf pref ....... performance
+    turbo .................. intel_no_turbo=-  amd_boost=1
+
+  Memoria
+    total .................. 29,9 GiB
+    disponivel ............. 24,1 GiB (maior conjunto de trabalho: 512 MB)
+    velocidade ............. 6000 MT/s (DDR5)
+    pentes / canais ........ 2 pente(s) em 4 slot(s)
+    hugepages .............. 1024 de 2048 kB (1024 livres)
+
+  Placa e firmware (a §10 do modulo 01 depende deles)
+    placa .................. ASRock B850 Steel Legend WiFi
+    BIOS ................... 4.10 de 02/10/2026
+
+  Sistema
+    kernel ................. 7.0.0-34-generic
+    distribuicao ........... Ubuntu 26.04.1 LTS
+    sessao grafica ......... 2 processo(s); graphical.target active; alvo padrao graphical.target
+    linha de comando ....... amd_iommu=on iommu=pt 
+    mitigacoes ativas ...... spec_rstack_overflow=Mitigation: IBPB on VMEXIT only; spec_store_bypass=Mitigation: Speculative Store Bypass disabled via prctl; spectre_v1=Mitigation: usercopy/swapgs barriers and __user pointer sanitization; spectre_v2=Mitigation: Enhanced / Automatic IBRS; IBPB: conditional; STIBP: always-on; PBRSB-eIBRS: Not affected; BHI: Not affected; vmscape=Mitigation: IBPB on VMEXIT
+    nao aplicaveis ......... gather_data_sampling, ghostwrite, indirect_target_selection, itlb_multihit, l1tf, mds, meltdown, mmio_stale_data, old_microcode, reg_file_data_sampling, retbleed, srbds, tsa, tsx_async_abort
+
+  Rede
+    NIC .................... 08:00.0 Ethernet controller [0200]: Realtek Semiconductor Co., Ltd. RTL8125 2.5GbE Controller [10ec:8125] (rev 05)
+    driver ................. r8169
+
+  Ferramental
+    DPDK ................... 25.11.0
+    compilador ............. cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+    meson / ninja .......... 1.10.1 / 1.13.2
+
+  Para colar num documento: ./scripts/ambiente.sh --markdown
+

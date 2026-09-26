@@ -18,13 +18,26 @@ there, and separated it stays available to whoever wants to contest a number.
 This is the module's most consequential methodological decision, and it was
 **imposed by the machine**.
 
-The project does not pin the processor's frequency — the
-[§5 overview](../00-visao-geral/README.en.md#5-the-measurement-environment)
-declares that as a known limitation. The consequence shows up directly in the
-measurement: the same binary gave **2.19 ns and 2.77 ns** for `malloc`,
-depending on whether turbo engaged.
+The processor's frequency decides the absolute value, and the same binary gave
+**2.78 ns and 2.18 ns** for the single-object `malloc`. It is neither noise nor
+luck of the turbo: it is the *governor*, and the separation across the archived
+collections is perfect — `powersave` gives 2.78 ns in all **twenty** runs of four
+collections, `performance` gives 2.18 to 2.20 in the **thirty** of six.
+Twenty-seven per cent, with no overlap.
 
-And the **ratios came out identical** — 2.23× in both.
+**And the ratio does not move.** In the same measurement, the 128-object batch
+gives between 44.0× and 45.7× across the fifty runs — spanning both *governors*,
+two memory speeds and two channel counts.
+
+> **Why the batch is stable and the single object is not.** The single-object
+> `malloc` is the first quantity the program measures, and it comes out **on a
+> cold clock**: with no graphical session, nothing warmed the CPU between
+> invocations. By the time the batch loop arrives, it has been running for
+> seconds and the clock has climbed — with or without `powersave`. **The order of
+> measurement is part of the condition**, and whoever compares a program's first
+> line with its last is comparing two clock states, not two operations.
+
+<!-- cita-retratado: 2,19 2.19 2,23 2.23 2,77 2.77 -->
 
 Hence the rule the module adopts: **the ratio is the claim; the nanosecond is
 circumstance.** The text says "twice as fast", not "0.98 nanoseconds", because

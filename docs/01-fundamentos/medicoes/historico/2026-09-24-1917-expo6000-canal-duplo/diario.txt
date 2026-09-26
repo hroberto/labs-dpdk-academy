@@ -1,0 +1,15 @@
+inicio: 2026-09-24T19:40:48-03:00  carga: 0.66 1.26 1.11  uptime: up 23 minutes
+[aquecimento(descartado)] 19:40:48 carga 0.66
+  feed r0: session-1
+feed: /mnt/huge-academia
+[rodada1] 19:45:31 carga 1.04
+  feed r1: session-1
+[rodada2] 19:50:14 carga 0.97
+  feed r2: session-1
+[rodada3] 19:54:58 carga 0.99
+  feed r3: session-1
+[rodada4] 19:59:41 carga 1.06
+  feed r4: session-1
+[rodada5] 20:04:24 carga 1.13
+  feed r5: session-1
+fim: 2026-09-24T20:09:06-03:00  carga: 1.15 1.16 1.12

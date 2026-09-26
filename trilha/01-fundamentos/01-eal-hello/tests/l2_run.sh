@@ -37,6 +37,20 @@ BIN=${1:?uso: l2_run.sh <caminho-do-binario>}
 EAL_ARGS=${EAL_ARGS:--l 0 --no-huge --file-prefix=academy_eal_$$}
 falhas=0
 
+# PULO PARCIAL: CONTADO E DECLARADO, e nao `exit 77`.
+#
+# O `exit 77` do topico 02 existe porque la o caminho INTEIRO ficava
+# indisponivel -- sem duas CPUs nao ha o que testar, e o teste que saia com zero
+# afirmava ter testado. Aqui o pulo e PARCIAL: algumas verificacoes nao rodam e
+# as demais rodam de verdade. Sair 77 descartaria as que rodaram, e essas sao
+# resultado.
+#
+# O que faltava era o pulo APARECER: um "PULADO" no meio da saida some entre
+# dezenas de linhas verdes, e o resumo final dizia "todos os testes passaram"
+# sem dizer quantos nao foram tentados. Agora o resumo conta.
+pulados=0
+pular() { echo "  PULADO - $1"; pulados=$((pulados + 1)); }
+
 check() { if [ "$2" -eq 0 ]; then echo "  ok    - $1"; else echo "  FALHA - $1"; falhas=$((falhas + 1)); fi; }
 
 # Guarda a ultima saida capturada, para poder mostra-la se algo falhar.
@@ -80,13 +94,29 @@ grep -q "Arguments left for the application: 3" <<<"$saida"; check "argumentos a
 #    duas assercoes especificas da argparse sao condicionais; a propriedade
 #    ESTRUTURAL -- o ramo de erro da aplicacao NAO executa -- vale em qualquer
 #    release e continua sendo exigida.
+# COMO SE DESCOBRE SE HA ARGPARSE, e por que nao pelo cache do sistema.
+#
+# `ldconfig -p` responde sobre as bibliotecas INSTALADAS NO SISTEMA. Enquanto o
+# projeto so media contra o `dpdk-dev` do apt, as duas perguntas tinham a mesma
+# resposta. Na primeira execucao do job `releases-dpdk`, que constroi o DPDK num
+# prefixo proprio em `~/opt`, elas se separaram: o 25.11 TEM argparse, o cache
+# do sistema nao sabe disso, o teste tomava o ramo errado e falhava em vermelho
+# sem haver defeito.
+#
+# `ldd` sobre o BINARIO responde a pergunta certa -- o que este executavel vai
+# carregar de fato --, e nao depende de onde a release foi instalada.
+tem_argparse() {
+    ldd "$BIN" 2>/dev/null | grep -q 'librte_argparse' && return 0
+    ldconfig -p 2>/dev/null | grep -q 'librte_argparse'
+}
+
 saida=$("$BIN" --opcao-inexistente 2>&1); rc=$?
 ultima_saida="$saida"
-if ldconfig -p 2>/dev/null | grep -q 'librte_argparse'; then
+if tem_argparse; then
     check "opcao desconhecida encerra o processo com 234 (nao 1)" "$([ $rc -eq 234 ]; echo $?)"
     grep -q "unknown argument" <<<"$saida"; check "a EAL identifica o argumento desconhecido" $?
 else
-    echo "  PULADO - codigo 234 e mensagem da argparse (DPDK < 24.03 nesta maquina)"
+    pular "codigo 234 e mensagem da argparse (DPDK < 24.03 nesta maquina): 2 verificacoes"
 fi
 check "opcao desconhecida nao sai com sucesso" "$([ $rc -ne 0 ]; echo $?)"
 
@@ -95,7 +125,7 @@ check "opcao desconhecida nao sai com sucesso" "$([ $rc -ne 0 ]; echo $?)"
 # NAO roda; SEM argparse, rte_eal_init() devolve -1 e o ramo de erro RODA. Sao
 # comportamentos opostos, e ambos corretos para a sua release. Afirmar so um
 # deles falha em vermelho na outra.
-if ldconfig -p 2>/dev/null | grep -q 'librte_argparse'; then
+if tem_argparse; then
     ! grep -q "Error initialising the EAL" <<<"$saida"
     check "o ramo de erro da APLICACAO nao executa (a EAL encerra antes)" $?
 else
@@ -112,10 +142,14 @@ grep -q "Error initialising the EAL" <<<"$saida"
 check "o ramo de erro da APLICACAO executa nesse caso" $?
 
 if [ $falhas -eq 0 ]; then
-    echo "L2: todos os testes passaram"
+    if [ "$pulados" -eq 0 ]; then
+        echo "L2: todos os testes passaram"
+    else
+        echo "L2: todos os testes passaram, com $pulados NAO TENTADO(S)"
+    fi
 else
     mostrar_diagnostico
     echo ""
-    echo "L2: $falhas falha(s)"
+    echo "L2: $falhas falha(s), $pulados pulo(s)"
     exit 1
 fi

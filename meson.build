@@ -2,7 +2,7 @@ project(
   'dpdk-academy',
   'c',
   'cpp',
-  version : '1.02.01',
+  version : '0.08.00',
   meson_version : '>=1.1',
   default_options : [
     'warning_level=3',
@@ -34,8 +34,10 @@ project(
 # suite passa de ponta a ponta. A maquina de referencia roda 25.11, e a
 # diferenca entre as duas ja produziu dois defeitos que so apareceram no par:
 #
-#   - `--in-memory --no-huge` juntos: rejeitado ate o 23.11, aceito no 25.11,
-#     porque `--no-huge` ligava `--legacy-mem`;
+#   - `--in-memory --no-huge` juntos: rejeitado ATE O 25.07, aceito no 25.11.
+#     `--no-huge` liga `legacy_mem` na configuracao derivada nas cinco
+#     releases; o que mudou no 25.11 foi o conflito passar a ser conferido
+#     sobre os argumentos DIGITADOS, onde `legacy_mem` fica zero;
 #   - codigo de saida e mensagem de argumento desconhecido: vem de
 #     `librte_argparse`, que so existe a partir do 24.03.
 #
@@ -217,6 +219,44 @@ if python3.found()
                  '--autoteste'],
          suite : ['l1', 'docs'], timeout : 60)
   endforeach
+
+  # OS CONSOLIDADORES TAMBEM SAO PROGRAMA PUBLICADO. Eles produzem blocos que o
+  # `verificar-blocos.py` nao consegue conferir -- a linha consolidada nao tem
+  # a forma de nenhum `printf` arquivado, e por isso cai fora do escopo daquele
+  # portao, como o cabecalho dele declara. Quem confere esses blocos e o
+  # autoteste do consolidador mais o `--conferir`; sem eles rodando, a tabela
+  # volta a envelhecer sem que nada acuse.
+  #
+  # O caso que motivou o registro: em 25/09/2026 o `milhar()` do
+  # `consolidar-rajada.py` passou a emitir NBSP (U+00A0) em vez de espaco, e o
+  # autoteste PASSOU porque o literal esperado carregava o mesmo caractere
+  # errado. Quem acusou foi o `verificar-autodescricao.py`, por acidente.
+  test('docs - autoteste do comparador de hardware', python3,
+       args : [meson.project_source_root() / 'ferramental/qualidade/comparar-hardware.py',
+               '--autoteste'],
+       suite : ['l1', 'docs'], timeout : 60)
+
+  test('docs - autoteste da leitura de condicao da coleta', python3,
+       args : [meson.project_source_root() / 'ferramental/qualidade/condicao_coleta.py',
+               '--autoteste'],
+       suite : ['l1', 'docs'], timeout : 60)
+
+  foreach c : ['efeito-cache', 'rajada', 'isolamento']
+    test('docs - autoteste do consolidador de ' + c, python3,
+         args : [meson.project_source_root() / 'ferramental/qualidade/consolidar-' + c + '.py',
+                 '--autoteste'],
+         suite : ['l1', 'docs'], timeout : 60)
+  endforeach
+
+  test('docs - blocos consolidados da §6.3 conferem com a coleta', python3,
+       args : [meson.project_source_root() / 'ferramental/qualidade/consolidar-rajada.py',
+               '--conferir'],
+       suite : ['l1', 'docs'], timeout : 60)
+
+  test('docs - tabelas do topico de isolamento conferem com o historico', python3,
+       args : [meson.project_source_root() / 'ferramental/qualidade/consolidar-isolamento.py',
+               '--conferir'],
+       suite : ['l1', 'docs'], timeout : 60)
 else
   # python3 ausente: registrar marcadores que PULAM (codigo 77) em vez de nao
   # registrar nada. Sem isto a suite l1 encolhia em TRES testes e reportava
@@ -392,6 +432,7 @@ subdir('docs/02-runtime-dpdk/medicoes')
 subdir('docs/03-mempool-ring-mbuf/medicoes')
 subdir('trilha/01-fundamentos/01-eal-hello')
 subdir('trilha/01-fundamentos/02-mempool-ring')
+subdir('trilha/03-performance/03-isolamento-cpu')
 
 summary({
   'DPDK'          : dpdk_dep.version(),

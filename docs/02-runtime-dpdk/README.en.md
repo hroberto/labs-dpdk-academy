@@ -1,5 +1,12 @@
 # The DPDK runtime — the EAL as an execution system
 
+<!-- cita-retratado: 0,227 0.227 14,2 14.2 0,437 0.437 -->
+<!-- These values were retracted elsewhere in the material and reappear
+     here as a NEW measurement from the text-mode collection. The
+     coincidence is numeric, not of quantity: `0.227` is the range
+     minimum of `atomic relaxed`, `14.2` is the instrument resolution of
+     custo-anel and `0.437` is the mempool bulk at batch 128. -->
+
 *Leia em [português](README.md).*
 
 > **Level 3** of the [study plan](../plano-estudo-dpdk.en.md) ·
@@ -135,21 +142,21 @@ times it and returns the result through a *pipe*; the parent only aggregates.
   configuration measured: -l 0 --in-memory
   samples: 11 (one per process; rte_eal_init is not reentrant)
 
-  warning: "rte_eal_cleanup()" has disp 6.0% with 11 samples -- in that band the seal
+  warning: "rte_eal_cleanup()" has disp 3.4% with 11 samples -- in that band the seal
            does not decide. Raise it to 20+ before explaining the result.
   values in MILLISECONDS
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  rte_eal_init()                         118.8  118.3-121.4     117.8-122.1         2.6%   1.4%  
-  rte_eal_cleanup()                      0.094  0.090-0.096     0.055-0.133         6.0%  20.1% ~
+  rte_eal_init()                         117.7  117.3-117.7     116.8-117.8         0.4%   0.3%
+  rte_eal_cleanup()                      0.080  0.078-0.081     0.068-0.082         3.4%   6.0% ~
 
   Reading:
     At 10 GbE with 64 B frames one packet arrives every 67.2 ns.
-    The 119 ms initialisation window is worth 2 million packets
+    The 118 ms initialisation window is worth 2 million packets
 ```
 
-Bringing the EAL up costs **123 ms**; shutting it down costs **0.12 ms** — three
+Bringing the EAL up costs **118 ms**; shutting it down costs **0.09 ms** — three
 orders of magnitude less. The asymmetry is the first relevant fact: being born is
 expensive, dying is cheap.
 
@@ -163,8 +170,9 @@ measurement, with the memory mode of the EAL as the only difference:
   -l 0 --no-huge        121.9 ms         0.577 ms  ~  5%     211x
 ```
 
-Initialisation does not move — 122.4 against 122.5 ms. Shutdown changes by a factor
-of **5.5**, and with it the ratio goes from three orders of magnitude to two. That
+Initialisation barely moves — 118.8 against 121.9 ms, a 2.6% difference. Shutdown
+changes by a factor of **6.1**, and with it the ratio goes from three orders of
+magnitude to two. That
 makes sense: shutting down gives back what was mapped, and `--no-huge` maps it
 differently. **The shutdown number does not exist without the configuration next to
 it.**
@@ -176,30 +184,46 @@ it.**
 > the same value is not a refutation; it is a different measurement.
 > <!-- retratado: 0.082 0,082 0.30 0,30 195 -->
 
-### 2.1 Where the 123 ms come from
+### 2.1 Where the 118 ms come from
 
 The first natural hypothesis is that the cost is in memory or in the device scan. Both
 are wrong:
 
 | Configuration | `rte_eal_init()` median | range |
 |---|---:|---|
-| `-l 0 --in-memory` | 122.4 ms | 121.6–123.7 |
-| `-l 0 --in-memory --no-pci` | 121.1 ms | 120.0–122.5 |
-| `-l 0 --no-huge --in-memory --no-pci` | 120.8 ms | 120.2–121.8 |
-| `-l 0-3 --in-memory` | 123.5 ms | 122.8–125.7 |
+| `-l 0 --in-memory` | 117.7 ms | 117.0–118.2 |
+| `-l 0 --in-memory --no-pci` | 116.4 ms | 115.6–116.9 |
+| `-l 0 --no-huge --in-memory --no-pci` | 116.4 ms | 115.6–116.9 |
+| `-l 0-3 --in-memory` | 117.9 ms | 116.9–118.7 |
 
 Turning off the PCI scan changes nothing. Swapping hugepages for ordinary memory
 changes nothing. Using four lcores instead of one changes nothing. The cost is a
 **fixed floor**, and a fixed floor with that dispersion does not look like work: it
 looks like a wait.
 
-> **This table measures `-l 0-3` for real**, and the median of
-> `-l 0 --in-memory` (122.4, range 121.6–123.7) **contains** the 123.1 of the
-> section's opening table: the two collections agree.
-> <!-- retratado: 122,3 120,7 -->
+> **This table and the block at the start of the section come from the SAME
+> campaign**, and it is the first time. The median of `-l 0 --in-memory` here
+> (117.7) is the same one `custo-init` publishes there — as it must be, since it
+> is the same invocation of the same program.
+>
+> **It was not before.** The table published 122.4 ms for `-l 0 --in-memory`
+> while the block published 117.8 for the same configuration, in the same
+> document. The cause was structural: this table never had a program producing
+> it — the four cells were transcribed by hand, and a Markdown table is not
+> checked by `verificar-blocos`, which looks at fenced blocks. The `122.4`
+> existed on disk only in a JEDEC-4800 collection with `--no-huge`; the `123.1`
+> and the `123.5` existed in no collection at all.
+>
+> The four configurations now run in the **same round** of the campaign, and
+> that is a condition of the argument: what it claims is that the cost is a
+> **fixed floor**, and a fixed floor is demonstrated by the cells agreeing
+> **with each other**. Separate rounds would measure four different instants of
+> the machine.
+> <!-- cita-retratado: 122,4 122.4 123,1 123.1 123,5 123.5 -->
+> <!-- retratado: 122,3 120,7 122,4 121,1 120,8 123,5 123,1 -->
 
 **Working or waiting?** The distinction is the problem, and the previous measurement
-cannot make it: 123 ms of wall clock are identical in both cases. Choosing the right
+cannot make it: 118 ms of wall clock are identical in both cases. Choosing the right
 instrument here is half the lesson.
 
 A CPU profiler — `perf`, for instance — is the wrong choice, and for a reason worth
@@ -228,7 +252,7 @@ system clock for a tenth of a second to discover its frequency — the same one
 [`rte_get_tsc_hz()`][apitschz] returns afterwards, and which all code converting
 cycles into nanoseconds uses.
 
-**That is: 100 of the 123 ms, 81% of the cost of initialising the EAL on this machine,
+**That is: 100 of the 118 ms, 85% of the cost of initialising the EAL on this machine,
 is not work — it is a clock measurement.**
 
 > **What `strace` did not settle.** It showed *that* there is a 100 ms wait and *where*
@@ -236,7 +260,7 @@ is not work — it is a clock measurement.**
 > under which it is skipped, from
 > [§2.2](#22-why-that-wait-exists-and-when-it-does-not-happen). And it produced none of
 > the numbers published here: instrumenting every system call has its own cost, which
-> would distort the measurement. The 123 ms come from
+> would distort the measurement. The 118 ms come from
 > [`custo-init.c`](medicoes/custo-init.c); `strace` came afterwards, to explain them.
 > Measuring and diagnosing are distinct steps, with distinct tools.
 
@@ -249,10 +273,10 @@ if (arch_hz && is_tsc_known_freq())
     return arch_hz;
 ```
 
-`is_tsc_known_freq()` looks for the `tsc_known_freq` flag in `/proc/cpuinfo`. When the
-kernel already knows the TSC's frequency — because it read it from the hardware, and
-not by estimation — DPDK trusts it and **skips the 100 ms**. On this machine the flag
-does not exist:
+The condition has **two** parts, and the first one decides on its own here.
+
+`is_tsc_known_freq()` looks for the `tsc_known_freq` flag in `/proc/cpuinfo`; on this
+machine it does not exist:
 
 ```console
 $ grep -o 'constant_tsc\|nonstop_tsc\|tsc_known_freq' /proc/cpuinfo | sort -u
@@ -261,13 +285,30 @@ nonstop_tsc
 ```
 
 There is `constant_tsc` and `nonstop_tsc` — the TSC is dependable — but no
-`tsc_known_freq`. That is why the calibration runs.
+`tsc_known_freq`. That alone would be enough for the calibration to run.
 
-The practical consequence is that **the number 123 ms is not a property of DPDK**: it
-is a property of this combination of CPU and kernel. On a machine that exposes
-`tsc_known_freq`, the same `rte_eal_init()` would cost something close to 23 ms.
-Measuring on your machine is part of the exercise, and the program accepts the EAL's
-options directly for that.
+**But `arch_hz` is zero too, for a reason no flag changes.** It comes from
+`get_tsc_freq_arch()`, and the x86 version starts like this:
+
+```c
+/* lib/eal/x86/rte_cycles.c */
+if (x86_vendor_amd(b, c, d))
+    return 0;
+```
+
+On an AMD processor the function returns **before** consulting CPUID leaf 0x15. With
+`arch_hz` zeroed, `arch_hz && is_tsc_known_freq()` is false whatever the flag says —
+and the 100 ms `nanosleep` runs **always**.
+
+> **The most obvious counterfactual is false on this machine, and it is worth saying
+> which one.** "On a machine exposing `tsc_known_freq` this would cost ~23 ms" only
+> holds where `get_tsc_freq_arch()` returns a value — that is, on **Intel** with leaf
+> 0x15 available. On an AMD with `tsc_known_freq` the wait still happens. Changing CPU
+> within the same vendor does not move this number.
+
+The practical consequence is that **the 118 ms are not a property of DPDK**: they are a
+property of this combination of CPU, vendor and kernel. Measuring on your machine is
+part of the exercise, and the program accepts the EAL's options directly for that.
 
 ### 2.3 What this decides in the architecture
 
@@ -278,18 +319,18 @@ designs:
   long-running service; anything that brings the runtime up and down frequently pays
   the cost every time.
 - **Restarting in production is an event, not a routine.** Back to the example:
-  restarting the *feed handler* during the trading session means 123 ms without
+  restarting the *feed handler* during the trading session means 118 ms without
   receiving, plus the time to re-subscribe to the *feed* and rebuild the book.
   [§7 of the fundamentals](../01-fundamentos/README.en.md#7-metrics-the-vocabulary-for-not-fooling-yourself)
   treats latency by percentiles precisely because rare, expensive events are what
-  define observed behaviour — and 123 ms is an extremely expensive event in a system
+  define observed behaviour — and 118 ms is an extremely expensive event in a system
   whose requirement is measured in microseconds.
 - **The separation between what restarts and what does not becomes a design
   decision.** It is exactly the argument for the multiprocess model of
   [§4](#4-primary-and-secondary-processes): keep standing the process that cannot fall,
   and leave restartable what changes often.
 
-> **An honest caveat.** 123 ms measures `rte_eal_init()` in isolation. A real
+> **An honest caveat.** 118 ms measures `rte_eal_init()` in isolation. A real
 > application will still configure ports, allocate mempools and queues, and start the
 > workers — work this number does not include. The total time to the first processed
 > packet is larger, not smaller.
@@ -437,7 +478,7 @@ subscription and its book. With the processes separated, the strategy falls alon
 **Different life cycles.** The strategy is recompiled and restarted several times a
 day; the *feed handler* should come up once.
 [§2](#2-the-cost-of-existing-how-long-the-eal-takes-to-be-born) gives the number that
-makes that concrete: each restart costs 123 ms of EAL. Restarting only what needs
+makes that concrete: each restart costs 118 ms of EAL. Restarting only what needs
 restarting stops being a preference and becomes a requirement.
 
 **Organisational boundaries.** Different teams, different permissions, sometimes
@@ -645,13 +686,13 @@ Two hundred thousand ticks, producer on lcore 0 and consumer on lcore 1:
 
   measurement                      minimum    median       p75       p99  samples
   ------------------------------ --------- --------- --------- ---------  -------
-  publication -> observation         10.02     20.04     30.06    110.21   200000
+  publication -> observation         10.02     20.04     30.06     40.07   200000
 
-    instrument resolution: 11.9 ns (one consumer poll).
+    instrument resolution: 13.9 ns (one consumer poll).
     degenerate samples: 0 of 200000 (TSC aligned across the two cores)
     The values above are an UPPER BOUND: between two polls the
     consumer is blind, so the real traversal fits inside the
-    last step. Differences smaller than 11.9 ns are not measurable here.
+    last step. Differences smaller than 13.9 ns are not measurable here.
 ```
 
 **Ten nanoseconds in the best case, one hundred and ten at this run's p99.** For
@@ -737,12 +778,45 @@ With `--lcores '0@6,1@7,2@18'`, the same machine:
 
 Lcore 0 now executes on CPU 6. And note the fourth column: it did **not** change.
 
-That fourth column comes from [`rte_lcore_to_cpu_id()`][apitocpuid], and the function's
-name misleads. The API's own documentation says what it returns: *"Return the id of the
-lcore on a socket starting from zero"* — an **index relative to the NUMA node**, not
-the CPU number. Anyone using that value to pin a thread, choose where to steer an IRQ or
-decide affinity ends up with the work on the wrong core, and the only symptom is
-performance.
+That fourth column comes from [`rte_lcore_to_cpu_id()`][apitocpuid], and here the name
+**and the documentation** mislead — the header promises *"Return the id of the lcore on a
+socket starting from zero"*, an index relative to the node. The source returns something
+else:
+
+```c
+/* lib/eal/common/eal_common_lcore.c */
+return lcore_config[lcore_id].core_id;
+/* filled once, at init: */
+lcore_config[lcore_id].core_id = eal_cpu_core_id(lcore_id);
+```
+
+And `eal_cpu_core_id(lcore_id)` reads
+`/sys/devices/system/cpu/cpu<lcore_id>/topology/core_id`. What comes out is the
+**physical core id of the CPU whose number equals the lcore id**.
+
+**Three consequences, and each breaks a different assumption:**
+
+- it is not the CPU number, and **it is not an index at all**;
+- **SMT siblings share the value**, so two enabled lcores can report the same one —
+  something an index "starting from zero" could never do;
+- `--lcores` **does not update it**: it is indexed by the lcore id, not by the CPU the
+  lcore was pinned to.
+
+The second consequence is the proof, and it fits in one command. On this machine lcores
+0 and 12 are SMT siblings:
+
+```console
+$ estado-lcore --lcores '0@3,12@4'
+  lcore    real CPU(s)    role         core id        NUMA node
+  0        3              main         0              0
+  12       4              worker       0              0
+```
+
+Two distinct lcores, on distinct CPUs, **the same value**. The `core_id` of `cpu0` and of
+`cpu12` is 0 in both cases, and that is what the function returns.
+
+Anyone using that value to pin a thread, choose where to steer an IRQ or decide affinity
+ends up with the work on the wrong core, and the only symptom is performance.
 
 The function that returns the real CPU is [`rte_lcore_cpuset()`][apicpuset], which
 delivers the set of CPUs the lcore is pinned to — the table's third column.
@@ -750,8 +824,8 @@ delivers the set of CPUs the lcore is pinned to — the table's third column.
 The syntax of [`--lcores`][optlcore] matters on a machine with relevant topology. The
 one in
 [§4.3 of the fundamentals](../01-fundamentos/README.en.md#43-numa-when-memory-stops-being-one-thing)
-has two CCDs, and communication between them cost 82 to 99 ns against 20 to
-22 ns within the same CCD, across the five archived repetitions.5 ns within
+has two CCDs, and communication between them cost 81.5 ns against 17.9 to
+20.0 ns within the same CCD, across the six archived repetitions.5 ns within
 the same CCD. With [`-l`][optlcore], lcores fall wherever the numbers dictate; with
 `--lcores`, the mapping is chosen — and that is how you guarantee that the producer and
 consumer of the same ring stay in the same cache domain.
@@ -994,7 +1068,7 @@ it:
 
 ```c
 rte_memzone_free(mz);
-rte_eal_cleanup();
+  rte_eal_cleanup()                      0.080  0.078-0.081     0.068-0.082         3.4%   6.0% ~
 ```
 
 Inverting that is using memory already returned. In an application with configured
@@ -1043,7 +1117,7 @@ choice in [§2.3](#23-what-this-decides-in-the-architecture):
 
 | Operation | Median cost | Order of magnitude |
 |---|---|---|
-| `rte_eal_init()` | 123 ms | 10⁵ µs |
+| `rte_eal_init()` | 118 ms | 10⁵ µs |
 | `rte_eal_cleanup()` | 0.12 to 0.65 ms, depending on the memory mode | 10² µs |
 | per-packet budget on 10 GbE, 64 B frame | 67.2 ns | 10⁻¹ µs |
 
@@ -1083,7 +1157,7 @@ justified choices:
 | memory reserved per node | avoids remote access per packet | [§3.4](#34-reserving-memory-per-node) |
 | a named `--file-prefix` | allows production and replay on the same machine | [§4.3](#43---file-prefix-isolation-between-instances) |
 | a dedicated hugetlbfs | multiprocess without running as `root` | [§4.5](#45-what-switches-the-multiprocess-model-off-without-warning) |
-| a single, long-lived process | initialising costs 123 ms | [§2.3](#23-what-this-decides-in-the-architecture) |
+| a single, long-lived process | initialising costs 118 ms | [§2.3](#23-what-this-decides-in-the-architecture) |
 | a secondary for the strategy | failure isolation and its own life cycle | [§4.1](#41-why-two-processes) |
 
 None of those options is about code performance. All are about **the environment** —
@@ -1493,7 +1567,7 @@ still exists. Both are recorded as pending, not as results.
 - **The crossing measurement's resolution is ~12 ns**, one of the consumer's polling
   periods. Smaller differences are not observable with this instrument, and the published
   values are an upper bound, not the exact cost.
-- **123 ms is this machine's.** It is the result of a CPU without `tsc_known_freq` with
+- **118 ms is this machine's.** It is the result of a CPU without `tsc_known_freq` with
   this kernel, and [§2.2](#22-why-that-wait-exists-and-when-it-does-not-happen) explains
   why. Do not use the number as a characteristic of DPDK.
 - **The comparison with other sources is about versions, not about authors.** What

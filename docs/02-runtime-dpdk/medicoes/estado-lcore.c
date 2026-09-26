@@ -129,9 +129,9 @@ int main(int argc, char **argv)
     printf("  main lcore ........... %u\n", rte_get_main_lcore());
     printf("  clock (TSC) .......... %.3f GHz\n\n", (double)rte_get_tsc_hz() / 1e9);
 
-    printf("  %-8s %-14s %-12s %-14s %-8s\n", "lcore", "real CPU(s)", "role", "index in node",
+    printf("  %-8s %-14s %-12s %-14s %-8s\n", "lcore", "real CPU(s)", "role", "core id",
            "NUMA node");
-    printf("  %-8s %-14s %-12s %-14s %-8s\n", "-----", "------------", "-----", "------------",
+    printf("  %-8s %-14s %-12s %-14s %-8s\n", "-----", "------------", "-----", "-------",
            "-------");
     unsigned id;
     RTE_LCORE_FOREACH(id) {
@@ -146,10 +146,20 @@ int main(int argc, char **argv)
     printf("  * \"real CPU(s)\" comes from rte_lcore_cpuset(): it is where the lcore's\n");
     printf("    thread is actually pinned. With -l 0-3 it matches the lcore number; with\n");
     printf("    --lcores '0@6' lcore 0 starts running on CPU 6.\n\n");
-    printf("  * \"index in node\" comes from rte_lcore_to_cpu_id(), whose name MISLEADS: the\n");
-    printf("    documentation says \"the id of the lcore on a socket starting from\n");
-    printf("    zero\", that is, an index relative to the NUMA node -- not the CPU\n");
-    printf("    number. Using it to pin a thread or pick an IRQ puts the work on the\n");
+    printf("  * \"core id\" comes from rte_lcore_to_cpu_id(), and BOTH its name and its\n");
+    printf("    documentation mislead. The header promises \"the id of the lcore on a\n");
+    printf("    socket starting from zero\"; the implementation returns\n");
+    printf("    lcore_config[lcore_id].core_id, filled once from the sysfs file\n");
+    printf("    cpu<lcore_id>/topology/core_id -- the PHYSICAL CORE ID of the CPU whose\n");
+    printf("    number equals the lcore id.\n\n");
+    printf("    Three consequences follow, and each breaks a different assumption:\n");
+    printf("      - it is NOT the CPU number, and not an index either;\n");
+    printf("      - SMT siblings SHARE it, so two enabled lcores can report the same\n");
+    printf("        value -- which an index \"starting from zero\" could never do;\n");
+    printf("      - --lcores does not update it: it is indexed by lcore id, not by the\n");
+    printf("        CPU the lcore was pinned to.\n\n");
+    printf("    Try:  --lcores '0@3,12@4'   (lcores 0 and 12 are SMT siblings here)\n");
+    printf("    Using this value to pin a thread or pick an IRQ puts the work on the\n");
     printf("    wrong core, and the symptom shows up only in performance.\n");
 
     if (rte_lcore_count() < 2) {

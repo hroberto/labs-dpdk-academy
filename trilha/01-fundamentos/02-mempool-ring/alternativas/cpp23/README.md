@@ -118,7 +118,7 @@ devolve um fator que o anterior removia:
 | nível | o que o teste **devolve** | medido (ns/operação) | veredito |
 |---:|---|---|---|
 | 1 | nada — um núcleo, em memória | DPDK 1,8 · C++ 1,1 | DPDK **1,6× mais lento** |
-| 2 | + troca entre núcleos | anel: DPDK 0,371 · C++ 1,037 (lote 128) | DPDK **2,8× mais rápido** |
+| 2 | + troca entre núcleos | anel: DPDK 0,372 · C++ 0,506 (lote 128, ambos em bloco) | DPDK **1,4× mais rápido** |
 | 3 | + disputa entre núcleos | DPDK 0,42 · `malloc` 12,9 | DPDK **31× mais rápido** |
 | 4 | + rede real (DMA, descritores) | — não medido — | falta hardware |
 
@@ -134,7 +134,7 @@ flowchart LR
     N3 -->|"exige NIC"| N4
 
     V1["DPDK <b>1,6× mais lento</b>"]
-    V2["DPDK <b>2,8× mais rápido</b>"]
+    V2["DPDK <b>1,4× mais rápido</b>"]
     V3["DPDK <b>31× mais rápido</b>"]
     V4["não medido nesta máquina"]
 
@@ -172,16 +172,30 @@ Medido com **o mesmo protocolo** de
 por [`custo-anel-cpp.cpp`](custo-anel-cpp.cpp): um thread, sem disputa, ciclo
 enfileirar+desenfileirar, 200 000 operações, mesma estatística.
 
-| lote | `rte_ring` SP/SC | `SpscRing` C++23 | razão |
-|---:|---:|---:|---:|
-| 1 | 1,628 ns | 3,117 ns | 1,9× |
-| 8 | 0,527 ns | 1,062 ns | 2,0× |
-| 32 | 0,393 ns | 1,026 ns | 2,6× |
-| 128 | **0,371 ns** | **1,037 ns** | **2,8×** |
+| lote | `rte_ring` SP/SC, em bloco | `SpscRing`, **unitário** | `SpscRing`, **em bloco** | C++ bloco ÷ `rte_ring` | C++ unitário ÷ `rte_ring` |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 1,637 ns | 3,261 ns | 2,704 ns | 1,7× | 2,0× |
+| 8 | 0,532 ns | 1,073 ns | 0,635 ns | 1,2× | 2,0× |
+| 32 | 0,404 ns | 1,035 ns | 0,567 ns | 1,4× | 2,6× |
+| 128 | **0,373 ns** | 1,142 ns | **0,508 ns** | **1,4×** | 3,1× |
 
-Medianas de **10 execuções por ponto**. Amplitudes entre execuções: `rte_ring`
-1,626–2,085 no lote 1 e 0,367–0,473 no lote 128; `SpscRing` 3,036–3,949 e
-1,014–1,194.
+Coleta em **modo texto**, sem sessão gráfica. Medianas entre execuções:
+`rte_ring` com cinco (campanha, descartada a de aquecimento), `SpscRing` com
+dez. Amplitudes: `rte_ring` 1,634–1,642 no lote 1 e 0,371–0,374 no lote 128;
+`SpscRing` em bloco 2,687–2,827 e 0,508–0,605.
+
+**A coluna em bloco cai com o lote, e era exatamente isso que a versão anterior
+deste texto dizia não acontecer.** De 2,704 ns no lote 1 para 0,508 ns no lote
+128: a amortização existe no anel em C++ porque a API de bloco existe. O que
+não existia era um programa que a exercitasse.
+
+**A distância entre as duas bibliotecas no mesmo regime é de 1,2× a 1,7×**, e
+não os 2,8× publicados antes. Aqueles 2,8× eram `rte_ring` em bloco contra
+`SpscRing` unitário — a coluna `unitário ÷ bloco` acima reproduz os valores
+antigos quase exatamente (2,0×, 2,0×, 2,6×, 3,1×), o que confirma o diagnóstico.
+
+<!-- cita-retratado: 1,628 1.628 0,527 0.527 0,393 0.393 3,117 3.117 1,062 1.062 1,026 1.026 1,037 1.037 -->
+<!-- retratado: 1,628 1.628 0,527 0.527 0,393 0.393 3,117 3.117 1,062 1.062 1,026 1.026 1,037 1.037 -->
 
 > **Esta coluna publicava 2,078 e 0,368 ns, e os valores não reproduzem.** Dez
 > execuções de `custo-anel.c` devolvem 1,628 (amplitude 1,626–2,085) e 0,371
@@ -200,25 +214,53 @@ Medianas de **10 execuções por ponto**. Amplitudes entre execuções: `rte_rin
 >
 > A consequência prática, e ela vale mais que os números: **valores absolutos
 > abaixo de 1 ns neste projeto são frágeis a mudanças que não tocam o laço
-> medido.** As razões entre colunas, medidas na mesma execução, resistem — 2,8×
-> contra 2,9× publicado antes.
+> medido.** As razões entre colunas, medidas na mesma execução, resistem melhor:
+> a razão unitário ÷ bloco no lote 128 deu 2,9×, depois 2,8× e agora 3,1× — uma
+> faixa de ±5 % ao longo de três coletas, contra absolutos que se moveram mais.
+> "Resiste melhor" não é "é estável", e o número que este documento publica como
+> conclusão é a razão, não o absoluto.
 >
 > <!-- retratado: 2,078 0,687 0,437 0,368 -->
 
-**A diferença cresce com o lote, e é aí que está a explicação.** Em lote 1 os
-dois estão na mesma ordem de grandeza — é de fato o mesmo algoritmo. Mas o
-`rte_ring` tem operações **em bloco**: `rte_ring_enqueue_bulk` move *n* ponteiros
-com **um** par de operações atômicas. O `SpscRing` como está escrito não tem API
-de bloco: enfileirar 128 pacotes custa 128 publicações atômicas.
+**A diferença cresce com o lote, e a razão é de interface, não de linguagem.**
+Em lote 1 os três estão na mesma ordem de grandeza — é de fato o mesmo
+algoritmo. O que separa as colunas a partir do lote 8 é **quantas publicações
+atômicas** cada uma paga por objeto:
 
-Por isso o C++ fica plano em ~1,04 ns a partir do lote 8 — ele não tem o que
-amortizar — enquanto o `rte_ring` continua caindo até 0,371 ns.
+| caminho | publicações `release` por lote de *n* |
+|---|---|
+| `rte_ring_enqueue_bulk` | 1 |
+| `SpscRing::enqueue_burst` | 1 |
+| `SpscRing::enqueue` em laço | *n* |
 
-> **Isto não é uma vantagem da linguagem.** Um anel em C++ com API de bloco
-> teria o mesmo comportamento; o que falta é a API, não o compilador. O que o
-> DPDK entrega aqui é **desenho de interface** — a decisão de expor
-> `enqueue_bulk` em vez de só `enqueue`. É uma vantagem real e transferível, e
-> é diferente de "o DPDK é mais rápido".
+A coluna do meio é a terceira linha desta tabela. É por isso que ela fica plana
+em torno de 1 ns a partir do lote 8: naquele caminho não há o que amortizar. As
+duas colunas em bloco caem juntas — o `rte_ring` até 0,373 ns, o `SpscRing` até
+0,508 ns.
+
+> **O que resta entre as duas, medido no mesmo regime, é de 1,2× a 1,7×.** Não é
+> zero, e vale perguntar de onde vem. Três candidatos, nenhum medido aqui: o
+> `SpscRing` copia `Packet` por valor — 16 bytes — enquanto o `rte_ring` move
+> ponteiros de 8; o `rte_ring` mantém o índice do outro lado em cópia local e só
+> relê quando precisa; e o laço de cópia do `SpscRing` é escalar, sem
+> `memcpy` vetorizado. **Separar os três exige um desenho próprio**, e até lá a
+> atribuição da diferença permanece em aberto.
+>
+> O que **não** explica a diferença é a linguagem. As duas implementações usam
+> as mesmas instruções atômicas, e a única assimetria estrutural que o texto
+> afirmava — a ausência de API de bloco em C++ — não existia.
+
+> **O que continua válido, e é o achado transferível.** O `rte_ring` entrega a
+> operação em bloco **por padrão**. Quem usa a biblioteca recebe a amortização
+> sem pedir; quem escreve o anel precisa decidir expô-la. A coluna do meio mede
+> o custo de **não** usar a interface que se tem, e esse custo — 2× a 3× —
+> é maior que a diferença entre as duas bibliotecas.
+>
+> A lição de método é a mesma que derrubou o "empate" logo abaixo, e ela se
+> repete porque é fácil: **antes de comparar dois números, confira se os dois
+> programas fazem a mesma chamada.** Unidade igual e grandeza diferente já tinha
+> enganado uma vez aqui; da segunda vez a unidade e a grandeza estavam certas, e
+> o que diferia era a API exercitada.
 
 > **Este bloco publicava "empate", com dois números errados.**
 >
@@ -235,6 +277,13 @@ amortizar — enquanto o `rte_ring` continua caindo até 0,371 ns.
 > A lição de método: **antes de comparar dois números, confira se medem a mesma
 > coisa.** Os dois tinham unidade igual e grandeza diferente, e foi isso que
 > produziu um "empate" que não existia.
+> <!-- retratado: 15,9 15.9 -->
+> <!-- O `16,0` NAO entra: o que caiu foi a ATRIBUICAO dele ao anel, nao a
+>      medicao. Ele continua publicado, corretamente rotulado, na tabela de
+>      `bench-ccd.sh` do topico 02 -- 2 lcores no mesmo bloco, pipeline
+>      inteiro. Marca-lo mataria um numero vivo. -->
+
+<!-- cita-retratado: 15,9 15.9 16,0 16.0 2,078 2.078 -->
 
 **Nível 3 — o DPDK ganha por quase cem vezes.** Oito núcleos disputando a mesma
 fonte de objetos, medido por
@@ -257,19 +306,50 @@ da glibc resolve do outro.
 Então de onde vem a vantagem de cerca de 30×? Do cache, e dá para desligá-lo. Criando o
 **mesmo** pool com `cache_size = 0`:
 
-| threads | mempool sem cache | `malloc` | razão |
-|---:|---:|---:|---:|
-| 1 | 0,62 ns | 12,0 ns | 19× |
-| 2 | 3,37 ns | 12,2 ns | 4× |
-| 4 | 11,61 ns | 12,5 ns | 1× |
-| 8 | **60,87 ns** | **13,3 ns** | **0,2×** — o mempool **perde** |
+| threads | mempool sem cache | `malloc` | razão | fronteira |
+|---:|---:|---:|---:|---|
+| 1 | 0,62 ns | 12,27 ns | 20× | — |
+| 2 | 3,18 ns | 12,40 ns | 3,9× | — |
+| 4 | 11,76 ns | 12,41 ns | 1,1× | — |
+| 8 | **58,70 ns** | 12,58 ns | **0,2×** — o mempool **perde** | cruza CCD |
+| 16 | **149,93 ns** | 15,36 ns | **0,1×** | cruza CCD e SMT |
+
+> **A última coluna não é decoração, e a tabela não se lê sem ela.** Esta
+> máquina tem doze núcleos físicos em **dois** domínios de L3, seis em cada. A
+> partir de oito threads a disputa deixa de ser só pelo mempool e passa a
+> atravessar a interconexão — que a [§4.2 dos
+> fundamentos](../../../../../docs/01-fundamentos/README.md#42-cache-e-localidade)
+> mede em ~81 ns contra ~22 ns dentro do domínio. Em dezesseis, quatro threads
+> passam a dividir as unidades de execução de um núcleo com a sua irmã SMT.
+>
+> **Linhas separadas por uma marca não são comparáveis**: entre elas muda mais
+> de uma coisa. O salto de 11,8 para 58,7 ns não é "o quádruplo de threads
+> custa cinco vezes"; é o quádruplo de threads **mais** a travessia.
+>
+> Não dá para consertar escolhendo lcores melhores — com oito threads em seis
+> núcleos por CCD, atravessar é inevitável. O que dá para consertar é o
+> silêncio, e o programa agora declara a fronteira por linha.
+
+> **As linhas de 8 e 16 não existiam, e a razão é instrutiva.** A campanha
+> rodava `custo-contencao` com `-l 0-5`, e o programa dobra o número de threads
+> até `rte_lcore_count()`: com seis lcores ele parava em quatro. A linha de 8
+> era publicada assim mesmo, com um valor que **nenhuma execução arquivada
+> continha** — número sem programa, que é o que a regra editorial deste projeto
+> proíbe.
+>
+> Em modo texto não há com quem disputar a máquina, então a campanha passou a
+> usar os 24 lcores. O valor publicado antes (60,87 ns) estava na vizinhança do
+> medido agora (58,70), e isso não o torna aceitável: o que faltava não era
+> exatidão, era procedência.
+> <!-- cita-retratado: 60,87 60.87 11,61 11.61 3,37 3.37 -->
+> <!-- retratado: 60,87 11,61 -->
 
 ```mermaid
 xychart-beta
     title "Custo por operação do mempool: com e sem cache por lcore"
     x-axis "threads, uma por núcleo" ["1", "2", "4", "8"]
     y-axis "ns por operação" 0 --> 70
-    bar "sem cache (cache_size = 0)" [0.62, 3.37, 11.61, 60.87]
+    bar "sem cache (cache_size = 0)" [0.62, 3.18, 11.76, 58.70]
     line "com cache (cache_size = 512)" [0.41, 0.42, 0.41, 0.42]
 ```
 
@@ -376,7 +456,7 @@ maquinaria que a faz parecer cara existe para atravessar essa ponte.
 Packets processed: 10
 Total bytes: 695
 Batch (burst): 32 | batches interrupted by a full queue: 0
-Mean time: 15.0 ns/packet  <- NOT A MEASUREMENT
+Mean time: 43.1 ns/packet  <- NOT A MEASUREMENT
   10 packets are far too few: the cost of reading the clock is of the same
   order as the work measured. Use -n 10000 or more for a defensible number.
 ```

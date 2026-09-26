@@ -1,0 +1,4 @@
+                                          Operating System Noise                                                                          
+duration:   0 00:00:30 | time is in us
+CPU Period       Runtime        Noise  % CPU Aval   Max Noise   Max Single          HW          NMI          IRQ      Softirq       Thread
+  2 #28         28000000         7634    99.97273         468          117           0            4        55987         2529          248

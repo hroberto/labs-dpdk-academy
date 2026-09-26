@@ -1,0 +1,59 @@
+
+[1m== 1. Sintaxe ==[0m
+  [ok]    todos os scripts shell
+  [ok]    todos os scripts python
+  [ok]    ci.yml é YAML válido
+  [ok]    dependabot.yml é YAML válido
+
+[1m== 2. Consistência do projeto ==[0m
+  [ok]    nenhuma invocação combina --in-memory com --no-huge
+  [ok]    ações da CI fixadas por SHA
+  [ok]    GITHUB_TOKEN com permissões declaradas
+  [ok]    actions/checkout fixada em v7 (SHA confere com a tag)
+  [ok]    actions/checkout fixada em v7 (SHA confere com a tag)
+
+[1m== 3. Informações sensíveis ==[0m
+  [ok]    nenhum padrão de credencial
+  [ok]    nenhum caminho absoluto de máquina
+  [ok]    nenhum endereço MAC
+
+[1m== 4. Documentação ==[0m
+  [ok]    1325 links relativos verificados, 0 quebrados; 0 referência(s) sem definição; 0 definição(ões) sem uso
+  [ok]    42 âncoras de linha verificadas, 0 desatualizadas
+  [ok]    aritmetica: 4 conta(s) conferida(s); 0 divergente(s) (tolerância de 1.0 ponto per
+  [ok]    autodescricao: 2567 afirmação(ões) sobre o próprio material conferida(s); 0 não 
+  [ok]    blocos: 174 bloco(s) numerico(s) conferidos contra 19 coleta(s) (2026-09-24-09
+  [ok]    citacao: CITATION.cff: 9 campo(s) obrigatório(s), versão/data/licença/URL/me
+  [ok]    concordancia: docs/01-fundamentos/6.3-aprofundamento.md
+  [ok]    evidencia: docs/00-visao-geral/README.md: 3 de 4 numero(s) de prosa sem bloco
+  [ok]    figuras: 12 figura(s) conferida(s); 0 divergencia(s) entre alt= e <desc>
+  [ok]    forca-epistemica: 203 contagem(ns) de força epistêmica em 29 par(es); 0 desequilíbrio
+  [ok]    identidade: 154 objeto(s) de história e a árvore versionada conferidos, 0 ocorr�
+  [ok]    idioma: 29 documento(s) em ingles conferidos contra o dicionario pt-BR; 0 linh
+  [ok]    medicao: 105 fonte(s) conferida(s); 0 laco(s) com getenv() por iteracao
+  [ok]    paridade: 29 de 29 pares com estrutura de titulos e bibliografia alinhadas
+  [ok]    ponteiros: 19 ponteiro(s) de fonte para secao conferido(s), 17 com titulo; 0 pend
+  [ok]    promessa: 192 promessa(s) do material conferida(s) contra a arvore; 0 nao se sus
+  [ok]    retratacoes: 106 valor(es) declarado(s) retratado(s) em 71 documento(s); 0 sobreviv
+  [ok]    tabelas: 71 documento(s) conferidos; 0 linha(s) de tabela com largura errada
+  [aviso] 17 numero(s) arredondados SEM CLASSIFICACAO (triagem: --arredondados)
+  [aviso] tabelas: 41 celula(s) com unidade sem lastro em coleta arquivada
+          detalhe: ./ferramental/qualidade/relatar-tabelas-medidas.py --listar
+          triagem: temp/pendencias-tabelas-medidas.md
+  [aviso] envelhecimento: 49 linha(s) publicada(s) com mediana diferente da coleta atual
+          detalhe: ./ferramental/qualidade/comparar-publicado.py --so-mediana
+  [ok]    inventario: 127 tabelas/blocos em 6 paginas; escopo e limites declarados
+
+[1m== 5. Build e testes ==[0m
+  [ok]    build limpo, zero avisos
+  [ok]    cppcheck 2.22.0: 0 achado(s) nas fontes do projeto
+  [ok]    suíte completa nos tetos da CI
+  [ok]    rastros: 5 dimensao(oes) de rastro conferida(s); 0 residuo(s)
+
+[1m== 6. Assinatura de commit ==[0m
+  [ok]    commit.gpgsign ativo (chave …/id_ed25519.pub…)
+
+[1m== Veredito ==[0m
+  3 aviso(s) — não bloqueiam
+  [1mtudo passou.[0m Pode commitar.
+

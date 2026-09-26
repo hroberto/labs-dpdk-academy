@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 422" width="880" height="422" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">Por que a taxa de miss dispersava: o denominador</title>
-<desc id="d">Comparacao, ao longo de seis execucoes da mesma celula, entre o numero de chamadas de get e o numero de idas ao anel comum. O segundo e identico nas seis; o primeiro varia.</desc>
+<desc id="d">Comparação ao longo de seis execuções da mesma célula, com cache 96 no DPDK 26.07, entre o número de chamadas de get e o número de idas ao anel comum. As idas ao anel comum são idênticas nas seis execuções; as chamadas de get variam entre 109 mil e 119 mil.</desc>
 <rect width="880" height="422" fill="#fcfcfb"/>
 <text x="28.0" y="34.0" fill="#0b0b0b" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">Por que a taxa de miss dispersava: o denominador</text>
 <text x="28.0" y="55.0" fill="#52514e" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">cache = {0}, DPDK 26.07 — a mesma celula, seis execucoes</text>

@@ -33,6 +33,7 @@
 #   scripts/preparar-dpdk.sh 26.07 /caminho   # prefixo alternativo
 #   scripts/preparar-dpdk.sh --conferir 25.11 # so confere um prefixo existente
 #   scripts/preparar-dpdk.sh --minimo 25.11   # so os drivers que o estudo usa
+#   scripts/preparar-dpdk.sh --sem-stats --minimo 25.11   # para medir TEMPO
 #
 # O MODO --minimo EXISTE PARA REPRODUZIR O QUE FOI PUBLICADO
 #
@@ -41,6 +42,19 @@
 # do modulo 03 tem tres: bus_pci, bus_vdev e mempool_ring. Sao builds
 # diferentes, e oferecer um chamando-o de reproducao do outro seria oferecer
 # reprodutibilidade e entregar outra coisa.
+#
+# O MODO --sem-stats EXISTE PORQUE O CONTADOR CUSTA TEMPO
+#
+# `RTE_LIBRTE_MEMPOOL_STATS` incrementa contadores no CAMINHO QUENTE de get e
+# put. Isso nao altera a CONTAGEM de idas ao anel comum -- que e a metrica do
+# estudo B4 --, mas altera o TEMPO: o programa medido deixa de ser o de
+# producao. Ligar o estudo de miss ao de tempo exige um par de prefixos sem a
+# macro, e por isso ela virou opcao em vez de constante.
+#
+# O prefixo padrao ganha o sufixo `-sem-stats`. Dois prefixos da mesma versao
+# que diferem so num #define nao se distinguem pelo pkg-config; compartilhar o
+# caminho faria a segunda construcao apagar a primeira, e a campanha publicada
+# deixaria de ser reproduzivel sem que nada avisasse.
 set -euo pipefail
 
 ESPELHO=${DPDK_ESPELHO:-https://fast.dpdk.org/rel}
@@ -52,8 +66,15 @@ uso() {
 }
 
 # O teste que importa: a macro chega a QUEM CONSOME, nao so a biblioteca.
-conferir_prefixo() { # <prefixo> <versao-esperada>
-    local prefixo=$1 esperada=$2 pc
+# O TERCEIRO ARGUMENTO INVERTE O SENTIDO DA CONFERENCIA, e existe por simetria.
+#
+# Um prefixo COM estatisticas serve ao estudo de taxa de miss; um SEM serve ao
+# estudo de TEMPO, porque o contador e atualizado no caminho quente e o
+# programa medido deixa de ser o de producao. Os dois precisam ser conferidos,
+# e conferir so um lado deixaria o outro nascer errado em silencio -- que e o
+# defeito que este arquivo inteiro existe para impedir.
+conferir_prefixo() { # <prefixo> <versao-esperada> [sem-stats]
+    local prefixo=$1 esperada=$2 querSem=${3:-0} pc
     pc=$(find "$prefixo/lib" -name pkgconfig -type d 2>/dev/null | head -1)
     if [ -z "$pc" ]; then
         echo "  FALHA: nao achei o diretorio pkgconfig em $prefixo/lib"
@@ -68,30 +89,54 @@ conferir_prefixo() { # <prefixo> <versao-esperada>
         "$esperada"*) ;;
         *) echo "  FALHA: $prefixo tem $versao, esperado $esperada"; return 1 ;;
     esac
-    if ! grep -q '^#define RTE_LIBRTE_MEMPOOL_STATS' "$prefixo/include/rte_config.h"; then
+    if grep -q '^#define RTE_LIBRTE_MEMPOOL_STATS' "$prefixo/include/rte_config.h"; then
+        tem=1
+    else
+        tem=0
+    fi
+    if [ "$querSem" -eq 1 ] && [ "$tem" -eq 1 ]; then
+        echo "  FALHA: $prefixo TEM RTE_LIBRTE_MEMPOOL_STATS, e foi pedido sem"
+        echo "         (o contador roda no caminho quente e contamina a medicao de tempo)"
+        return 1
+    fi
+    if [ "$querSem" -eq 0 ] && [ "$tem" -eq 0 ]; then
         echo "  FALHA: RTE_LIBRTE_MEMPOOL_STATS nao esta em $prefixo/include/rte_config.h"
         echo "         (a biblioteca pode ate contar; o consumidor nao vai saber)"
         return 1
     fi
-    echo "  ok - $prefixo: libdpdk $versao, RTE_LIBRTE_MEMPOOL_STATS visivel ao consumidor"
+    if [ "$querSem" -eq 1 ]; then
+        echo "  ok - $prefixo: libdpdk $versao, SEM RTE_LIBRTE_MEMPOOL_STATS"
+    else
+        echo "  ok - $prefixo: libdpdk $versao, RTE_LIBRTE_MEMPOOL_STATS visivel ao consumidor"
+    fi
 }
 
 modo=construir
 MINIMO=0
+SEM_STATS=0
 while true; do
     case "${1:-}" in
         -h|--help) uso 0 ;;
         --conferir) modo=conferir; shift ;;
         --minimo) MINIMO=1; shift ;;
+        --sem-stats) SEM_STATS=1; shift ;;
         *) break ;;
     esac
 done
 VERSAO=${1:-}
 [ -n "$VERSAO" ] || uso
-PREFIXO=${2:-$HOME/opt/dpdk-$VERSAO}
+# O SUFIXO NO PREFIXO PADRAO NAO E COSMETICO. Dois prefixos da mesma versao que
+# diferem so num #define sao indistinguiveis pelo pkg-config e pelo nome; se
+# ocupassem o mesmo caminho, a segunda construcao sobrescreveria a primeira e a
+# campanha anterior deixaria de ser reproduzivel sem aviso.
+if [ "$SEM_STATS" -eq 1 ]; then
+    PREFIXO=${2:-$HOME/opt/dpdk-$VERSAO-sem-stats}
+else
+    PREFIXO=${2:-$HOME/opt/dpdk-$VERSAO}
+fi
 
 if [ "$modo" = conferir ]; then
-    conferir_prefixo "$PREFIXO" "$VERSAO"
+    conferir_prefixo "$PREFIXO" "$VERSAO" "$SEM_STATS"
     exit $?
 fi
 
@@ -122,12 +167,21 @@ if ! grep -qF "$MARCADOR" "$FONTE/config/rte_config.h"; then
     echo "       Confira como ela declara RTE_LIBRTE_MEMPOOL_STATS antes de seguir."
     exit 1
 fi
-echo "==> ligando RTE_LIBRTE_MEMPOOL_STATS em config/rte_config.h"
-# NAO com `sed`: o marcador contem `/*`, que em expressao regular significa
-# "zero ou mais barras", entao o padrao nao casa a linha literal -- e `sed -i`
-# nao reclama quando nada casa. A primeira versao deste script fazia isso e
-# instalava um prefixo sem o contador, anunciando que o tinha ligado.
-python3 - "$FONTE/config/rte_config.h" <<'PATCH'
+
+if [ "$SEM_STATS" -eq 1 ]; then
+    # NAO EDITAR E UMA ESCOLHA, E ELA PRECISA SER CONFERIDA COMO QUALQUER OUTRA.
+    #
+    # "Deixei como estava" e indistinguivel de "esqueci de editar" quando nada
+    # confere. A linha-marcador ja foi exigida acima; aqui so se declara que ela
+    # permanece, e `conferir_prefixo` recusa o prefixo se a macro aparecer.
+    echo "==> MANTENDO RTE_LIBRTE_MEMPOOL_STATS desligado (--sem-stats)"
+else
+    echo "==> ligando RTE_LIBRTE_MEMPOOL_STATS em config/rte_config.h"
+    # NAO com `sed`: o marcador contem `/*`, que em expressao regular significa
+    # "zero ou mais barras", entao o padrao nao casa a linha literal -- e `sed -i`
+    # nao reclama quando nada casa. A primeira versao deste script fazia isso e
+    # instalava um prefixo sem o contador, anunciando que o tinha ligado.
+    python3 - "$FONTE/config/rte_config.h" <<'PATCH'
 import sys, pathlib
 p = pathlib.Path(sys.argv[1]); s = p.read_text()
 marcador = "/* RTE_LIBRTE_MEMPOOL_STATS is not set */"
@@ -135,11 +189,12 @@ assert marcador in s, "linha-marcador ausente"
 p.write_text(s.replace(marcador, "#define RTE_LIBRTE_MEMPOOL_STATS 1", 1))
 PATCH
 
-# A edicao e CONFERIDA, nao presumida.
-grep -q '^#define RTE_LIBRTE_MEMPOOL_STATS' "$FONTE/config/rte_config.h" || {
-    echo "FALHA: a edicao de config/rte_config.h nao pegou; abortando antes de compilar."
-    exit 1
-}
+    # A edicao e CONFERIDA, nao presumida.
+    grep -q '^#define RTE_LIBRTE_MEMPOOL_STATS' "$FONTE/config/rte_config.h" || {
+        echo "FALHA: a edicao de config/rte_config.h nao pegou; abortando antes de compilar."
+        exit 1
+    }
+fi
 
 echo "==> configurando (prefixo $PREFIXO)"
 # OS DRIVERS FICAM. Desligar `*/*` parece economia e quebra o essencial: o
@@ -162,4 +217,4 @@ echo "==> instalando"
 ninja -C "$FONTE/build" install >/dev/null
 
 echo "==> conferindo o resultado"
-conferir_prefixo "$PREFIXO" "$VERSAO"
+conferir_prefixo "$PREFIXO" "$VERSAO" "$SEM_STATS"

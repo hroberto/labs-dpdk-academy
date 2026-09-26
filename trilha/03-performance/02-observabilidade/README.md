@@ -57,7 +57,7 @@ As duas coisas se confundem, e a diferença decide qual usar:
 | Acesso | contadores que a biblioteca exporta | a memória compartilhada inteira |
 | Cliente | qualquer coisa que fale soquete UNIX | processo DPDK com `--proc-type=secondary` |
 | Acoplamento | nenhum | mesma versão de DPDK, mesmo `--file-prefix` |
-| Custo de subir | conectar | uma EAL inteira — 123 ms, medidos no [runtime §2](../../../docs/02-runtime-dpdk/README.md#2-o-custo-de-existir-quanto-a-eal-leva-para-nascer) |
+| Custo de subir | conectar | uma EAL inteira — 118 ms, medidos no [runtime §2](../../../docs/02-runtime-dpdk/README.md#2-o-custo-de-existir-quanto-a-eal-leva-para-nascer) |
 | Risco | leitura | pode escrever na memória do primário |
 
 Para "quantos pacotes se perderam", telemetria. Para "quero ler a estrutura da

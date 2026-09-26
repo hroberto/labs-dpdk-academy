@@ -21,6 +21,17 @@ que MUDAM sozinhas, sem que ninguém reabra o arquivo:
     license         <- o SPDX declarado precisa bater com o LICENSE de fato
     repository-code <- a URL muda se o repositório for renomeado ou recriado
 
+A QUINTA ENTROU DEPOIS, PORQUE A DIVERGÊNCIA SOBREVIVEU A DUAS RELEASES
+
+    meson.build     <- a `version` do projeto Meson, que aparece no banner do
+                       build e é o número que o leitor vê ao compilar
+
+O `meson.build` declarava `1.02.01` enquanto o `.cff` e a tag diziam `0.0x`.
+Ninguém consome `meson.project_version()` no projeto, então nada quebrava -- e é
+justamente por isso que a divergência atravessou a 0.06.00 e a 0.07.00 sem ser
+notada. Um número que só é lido por humanos não tem quem o confira, a menos que
+alguém escreva a conferência.
+
 A QUARTA É A QUE JUSTIFICA O ARQUIVO INTEIRO
 
 Um metadado de citação com URL errada é pior que a ausência dele: ele manda o
@@ -29,11 +40,31 @@ E o caso não é hipotético -- este repositório foi apagado e republicado para
 remover endereços de e-mail pessoais da história, e renomear era uma das
 mudanças em discussão no mesmo dia.
 
+A ORDEM DAS OPERAÇÕES NUMA TAG NOVA, e ela não é a intuitiva
+
+Este verificador compara `version` com a TAG DE MAIOR VERSÃO já existente.
+Enquanto a tag não existe, ele acusa divergência -- e a tag não pode existir
+antes do commit que ela aponta. A sequência que funciona é:
+
+    1. bumpar `version` e `date-released` no CITATION.cff
+    2. commitar (o portão acusa a divergência; é esperado)
+    3. criar a tag assinada sobre esse commit
+    4. rodar o portão de novo: agora passa
+
+O passo 2 é o único do projeto em que o portão fica vermelho por construção.
+Quem não souber disso desiste do bump ou edita o verificador -- e as duas
+saídas são piores que a espera de um comando.
+
 O QUE ELE NÃO CONFERE
 
 Se o texto do `abstract` continua verdadeiro. Isso é semântica, nenhum padrão
 sintático decide, e a garantia ali é humana -- a mesma ressalva que o
 verificador de paridade já declara no próprio cabeçalho.
+
+Nem a grafia do nome do autor contra o registro ORCID. O identificador resolve
+independentemente da grafia, e conferi-lo exigiria rede -- o que um portão de
+pre-commit não deve exigir. O alinhamento foi feito a mão em 2026-09-23, com o
+registro público como referência, e está declarado no próprio CITATION.cff.
 """
 import os
 import re
@@ -89,15 +120,56 @@ def verificar(raiz="."):
     if problemas:
         return problemas
 
+    # RELEASE EM ANDAMENTO NAO E DIVERGENCIA, e a ordem dos fatos obriga a dizer
+    # isso aqui.
+    #
+    # A tag aponta para o commit que sobe a versao -- foi assim em todas as
+    # releases deste repositorio. Entao existe um intervalo, entre o commit e a
+    # tag, em que o `.cff` esta legitimamente A FRENTE. Enquanto este portao
+    # tratava isso como erro, o commit do bump so podia entrar com
+    # `--no-verify`, e a regra do projeto e nao commitar sem o portao verde.
+    #
+    # O comentario do bloco do meson.build, logo abaixo, ja raciocinava assim:
+    # "numa release em andamento os dois ja estao a frente da tag". Faltava a
+    # mesma leitura aqui.
+    #
+    # O QUE CONTINUA SENDO ERRO: versao ATRAS da tag -- alguem esqueceu de subir
+    # -- e versao a frente com a tag JA EXISTINDO, que significa `.cff` e tag
+    # discordando de verdade.
     tag = tag_mais_recente(raiz)
     if tag:
         esperada = tag.lstrip("v")
-        if str(d["version"]) != esperada:
-            print(f"  CITATION.cff: version '{d['version']}' != tag mais recente '{tag}'")
+        versao = str(d["version"])
+        def ordem(v):
+            return [int(x) for x in re.findall(r"\d+", v)] or [0]
+        tags = set(git(["tag"], raiz).split())
+        em_andamento = (ordem(versao) > ordem(esperada)
+                        and f"v{versao}" not in tags and versao not in tags)
+        if em_andamento:
+            print(f"  CITATION.cff: version '{versao}' a frente de '{tag}' e sem tag"
+                  f" propria -- release em andamento, nao divergencia")
+        elif versao != esperada:
+            print(f"  CITATION.cff: version '{versao}' != tag mais recente '{tag}'")
             problemas += 1
         data = git(["log", "-1", "--format=%ad", "--date=short", tag], raiz)
-        if data and str(d["date-released"]) != data:
+        if data and not em_andamento and str(d["date-released"]) != data:
             print(f"  CITATION.cff: date-released '{d['date-released']}' != data de {tag} ({data})")
+            problemas += 1
+
+    # A `version` do Meson contra a mesma fonte de verdade. Ela é comparada com o
+    # `.cff`, e não com a tag: numa release em andamento os dois já estão à
+    # frente da tag, e cobrar a tag aqui produziria a MESMA divergência esperada
+    # duas vezes, o que ensina a ignorar o portão.
+    mb = os.path.join(raiz, "meson.build")
+    if os.path.exists(mb):
+        texto = open(mb, encoding="utf-8").read()
+        m = re.search(r"^\s*version\s*:\s*['\"]([^'\"]+)['\"]", texto, re.M)
+        if m is None:
+            print("  meson.build: não achei a `version` do projeto")
+            problemas += 1
+        elif m.group(1) != str(d["version"]):
+            print(f"  meson.build: version '{m.group(1)}' != CITATION.cff "
+                  f"('{d['version']}')")
             problemas += 1
 
     spdx = None
@@ -119,7 +191,7 @@ def verificar(raiz="."):
             problemas += 1
 
     print(f"\n  CITATION.cff: {len(OBRIGATORIOS)} campo(s) obrigatório(s), "
-          f"versão/data/licença/URL conferidas, {problemas} divergência(s)")
+          f"versão/data/licença/URL/meson conferidas, {problemas} divergência(s)")
     return problemas
 
 
@@ -142,8 +214,10 @@ version: 1.02.01
 date-released: "%s"
 """
     falhas = 0
+    data_hoje = __import__("datetime").date.today().isoformat()
 
-    def repo(cff, tag="v1.02.01", licenca="MIT License\n", remoto="git@github.com:dono/nome.git"):
+    def repo(cff, tag="v1.02.01", licenca="MIT License\n", remoto="git@github.com:dono/nome.git",
+             meson=None):
         d = tempfile.mkdtemp()
         amb = dict(os.environ, GIT_AUTHOR_NAME="T", GIT_COMMITTER_NAME="T",
                    GIT_AUTHOR_EMAIL="t@x", GIT_COMMITTER_EMAIL="t@x")
@@ -151,6 +225,9 @@ date-released: "%s"
         open(os.path.join(d, "LICENSE"), "w").write(licenca)
         if cff is not None:
             open(os.path.join(d, "CITATION.cff"), "w").write(cff)
+        if meson is not None:
+            open(os.path.join(d, "meson.build"), "w").write(
+                "project('t', 'c',\n  version : '%s',\n)\n" % meson)
         subprocess.run(["git", "-C", d, "add", "-A"], capture_output=True)
         subprocess.run(["git", "-C", d, "commit", "-q", "-m", "x"], env=amb, capture_output=True)
         if tag:
@@ -190,6 +267,25 @@ date-released: "%s"
     caso(3, "version defasada em relação à tag passou",
          repo(bom, tag="v1.03.00"), 1)
 
+    # 3.1 RELEASE EM ANDAMENTO: o `.cff` À FRENTE da tag, sem tag própria ainda.
+    #     É o estado normal entre o commit que sobe a versão e a tag que aponta
+    #     para ele, e tratá-lo como erro obrigava `--no-verify` em toda release.
+    adiantado = BASE.replace("version: 1.02.01", "version: 1.03.00")
+    caso("3.1", "release em andamento acusada como divergência",
+         repo(adiantado % data_hoje, tag="v1.02.01"), 0)
+
+    # 3.2 E A TOLERÂNCIA TEM DE SE ANUNCIAR. O risco dela não é aceitar a
+    #     divergência errada -- versão atrás continua sendo erro, caso 3 --, é
+    #     virar SILÊNCIO: alguém sobe a versão, nunca cria a tag, e o `.cff`
+    #     fica à frente para sempre sem nada dizer. A linha impressa é o que
+    #     impede isso, então ela é conferida.
+    buf_31 = io.StringIO()
+    with redirect_stdout(buf_31):
+        verificar(repo(adiantado % data_hoje, tag="v1.02.01"))
+    if "release em andamento" not in buf_31.getvalue():
+        print("  AUTOTESTE 3.2 FALHOU: a tolerância não se anunciou na saída")
+        falhas += 1
+
     # 4. Licença: o `.cff` afirmando MIT sobre um LICENSE que não é MIT manda
     #    quem reutiliza o material confiar num termo errado.
     caso(4, "license divergente do LICENSE passou",
@@ -206,6 +302,15 @@ date-released: "%s"
     #    pergunta para a qual ele existe.
     caso(6, "CITATION.cff sem authors passou",
          repo(re.sub(r"authors:\n  - given-names: A\n    family-names: B\n", "", bom)), 1)
+
+    # 6b/6c. A `version` do Meson. A do `.cff` no BASE é 1.02.01, então um
+    #        meson.build com outro número tem de acusar, e com o mesmo tem de
+    #        passar. Sem o segundo caso, um verificador que acusasse SEMPRE
+    #        passaria no primeiro.
+    caso("6b", "meson.build com version divergente passou",
+         repo(bom, meson="9.99.99"), 1)
+    caso("6c", "meson.build alinhado acusado",
+         repo(bom, meson="1.02.01"), 0)
 
     # 7. A ORDENAÇÃO DAS TAGS. `--sort=-creatordate` daria v1.00.00 aqui, porque
     #    ela foi RECRIADA depois -- e foi o que de fato aconteceu neste

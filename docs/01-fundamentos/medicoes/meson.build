@@ -212,6 +212,13 @@ rajada_nasdaq = executable('rajada-nasdaq', 'rajada-nasdaq.c', versao_h,
 test('fundamentos - L2 (rajada de market data)', rajada_nasdaq,
      suite : ['l2', 'fundamentos'], timeout : 300)
 
+# Sonda dedicada a UMA medicao do custo-espera. Existe porque investigar a
+# distribuicao daquele laco pelo programa inteiro custaria 27 s por 3,6 ms de
+# dado util. Nao entra em campanha: e instrumento de investigacao.
+sonda_relaxed = executable('sonda-relaxed', 'sonda-relaxed.c',
+                           c_args : alinhamento,
+                           dependencies : [libm], install : false)
+
 custo_espera = executable('custo-espera', 'custo-espera.c', versao_h,
                           c_args : alinhamento,
                           dependencies : [dependency('threads'), libm], install : false)
@@ -228,6 +235,15 @@ test('fundamentos - custo-syscall executa', custo_syscall,
      suite : ['l2', 'fundamentos'], timeout : 120)
 test('fundamentos - efeito-cache executa', efeito_cache,
      suite : ['l2', 'fundamentos'], timeout : 180)
+
+# "Executa" nao basta para este: um programa que mede a coisa errada tambem sai
+# com zero -- foi o que aconteceu com a coluna `dependente` e custou o
+# `test_l1_cadeia.cpp`. Aqui a propriedade conferida e o CARATER da coluna
+# `sequencial`: plana entre os niveis, porque o teto e do laco. Se deixar de
+# ser, a §4.2 precisa ser reescrita, e o teste diz isso na mensagem.
+test('fundamentos - L2 (efeito-cache, o que cada coluna mede)', bash,
+     args : [files('tests/l2_efeito_cache.sh'), efeito_cache],
+     suite : ['l2', 'fundamentos'], timeout : 240)
 
 # L3: sem hugepages reservadas nao ha o que medir, e o programa sai com 77
 # (PULADO). Saia com 0 antes -- e como HugePages_Total=0 e o padrao da maioria

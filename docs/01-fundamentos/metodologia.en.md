@@ -42,6 +42,9 @@ the regime**.
 > What remains is the method, which is worth more than this case: **in a
 > microbenchmark, disassemble before publishing.** A loop that is too fast is a
 > hypothesis of measurement error before it is a result.
+> <!-- retratado: 0,115 0.115 -->
+> <!-- The `294×` fell too, and is not in the mark: it is an integer, and this
+>      gate only tracks decimals. -->
 
 ### 1.2 The published ratio belonged to another regime
 
@@ -62,7 +65,7 @@ the regime**.
 > and so the ratio came out **low**: 33,5/0,92 = 36, against 33,8/0,73 = 46.
 >
 > **This section's argument does not change**, because it never depended on the ratio:
-> it comes from 33.5 ns against a 67.2 ns budget, and the function call does not enter
+> it comes from 33.3 ns against a 67.2 ns budget, and the function call does not enter
 > the account. But the ratio is the sentence people repeat, and it was 22% low.
 >
 > Reproduce it: run `custo-syscall` once after a few minutes of an idle machine, and
@@ -74,9 +77,10 @@ the regime**.
 |---|---|---|
 | 0.115 ns / 294× | the instrument did not measure what it claimed | disassemble the binary before publishing |
 | 36× against 46× | the measurement was right, the regime was undeclared | say whether you measured cold or in steady state |
+<!-- cita-retratado: 0,115 0.115 -->
 
 And an observation that holds for the whole document: **neither changed §2's
-conclusion**. It comes from 33.5 ns against a 67.2 ns budget, and the function
+conclusion**. It comes from 33.3 ns against a 67.2 ns budget, and the function
 call does not enter that account. What both hit was the **ratio**, which is the
 soundbite — exactly the part people repeat, and therefore the part that most
 needs to be right.
@@ -256,7 +260,7 @@ instructive in the module.
 ## 4. §10 — this machine's PTI state
 
 [§10](README.en.md#why-the-syscall-is-so-cheap-here) states that PTI is not
-active on this machine, and that the 33.55 ns syscall is therefore not a
+active on this machine, and that the 33.3 ns syscall is therefore not a
 universal cost. The statement is **measured**, not inferred from the
 architecture — being AMD does not imply PTI is off, because the mitigation is
 configurable by boot parameter.
@@ -351,6 +355,172 @@ of the four instruments does that.
 
 ---
 
+### 5.1 The `0.397` is `1.818 / f`, and the `0.205` is `1.125 / f`
+
+The section above identified the right cause — load on the SMT sibling — by
+elimination and by a load test that reproduced the ratio. What was missing was
+the invariant quantity: **the measurement has no value in nanoseconds; it has a
+value in cycles**, and everything observed in nanoseconds is that number
+divided by the frequency of the moment.
+
+**The instrument.** `custo-espera` gives this measurement nine samples of two
+million rounds — about 4.5 ms of work. A CPU does not leave its base frequency
+in that time. Investigating the distribution through the whole program would
+cost 27 s per 3.6 ms of useful data, so the question called for an instrument
+of its own: [`sonda-relaxed.c`](medicoes/sonda-relaxed.c), which repeats the
+original loop — same alignment, same memory order, same volatile sink — and
+publishes **the individual samples with each one's frequency**, rather than the
+summary.
+
+**What 20,000 samples show.** With the core alone, once the frequency settles:
+
+```
+  block          ns/operation   GHz    cycles
+  -----------   -----------  -----   -------
+      1- 2000        0.2074   5.44     1.129
+   2001- 4000        0.2034   5.53     1.125
+   4001- 6000        0.2036   5.53     1.125
+   6001- 8000        0.2036   5.53     1.125
+   8001-10000        0.2037   5.53     1.125
+  10001-12000        0.2037   5.53     1.126
+  12001-14000        0.2036   5.53     1.125
+  14001-16000        0.2036   5.53     1.125
+  16001-18000        0.2036   5.53     1.125
+  18001-20000        0.2038   5.53     1.126
+```
+
+The nanoseconds move; the **cycles do not**. And with the SMT sibling saturated
+by a loop under `taskset -c 12`, another 20,000 samples:
+
+```
+      1- 5000        0.3378   5.38     1.817
+   5001-10000        0.3379   5.38     1.817
+  10001-15000        0.3381   5.38     1.818
+  15001-20000        0.3380   5.38     1.818
+```
+
+**The model has two parameters and explains every value published so far:**
+
+```
+  ns per operation = cycles / frequency
+
+    cycles = 1.125   core alone
+           = 1.818   SMT sibling saturated
+```
+
+| published value | implied cycles | implied frequency |
+|---:|---|---:|
+| 0.205 | 1.125 | 5.49 GHz |
+| 0.255 | 1.125 | 4.41 GHz |
+| 0.262 and 0.270 | 1.125 | 4.29 and 4.17 GHz |
+| 0.397 | 1.818 | 4.58 GHz |
+| 0.410 | 1.818 | 4.43 GHz |
+
+Direct verification closes to the fourth decimal: the probe, run cold, measures
+**0.2597 ns** with the frequency read at **4.33 GHz**, and `1.125 / 4.33` is
+**0.2598**.
+
+> **The 1.94× ratio of the section above was `1.818 / 1.125 = 1.616` plus the
+> clock difference between the two observations.** The explanation was right;
+> the measured ratio mixed two effects, which is why it did not match the
+> `1.69×` of the load test exactly.
+
+#### Measuring the clock by a dependency chain measures something else under SMT
+
+The probe published cycles by dividing by the clock period it measures itself —
+a chain of dependent additions, one per cycle in steady state. In text mode,
+with the SMT sibling saturated, it returned **1.046 cycles** where the model
+predicted 1.818.
+
+The prediction was right. The denominator was wrong.
+
+**The mechanism.** A dependency chain measures **this thread's issue
+throughput**, not the core's frequency. When the SMT sibling competes for the
+execution units, each thread issues roughly half — and the measured period
+doubles *along with* the measurement it was supposed to normalise. Numerator
+and denominator fall together, and the division cancels precisely the effect
+one wants to see.
+
+`sysfs` does not fall, because it reads the hardware frequency, which does not
+change because two threads share the core:
+
+| condition | `sysfs` | dependency chain | ratio |
+|---|---:|---:|---:|
+| core alone | 5.59 GHz | 5.51 GHz | 0.99 |
+| SMT sibling saturated | 5.44 GHz | 3.12 GHz | **0.57** |
+
+And by the hardware clock the model closes to the third decimal: 0.3353 ns at
+5.44 GHz gives **1.824 cycles**, against the 1.818 measured in graphical mode.
+
+**The probe now publishes both**, named for what each measures:
+
+```
+  no load                        SMT sibling saturated
+  ----------------------------   ----------------------------
+  by HARDWARE  (5.53 GHz) 1.122  by HARDWARE  (5.39 GHz) 1.822
+  by ISSUE     (5.51 GHz) 1.119  by ISSUE     (3.13 GHz) 1.057
+  ratio 1.00 <- owns the core    ratio 0.58 <- core is shared
+```
+
+The ratio between the two sources stops being noise and becomes **the
+instrument**: it measures how much of the core this thread is getting. Below
+0.8 the core is being shared, and a figure in nanoseconds published without
+that qualification describes a condition the reader has no way to guess.
+
+> **The generalisation, which holds beyond this measurement.** Any frequency
+> reading derived from work performed — a dependency chain, a calibrated loop,
+> a cycle counter sampled against time — measures throughput, not clock. The
+> two coincide while the thread owns the whole core, and that is why the
+> confusion survives: it only shows up in the condition where the measure
+> matters.
+
+#### The attribution to ASLR does not hold
+
+The section above attributes the **intermediate** values (0.262 and 0.270) to
+layout bias, because they disappeared when randomisation was turned off with
+`setarch -R`. The attribution is plausible and it is wrong: the two arms of
+that test ran **in sequence**, and the second inherited a CPU already warmed by
+the first.
+
+Interleaving the arms, so that both see the same thermal condition:
+
+```
+  pair 1:  with ASLR 0.2585   without 0.2023     <- the first run is cold
+  pair 2:  with ASLR 0.2028   without 0.2029
+  pair 3:  with ASLR 0.2028   without 0.2027
+  pair 4:  with ASLR 0.2028   without 0.2029
+  pair 5:  with ASLR 0.2028   without 0.2028
+  pair 6:  with ASLR 0.2028   without 0.2029
+```
+
+The two arms are indistinguishable. What produces the intermediate value is the
+**first run**, with or without ASLR — and the cold run disappears from the
+second arm of a sequential test by construction, not by any effect of layout.
+
+> **What survives and what falls.** The cause of the high mode survives: load
+> on the SMT sibling, now with the invariant quantity measured. The attribution
+> of the intermediates to layout falls; it was a confound with thermal state.
+> The test that separates them is to interleave the arms, and it is cheap.
+
+> **The two values remain published in the table above, and they should.** They
+> were measured correctly; what fell was their explanation. Retracting the
+> measurement would be erasing the datum because of an error that lay in the
+> reading.
+
+#### What this obliges of whoever measures
+
+Any measurement of this order of magnitude published in nanoseconds, without
+the frequency beside it, is a number on an undeclared axis. The three
+conditions the project uses give three answers for the same loop:
+
+| condition | typical frequency | `atomic relaxed` |
+|---|---:|---:|
+| graphical, `powersave` | ramp from 4.33 to 5.5 | 0.205 to 0.410 |
+| text, `powersave` | 4.33 to 4.95 | 0.255 |
+| text, `performance` | 5.58 steady | 0.205 |
+
+None is wrong. All three measure the same 1.125 cycles.
+
 ## 6. Pre-registration: the second memory stick
 
 This section is written **before** the measurement, and it is the first time
@@ -370,16 +540,37 @@ The published text says, about the ~21 GB/s twelve cores reach together:
 > saturates it alone; eight scattered cores have to join forces for that."*
 
 EXPO gave the first hint against the second sentence. It raised the per-channel
-rate by 25%, and the sequential access of **one** core did not move:
+rate by 25%, and the sequential access of **one** core did not move.
 
-| RAM, one core | before EXPO | after |
-|---|---:|---:|
-| `sequential` (amortised) | 0.194 ns | **0.195 ns** |
-| `random` (amortised) | 7.21 ns | 6.49 ns |
-| `dependent` (latency) | 101.5 ns | 89.31 ns |
+The contrast was redone on 25/09/2026, with both collections in **text mode**,
+dual channel, the same kernel and the same binary on both sides —
+`4800 → 6000 MT/s`, which is the same 25% step:
 
-Latency fell 12%, scattered-access throughput fell 10% — and sequential stood
-still. A number that does not respond to faster memory **is not limited by
+| RAM, one core | 4800 MT/s | 6000 MT/s | change |
+|---|---:|---:|---:|
+| `sequential` (amortised) | 0.184 ns | **0.196 ns** | **+6.5%** |
+| `random` (amortised) | 3.33 ns | 3.06 ns | −8.1% |
+| `dependent` (latency) | 96.64 ns | 86.02 ns | −11.0% |
+
+> **The original measurement did not survive, and the replacement is stronger.**
+> The table published `98.73 → 88.00 ns` for latency, from a collection made in
+> September before the text-mode protocol — and that collection was **discarded**
+> on 24/09 along with the other fifteen. The "before EXPO" state is not
+> recollectable without reverting the BIOS, so those two numbers would stay
+> without provenance forever.
+>
+> The 25/09 contrast measures **the same thing** — 25% more per-channel rate —
+> with an archived collection on both sides. And it reaches the same number:
+> `−11.0%` against the earlier `−10.9%`. The argument never depended on that
+> collection; it depended on the contrast, and the contrast reproduces.
+>
+> **The sign of `sequential` flipped, and that does not weaken the reading — it
+> strengthens it.** Where the old measurement gave −2.5% (near nothing), the new
+> one gives +6.5%: faster memory with a *worse* result. Neither is compatible
+> with "memory-bound", and the second is incompatible more obviously.
+> <!-- cita-retratado: 98,73 98.73 88,00 88.00 0,200 0.200 0,195 0.195 7,09 7.09 6,45 6.45 -->
+
+Latency fell 11%, scattered access 9% — and sequential barely moved. A number that does not respond to faster memory **is not limited by
 memory**.
 
 ### The predictions, and what refutes each
@@ -425,12 +616,14 @@ The campaign of 2026-09-20, five rounds on an idle machine, warm-up discarded,
 against the published values:
 
 ```
-  12 cores (aggregate)       36.56 -> 21.28 ns/access    -41.8%   RESPONDS
-  1 core, sequential          0.194 -> 0.190 ns/access     -2.1%   does not
+  12 cores (aggregate)       30.92 -> 21.27 ns/access    -31.2%   RESPONDS
+  1 core, sequential          0.200 -> 0.195 ns/access     -2.5%   does not
 ```
 
+<!-- cita-retratado: 31,2 31.2 -->
+
 **Prediction 1 confirmed, prediction 2 confirmed.** Memory 25% faster improved
-the aggregate by 42% and did nothing for the lone core. The two halves of the
+the aggregate by 45% in throughput and did nothing for the lone core. The two halves of the
 §4.2 sentence come apart: the aggregate **is** bandwidth-limited; the lone
 sequential core **is not** — it is limited by itself.
 
@@ -440,7 +633,7 @@ confirmation, with a different intervention on the same quantity.
 
 ### And a confirmation §4.1 declared it did not have
 
-[§4.1](README.en.md#why-the-difference-is-11-ns-and-not-three-trips-to-ram)
+[§4.1](README.en.md#why-the-difference-is-10-ns-and-not-three-trips-to-ram)
 explains that the extra translation cost is served by the L3, and labels the
 explanation *"consistent, not demonstrated"* — because demonstrating it would
 require a hardware counter.
@@ -449,12 +642,12 @@ EXPO produced the evidence by another route. If the penalty is served by the
 L3, faster memory **should not** make it cheaper:
 
 ```
-  L3 dependent                  9.70 -> 9.70 ns      0.0%
-  translation DIFFERENCE       10.40 -> 11.02 ns    +6.0%
-  RAM dependent               101.50 -> 86.14 ns   -15.1%
+  L3 dependent                   9.69 ->  9.69 ns    +0.0%
+  translation DIFFERENCE        10.32 -> 10.64 ns    +3.1%
+  RAM dependent                 96.64 -> 86.02 ns   -11.0%
 ```
 
-DRAM improved 15%, the L3 did not move, and translation **followed the L3**. It
+DRAM improved 11%, the L3 did not move, and translation **followed the L3** at 3.1%. It
 is not the hardware counter the section asks for, and it does not prove the
 path taken; but it is a risky prediction that held, and the original experiment
 could not produce it.
@@ -462,11 +655,30 @@ could not produce it.
 ### The dividing line, as validation of the instrument set
 
 The general record is worth keeping, because it says more about the instruments
-than about the hardware: of the measurements compared, **twelve did not move**
-(0.0% to 1.5%) and **ten moved between 11% and 42%**. The criterion separating
-them is a single one — touching DRAM or the fabric. The in-core ALU loop, the
-paired SMT ratio, and the `L1d` and `L3` dependent columns all came out at
-**0.0%**.
+than about the hardware. Of the **56** measurements `comparar-hardware.py`
+confronts today:
+
+| Band | How many | What is in it |
+|---|---:|---|
+| up to 1.5% | **24** | cache, atomics, local locks — nothing touching DRAM |
+| 1.6% to 9.0% | 16 | mixed paths: part of the work in cache, part outside |
+| 10.9% to 31.2% | **16** | DRAM and the inter-CCD fabric |
+
+<!-- cita-retratado: 31,2 31.2 -->
+
+> **The middle band exists, and an earlier version of this section omitted it.**
+> The text said "twelve did not move, ten moved", as if the split were clean. It
+> was clean in the smaller set the tool covered then; with 56 comparisons there
+> are sixteen measurements between 1.6% and 9.0%, and erasing them would make
+> the argument prettier than the data allows.
+
+What sustains the validation is not the absence of a middle, but **the extremes
+landing where the mechanism predicts**. The in-core ALU loop, the paired SMT
+ratio, and the `L1d` and `L3` dependent columns all came out at **0.0%** — none
+of them touches main memory. The twelve-core aggregate came out at **31.2%**,
+the largest of all, and it is the one that competes hardest for bandwidth.
+
+<!-- cita-retratado: 31,2 31.2 -->
 
 An instrument that responds where it should and stays quiet where it should is
 the only possible evidence that it measures what it claims to measure.
@@ -511,6 +723,176 @@ one stick and with two, the instrument is consistent, and the remaining
 difference between rows is attributable to the capacity+channel pair — declared
 as a pair, not as bandwidth.
 
+### Outcome: the four predictions, measured
+
+The second stick went in on 2026-09-23. The collection is
+`2026-09-23-expo6000-canal-duplo`, same protocol and same machine state as the
+baseline — `powersave`, C3 active, six rounds with the warm-up discarded. One
+variable: the number of channels.
+
+| # | Prediction | Declared limit | Measured | Outcome |
+|---|---|---|---:|---|
+| 1 | one core's `sequential` does not move | < 5% | −4.1% | **NOT TESTABLE** |
+| 2 | twelve cores' aggregate throughput rises a lot | > 40% | **+68.0%** | **confirmed** |
+| 3 | `dependent` latency changes little | < 5% | **−1.8%** | **confirmed** |
+| 4 | `custo-comunicacao` does not move | < 5% | **largest deviation 4.2%** | **confirmed** |
+
+```
+  1 core, sequential          0.195 -> 0.187 ns/access    -4.1%   <- instrument
+  12 cores, aggregate         21.27 -> 12.66 ns/access   -40.5%
+                              564.2 -> 947.9 M accesses/s +68.0%
+  RAM dependent               88.00 -> 86.38 ns           -1.8%   <- historical
+  1 core, custo-paralelismo    6.20 ->  5.85 ns/access    -5.6%   <- replacement
+```
+
+<!-- cita-retratado: 40,5 40.5 88,00 88.00 -->
+
+> **This block is a RECORD, not a current measurement.** The left-hand column's
+> values come from the September collection discarded on 24/09, when the
+> text-mode protocol was adopted. It stays because it is what the
+> pre-registration predicted and what was measured **at the time** — rewriting it
+> with today's numbers would falsify the record, which is precisely what a
+> pre-registration exists to prevent.
+>
+> <!-- cita-retratado: 88,00 88.00 -->
+> The `88.00` carries the `<- historical` mark on its line. The equivalent
+> contrast, measured with an archived collection, is in the `4800 → 6000 MT/s`
+> table above.
+
+> **Prediction 1 could not fail, and therefore does not count.** The
+> `efeito-cache` `sequential` column is limited by the loop that measures it,
+> not by memory: the accumulator forms a loop-carried chain with a ceiling of
+> about one element per cycle, and that ceiling is the same with the working
+> set in L1d and with it in DRAM. A number that cannot move cannot refute a
+> prediction that it does not move.
+>
+> The prediction was registered in good faith and the measured outcome is
+> correct as arithmetic. What does not exist is the **evidential value**: the
+> refutation criterion — "rises by more than 20%" — was unreachable by
+> construction. §4.2 of module 01 carries the instrument's caveat, and an
+> [L2 test](README.en.md#42-cache-and-locality) locks the trap.
+>
+> **The replacement is on the last line of the block.** `custo-paralelismo`
+> measures a single core with the same instrument that measures the twelve, and
+> there the number **can** move: it moved 14.5% when the frequency changed. That
+> it moved only 5.6% with the channel is a result, not a ceiling. Prediction 1
+> would be better served by that instrument, and that is how it is recorded for
+> the next hardware configuration.
+>
+> **The 24/09 factorial redid that pair with better matching** and gave −11.0
+> to −11.6% for frequency against −7.7 to −8.4% for the channel. The reading
+> survives — the lone core responds more to frequency — with a margin far
+> narrower than these 14.5 against 5.6 suggest.
+> <!-- cita-retratado: 14,5 14.5 88,00 88.00 -->
+
+**Prediction 4 is what gives the other two their value.**
+`custo-comunicacao` measures cache-line traffic between cores, which does not
+touch DRAM: if the channel moved it, the intervention would have an effect
+where it should not, and the others would lose their meaning. The program's
+five measurements came out between 0.0% and 4.2%, with the ratio between SMT
+sibling and distinct core standing still at **2.29 → 2.29**.
+
+An instrument that responds where it should and stays quiet where it should is
+the only possible evidence that it measures what it says it measures — and this
+time that was declared beforehand, not observed afterwards.
+
+> **And the negative control did not protect against prediction 1's defect.**
+> It checks whether the **intervention** leaks where it should not. What brought
+> prediction 1 down was something else: its **instrument** having a ceiling of
+> its own, which no intervention reaches. They are failures of different
+> families, and a well-built negative control passes green over the second.
+>
+> The question that would have caught the defect is not "did the intervention
+> leak?", but **"what would this number do if the hypothesis were false?"**. For
+> prediction 1 the answer was "the same", and that could have been answered
+> before measuring — or after, by varying the cache level and observing that the
+> value does not move. It is recorded as the question to ask in every future
+> pre-registration.
+
+<!-- cita-retratado: 14,5 14.5 31,2 31.2 5,6 5.6 40,5 40.5 7,2 7.2 -->
+
+#### What the outcome obliged us to change
+
+The section predicted: *"if 1 and 2 are confirmed, §4.2 becomes more precise and
+shorter"*. That is what happened. The phrase *"one sequential core saturates it
+alone"* left module 01, and the subsection now publishes **both** interventions
+side by side, because they measure the same quantity by independent paths:
+
+| Intervention | 12 cores | 1 core | ratio |
+|---|---:|---:|---:|
+| 4800 → 6000 MT/s, with 1 stick | −28.6% | −11.6% | 2.5× |
+| 4800 → 6000 MT/s, with 2 sticks | −26.3% | −11.0% | 2.4× |
+| 1 → 2 sticks, at 4800 MT/s | −44.6% | −8.4% | 5.3× |
+| 1 → 2 sticks, at 6000 MT/s | −42.8% | −7.7% | 5.6× |
+
+The second intervention is the cleaner of the two, for a reason of mechanism:
+**doubling the channels doubles bandwidth without touching latency**, whereas
+changing the frequency moves both things at once. Confirming the same asymmetry
+by both paths is stronger than confirming it by one.
+
+> **These values are from 24/09 and replace those of the block above, which is
+> from 23/09.** The block stays as it is: it records what that comparison gave,
+> and rewriting it would erase the pre-registration instead of completing it.
+> What changed is not the measurement but the **pairing**. The 23/09 channel
+> contrast compared a collection with a cold CPU, starting at 4.33 GHz, against
+> one warm and steady at 5.58 GHz — frequency regime as a third variable inside
+> a contrast meant to isolate channels.
+>
+> The four cells of 24/09 measure each factor at **both levels** of the other,
+> under a single condition, and they agree with each other: frequency moves the
+> same with one stick or two, the channel moves the same at 4800 or at 6000.
+> The single-core effect shifts the most — from −5.6% to −8.4% — because it is
+> the most sensitive to the clock and was the most contaminated.
+
+#### The 2×2 factorial has three cells of four
+
+The design proposed above crossed speed with channel. With this collection it
+stands as:
+
+| | 4800 MT/s | 6000 MT/s |
+|---|---|---|
+| **16 GB, single channel** | collected | collected |
+| **32 GB, dual channel** | **missing** | collected |
+
+The missing cell requires taking the BIOS back to 4800 with both sticks
+installed. It decides none of the four predictions — all of them are already
+resolved — but it answers a different question: **whether the effect of speed
+is the same in both channel configurations**, which would test the instrument's
+consistency across a hardware change. It is recorded as an available collection,
+not as a pending conclusion.
+
+#### The capacity+channel confound remains declared
+
+Adding the stick changed capacity and channel together, and **that was not
+resolved** — no viable design on this machine separates them without removing
+the stick, an intervention whoever answers for the machine declined. It is a
+recorded decision, not a technical blocker. What the outcome
+adds is that prediction 3 constrains the space: if capacity were what moves the
+aggregate, it would have to do so **without** altering the latency of a
+512 MB dependent chain, which is what prediction 3 measured standing still at
+−1.8%.
+
+Spare capacity has no way to speed up a chain that already fit in the available
+memory — free memory during the single-channel collection sat around 7 GiB,
+fourteen times the working set. It is a mechanism argument plus a recorded fact,
+and it continues **not to be a control**.
+
+#### One NUMA node, and what that closes
+
+With both sticks, `numactl --hardware` still reports **a single node**, and
+`/sys/devices/system/node/` has only `node0`. This CPU presents all memory as a
+single domain.
+
+Any experiment that depends on **more than one NUMA node** — per-node pool
+locality, remote access cost, per-node lcore placement — remains impossible on
+this machine, and not for lack of sticks.
+[§4.3 of module 01](README.en.md#43-numa-when-memory-stops-being-one-thing)
+already declares that the NUMA numbers there come from the literature and that
+measuring them requires two-socket hardware. This record closes a door the
+hardware change appeared to open: **dual channel is a property of the memory
+controller, not of the NUMA topology**, and the two are easily confused
+precisely because both talk about "how many paths to memory".
+
 ### What is now recorded as a limitation
 
 The machine measured **in single channel** everything published so far, and the
@@ -518,6 +900,164 @@ document did not say so — nor did `scripts/ambiente.sh`, which exists precisel
 so the environment is not described in prose. Both fields landed together with
 this section; when they need privilege, they **declare that they were not read**
 instead of disappearing.
+
+---
+
+## 7. The collection condition: why the graphical session was excluded
+
+This repository's measurement protocol specifies a dedicated machine with no
+concurrent load, and the campaign scripts declare it in their headers — *"the
+machine is exclusive to this purpose"*. The condition was treated as sufficient
+until per-event tracing contradicted it.
+
+### What the measurement showed
+
+The `osnoise` tracer attributed the longest stalls on an idle CPU to the
+function `amdgpu_device_delay_enable_gfx_off`, which re-enables power gating
+for the integrated GPU's graphics block. Execution occurs in a per-CPU
+workqueue and costs hundreds of microseconds. With the graphical session
+suspended, the same CPU showed a maximum of 25 µs against 711 µs — and the
+function disappeared from the trace. The full chain, with pre-registration and
+refutation criterion, is in [§6.6.5 and §6.6.6 of the CPU isolation
+module][iso].
+
+The consequence for the protocol is direct: **closing the browser does not
+suspend the graphical session**. The compositor, the display server and the GPU
+driver remain active and produce, on their own, events of up to 800 µs at
+intervals of a few seconds. The declaration of exclusivity described a
+condition that was not the condition measured.
+
+### What this requires, and what it does not
+
+The effect on already published results is bounded by the statistical design.
+The project reports **median with dispersion**, not mean; a rare 800 µs event
+shifts the median of a collection of billions of samples very little. The
+direct measurement of that shift, on the most sensitive metric available — the
+median of the largest stall, composed entirely of tail — was from 24.8 µs to
+21.5 µs, or 13%. Metrics from the body of the distribution shift less.
+
+Those 13% hold for a collection running with an **idle graphical session**, and
+do not generalise. Among the nine collections of the isolation topic, eight sit
+between 21.5 and 30.9 µs and one sits at 515.5 µs — all on the same machine,
+both ends with an active graphical session. The session's contribution is not
+an additive constant: it depends on how much it worked during the measurement,
+because power-gating re-enablement is scheduled by graphics activity.
+
+The specification now distinguishes two regimes:
+
+| Quantity of interest | Required condition |
+|---|---|
+| median, mean, ratio between medians | dedicated machine, graphical session allowed |
+| dispersion, jitter, p99, p99.9, maximum | **text mode**, no display manager |
+
+Text mode is obtained through a one-shot GRUB entry with
+`systemd.unit=multi-user.target`. The script
+[`ferramental/qualidade/campanha.sh`][cmt] refuses to run while
+any graphical process is alive, so that the condition is verified by the
+program rather than by the operator's memory.
+
+### The limit of this correction
+
+The 198 labels confronted by `comparar-hardware.py` were **not re-run** in
+text mode. By the median argument a small shift is expected, but this is an
+expectation, not a measurement. The finding also comes from one machine, with
+an AMD integrated GPU: platforms with a discrete GPU or a different driver are
+not covered.
+
+### 7.1 Pre-registration: the graphical control collection
+
+*Written before the collection. Nothing below may be rewritten after seeing the
+result; the outcome goes in as its own section.*
+
+The subsection above states an **expectation**, not a measurement: the median
+shift is expected to be small, and nobody measured it. The reason it was never
+measured is that the archive has no pair: the only surviving collection with a
+graphical session — `2026-09-23-expo6000-canal-duplo`, recoverable from the git
+history — came from a **dirty tree** (`v0.05.00-2-geb54750-dirty`) and, by this
+project's rule, is not provenance. Every text-versus-graphical claim in the
+material rests on it.
+
+**The missing pair.** A collection with a live graphical session, a binary from
+a clean tree, and everything else equal to
+`2026-09-25-1720-expo6000-canal-duplo`: same memory (6000 MT/s, dual channel),
+same kernel (7.0.0-34), *governor* pinned to `performance` on both sides, and
+the measurement sources **identical** — no `.c` changed between
+`v0.07.00-25-g836c47a`, which produced the text collection, and today's tree.
+
+Pinning the *governor* on both sides is what makes this pair better than
+23/09's: there the graphical collection ran under `powersave`, and session and
+clock were confounded. Here one variable is left.
+
+**Declared comparison:** the new collection (5 repetitions) against the six
+`performance` text collections pooled (30 repetitions), by two-sided rank test,
+quantity by quantity.
+
+| | prediction | refuted if |
+|---|---|---|
+| **P1** | the two sleeping primitives — `mutex + condvar` and `POSIX semaphore` — come out **larger** with a graphical session, both at `p < 0.05` | neither comes out larger |
+| **P2** | `atomic relaxed` does **not** differ by more than 3%, because the *governor* is pinned on both sides and the 36% of the 23/09 comparison was clock, not session | the difference exceeds 3% |
+| **P3** | *negative control*: `loop alone on the core` — pure ALU — does not move by more than 1% | it moves |
+
+P1 is the prediction that carries the hypothesis: if the graphical session costs
+anything, it costs where the task **gets scheduled again**, contending for the
+CPU with the compositor. P3 is what separates "the session costs" from "the
+instrument moved": if the ALU loop shifts, the difference is of machine and not
+of condition, and none of the other conclusions hold.
+
+**What this pair does not decide.** The measured magnitude holds for an **idle**
+graphical session, with the compositor and display server alive and nothing
+else. A session in use — browser, IDE, compilation — is another condition, and
+§7 already records that the session's contribution is not a constant addend. The
+collection declares how many graphical processes there were, and that is why it
+declares it.
+
+### 7.2 Outcome: the three predictions, measured
+
+Collection `2026-09-25-2346-expo6000-canal-duplo` ran on 26/09/2026 with the
+graphical session alive and **nothing else** — two processes, `gnome-shell` and
+`Xwayland` — from a clean tree, with the *governor* on `performance` on both
+sides. It is compared against the six `performance` text collections, 30
+repetitions, by two-sided rank test.
+
+**All three hold.**
+
+| | prediction | measured | |
+|---|---|---|---|
+| **P1** | the two that sleep come out larger, `p < 0.05` | `mutex + condvar` **+3.3%** (p < 0.001); `POSIX semaphore` **+3.8%** (p < 0.001) | holds |
+| **P2** | `atomic relaxed` does not differ by more than 3% | **+0.4%** | holds |
+| **P3** | the ALU loop does not move by more than 1% | **+0.0%** (p = 1.000) | holds |
+
+The negative control is what gives the rest its force: the pure-ALU loop
+publishes `0.537 ns` in both conditions, without a digit of difference. The
+instrument did not move; what moved was what depends on being scheduled again.
+
+**The magnitude answers what §7 left open.** That section expected a "small
+shift" and said so was an expectation. It is now measured: of 33 quantities,
+**none** moves more than 1.3% — except the two that sleep, at 3 to 4%. The six
+that separate at `p < 0.05` are the two that sleep (larger with a graphical
+session), `atomic relaxed` (+0.4%, significant and negligible) and three points
+of `custo-paralelismo` (−0.4% to −1.3%).
+
+> **Why the ones that sleep, and only those.** `mutex + condvar` and
+> `POSIX semaphore` are the two measurements in which the thread **yields the
+> CPU and comes back**. The compositor and the display server are runnable
+> tasks: when the measured thread wakes, it contends for the processor with
+> them, and the wake-up delay enters the measurement. The other 31 quantities
+> never release the CPU, and so never see the session. It is the same reading as
+> §6.4 of the [isolation topic][iso] by another route: what the graphical
+> session costs is not bandwidth or cache, it is **rescheduling latency**.
+
+**What this outcome licenses, and what it does not.** It licenses publishing
+median and ratio with the graphical session alive, which is what §7's
+two-regime table already said — now with a number instead of an expectation. It
+licenses nothing about the tail: the same collection, on the max-stall metric,
+behaves differently, and the [isolation topic][iso] records that in its §6. Nor
+does it generalise to a session **in use**: two idle graphical processes is the
+condition measured, and §7 already records that the session's contribution is
+not a constant addend.
+
+[iso]: ../../trilha/03-performance/03-isolamento-cpu/README.en.md#665-identifying-the-source-by-per-event-tracing
+[cmt]: ../../ferramental/qualidade/campanha.sh
 
 ---
 

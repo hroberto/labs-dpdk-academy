@@ -144,8 +144,30 @@ cat <<'TEXTO'
   profundo e paginas fora do cache sao os candidatos --, e o efeito e
   reprodutivel.
 
-  Consequencia pratica, que inverte a intuicao da ressalva: fixar o governor
-  ajuda pouco; DESCARTAR A PRIMEIRA EXECUCAO apos ociosidade ajuda muito.
+  Consequencia pratica, que inverte a intuicao da ressalva -- E QUE VALE PARA
+  O MODO EM QUE FOI MEDIDA, com sessao grafica ativa: fixar o governor ajuda
+  pouco; DESCARTAR A PRIMEIRA EXECUCAO apos ociosidade ajuda muito.
+
+  EM MODO TEXTO A CONCLUSAO SE INVERTE, e isto foi medido em 24/09/2026.
+
+  Com sessao grafica o compositor mantem a CPU ocupada, entao so a primeira
+  execucao apos ociosidade e fria e descarta-la resolve. Sem sessao grafica
+  nada aquece a CPU entre invocacoes: TODA execucao e a primeira apos
+  ociosidade, e o descarte nao alcanca o problema.
+
+  O par medido, mesma maquina e mesma configuracao, diferindo so no governor:
+
+    powersave     relogio 4,33 -> 4,94..5,57 GHz   malloc 2,78 nas seis
+    performance   relogio 5,58 -> 5,55 GHz         malloc 2,18 a 2,19
+
+  O 2,78 nao era ruido: era o valor que a operacao mais curta dava por ser
+  medida PRIMEIRO, sempre no relogio frio. Com o governor fixo ele volta ao
+  que o modo grafico da.
+
+  A regra que sobrevive nao e "governor ajuda pouco"; e que o remedio depende
+  do que mantem a CPU quente. Em modo grafico, o compositor faz isso e o
+  descarte basta. Em modo texto, nada faz, e o governor passa a ser a variavel
+  dominante dos valores absolutos.
 
   -- para fixar o que da para fixar --
 

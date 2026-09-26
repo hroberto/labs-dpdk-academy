@@ -1,4 +1,4 @@
-![labs-dpdk-academy — guia de estudo e laboratório prático para DPDK: alto throughput, baixa latência, C/C++23, Linux, medições reproduzíveis. A ilustração mostra o caminho de um pacote: entrada pela RX, processamento no DPDK, rings e mempool, distribuição entre lcores e chegada à memória NUMA.](labs-dpdk-academy-preview.jpg)
+![labs-dpdk-academy — guia de estudo e laboratório prático para DPDK: alto throughput, baixa latência, C/C++23, Linux, medições reproduzíveis. A ilustração mostra o caminho de um pacote: entrada pela RX, processamento no DPDK, rings e mempool, distribuição entre lcores e chegada à memória NUMA.](docs/assets/banner-BR.jpg)
 
 # DPDK Academy — estudo experimental reprodutível de desempenho no plano de dados
 
@@ -39,6 +39,7 @@ Ele combina:
 - `scripts/` — automação de build e testes
 - `subprojects/` — dependências de teste fixadas por hash (arquivos `.wrap`)
 - `ROADMAP.md` — visão geral do plano evolutivo do projeto
+- `PADROES.md` — a régua que o material segue, e os portões que a aplicam
 - `LICENSE` — licença do conteúdo do projeto
 
 Cada tópico da trilha é **autocontido**: documento, código, testes e, quando
@@ -84,6 +85,7 @@ progressão:
 | [docs/plano-estudo-dpdk.md](docs/plano-estudo-dpdk.md) | **a ordem de estudo**, em dez níveis — é o que os módulos citam |
 | [trilha/README.md](trilha/README.md) | índice do que existe em código e teste, com o estado de cada tópico |
 | [ROADMAP.md](ROADMAP.md) | ordem de **construção** do material — não é ordem de leitura |
+| [PADROES.md](PADROES.md) | o critério que separa aqui um número publicável de uma anedota |
 
 Os dez níveis, e onde cada um está:
 
@@ -125,9 +127,13 @@ A lista completa, com o que é ensinado e o que não é, está em
 
   | Release | Estado |
   |---|---|
-  | 25.11 | máquina de referência — todos os números publicados vêm dela |
+  | 25.11 | máquina de referência — a maior parte dos números publicados vem dela |
+  | 26.07 | usada no estudo comparativo do cache do mempool ([módulo 03 §1.4](docs/03-mempool-ring-mbuf/README.md)), que publica números das **duas** |
   | 23.11 | CI (Ubuntu 24.04); suíte passa |
   | < 23.11 | não testado; o `meson setup` recusa |
+
+  Cada bloco publicado carrega a *release* que o produziu na própria linha de
+  procedência; a tabela diz onde procurar, não substitui a leitura dela.
 
   A faixa não é decorativa: a diferença entre 23.11 e 25.11 já produziu dois
   defeitos que só aparecem em uma das duas — `--in-memory --no-huge` juntos, e

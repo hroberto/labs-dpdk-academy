@@ -13,10 +13,20 @@
 # mesma celula correm adjacentes, e a ordem das celulas e permutada a cada
 # repeticao. Deriva que atinja uma versao atinge a outra no mesmo instante.
 #
-# A METRICA E A TAXA DE MISS, e so ela. O ns/pacote foi descartado de proposito:
-# os dois prefixos tem RTE_LIBRTE_MEMPOOL_STATS ligado, o contador e atualizado
-# no caminho quente, e o tempo medido ali e o de um programa que nao e o de
-# producao. Ver temp/plano-pendencias.md, secao 1.1.
+# A METRICA PUBLICADA E `get_common`: idas ao anel comum, normalizadas por
+# milhao de pacotes entregues. NAO e a taxa de miss.
+#
+# A taxa (`miss_pct`) continua no CSV porque e o que o programa imprime, e o CSV
+# registra a saida, nao a conclusao. Mas ela NAO e publicavel: o denominador
+# dela sao as chamadas de `get`, e o produtor retenta quando a fila enche --
+# cada retentativa e mais uma chamada. Em cache_size 96, 49 023 das 111 523
+# chamadas sao retentativa. O denominador mede a corrida entre os dois lcores,
+# nao o cache. O numerador nao varia; a razao varia. Ver a subsecao "A metrica:
+# por que nao e 'taxa de miss'" do modulo 03.
+#
+# O ns/pacote foi descartado de proposito: os dois prefixos tem
+# RTE_LIBRTE_MEMPOOL_STATS ligado, o contador e atualizado no caminho quente, e
+# o tempo medido ali e o de um programa que nao e o de producao.
 #
 # EXIGE MAQUINA DEDICADA. A coleta nao deve ser iniciada sem aviso explicito de
 # que a maquina esta exclusiva para esta finalidade.
@@ -102,7 +112,7 @@ uma_execucao() { # <versao> <topologia> <cache> <repeticao> <ordem>
 
 echo "==> campanha B4: ${#VERSOES[@]} versoes x ${#TOPOLOGIA[@]} topologias"
 echo "    x ${#CACHES[@]} tamanhos de cache x $REPETICOES repeticoes"
-echo "    saida: $CSV"
+echo "    saida: ${CSV#$PWD/}"
 
 for rep in $(seq 1 "$REPETICOES"); do
     # A ORDEM DAS CELULAS MUDA A CADA REPETICAO. Sem isto, uma celula sempre
@@ -140,4 +150,4 @@ for rep in $(seq 1 "$REPETICOES"); do
     fi
 done
 
-echo "==> $(( $(wc -l < "$CSV") - 1 )) execucoes registradas em $CSV"
+echo "==> $(( $(wc -l < "$CSV") - 1 )) execucoes registradas em ${CSV#$PWD/}"

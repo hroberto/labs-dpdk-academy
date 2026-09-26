@@ -1,4 +1,4 @@
-![labs-dpdk-academy — study guide and hands-on lab for DPDK: high throughput, low latency, C/C++23, Linux, reproducible measurements. The illustration follows a packet: in through RX, processed by DPDK, across rings and mempool, spread over lcores, and into NUMA memory.](labs-dpdk-academy-preview.en.jpg)
+![labs-dpdk-academy — study guide and hands-on lab for DPDK: high throughput, low latency, C/C++23, Linux, reproducible measurements. The illustration follows a packet: in through RX, processed by DPDK, across rings and mempool, spread over lcores, and into NUMA memory.](docs/assets/banner.en.jpg)
 
 # DPDK Academy — a reproducible experimental study of data-plane performance
 
@@ -54,6 +54,7 @@ It combines:
 - `scripts/` — build and test automation
 - `subprojects/` — test dependencies pinned by hash (`.wrap` files)
 - `ROADMAP.md` — overview of the project's evolution plan
+- `PADROES.md` — the bar the material is held to, and the gates that enforce it
 - `LICENSE` — licence for the project's content
 
 Every topic in the trail is **self-contained**: document, code, tests and, where
@@ -99,6 +100,7 @@ the progression:
 | [docs/plano-estudo-dpdk.md](docs/plano-estudo-dpdk.en.md) | **the study order**, in ten levels — what the modules cite |
 | [trilha/README.md](trilha/README.en.md) | index of what exists in code and tests, with each topic's state |
 | [ROADMAP.md](ROADMAP.en.md) | the **build** order of the material — not a reading order |
+| [PADROES.md](PADROES.en.md) | the criterion that separates a publishable number from an anecdote here |
 
 The ten levels, and where each one is:
 
@@ -141,9 +143,13 @@ The full list, with what is taught and what is not, is in
 
   | Release | State |
   |---|---|
-  | 25.11 | reference machine — every published number comes from it |
+  | 25.11 | reference machine — most published numbers come from it |
+  | 26.07 | used in the mempool-cache comparison ([module 03 §1.4](docs/03-mempool-ring-mbuf/README.en.md)), which publishes numbers from **both** |
   | 23.11 | CI (Ubuntu 24.04); the suite passes |
   | < 23.11 | untested; `meson setup` refuses |
+
+  Every published block carries the *release* that produced it on its own
+  provenance line; the table says where to look, it does not replace reading it.
 
   The range is not decorative: the difference between 23.11 and 25.11 has
   already produced two defects that show up in only one of them —

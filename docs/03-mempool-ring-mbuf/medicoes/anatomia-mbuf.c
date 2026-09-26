@@ -109,17 +109,34 @@ int main(int argc, char **argv)
         {"buf_len", offsetof(struct rte_mbuf, buf_len)},
         {"pool", offsetof(struct rte_mbuf, pool)},
         {"next", offsetof(struct rte_mbuf, next)},
+        /* A LISTA PRECISA IR ALEM DO `next`, e a razao e o que ela ensina.
+         *
+         * Parando em `next`, a tabela sugeria que ele foi o UNICO campo a
+         * transbordar para a segunda linha -- e o texto publicado concluia
+         * isso. A segunda linha tem seis campos, e o recorte da lista era o
+         * que fazia os outros cinco desaparecerem. */
+        {"tx_offload", offsetof(struct rte_mbuf, tx_offload)},
+        {"shinfo", offsetof(struct rte_mbuf, shinfo)},
+        {"priv_size", offsetof(struct rte_mbuf, priv_size)},
+        {"timesync", offsetof(struct rte_mbuf, timesync)},
+        {"dynfield1", offsetof(struct rte_mbuf, dynfield1)},
     };
     for (size_t i = 0; i < sizeof(campos) / sizeof(campos[0]); i++)
         printf("    %-14s %6zu  %zu\n", campos[i].name, campos[i].off, campos[i].off / 64);
 
-    printf("\n  The split across two cache lines is deliberate, and the table above\n");
-    printf("  shows it: ALL fields but one fit in the first line. What spilled\n");
-    printf("  into the second was `next`, which only matters for a segmented\n");
-    printf("  packet -- the less common case. The DPDK header itself refers to\n");
-    printf("  it as \"next pointer in the second cache line\".\n");
-    printf("  Consequence: a single-segment packet touches only one line per mbuf,\n");
-    printf("  and at millions of packets per second that is cache bandwidth.\n");
+    printf(
+        "\n  The split across two cache lines is deliberate, and the table above\n"
+        "  shows where it falls. The FIRST line holds what the hot path reads on\n"
+        "  every packet: buffer, offsets, lengths, refcount and pool.\n\n"
+        "  The SECOND line holds six fields, not one: next, tx_offload, shinfo,\n"
+        "  priv_size, timesync and dynfield1. `next` is the one the DPDK header\n"
+        "  names explicitly -- \"next pointer in the second cache line\" -- because\n"
+        "  it is the one whose absence from the first line was a design choice.\n\n"
+        "  AND A SINGLE-SEGMENT PACKET STILL TOUCHES THE SECOND LINE.\n"
+        "  The generic free path reads it: rte_pktmbuf_prefree_seg() does\n"
+        "  `if (m->next != NULL) m->next = NULL;` on every segment it releases.\n"
+        "  So the saving is on the RX/TX hot path, not over the mbuf's whole\n"
+        "  life -- allocation and release reach the second line regardless.\n");
 
     /* ---------------------------------------------------------------- */
     printf("\n== 2. The four numbers, in motion ==\n\n");

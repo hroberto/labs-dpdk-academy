@@ -1,0 +1,57 @@
+  origin: orcamento-estourado @ v0.07.00-37-g86ae4d96  |  dskhmartins Linux 7.0.0-34-generic  |  gcc 15.2.0  |  2026-09-26T00:38:16-0300
+
+== When the per-packet budget is blown ==
+
+  Budget: 67.2 ns/packet (10 GbE, 64 B frame)
+  Queue: 512 slots | 120 ms per load level
+
+  steps    service    rho     offered     served      dropped   lat.med    lat.p99
+  ------   -------    ---     ----------  --------    --------  -------    -------
+  8        32.1       0.48    1785735     1785735     0.0%      30         406
+  16       35.4       0.53    1785736     1785736     0.0%      33         50
+  24       41.1       0.61    1785736     1785736     0.0%      36         58
+  32       47.0       0.70    1785735     1785735     0.0%      38         60
+  40       52.6       0.78    1785736     1785736     0.0%      52         70
+  64       69.9       1.04    1785735     1762715     1.3%      38429      39842
+  96       92.9       1.38    1785736     1440260     19.3%     50620      52022
+
+  How to read this table
+
+  rho = service / budget. Below 1 the consumer keeps up and the queue
+  stays practically empty: the observed latency is the service time
+  itself. Above 1 the queue fills to capacity and STAYS full -- every
+  packet now waits for the whole queue, and latency stops measuring
+  service and starts measuring queue depth.
+
+  THREE READINGS, AND THE THIRD IS THE OPERATIONAL ONE
+
+  1. Loss is a step, not a ramp. It stays at 0.0% until rho is close
+     to 1 and only then appears. There is no stable regime of
+     "slightly overloaded": either the consumer keeps up, or the
+     excess is cumulative and the queue never recovers on its own.
+
+  2. The median latency jumps orders of magnitude at the crossing,
+     because on the other side it is a different quantity: before it
+     is service, after it is wait. A mean-latency plot crossing that
+     point does not show the same variable on both sides.
+
+  3. THE TAIL DEGRADES FIRST. Note the rows where loss is still
+     0.0% and the median is still in the tens of ns, but the p99 has
+     already climbed two orders of magnitude. It is the only warning
+     that arrives BEFORE the damage: whoever monitors mean latency and
+     mean utilisation sees nothing, because both stay healthy. That is
+     why this material publishes percentiles, not means.
+
+  DESIGN CONSEQUENCE: sizing for the average load is not enough.
+  What decides survival is the margin over the PEAK, and the indicator
+  that warns in time is the high percentile -- not the mean.
+
+  LIMITATIONS OF THIS MEASUREMENT
+
+  Arrival here is PERIODIC (one packet every 67.2 ns exactly). Real
+  traffic arrives in bursts, and bursts bring loss forward: at the same
+  mean rate, an irregular arrival fills the queue at a lower rho than
+  this table shows. These numbers are therefore the OPTIMISTIC case.
+  The machine also has no pinned frequency, and the loop itself pays
+  two clock reads per packet -- already accounted for in `service`,
+  which is measured under saturation precisely for that reason.

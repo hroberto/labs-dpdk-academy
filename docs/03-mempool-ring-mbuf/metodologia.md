@@ -18,12 +18,26 @@ ali, e separado ele fica disponível para quem quer contestar um número.
 Esta é a decisão metodológica mais consequente do módulo, e ela foi **imposta
 pela máquina**.
 
-O projeto não fixa a frequência do processador — a
-[§5 da visão geral](../00-visao-geral/README.md#5-o-ambiente-de-medição) declara
-isso como limitação conhecida. A consequência aparece direto na medição: o mesmo
-binário deu **2,19 ns e 2,77 ns** para o `malloc`, conforme o turbo engatasse.
+A frequência do processador decide o valor absoluto, e o mesmo binário deu
+**2,78 ns e 2,18 ns** para o `malloc` de um objeto só. Não é ruído nem sorte de
+turbo: é o *governor*, e a separação nas coletas arquivadas é perfeita —
+`powersave` dá 2,78 ns nas **vinte** execuções de quatro coletas, `performance`
+dá 2,18 a 2,20 nas **trinta** de seis. Vinte e sete por cento, sem uma
+sobreposição.
 
-E as **razões ficaram idênticas** — 2,23× nas duas.
+**E a razão não se move.** Na mesma medição, o lote de 128 objetos dá entre
+44,0× e 45,7× nas cinquenta execuções — atravessando os dois *governors*, duas
+velocidades de memória e dois números de canais.
+
+> **Por que o lote é estável e o objeto único não.** O `malloc` de um objeto é a
+> primeira grandeza que o programa mede, e ela sai **no relógio frio**: sem
+> sessão gráfica nada aqueceu a CPU entre invocações. Quando o laço do lote
+> chega, ele já rodou segundos de trabalho e o relógio subiu — com `powersave`
+> ou sem ele. **A ordem de medição é parte da condição**, e quem comparar a
+> primeira linha de um programa com a última está comparando dois estados de
+> relógio, não duas operações.
+
+<!-- cita-retratado: 2,19 2.19 2,23 2.23 2,77 2.77 -->
 
 Daí a regra que o módulo adota: **a razão é a afirmação; o nanossegundo é
 circunstância.** O texto afirma "duas vezes mais rápido", não "0,98

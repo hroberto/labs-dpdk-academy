@@ -1,0 +1,131 @@
+==> campanha em modo texto  2026-09-24T09:55:28-03:00
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955
+    alvo systemd     : graphical.target
+    processos grafico: 0
+    governor cpu2    : powersave
+    C3 disable cpu2  : 0
+    cmdline          : BOOT_IMAGE=/boot/vmlinuz-7.0.0-31-generic root=UUID=bdd65119-6069-4cc3-898a-7e0a0beba60b ro quiet splash amd_iommu=on iommu=pt crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M systemd.unit=multi-user.target
+    kernel           : 7.0.0-31-generic
+    uptime           : up 2 minutes
+    memoria          : avail 11,24 GiB, swap em uso 0,00 GiB
+    carga            : 0.40 0.17 0.06
+
+==> 1/6 osnoise hist, 10 min na CPU 2  (09:55:28)
+    ok
+    over:         0 
+    count:    42565 
+    min:          1 
+    avg:       2.15 
+    max:         25 
+
+==> 2/6 campanha de isolamento, 4 celulas x 5 repeticoes  (10:05:28)
+==> campanha de isolamento: CPU 2 (irmao SMT 14), outra CPU 4
+    4 celulas x 5 repeticoes x 30s
+    repeticao 1 de 5 concluida
+    repeticao 2 de 5 concluida
+    repeticao 3 de 5 concluida
+    repeticao 4 de 5 concluida
+    repeticao 5 de 5 concluida
+==> 20 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/isolamento/isolamento.csv
+    ok
+
+==> 3/6 campanha de tempo do mempool  (10:15:29)
+==> campanha B4-tempo: 2 versoes x 2 topologias
+    x 10 tamanhos de cache x 21 repeticoes
+    prefixos SEM RTE_LIBRTE_MEMPOOL_STATS, metrica em ns/pacote
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/mempool-tempo/mempool-tempo.csv
+    repeticao 1 de 21 concluida
+    repeticao 2 de 21 concluida
+    repeticao 3 de 21 concluida
+    repeticao 4 de 21 concluida
+    repeticao 5 de 21 concluida
+    repeticao 6 de 21 concluida
+    repeticao 7 de 21 concluida
+    repeticao 8 de 21 concluida
+    repeticao 9 de 21 concluida
+    repeticao 10 de 21 concluida
+    repeticao 11 de 21 concluida
+    repeticao 12 de 21 concluida
+    repeticao 13 de 21 concluida
+    repeticao 14 de 21 concluida
+    repeticao 15 de 21 concluida
+    repeticao 16 de 21 concluida
+    repeticao 17 de 21 concluida
+    repeticao 18 de 21 concluida
+    repeticao 19 de 21 concluida
+    repeticao 20 de 21 concluida
+    repeticao 21 de 21 concluida
+==> 840 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/mempool-tempo/mempool-tempo.csv
+    ok
+
+==> 4/6 campanha de miss do mempool  (10:17:27)
+==> campanha B4: 2 versoes x 2 topologias
+    x 9 tamanhos de cache x 6 repeticoes
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/mempool-cache/mempool-cache.csv
+    repeticao 1 de 6 concluida
+    repeticao 2 de 6 concluida
+    repeticao 3 de 6 concluida
+    repeticao 4 de 6 concluida
+    repeticao 5 de 6 concluida
+    repeticao 6 de 6 concluida
+==> 240 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/mempool-cache/mempool-cache.csv
+    ok
+
+==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  (10:18:01)
+    hugepage do feed: /mnt/huge-academia (efemera, desmontada no fim)
+CONCLUIDA -> docs/01-fundamentos/medicoes/historico/2026-09-24-jedec4800-canal-unico-texto-0955
+          -> docs/02-runtime-dpdk/medicoes/historico/2026-09-24-jedec4800-canal-unico-texto-0955
+          -> docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-24-jedec4800-canal-unico-texto-0955
+Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medicoes/historico/{outra,2026-09-24-jedec4800-canal-unico-texto-0955}
+    ok
+    feed: 12 arquivos, completo
+    hugepage do feed desmontada
+
+==> 6/6 revisao dos dados do projeto  (10:53:15)
+    rotulos que se moveram mais de 5%: 37
+        custo-comunicacao: RATIO between/within (paired)                            4.160           4.380    +5.3%  <<<
+        custo-espera: atomic seq_cst (store+load)                                   3.680           3.970    +7.9%  <<<
+        custo-paralelismo: 1 core                                                   5.850           7.160   +22.4%  <<<
+        custo-paralelismo: 12 cores                                                12.660          31.030  +145.1%  <<<
+        custo-paralelismo: 2 cores                                                  6.080           8.030   +32.1%  <<<
+        custo-paralelismo: 4 cores                                                  6.690          12.190   +82.2%  <<<
+        custo-paralelismo: 8 cores                                                  8.690          21.040  +142.1%  <<<
+        custo-paralelismo: K = 1  (1 access in flight)                             77.500          88.980   +14.8%  <<<
+        custo-paralelismo: K = 12 (12 accesses in flight)                           7.430           8.670   +16.7%  <<<
+        custo-paralelismo: K = 16 (16 accesses in flight)                           5.670           6.760   +19.2%  <<<
+        custo-paralelismo: K = 2  (2 accesses in flight)                           38.170          43.630   +14.3%  <<<
+        custo-paralelismo: K = 32 (32 accesses in flight)                           3.200           4.030   +25.9%  <<<
+        custo-paralelismo: K = 4  (4 accesses in flight)                           20.680          23.640   +14.3%  <<<
+        custo-paralelismo: K = 64 (64 accesses in flight)                           2.440           3.260   +33.6%  <<<
+        custo-paralelismo: K = 8  (8 accesses in flight)                           10.760          12.620   +17.3%  <<<
+        custo-traducao.regiao32mb: 4 KB pages                                      32.660          34.450    +5.5%  <<<
+        custo-traducao.regiao32mb: DIFFERENCE attributable to translation          17.560          19.420   +10.6%  <<<
+        custo-traducao.regiao64mb: 2 MB hugepages                                  65.450          73.990   +13.0%  <<<
+        custo-traducao.regiao64mb: 4 KB pages                                      72.750          81.060   +11.4%  <<<
+        custo-traducao.seq16mb: DIFFERENCE attributable to translation              0.106           0.133   +25.5%  <<<
+    PREVISAO REFUTADA (37 rotulos marcados, previa-se no maximo 5)
+      189 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+      5 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+      3 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+    comparacao completa em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955/comparacao.txt
+
+    portao de qualidade:
+        [ok]    build limpo, zero avisos
+        [1mtudo passou.[0m Pode commitar.
+
+==> CONCLUIDA  2026-09-24T10:54:16-03:00
+
+    O que ficou em trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-jedec4800-canal-unico-texto-0955:
+      ambiente.txt      estado da maquina antes de medir
+      osnoise-hist.txt  distribuicao de ruido, dez minutos
+      isolamento/       20 celulas do stall_probe
+      mempool-tempo/    ns por pacote, prefixos sem estatisticas
+      mempool-cache/    idas ao anel, mesma condicao do tempo
+      comparacao.txt    o que se moveu contra a coleta com sessao grafica
+      portao.txt        portao de qualidade completo
+
+    A campanha de hardware ficou nos historicos dos tres modulos,
+    sob 2026-09-24-jedec4800-canal-unico-texto-0955.
+
+    Para voltar ao modo grafico:
+      sudo systemctl set-default graphical.target && sudo reboot

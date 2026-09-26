@@ -70,16 +70,27 @@ languages:
   - pt
   - en
 
+# A DIVISAO DO NOME SEGUE O REGISTRO ORCID, e nao o contrario.
+#
+# Este arquivo trazia `given-names: Henrique` / `family-names: Martins Roberto`,
+# que produz a citacao "Martins Roberto, H.". O registro publico do ORCID traz
+# `Henrique Martins` / `Roberto`, que produz "Roberto, H. M.".
+#
+# O ORCID e o registro canonico do autor e resolve independentemente da grafia;
+# o arquivo e que precisava alinhar-se a ele. Deixar os dois divergentes faria
+# gestores de referencia tratarem o mesmo autor como dois, que e exatamente o
+# problema que o identificador existe para eliminar.
 authors:
-  - given-names: Henrique
-    family-names: Martins Roberto
+  - given-names: Henrique Martins
+    family-names: Roberto
+    orcid: "https://orcid.org/0009-0009-7130-2552"
     alias: hroberto
 
 repository-code: "https://github.com/hroberto/labs-dpdk-academy"
 url: "https://github.com/hroberto/labs-dpdk-academy"
 license: MIT
-version: 0.05.00
-date-released: "2026-09-22"
+version: 0.08.00
+date-released: "2026-09-26"
 
 keywords:
   - dpdk

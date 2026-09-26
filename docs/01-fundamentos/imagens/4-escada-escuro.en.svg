@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 368" width="880" height="368" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">One memory access against a single packet's budget</title>
-<desc id="d">Horizontal bar chart. The latency of one dependent access is 0.89 ns in L1d, 2.68 ns in L2, 9.75 ns in L3 and 103.1 ns in RAM. The budget for a 64 B packet on 10 GbE is 67.2 ns: the RAM access alone already exceeds it.</desc>
+<desc id="d">Horizontal bar chart of the latency of one dependent access per level of the hierarchy: 0.89 ns in L1d, 2.68 ns in L2, 9.7 ns in L3 and 87.2 ns in RAM. A dashed line marks the 67.2 ns per-packet budget; the RAM bar alone already exceeds it, by 19.4 ns.</desc>
 <rect width="880" height="368" fill="#1a1a19"/>
 <text x="28.0" y="34.0" fill="#ffffff" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">One memory access against a single packet's budget</text>
 <text x="28.0" y="55.0" fill="#c3c2b7" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">latency of one dependent access, per level of the hierarchy — efeito-cache.c</text>
@@ -31,11 +31,11 @@
 <text x="131.0" y="172.0" fill="#ffffff" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">2.68 ns</text>
 <text x="94.0" y="218.0" fill="#ffffff" font-size="14" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">L3</text>
 <text x="94.0" y="233.0" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">8 MB</text>
-<path d="M108.0,200.0 H151.4 Q155.4,200.0 155.4,204.0 V222.0 Q155.4,226.0 151.4,226.0 H108.0 Z" fill="#3987e5"/>
-<text x="165.4" y="218.0" fill="#ffffff" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">9.75 ns</text>
+<path d="M108.0,200.0 H151.0 Q155.0,200.0 155.0,204.0 V222.0 Q155.0,226.0 151.0,226.0 H108.0 Z" fill="#3987e5"/>
+<text x="165.0" y="218.0" fill="#ffffff" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">9.66 ns</text>
 <text x="94.0" y="264.0" fill="#ffffff" font-size="14" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">RAM</text>
 <text x="94.0" y="279.0" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">256 MB</text>
-<path d="M108.0,246.0 H605.8 Q609.8,246.0 609.8,250.0 V268.0 Q609.8,272.0 605.8,272.0 H108.0 Z" fill="#6da7ec"/>
-<text x="619.8" y="264.0" fill="#ffffff" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">103 ns</text>
-<text x="619.8" y="280.0" fill="#c3c2b7" font-size="12" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">exceeds the budget by 36 ns</text>
+<path d="M108.0,246.0 H528.3 Q532.3,246.0 532.3,250.0 V268.0 Q532.3,272.0 528.3,272.0 H108.0 Z" fill="#6da7ec"/>
+<text x="542.3" y="264.0" fill="#ffffff" font-size="13" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">87 ns</text>
+<text x="542.3" y="280.0" fill="#c3c2b7" font-size="12" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">exceeds the budget by 20 ns</text>
 </svg>

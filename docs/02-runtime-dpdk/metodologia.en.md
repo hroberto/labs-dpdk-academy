@@ -57,7 +57,7 @@ result, and the order matters more than the tools.
 
 | Step | Instrument | What it produced |
 |---|---|---|
-| **measure** | [`custo-init.c`](medicoes/custo-init.c) | the 123 ms, with dispersion |
+| **measure** | [`custo-init.c`](medicoes/custo-init.c) | the 118 ms, with dispersion |
 | **locate** | `strace -T` | *where* 100 of those milliseconds are |
 | **explain** | the DPDK source | *why* the wait exists |
 
@@ -70,14 +70,14 @@ And the choice of locating instrument was imposed too. A sampling profiler
 waiting would be invisible to it. `strace` intercepts the **boundary**, which is
 exactly where the wait happens.
 
-> **Why this is methodology and not trivia.** Publishing "123 ms, of which 100
+> **Why this is methodology and not trivia.** Publishing "118 ms, of which 100
 > are waiting" as if it were a single measurement hides that these are two
 > experiments with different instruments and different degrees of confidence.
 > The first has published dispersion; the second is a single observation.
 
 ---
 
-## 3. §2.2 — why 123 ms here, and why that is not a property of DPDK
+## 3. §2.2 — why 118 ms here, and why that is not a property of DPDK
 
 The ~100 ms calibration runs because this machine **does not expose
 `tsc_known_freq`**:
@@ -90,7 +90,7 @@ Without the flag the EAL does not trust the declared frequency and measures it �
 and measuring frequency takes wall-clock time, not CPU time.
 
 **On a machine that exposes the flag, the same `rte_eal_init()` would cost
-something close to 23 ms.** The 123 ms are a property of this CPU-and-kernel
+something close to 18 ms.** The 118 ms are a property of this CPU-and-kernel
 combination, and the module says so in the section itself.
 
 That is why the program accepts EAL options directly: measuring on your machine
@@ -131,7 +131,7 @@ the favourable case.
 
 **External validity — how far does it generalise?**
 
-The 123 ms **do not generalise**, and §2.2 gives the mechanism. What does
+The 118 ms **do not generalise**, and §2.2 gives the mechanism. What does
 generalise is the shape of the argument: the EAL pays for calibration when the
 kernel does not declare the TSC frequency, and that is verifiable on any machine
 with one `grep`.

@@ -280,7 +280,7 @@ itself finished.
 >
 > The `! -name '*.en.md'` is not a nicety. Since the parity of 16/09/2026 every
 > document has an English counterpart, and counting it would double the total without
-> there being a new document: without the filter this command returns 37 for 21
+> there being a new document: without the filter this command returns 55 for 28
 > documents. The verifier applies the same cut, and that is why the two agree.
 
 ## Final goal

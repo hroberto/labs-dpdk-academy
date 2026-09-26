@@ -89,13 +89,27 @@ EXTERNAS = {
     "clang-format", "clang-tidy", "google-benchmark", "pkg-config", "ldconfig",
     # pacotes de distribuição
     "dpdk-dev", "dpdk-devel", "rdma-core", "libibverbs1", "ibverbs-providers",
+    # `linux-headers` entra aqui porque o §6.7 do topico de isolamento cita a
+    # AUSENCIA dele: o header `amd_shared.h` nao vem no pacote, e e por isso
+    # que a mascara do GFX_PG nao pode ser montada nesta maquina. Citar um
+    # pacote para dizer que ele nao entrega uma coisa e uso legitimo.
+    "linux-headers",
     # ferramentas do DPDK, instaladas junto com ele
     "dpdk-devbind.py", "dpdk-testpmd", "dpdk-pmdinfo.py", "dpdk-hugepages.py",
+    # COMPOSITOR E SERVIDOR DE DISPLAY. A §7.2 da metodologia do modulo 01 os
+    # cita pelo nome porque eles SAO a condicao medida ali: a coleta grafica de
+    # controle correu com `gnome-shell` e `Xwayland` vivos e nada mais, e
+    # nomear os dois processos e o que torna a condicao reproduzivel.
+    "gnome-shell", "Xwayland", "kwin_wayland",
     # modulos de kernel e dispositivos virtuais
     "vfio-pci", "pci-stub", "igb-uio", "vhost-user", "virtio-net", "net-null",
     "net-tap", "af-packet", "uio-pci-generic",
     # utilitarios do sistema
     "ibv-devinfo", "xdp-sock", "bpf-tool", "numa-ctl",
+    # nomes de EVENTO do `perf stat`, citados na tabela de fontes de parada do
+    # topico de isolamento. Nao sao programas: sao contadores que o perf expoe,
+    # e a ausencia deles na arvore e a unica forma possivel.
+    "ctx-switches",
     # drivers de escalonamento de frequencia, citados pelo submodulo de
     # benchmarking: sao do kernel, nao da arvore
     "amd-pstate", "amd-pstate-epp", "intel-pstate", "acpi-cpufreq",

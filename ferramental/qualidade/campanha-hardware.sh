@@ -89,10 +89,13 @@ PROGS="custo-syscall custo-comunicacao custo-mckenney efeito-cache custo-espera 
 corre_feed() { # <rodada>
     [ -n "${DPDK_ACADEMY_HUGE_DIR:-}" ] || return 0
     local t; t=$(mktemp -d)
+    # O supervisor EXIGE que --output ainda nao exista (mkdir exist_ok=False), e
+    # `mktemp -d` acabou de criar o diretorio. Dai o subdiretorio: passar "$t"
+    # direto aborta em FileExistsError antes de qualquer medicao.
     python3 ./scripts/feed-supervisor.py --primary "$B2/feed-primario" \
         --secondary "$B2/feed-secundario" --huge-dir "$DPDK_ACADEMY_HUGE_DIR" \
-        --output "$t" --ticks 200000 >/dev/null 2>&1
-    local d; d=$(ls -d "$t"/session-* 2>/dev/null | tail -1)
+        --output "$t/saida" --ticks 200000 >/dev/null 2>&1
+    local d; d=$(ls -d "$t"/saida/session-* 2>/dev/null | tail -1)
     if [ -n "$d" ]; then
         cp "$d/secondary.txt" "$D2/feed-secundario.r$1.txt"
         cp "$d/primary.txt"   "$D2/feed-primario.r$1.txt"
@@ -106,13 +109,46 @@ cat "$D/diario.txt.tmp" >> "$D/diario.txt" 2>/dev/null; rm -f "$D/diario.txt.tmp
 corre2() { # <rodada>
     "$B2/custo-init"    -l 0 --in-memory                    > "$D2/custo-init.in-memory.r$1.txt" 2>&1
     "$B2/custo-init"    -l 0 --no-huge                      > "$D2/custo-init.no-huge.r$1.txt"   2>&1
+
+    # A VARREDURA DE CONFIGURACOES DA §2.1, que ate 25/09/2026 nao tinha
+    # programa. A tabela estava no documento em Markdown, e tabela de prosa nao
+    # e conferida pelo `verificar-blocos` -- que olha bloco de cerca. O
+    # resultado: a §2 publicava 117,8 ms para `-l 0 --in-memory` e a §2.1
+    # publicava 122,4 ms para a MESMA configuracao, no mesmo documento.
+    #
+    # O argumento da secao -- que o custo e piso fixo, e portanto espera e nao
+    # trabalho -- depende de as quatro celulas concordarem entre si, e nao do
+    # valor absoluto. Por isso as quatro correm na mesma rodada, aqui.
+    "$B2/custo-init" -l 0 --in-memory --no-pci          > "$D2/custo-init.in-memory-no-pci.r$1.txt" 2>&1
+    "$B2/custo-init" -l 0 --no-huge --in-memory --no-pci > "$D2/custo-init.no-huge-no-pci.r$1.txt"  2>&1
+    "$B2/custo-init" -l 0-3 --in-memory                  > "$D2/custo-init.4lcores.r$1.txt"         2>&1
     "$B2/estado-lcore"  -l 0-3 --in-memory                  > "$D2/estado-lcore.r$1.txt"         2>&1
+    # A SEGUNDA INVOCACAO existe porque o documento publica as DUAS.
+    #
+    # Com `-l`, os lcores caem onde os numeros mandarem; com `--lcores`, o
+    # mapeamento e escolhido, e a §4 do modulo 02 contrasta os dois blocos para
+    # mostrar que a quarta coluna -- o core id -- nao muda. Sem arquivar a
+    # segunda, esse bloco ficava sem procedencia e so se refazia a mao.
+    "$B2/estado-lcore"  --lcores '"'"'0@6,1@7,2@18'"'"' --in-memory \
+                                                           > "$D2/estado-lcore.lcores.r$1.txt"  2>&1
 }
 corre3() { # <rodada>
     for n in custo-alocacao anatomia-mbuf custo-anel pool-esgotado; do
         "$B3/$n" -l 0 --no-huge --file-prefix="camp_${n}_$1" > "$D3/$n.r$1.txt" 2>&1
     done
-    "$B3/custo-contencao" -l 0-5 --no-huge --file-prefix="camp_cont_$1" > "$D3/custo-contencao.r$1.txt" 2>&1
+    # A MAQUINA INTEIRA, e nao seis lcores.
+    #
+    # `n` dobra ate `rte_lcore_count()`: com `-l 0-5` a tabela parava em 4
+    # threads, e o cpp23 publicava uma linha de 8 que o ferramental NAO
+    # CONSEGUIA PRODUZIR -- numero sem programa, que e o que este projeto
+    # proibe. Com os 24 lcores ela vai a 16.
+    #
+    # Em modo texto nao ha com quem disputar, entao usar tudo e o que a
+    # validacao pede. O custo e que as linhas passam a atravessar fronteiras --
+    # CCD em n=8, SMT em n=16 --, e por isso o programa agora DECLARA qual
+    # fronteira cada linha cruza, em vez de deixar a curva parecer funcao so do
+    # numero de threads.
+    "$B3/custo-contencao" -l 0-23 --no-huge --file-prefix="camp_cont_$1" > "$D3/custo-contencao.r$1.txt" 2>&1
 }
 
 ./scripts/ambiente.sh > "$D/ambiente.txt"
@@ -146,7 +182,7 @@ le() { ./$B/custo-comunicacao 2>/dev/null | awk '/within domain/{d=$8} /^  BETWE
   for c in 1 2 3 4; do sleep 30; a=$(le); b=$(le); echo "  $c      $a               $b"; done
 } > "$D/teste-estado-maquina.txt"
 
-echo "CONCLUIDA -> $D"
-echo "          -> $D2"
-echo "          -> $D3"
+echo "CONCLUIDA -> ${D#$RAIZ/}"   # relativo: o diario e publico
+echo "          -> ${D2#$RAIZ/}"
+echo "          -> ${D3#$RAIZ/}"
 echo "Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medicoes/historico/{outra,$CONF}"

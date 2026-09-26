@@ -40,3 +40,18 @@ __pycache__/
 # 'sudo ./scripts/ambiente.sh --cachear-memoria'. O que vai ao
 # repositorio e a TABELA gerada, nao o cache local.
 .ambiente-memoria
+
+# Lixo de redirecionamento errado (`2>1` em vez de `2>&1`). Ja entrou num
+# commit uma vez; ignorar e mais barato que lembrar.
+/1
+
+# Instrucoes e automacao de agente: ficam locais.
+#
+# A norma de engenharia que elas aplicam esta em PADROES.md, endereçada a
+# qualquer colaborador. O que sai daqui e o enquadramento, nao o criterio.
+#
+# O workflow de auditoria so executa num produto especifico -- falha no mesmo
+# criterio que este projeto aplica a qualquer script: quem clonar precisa
+# conseguir rodar.
+CLAUDE.md
+.claude/

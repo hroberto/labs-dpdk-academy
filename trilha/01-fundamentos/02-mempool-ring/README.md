@@ -13,7 +13,7 @@ tempo. Mas o programa precisa de objetos por pacote.
 
 > **Cuidado com a versão folclórica deste argumento.** Costuma-se dizer que
 > `malloc()` "custa dezenas de nanossegundos", e isso foi medido neste projeto:
-> alocar e liberar um objeto por vez custa **2,18 ns**, porque a glibc tem um
+> alocar e liberar um objeto por vez custa **2,78 ns**, porque a glibc tem um
 > cache por thread e o par cai nele. A justificativa real do mempool é outra, e
 > aparece quando se trabalha em **lote** — o regime do plano de dados. Os números
 > estão na [§1 do módulo de teoria](../../../docs/03-mempool-ring-mbuf/README.md#1-por-que-não-usar-malloc--a-resposta-medida).
@@ -223,7 +223,7 @@ Largest batch actually moved: enqueued 10, dequeued 10
 Mode: 1 lcore (0), producer and consumer interleaved
 Free objects in the pool at the end: 4095 of 4095
 mempool cache stats: UNAVAILABLE (DPDK built without RTE_LIBRTE_MEMPOOL_STATS)
-Mean time: 51.1 ns/packet  <- NOT A MEASUREMENT
+Mean time: 44.1 ns/packet  <- NOT A MEASUREMENT
   10 packets are far too few: the cost of reading the clock is of the same
   order as the work measured. Use -n 10000 or more for a defensible number.
 ```
@@ -495,8 +495,8 @@ Largest batch actually moved: enqueued 256, dequeued 256
 Mode: 2 lcores (producer 0, consumer 2)
 Free objects in the pool at the end: 1534 of 4095
 mempool cache stats: UNAVAILABLE (DPDK built without RTE_LIBRTE_MEMPOOL_STATS)
-Mean time: 2.8 ns/packet
-Frequency of lcore 0: 4.89 GHz (the time above varies with it)
+Mean time: 2.2 ns/packet
+Frequency of lcore 0: 5.60 GHz (the time above varies with it)
 ```
 
 ### 6.3 O que a medição mostra
@@ -572,10 +572,35 @@ produtor não constitui espera limitada: transfere o bloqueio para a linha
 seguinte.
 
 **A terminação é pedida, não imposta.** `struct consumer_context` contém o campo
-`volatile int parar`, escrito pelo produtor e lido pelo consumidor a cada
+`_Atomic int parar`, escrito pelo produtor e lido pelo consumidor a cada
 iteração. O produtor o afirma **antes** de entrar na espera. Na sua ausência, a
 desistência por prazo deixaria o consumidor a iterar em busca de um alvo
 inalcançável.
+
+> **Por que `_Atomic` e não `volatile`, que é o que se vê com mais frequência.**
+> `volatile` impede o compilador de eliminar a releitura, e não faz mais que
+> isso: não torna o acesso indivisível nem o ordena contra o modelo de memória.
+> Para C11, um objeto lido por uma thread enquanto outra o escreve é **corrida
+> de dados** — comportamento indefinido, independentemente de a arquitetura, na
+> prática, não rasgar um `int` alinhado. O que quebra código "que funcionava"
+> não é o processador: é a licença que o compilador tem para supor que a corrida
+> não existe.
+>
+> A ordenação usada é `memory_order_relaxed` nos dois sentidos, e a escolha tem
+> critério: o campo **não publica outro dado**. É um sinal isolado, e o que se
+> exige dele é atomicidade e visibilidade eventual, não ordenação. Um
+> `release`/`acquire` aqui pagaria por uma garantia sem consumidor. Onde há dado
+> a publicar — o anel, o *mempool* — a ordenação é da biblioteca, e não deste
+> campo.
+>
+> O mesmo vale para o campo `progresso`, que o cão de guarda consulta. Ele é
+> deliberadamente **separado** de `r.packets`: aquele é o contador do caminho
+> quente, escrito e lido apenas pelo consumidor, e torná-lo atômico mudaria o
+> que o programa mede. `progresso` é escrito uma vez por lote, não por pacote.
+>
+> A verificação é o `ThreadSanitizer`: com `_Atomic`, zero corridas; revertendo
+> os dois campos a `volatile`, ele acusa a escrita e a leitura concorrentes pelo
+> endereço.
 
 **O anel é drenado antes do relato.** Os objetos retidos no anel no momento da
 desistência pertencem ao pool e ainda não retornaram a ele. Sem a drenagem, o

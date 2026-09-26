@@ -107,14 +107,14 @@ referência ([`custo-syscall.c`](medicoes/custo-syscall.c)):
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  function call (user-space)             0.746  0.746-0.749     0.745-1.038         0.4%   7.7%  
-  clock_gettime (vDSO, no trap)          15.53  15.52-15.81     15.52-16.31         1.9%   1.8%  
-  real syscall (SYS_getpid)              33.77  33.75-33.85     33.21-35.19         0.3%   1.0%  
+  function call (user-space)             0.726  0.719-0.727     0.718-0.828         1.1%   2.9%
+  clock_gettime (vDSO, no trap)          15.52  15.51-15.52     15.51-15.67         0.1%   0.3%
+  real syscall (SYS_getpid)              33.32  33.31-33.33     33.27-33.39         0.1%   0.1%
 
-  a syscall costs 45x a function call
+  a syscall costs 46x a function call
 
 10 GbE budget with 64 B frames: 67.2 ns per packet
-  syscalls that fit in that budget: 1.99
+  syscalls that fit in that budget: 2.02
 
   The traditional kernel path spends at least one syscall per
   packet batch, plus interrupt, sk_buff allocation and a copy.
@@ -126,6 +126,7 @@ referência ([`custo-syscall.c`](medicoes/custo-syscall.c)):
 > referência, e a razão syscall/chamada saiu 22% baixa por não declarar que
 > fora medida a frio. O benchmark atual confere o assembly; a conclusão do
 > capítulo nunca dependeu da razão.
+> <!-- retratado: 0,115 0.115 -->
 
 > **E uma terceira, de método.** Esta tabela publicava 0,924 ns para a chamada
 > de função, com `disp` de 0,4% — selo limpo, e correto para aquela coleta.
@@ -146,7 +147,7 @@ O resultado central: **cabem cerca de duas chamadas de sistema no orçamento de
 um pacote.** E `getpid()` é a syscall mais barata que existe — não faz I/O, não
 toca em memória do usuário, não dorme. Uma `recvmsg()` real custa muito mais.
 
-Repare que esse resultado **não dependia** do número errado: ele sai de 33,55 ns
+Repare que esse resultado **não dependia** do número errado: ele sai de 33,3 ns
 contra 67,2 ns de orçamento, e a chamada de função não entra na conta. O que a
 correção mudou foi a razão syscall/chamada — de "294×" para a faixa de 36× a 46×
 conforme o regime de medição, tratada no aviso acima —, que é uma frase de
@@ -236,12 +237,22 @@ vazão = concorrência ÷ latência
 ```
 
 > **Por que uma lei de teoria de filas se aplica a acessos de memória.** A
-> pergunta é legítima: um acesso à DRAM não é uma fila de banco. Little responde
-> no retrospecto que escreveu cinquenta anos depois — a lei *"vale sob condições
-> notavelmente gerais, e não exige suposições sobre tempos entre chegadas, tempos
-> de serviço, número de servidores ou disciplina da fila"* ([Little, 2011][little11],
-> tradução nossa). É essa generalidade que autoriza o uso aqui: não é analogia,
-> é a lei dentro do domínio dela.
+> pergunta é legítima: um acesso à DRAM não é uma fila de banco. O retrospecto
+> que [Little escreveu cinquenta anos depois][little11] trata exatamente da
+> generalidade da lei: ela não depende da distribuição dos tempos entre
+> chegadas, dos tempos de serviço, do número de servidores nem da disciplina da
+> fila. É essa generalidade que autoriza o uso aqui: não é analogia, é a lei
+> dentro do domínio dela.
+>
+> **O que ela exige, e este material precisa declarar:** regime estacionário e
+> conservação de itens — nada entra sem sair, e as médias existem. Num laço de
+> acesso à memória em regime as duas condições valem; num transiente, ou com a
+> fila crescendo sem limite, não valem, e a lei não se aplica.
+>
+> *(Parafraseado. Uma versão anterior desta nota trazia a generalidade entre
+> aspas como se fosse uma frase única do artigo; ela é uma síntese de passagens
+> distintas, e apresentá-la como citação literal era atribuir ao autor uma
+> formulação que não é dele.)*
 
 Fixada a latência, a única forma de aumentar a vazão é aumentar a
 **concorrência** — quantos acessos estão em voo ao mesmo tempo. E a concorrência
@@ -257,7 +268,7 @@ caixa existe para evitar.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escada-escuro.svg">
-  <img alt="Gráfico de barras horizontais com a latência de um acesso dependente por nível da hierarquia: 0,89 ns na L1d, 2,68 ns na L2, 9,75 ns na L3 e 103 ns na RAM. Uma linha tracejada marca o orçamento de 67,2 ns por pacote; só a barra da RAM já o ultrapassa, em 36 ns." src="imagens/4-escada-claro.svg">
+  <img alt="Gráfico de barras horizontais com a latência de um acesso dependente por nível da hierarquia: 0,89 ns na L1d, 2,68 ns na L2, 9,7 ns na L3 e 87,2 ns na RAM. Uma linha tracejada marca o orçamento de 67,2 ns por pacote; só a barra da RAM já o ultrapassa, em 20,0 ns." src="imagens/4-escada-claro.svg">
 </picture>
 
 A barra da RAM é o problema inteiro deste módulo em uma imagem: **um único
@@ -295,7 +306,7 @@ barato**. As outras três reduzem alguma parcela de `T_acesso`; o lote deixa
 
 E nenhuma delas toca a latência física da DRAM. **Hugepage não torna a memória
 mais rápida** — ela evita que o acesso pague tradução por cima. É uma distinção
-que o resto deste capítulo mede: os ~95 ns comuns às duas linhas da
+que o resto deste capítulo mede: os ~80 ns comuns às duas linhas da
 [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço) são a RAM, e
 eles não se mexem.
 
@@ -401,7 +412,7 @@ níveis; CPUs mais recentes com `la57` usam cinco.
 > o [Intel SDM][intelsdm] descreve no **§5.10, *Caching Translation
 > Information***, ao lado da TLB — e pela hierarquia de cache comum. O custo
 > efetivo é medido mais adiante, em
-> [por que a diferença é ~11 ns](#por-que-a-diferença-é-11-ns-e-não-três-acessos-à-ram),
+> [por que a diferença é ~10 ns](#por-que-a-diferença-é-10-ns-e-não-três-acessos-à-ram),
 > e ele é de **um** acesso extra, não quatro.
 
 #### A TLB: a cache que torna isso viável
@@ -418,8 +429,17 @@ processador mantém uma cache específica para traduções já resolvidas: a
 
 A TLB é pequena, e **quão** pequena é um número que a sua máquina sabe — mas que
 o sistema operacional talvez não conte direito. Nesta, o `/proc/cpuinfo` publica
-`TLB size: 192 4K pages`, e o hardware tem **4 096 entradas** no segundo nível.
-O erro é de 21×, e a causa está documentada: a partir do Zen 5 a AMD passou a
+`TLB size: 192 4K pages`.
+
+<!-- retratado: 21× 21x -->
+> **O sub-relato é de 32×, e não dos 21× que esta seção publicou.** Os 192 do
+> `/proc/cpuinfo` são a **soma** do dTLB (128) com o iTLB (64) de 4 KB, os dois
+> em valor bruto. O real é `128 × 32 = 4 096` de dados mais `64 × 32 = 2 048` de
+> instrução, ou 6 144 — e `6 144 / 192 = 32`, que é exatamente o multiplicador.
+> Os 21× vinham de dividir só o dTLB real pela soma bruta: numerador de uma
+> estrutura, denominador de duas.
+
+A causa está documentada: a partir do Zen 5 a AMD passou a
 codificar o tamanho do último nível em **múltiplos de 32**, com um bit
 (`L2TlbSizeX32`) mandando o software multiplicar; o Linux [nunca aprendeu a
 checar esse bit][zen5tlb], e a correção só entra no kernel 7.4.
@@ -438,7 +458,7 @@ Nesta máquina o bit está ligado, o valor bruto é 128, e o real é 128 × 32:
                     L1 DTLB   L2 DTLB   alcance com este nível
   páginas de 4 KB        96     4 096                  16 MB
   hugepages de 2 MB      96     4 096                   8 GB
-  páginas de 1 GB        96        32                  32 GB
+  páginas de 1 GB        96     1 024               1 024 GB
 ```
 
 O que importa não é o número de entradas, e sim o **alcance** (*TLB reach*):
@@ -493,9 +513,18 @@ em vez de 16 MB.
 > **A fórmula tem uma premissa que ela não declara**: que o número de entradas
 > **não muda** com o tamanho da página. Para 4 KB → 2 MB isso vale nesta máquina
 > — são 4 096 entradas nos dois casos, e o 512× é real. Para 1 GB a premissa
-> quebra: o segundo nível guarda **32 entradas**, não 4 096. O alcance sobe de
-> 8 para 32 GB, um fator de 4, não de 512. Confira na sua antes de generalizar;
-> é decisão de microarquitetura, não da aritmética.
+> quebra, mas menos do que parece: o segundo nível tem uma estrutura **separada**
+> de 1 024 entradas, 4-way, só para páginas de 1 GB. O alcance sobe de 8 GB para
+> **1 024 GB**, um fator de 128 em vez de 512. Confira na sua antes de
+> generalizar; é decisão de microarquitetura, não da aritmética.
+>
+> **O número 1 024 depende de um multiplicador, e isso já rendeu erro.** O CPUID
+> reporta 32 no campo de tamanho; o bit `L2TlbSizeX32` manda multiplicar por 32.
+> O par fecha com o fabricante nos **dois** campos — o
+> [*Software Optimization Guide* do Zen 5][sogzen5] descreve *"an additional
+> 4-way set-associative 1G page L2 DTLB with 1024 entries"*, e o CPUID reporta
+> associatividade 4. Sem o multiplicador o tamanho sairia 32 e a associatividade
+> continuaria 4: só o par fecha, e só fecha com o ×32.
 
 **Encurtam a caminhada.** Com página de 2 MB, o offset passa a ter 21 bits
 (2²¹ = 2 MB), consumindo os 9 bits que seriam do nível 1. A entrada do nível 2
@@ -521,9 +550,16 @@ aponta diretamente para o quadro físico: **três acessos em vez de quatro**.
 >
 > Daí sai a resposta, **para esta máquina e para estes tamanhos de região**:
 > 4 KB serve regiões de 400 KB a 16 MB; 2 MB, de 200 MB a 8 GB. Um mempool de
-> 512 MB dá 256 páginas de 2 MB — no meio da faixa. Para 1 GB somam-se os dois
-> problemas: a região precisaria passar de 100 GB para o desperdício sumir, e o
-> segundo nível da TLB só guarda 32 dessas entradas.
+> 512 MB dá 256 páginas de 2 MB — no meio da faixa. Para 1 GB sobra **um** dos
+> dois problemas, e não os dois: a região precisaria passar de 100 GB para o
+> desperdício de arredondamento sumir. **Cobertura de TLB não é argumento
+> contra 1 GB nesta máquina** — 1 024 entradas cobrem 1 TB, trinta vezes a
+> memória instalada.
+>
+> E o argumento que sobra tem contraparte: o
+> [*Getting Started Guide* do DPDK][dpdkreq] recomenda 1 GB para aplicações de
+> 64 bits quando a plataforma suporta. A escolha de 2 MB aqui vem do tamanho
+> das regiões deste material, não de uma limitação de tradução.
 >
 > A heurística é derivada daqui, e os dois números que a alimentam — 4 096
 > entradas de TLB e o tamanho típico de um mempool — são **desta
@@ -672,15 +708,15 @@ desenho pareado ([`custo-traducao.c`](medicoes/custo-traducao.c)):
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  4 KB pages                             89.05  88.97-89.18     88.82-89.90         0.2%   0.3%  
-  2 MB hugepages                         77.98  77.85-78.28     77.45-79.06         0.6%   0.6%  
+  4 KB pages                             90.75  90.18-90.86     89.59-91.37         0.8%   0.5%
+  2 MB hugepages                         80.07  79.84-80.17     78.95-80.72         0.4%   0.6%
 
-  DIFFERENCE attributable to translation     11.09  IQR 10.90 to 11.17   range 9.95 to 11.60   21/21 pairs
+  DIFFERENCE attributable to translation     10.64  IQR 10.47 to 10.80   range 9.46 to 11.73   21/21 pairs
 ```
 
-Os ~95 ns comuns às duas medições são a latência da RAM, que hugepage nenhuma
-elimina. **A diferença — 10,40 ns — é o custo adicional de tradução** que as
-páginas de 4 KB cobram neste percurso, ou seja **15,5% do orçamento** de um
+Os ~80 ns comuns às duas medições são a latência da RAM, que hugepage nenhuma
+elimina. **A diferença — 10,64 ns — é o custo adicional de tradução** que as
+páginas de 4 KB cobram neste percurso, ou seja **15,8% do orçamento** de um
 pacote de 64 B em 10 GbE, gastos antes de qualquer trabalho útil.
 
 > **Por que o rótulo não diz "o page walk".** `t_4KB − t_2MB` não é uma medição
@@ -708,12 +744,12 @@ pacote de 64 B em 10 GbE, gastos antes de qualquer trabalho útil.
 > entre 10,1 e 11,7 ns.
 <!-- retratado: 18.2 18,2 15.2 15,2 -->
 
-#### Por que a diferença é ~11 ns, e não três acessos à RAM
+#### Por que a diferença é ~10 ns, e não três acessos à RAM
 
 O diagrama do *page walk* mostra quatro acessos à memória, e a RAM desta máquina
-responde em ~95 ns. Se cada falta de TLB custasse mesmo quatro idas à RAM, a
+responde em ~80 ns. Se cada falta de TLB custasse mesmo quatro idas à RAM, a
 diferença entre as duas linhas da tabela seria de **centenas** de nanossegundos —
-e ela é de ~11. O diagrama descreve o **pior caso**; a tabela mede o **caso
+e ela é de ~10. O diagrama descreve o **pior caso**; a tabela mede o **caso
 real**. A distância entre os dois é o que diz quando o pior caso volta a valer.
 
 **As tabelas de página são dados, e cabem em cache.** Elas ocupam memória como
@@ -755,14 +791,14 @@ conta:
   512 MB        78.55     <- RAM
 ```
 
-Um acerto de L3 custa de 9 a 10 ns nesta máquina. Na campanha arquivada, com a
-máquina ociosa, a diferença medida entre 4 KB e 2 MB foi **11,09 ns**:
+Um acerto de L3 custa de 9 a 10 ns nesta máquina. A diferença medida entre
+4 KB e 2 MB foi **10,24 ns**:
 
 ```
-  4 KB pages                             89.05  88.97-89.18     88.82-89.90         0.2%   0.3%  
-  2 MB hugepages                         77.98  77.85-78.28     77.45-79.06         0.6%   0.6%  
+  4 KB pages                             90.75  90.18-90.86     89.59-91.37         0.8%   0.5%
+  2 MB hugepages                         80.07  79.84-80.17     78.95-80.72         0.4%   0.6%
 
-  page walk cost: 11.09 ns  (12.5% of the 4 KB access)
+  page walk cost: 10.64 ns  (11.7% of the 4 KB access)
 ```
 
 Os números são **compatíveis** com a explicação: neste conjunto de trabalho o
@@ -771,7 +807,7 @@ hierarquia de cache, na faixa que o L3 desta máquina responde.
 
 > **Compatível não é demonstrado, e a diferença vale ser dita.** Este
 > experimento não observa *page walk* nenhum: ele mede tempo total e compara
-> dois regimes. Que ~11 ns coincida com a latência de L3 medida ao lado, e que
+> dois regimes. Que ~10 ns coincida com a latência de L3 medida ao lado, e que
 > o megabyte de PTEs caiba no L3 e não no L2, torna a explicação plausível e
 > aritmeticamente coerente — não a prova. **Provar exigiria contador de
 > hardware** (`dtlb_load_misses.walk_*` e os eventos de origem de dados do
@@ -793,7 +829,7 @@ da disputa com o resto da máquina, não do método.
 > as *paging-structure caches*, e a disputa da LLC com o resto do programa — que
 > num plano de dados é justamente o tráfego. O enunciado defensável é que **a
 > probabilidade de a PTE terminal precisar ser buscada além da LLC cresce
-> substancialmente**, e com ela o custo médio do *page walk* caminha dos ~11 ns
+> substancialmente**, e com ela o custo médio do *page walk* caminha dos ~10 ns
 > em direção à latência da RAM.
 >
 > A forma do argumento sobrevive inteira, e é ela que decide projeto: **o
@@ -823,10 +859,10 @@ Medindo o efeito ([`efeito-cache.c`](medicoes/efeito-cache.c)):
 ```
   cabe em    tamanho   sequencial    aleatorio    dependente   acessos   disp do
                        (amortizado)  (amortizado) (LATENCIA)   em voo    dependente
-  L1d          16 KB     0.187 ns      0.260 ns      0.895 ns     ~3        0.6%
-  L2          256 KB     0.186 ns      0.332 ns       2.68 ns     ~8        0.0%
-  L3         8192 KB     0.188 ns      0.742 ns       9.74 ns    ~13        1.1%
-  RAM      262144 KB     0.195 ns      6.44 ns       88.61 ns    ~14        1.3%
+  L1d          16 KB     0.180 ns      0.180 ns      0.894 ns     ~5        0.2%
+  L2          256 KB     0.179 ns      0.216 ns       2.68 ns    ~12        0.4%
+  L3         8192 KB     0.180 ns      0.462 ns       9.66 ns    ~21        0.2%
+  RAM      262144 KB     0.181 ns      3.07 ns       87.18 ns    ~28        0.6%
 ```
 
 > **Amortizado não é latência, e a distinção precisa de instrumento.** A coluna
@@ -838,40 +874,126 @@ Medindo o efeito ([`efeito-cache.c`](medicoes/efeito-cache.c)):
 > dois nomes.** A construção da cadeia mora em [`cadeia.h`](medicoes/cadeia.h),
 > com a propriedade combinatória verificada em
 > [`tests/test_l1_cadeia.cpp`](medicoes/tests/test_l1_cadeia.cpp).
-<!-- retratado: 0.193 0,193 0.244 0,244 0.297 0.202 0,202 7.68 38.1 24.5 24,5 0.227 0,227 0.248 0,248 -->
+<!-- retratado: 0.193 0,193 0.244 0,244 0.297 0.202 0,202 7.68 38.1 24.5 24,5 0.227 0,227 0.248 0,248 0.260 0,260 0.331 0,331 0.741 0,741 5.81 5,81 86.59 86,59 -->
 
-> **O alinhamento de laço muda três destas células.** As sub-nanossegundo
-> dependem do endereço em que o compilador põe o laço, e o `meson.build` fixa
-> `-falign-loops=64` para que duas compilações do mesmo fonte concordem. Cinco
-> execuções de cada binário, faixas disjuntas: `aleatorio` na L1d vai de
-> 0,218–0,226 para 0,259–0,261; na L2, de 0,254–0,263 para 0,331–0,332.
+> **Estes números substituem os de 24/09, e a causa é um defeito do
+> instrumento — mas não o defeito que se esperava.** O acumulador de
+> [`efeito-cache.c`](medicoes/efeito-cache.c) era `volatile`, o que obriga um
+> *store* e um *load* na pilha a cada elemento. O `objdump` mostrava o laço
+> medido como `mov (%rsp),… ; mov (%rdx),… ; add ; mov …,(%rsp)`.
+>
+> A previsão era que isso inflasse a coluna **sequencial**, tornando-a um teto
+> do laço em vez de uma medida de memória. Não foi o que aconteceu: a coluna
+> sequencial caiu 4 % e nada mais. Nessa coluna o *prefetcher* já entrega mais
+> do que o laço consome, então acrescentar um elo à cadeia não muda o gargalo.
+>
+> **Quem pagava era a coluna aleatória, e por um mecanismo diferente.** Ali os
+> acessos são independentes e o processador pode manter vários em voo — desde
+> que nada serialize as iterações. A cadeia `store → load` pela pilha era
+> exatamente esse serializador. Removê-la libera a sobreposição, e o ganho
+> cresce com a profundidade do nível, porque quanto mais longe está o dado mais
+> há o que sobrepor:
+>
+> | nível | aleatório antes | depois | variação |
+> |---|---:|---:|---:|
+> | L1d | 0,260 ns | 0,180 ns | −31 % |
+> | L2 | 0,331 ns | 0,216 ns | −35 % |
+> | L3 | 0,741 ns | 0,462 ns | −38 % |
+> | RAM | 5,81 ns | 3,07 ns | **−47 %** |
+>
+> A coluna `dependente` não se move em nível nenhum (86,59 → 87,18 ns na RAM), e
+> é a confirmação de que o mecanismo é esse: ela mede uma cadeia que já era
+> serial por construção, então não havia paralelismo para o `volatile` suprimir.
+>
+> A consequência atinge o número derivado: **os acessos em voo na RAM passam de
+> ~15 para ~28**. O que a versão anterior media não era quanto a máquina
+> consegue manter em voo, e sim quanto ela conseguia manter *apesar* de uma
+> dependência que o instrumento introduzia.
+> <!-- cita-retratado: 0,260 0.260 0,331 0.331 0,741 0.741 5,81 5.81 86,59 86.59 -->
+
+> **O alinhamento de laço muda as células sub-nanossegundo.** Elas dependem do
+> endereço em que o compilador põe o laço, e o `meson.build` fixa
+> `-falign-loops=64` para que duas compilações do mesmo fonte concordem.
 >
 > **A coluna `dependente` não se mexe em nível nenhum** — e é ela que sustenta
 > o argumento desta seção, porque acesso que espera memória não é limitado pelo
-> front-end. Fixar o alinhamento também não deixa tudo quieto: o `sequencial`
-> da L1d passou a alternar entre 0,186 e 0,243 e leva `!`. A flag compra
-> **acordo entre compilações**, não estabilidade.
+> front-end. A flag compra **acordo entre compilações**, não estabilidade: as
+> células sub-nanossegundo continuam sensíveis a mudanças que não tocam o laço
+> medido, e a §9 trata dessa classe de fragilidade.
 
 
 A tabela tem agora três leituras, e a terceira é nova.
 
-**A coluna sequencial é plana.** Percorrer 256 MB custa o mesmo por acesso que
-percorrer 16 KB. O *prefetcher* do processador reconhece o padrão e busca a
-linha seguinte antes que ela seja pedida. A latência da RAM continua existindo —
-ela é apenas escondida.
+**A coluna sequencial é plana, e a planura é o resultado.** Percorrer 256 MB
+custa o mesmo por acesso que percorrer 16 KB. O *prefetcher* do processador
+reconhece o padrão e busca a linha seguinte antes que ela seja pedida: ele
+sustenta o laço em velocidade cheia mesmo com o conjunto inteiro em DRAM. A
+latência da RAM continua existindo — ela é apenas escondida.
 
-**A coluna dependente é a latência real**, e é ela que cresce 115× entre a L1d e
+> **O que esta coluna NÃO mede, e a distinção decide o que se pode concluir
+> dela.** O laço de [`efeito-cache.c`](medicoes/efeito-cache.c) acumula numa
+> cadeia carregada pelo laço, com teto de cerca de **um elemento por ciclo**.
+> Esse teto é do laço, não da memória — e é por isso que o valor não muda entre
+> a L1d e a DRAM: nos dois casos a memória entrega mais do que o laço consome.
+>
+> Converter os 0,181 ns por elemento em "GB/s de banda" atribui ao subsistema
+> de memória um número que é do instrumento. A planura diz que **o prefetcher
+> dá conta**; ela não diz quanta banda existe.
+>
+> Consertar isso exigiria vetorizar o laço, e vetorizar exige `-march=native`.
+> O projeto compila com `-O2` portável de propósito, para que a mesma fonte
+> produza número comparável noutra máquina — a §9 trata dessa escolha. O custo
+> dela está declarado aqui, e o
+> [teste L2](medicoes/tests/l2_efeito_cache.sh) falha se a coluna deixar de ser
+> plana, porque aí ela passa a medir outra coisa e este texto deixa de valer.
+>
+> **E a coluna também não responde à frequência da memória, o que é a
+> confirmação mais direta de tudo isto.** Oito coletas de canal duplo, em duas
+> velocidades:
+>
+> | MT/s | medianas observadas |
+> |---|---|
+> | 4800 | 0,190 · 0,184 |
+> | 6000 | 0,188 · 0,188 · 0,188 · 0,181 · 0,181 · 0,196 |
+>
+> As faixas se sobrepõem. Uma coluna que medisse memória teria separado as duas
+> velocidades — o `dependente` separa, e cai 11 % de 4800 para 6000. Esta não
+> separa nada, porque o gargalo é o laço.
+>
+> **Uma das oito destoa, e fica registrada sem explicação.** A coleta de
+> 25/09 17:20 deu amplitude de 14 % (0,182 a 0,207) onde as outras sete ficam
+> em 0 a 5 %. Não é a frequência: duas outras coletas de 6000 no mesmo dia, com
+> o mesmo binário e o mesmo kernel, ficam em 1 %. Foi a última campanha de um
+> dia de medições seguidas, e a hipótese térmica é a primeira que ocorre — mas
+> hipótese que ocorre não é hipótese testada, e nada aqui a testou.
+>
+> A coluna `dependente` não tem esse problema em nível nenhum: fica ordens de
+> grandeza abaixo do teto do laço, e por isso mede a memória. A `aleatorio`
+> mede a memória da L2 para baixo, e **na L1d bate no mesmo teto** — ver a
+> ressalva adiante, na leitura daquela coluna.
+
+**A coluna dependente é a latência real**, e é ela que cresce 97× entre a L1d e
 a RAM. É a única das três que mede *um* acesso: cada passo da cadeia só descobre
 o próximo endereço depois que o dado chega, e nada se sobrepõe.
 
 **A coluna aleatória fica no meio, e o meio é o assunto.** Sem padrão
 previsível, o prefetcher não ajuda — mas os endereços vêm de um vetor lido em
-ordem, então o processador ainda consegue manter uma dúzia de acessos em voo. Os
-7,21 ns são 101,5 ns divididos por ~14.
+ordem, então o processador ainda consegue manter quase trinta acessos em voo.
+Os 3,07 ns são 87,18 ns divididos por ~28.
+
+> **Na L1d a leitura acima deixa de valer, e a tabela mostra onde.** Ali o
+> `aleatorio` (0,180 ns) empata com o `sequencial` (0,180 ns): os dois bateram
+> no teto de emissão do laço, de cerca de um elemento por ciclo. Quando a
+> memória entrega mais rápido do que o laço consome, a coluna para de medir
+> memória — e o "~5 acessos em voo" daquela linha é a razão entre a latência e
+> **o teto**, não uma medida de concorrência.
+>
+> A fronteira é visível na própria tabela: da L2 para baixo o `aleatorio` se
+> descola do `sequencial` (0,216 contra 0,179) e volta a medir o que promete.
 
 #### A concorrência é a alavanca, e ela tem preço
 
-Se dividir por 14 já vale 103 ns, dividir por mais vale mais? Até certo ponto —
+Se dividir por 15 já vale 81 ns, dividir por mais vale mais? Até certo ponto —
 e o ponto é mensurável. [`custo-paralelismo.c`](medicoes/custo-paralelismo.c)
 percorre **K cadeias independentes** sobre a mesma região, com K crescente:
 
@@ -881,7 +1003,7 @@ percorre **K cadeias independentes** sobre a mesma região, com K crescente:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-conflito-escuro.svg">
-  <img alt="Dois gráficos empilhados com o mesmo eixo horizontal K em escala logarítmica, de 1 a 64 acessos em voo. No de cima, a vazão sobe de 10,6 para 291 milhões de acessos por segundo e satura; uma linha tracejada marca o line rate de 10 GbE, que a vazão só ultrapassa a partir de K igual a 2. No de baixo, em escala logarítmica nos dois eixos, o custo amortizado por acesso cai de 94 para 3,44 nanossegundos enquanto o tempo até o lote ficar pronto permanece plano em torno de 100 nanossegundos até K igual a 16 e sobe para 220 em K igual a 64. As duas curvas estão na mesma unidade; a segunda é a primeira multiplicada por K." src="imagens/4-conflito-claro.svg">
+  <img alt="Dois gráficos empilhados com o mesmo eixo horizontal K em escala logarítmica, de 1 a 64 acessos em voo. No primeiro, a vazão sobe de 12,9 para 410 M acessos/s e satura; uma linha tracejada marca o line rate de 10 GbE. No segundo, em escala log nos dois eixos, o custo amortizado por acesso cai de 77 para 2,44 ns enquanto o tempo até o lote ficar pronto permanece plano em torno de 80 ns até K = 16 e sobe para 156 ns em K = 64. As duas curvas estão em nanossegundos; a segunda é a primeira multiplicada por K." src="imagens/4-conflito-claro.svg">
 </picture>
 
 Os dois painéis são a mesma tabela, e juntos são a decisão:
@@ -889,21 +1011,21 @@ Os dois painéis são a mesma tabela, e juntos são a decisão:
 ```
    K   ns/access   M accesses/s   batch of K ready in   throughput gain
   ---  ---------   -----------   ---------------------   --------------
-    1      76.57        13.1                77 ns            1.0x
+    1      77.37        12.9                77 ns            1.0x
     2      38.18        26.2                76 ns            2.0x
-    4      20.64        48.5                83 ns            3.7x
+    4      20.67        48.4                83 ns            3.7x
     8      10.83        92.4                87 ns            7.1x
-   12       7.52       133.0                90 ns           10.2x
-   16       5.84       171.3                93 ns           13.1x
-   32       3.49       286.4               112 ns           21.9x
-   64       2.77       360.4               178 ns           27.6x
+   12       7.42       134.8                89 ns           10.4x
+   16       5.67       176.3                91 ns           13.6x
+   32       3.21       311.7               103 ns           24.1x
+   64       2.44       409.3               156 ns           31.7x
 ```
 
-**A latência não muda em nenhuma linha.** Ela fica em ~77 ns até K = 16 — o que muda é
-quantos acessos acontecem ao mesmo tempo. A coluna `ns/acesso` cai 27 vezes sem
-que um único acesso tenha ficado mais rápido.
+**A latência não muda em nenhuma linha.** Ela fica entre 76 e 91 ns até K = 16 —
+o que muda é quantos acessos acontecem ao mesmo tempo. A coluna `ns/acesso` cai
+**31,7 vezes** sem que um único acesso tenha ficado mais rápido.
 
-**Com K = 1 esta máquina não alcança 10 GbE.** São 13,1 milhões de acessos por
+**Com K = 1 esta máquina não alcança 10 GbE.** São 12,9 milhões de acessos por
 segundo contra os 14,9 milhões de pacotes por segundo da [§1](#1-o-orçamento-quanto-tempo-existe-por-pacote).
 Um único acesso dependente por pacote — perseguir um ponteiro, consultar uma
 tabela de fluxo encadeada — **já perde a taxa antes de qualquer processamento**.
@@ -920,13 +1042,13 @@ se aplica ao seu caso.
 **E o preço está no segundo painel**, que põe as duas grandezas no mesmo eixo de
 nanossegundos. Em K = 1 elas **coincidem**: sem lote, o acesso e o conjunto são a
 mesma coisa. A partir daí a azul despenca e a laranja não — e é essa separação
-que mostra que 3,44 ns nunca foram o tempo de resposta da memória. São 94 ns
+que mostra que 3,21 ns nunca foram o tempo de resposta da memória. São 87 ns
 divididos por 27 acessos sobrepostos.
 
 **Os dois eixos desse painel são logarítmicos, e isso não é preferência de
 desenho.** Como `lote = K × ns por acesso`, se a concorrência fosse de graça o
 custo cairia exatamente com 1/K e a **laranja seria uma horizontal**. Ela é, até
-K = 16 — 94 para 116 ns, +23%, enquanto a vazão cresce 13×. Onde ela deixa de ser
+K = 16 — 77 para 90 ns, +17%, enquanto a vazão cresce 13,6×. Onde ela deixa de ser
 horizontal é, ponto a ponto, onde a concorrência passa a custar: de 16 para 64 a
 vazão cresce 2× e a espera, 1,9×. **O joelho é a decisão de projeto**, e é
 aqui que ele aparece nesta máquina.
@@ -943,11 +1065,12 @@ aqui que ele aparece nesta máquina.
 > decisão é tomada. Publicá-la ao lado da origem é o que impede que ela pareça um
 > segundo resultado independente.
 
-> **Leia os selos antes de citar os números.** As linhas de K = 32 e K = 64 saem
-> marcadas `~` (`disp` de 5,9% e 8,7%): quanto menor o valor medido, maior a
-> dispersão relativa, e aos 3 ns a medição já disputa com o ruído da máquina. A
-> forma da curva é sólida em toda a faixa; o valor exato dos dois últimos
-> pontos, menos.
+> **A dispersão desta coleta é baixa em toda a faixa, e isso nem sempre foi
+> assim.** Nenhuma linha sai marcada: a maior `disp` é de 0,4%, em K = 32. Numa
+> configuração anterior as duas últimas linhas vinham com `~` (5,9% e 8,7%),
+> porque quanto menor o valor medido maior a dispersão relativa, e aos 3 ns a
+> medição disputava com o ruído da máquina. A regra continua valendo — **leia os
+> selos antes de citar os números** —; o que mudou foi a máquina, não o critério.
 
 #### O que isso significa em bytes
 
@@ -955,14 +1078,19 @@ A mesma região, o mesmo núcleo, a mesma memória — só muda o padrão de ace
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-banda-escuro.svg">
-  <img alt="Gráfico de barras horizontais com a banda efetiva de um núcleo sobre a mesma RAM: 20,2 GB/s em acesso sequencial, 8,6 GB/s em acesso aleatório com endereços independentes e 0,6 GB/s quando cada endereço depende do anterior — 33 vezes de diferença." src="imagens/4-banda-claro.svg">
+  <img alt="Gráfico de barras horizontais com a banda efetiva de um núcleo sobre a mesma RAM: 20,8 GB/s em acesso aleatório com endereços independentes e 0,7 GB/s quando cada endereço depende do anterior — 28 vezes de diferença entre os dois padrões que a memória limita." src="imagens/4-banda-claro.svg">
 </picture>
 
-Trinta e três vezes, sem trocar uma peça. **A banda que o fabricante vende não é
-a que o seu programa usa; a que ele usa é a que o padrão de acesso permite.** É
-a razão pela qual "comprar memória mais rápida" quase nunca resolve um plano de
+Quinze vezes, sem trocar uma peça. **A banda que o fabricante vende não é a que
+o seu programa usa; a que ele usa é a que o padrão de acesso permite.** É a
+razão pela qual "comprar memória mais rápida" quase nunca resolve um plano de
 dados que persegue ponteiros: o gargalo não é a banda, é a falta de
 concorrência para ocupá-la.
+
+> **O acesso sequencial ficou fora deste gráfico**, e por uma razão de método:
+> o número dele é o teto do laço, não da memória, conforme a ressalva da
+> tabela. Publicá-lo ao lado de dois valores que a memória de fato limita
+> convidaria exatamente a comparação que não se sustenta.
 
 Repare também no desperdício embutido. Cada acesso aleatório move uma linha de
 **64 bytes** e usa 4 — os outros 60 atravessaram o barramento para nada. É o
@@ -980,50 +1108,120 @@ uma única linha entre threads:
 ```
      cores   ns/access   M accesses/s     aggregate   ideal scaling
   --------   ---------   -----------   -----------   ------------
-         1        6.18       161.9         161.9          100%
-         2        6.77       147.6         295.2           91%
-         4        8.61       116.2         464.8           72%
-         8       14.35        69.7         557.6           43%
-        12       21.29        47.0         563.7           29%
+         1        5.83       171.6         171.6          100%
+         2        6.07       164.8         329.6           96%
+         4        6.68       149.8         599.1           87%
+         8        8.67       115.3         922.5           67%
+        12       12.66        79.0         947.7           46%
 ```
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="imagens/4-escala-escuro.svg">
-  <img alt="Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 138 milhões de acessos por segundo com um núcleo para 328 milhões com doze, e a curva achata a partir de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 1 651 milhões com doze." src="imagens/4-escala-claro.svg">
+  <img alt="Gráfico de linha da vazão agregada em função do número de núcleos físicos ativos. Ela sobe de 171 milhões de acessos por segundo com um núcleo para 948 milhões com doze, e a curva achata a partir de oito. Uma linha de referência cinza mostra onde estaria se escalasse por núcleo: 2 051 milhões com doze." src="imagens/4-escala-claro.svg">
 </picture>
 
-**Com doze núcleos ativos, cada um faz 20% do que fazia sozinho.** A vazão
-agregada cresce 2,4×, não 12× — e a curva achata: de oito para doze núcleos,
-**50% mais núcleos compram 6% de vazão**.
+**Com doze núcleos ativos, cada um faz 46% do que fazia sozinho.** A vazão
+agregada cresce 5,5×, não 12× — e a curva achata: de oito para doze núcleos,
+**50% mais núcleos compram 2,8% de vazão**.
 
-E o teto tem um nome que já apareceu neste capítulo. Trezentos e vinte e oito
-milhões de acessos por segundo, a 64 bytes por linha, são **21,0 GB/s** — o
-mesmo número que um único núcleo alcança em acesso sequencial no gráfico
-anterior, 20,2 GB/s.
+#### O teto é a banda, e isso foi medido duas vezes
 
-**Esta página leu essa coincidência como causa comum, e um experimento a
-derrubou.** O texto afirmava que os dois caminhos chegavam à banda da memória e
-que um núcleo sequencial a saturava sozinho. Trocando a memória de 4800 para
-6000 MT/s — mesma máquina, mesmo binário, mesmo protocolo, uma variável — os
-dois números respondem de formas incompatíveis:
+Os 947,7 milhões de acessos por segundo da última linha, a 64 bytes por linha
+de cache, são **60,6 GB/s** com doze núcleos. Um núcleo sozinho, no mesmo
+programa e com o mesmo padrão de acesso, faz **10,9 GB/s**. A pergunta é o que
+limita cada um.
 
-```
-  12 nucleos, agregado    30,92 -> 21,28 ns/acesso   -31,2%
-  1 nucleo, sequencial     0,200 -> 0,190 ns/acesso    -5,0%
-```
+A previsão que separa as hipóteses é direta: **se o agregado é limitado pela
+banda da memória e o núcleo sozinho não, então mexer na banda move um e não
+move o outro.** Duas intervenções de variável única testaram isso, com o mesmo
+instrumento nos dois lados da comparação:
 
-**Seis vezes mais resposta à mesma intervenção.** O agregado é limitado pela
-banda — ele melhora quando a banda melhora. O núcleo sozinho, não: ele está
-limitado por quantos acessos consegue manter em voo, que é propriedade do
-núcleo, não da memória. A coincidência dos dois números perto de 20 GB/s
-continua sendo verdade **nesta configuração**, e deixa de ser explicação.
+| Intervenção | 1 núcleo | 12 núcleos | razão |
+|---|---:|---:|---:|
+| 4800 → 6000 MT/s, com 1 pente | −11,6% | −28,6% | 2,5× |
+| 4800 → 6000 MT/s, com 2 pentes | −11,0% | −26,3% | 2,4× |
+| 1 → 2 pentes, a 4800 MT/s | **−8,4%** | **−44,6%** | **5,3×** |
+| 1 → 2 pentes, a 6000 MT/s | **−7,7%** | **−42,8%** | **5,6×** |
+
+> **A linha de dois pentes foi replicada em 25/09, e a replicação é de outro
+> kernel.** As quatro células do fatorial vêm das coletas de 24/09, em
+> `7.0.0-31`. Em 25/09 a máquina passou a `7.0.0-34` e o contraste de frequência
+> com dois pentes foi refeito, com o mesmo binário nos dois lados:
+>
+> | | 24/09 · `7.0.0-31` | 25/09 · `7.0.0-34` |
+> |---|---:|---:|
+> | 1 núcleo | 6,560 → 5,840 = **−11,0 %** | 6,550 → 5,830 = **−11,0 %** |
+> | 12 núcleos | 17,180 → 12,660 = **−26,3 %** | 17,180 → 12,670 = **−26,3 %** |
+>
+> As variações batem na primeira casa decimal, e o ponto de partida de doze
+> núcleos é **o mesmo número** — 17,180 ns nas duas. Uma replicação que cruza
+> versão de kernel vale mais que a repetição dentro da mesma coleta: ela testa
+> o resultado contra uma variável que ninguém controlou de propósito.
+>
+> **Os dois outros contrastes não foram replicados**, e não por escolha: eles
+> exigem um pente só, o que significa abrir a máquina. Ficam com a medição de
+> 24/09.
+>
+> Fora do `custo-paralelismo`, a comparação marcou 31 rótulos, e **todos são de
+> memória** — `custo-traducao` e a coluna `RAM` do `efeito-cache`. Nenhum
+> rótulo de sincronização, de chamada de sistema ou de anel se moveu. É o que a
+> intervenção deveria produzir, e serve de controle negativo: mexer na
+> frequência da memória move o que depende de memória, e só.
+
+**Cada fator foi medido nos dois níveis do outro**, e é isso que sustenta a
+leitura: o efeito da frequência é o mesmo com um pente ou com dois, e o do
+canal é o mesmo a 4800 ou a 6000. Os dois fatores são aditivos, e nenhum dos
+quatro contrastes depende de onde o outro estava.
+
+**Dobrar os canais acrescenta banda sem mexer na latência.** Trocar a
+frequência mexe nas duas coisas ao mesmo tempo. Se o núcleo sozinho fosse
+limitado por banda, ele responderia às duas igualmente; se fosse limitado por
+latência, responderia mais à frequência. É o que se observa, embora por margem
+estreita: **11,0 a 11,6 % para a frequência contra 7,7 a 8,4 % para o canal**.
+O agregado faz o inverso, e aí a margem é larga — responde muito mais ao canal
+(42,8 a 44,6 %) do que à frequência (26,3 a 28,6 %), que é a assinatura de quem
+disputa banda.
+
+> **Estes números substituem os de 23/09, e a razão é de desenho.** A versão
+> anterior publicava −14,5 % e −31,2 % para a frequência e −5,6 % e −40,5 %
+> para o canal. Ela não estava mal medida; estava **mal pareada**. O contraste
+> de canal comparava uma coleta que correu com a CPU fria, partindo de
+> 4,33 GHz, contra outra que correu quente e estável a 5,58 GHz — regime de
+> frequência como terceira variável, dentro de um contraste que se propunha a
+> isolar canais. O efeito de um núcleo só, que é o mais sensível ao relógio,
+> era o mais contaminado, e por isso ele é o que mais se move: de −5,6 % para
+> −8,4 %.
+>
+> As quatro células de 24/09 foram medidas em condição única — modo texto, sem
+> sessão gráfica, todas partindo de 4,33 GHz — com a configuração da BIOS
+> conferida por programa contra o nome da coleta antes de cada medição. A
+> conclusão qualitativa não mudou; a margem do contraste de um núcleo encolheu
+> pela metade, e é honesto dizer que ela está mais estreita do que o texto
+> anterior sugeria.
+
+<!-- retratado: 14.5 14,5 31.2 31,2 5.6 5,6 40.5 40,5 7.2 7,2 -->
+
+> **A comparação usa `custo-paralelismo` dos dois lados de propósito.** A
+> coluna `sequencial` do `efeito-cache` seria o contraste mais intuitivo, e
+> **não serve**: o número dela é o teto do próprio laço, conforme a ressalva da
+> §4.2, e um número que não pode se mover não testa previsão nenhuma. Aqui as
+> duas linhas saem do mesmo programa, com o mesmo padrão de acesso; muda só
+> quantos núcleos disputam.
+
+> **O que isso ainda não estabelece.** Que o agregado é limitado pela banda
+> está medido. **Qual** é o teto absoluto, não: 60,6 GB/s são 63% do máximo
+> teórico de DDR5-6000 em canal duplo (96 GB/s), e a diferença pode ser do
+> controlador, do padrão de acesso ou do próprio programa. Medir o teto exigiria
+> um gerador de tráfego de memória dedicado, que é outro instrumento.
 
 > A coleta completa está em
 > [`medicoes/historico/`](medicoes/historico/), e o comparativo sai de
-> `comparar-hardware.py` a partir das saídas brutas. Os valores das tabelas
-> acima são anteriores a essa troca e serão republicados quando a máquina
-> parar de mudar — o segundo pente de memória entra em seguida, e muda
-> capacidade e canal ao mesmo tempo.
+> `comparar-hardware.py` a partir das saídas brutas. Os quatro contrastes desta
+> seção vêm das células `2026-09-24-*-texto-*`, que cobrem o fatorial de
+> 4800 e 6000 MT/s por um e dois pentes. Os demais valores do módulo vêm de
+> `2026-09-23-expo6000-canal-duplo`. A máquina passou pelas quatro configurações
+> em 24/09 e voltou à de referência: dois pentes DDR5-6000 de 16 GB, canal
+> duplo, um nó NUMA.
 
 > **Selo perto do limiar: desconfie do número de amostras antes do fenômeno.**
 > Com sete amostras o selo erra nas duas direções — medido em dez grupos
@@ -1033,7 +1231,14 @@ continua sendo verdade **nesta configuração**, e deixa de ser explicação.
 > 5ª e a 6ª; a distância entre eles pula de coleta para coleta. Por isso a fase 2
 > coleta 21 amostras, e a fase 1, com dispersão baixa, fica com sete. O raciocínio
 > inteiro está em [`statistics.h`](medicoes/statistics.h).
-<!-- retratado: 8.63 10.93 15.32 24.99 38.50 115.9 65.3 26.0 183.0 261.0 320.1 311.7 17,1 14,2 91,5 -->
+<!-- retratado: 8.63 10.93 15.32 24.99 38.50 115.9 65.3 26.0 183.0 261.0 320.1 17,1 14,2 91,5 -->
+<!-- O `311.7` saiu desta lista em 25/09/2026, e nao porque a retratacao
+     deixou de valer: a coleta em modo texto passou a produzir 311,7 como
+     M acessos/s em K=32 na tabela do `custo-paralelismo`, que e outra
+     grandeza. A marca casa NUMERO NU, sem contexto, entao um valor morto
+     numa secao ressuscita ao aparecer, legitimamente, noutra. Guardar o
+     numero aqui faria o portao acusar uma medicao valida -- e portao que
+     acusa o certo ensina a ignorar o errado. -->
 
 > **Consequência de projeto, e esta é a mais cara de descobrir tarde:**
 > dimensionar um plano de dados pela medição de **um** lcore superestima o
@@ -1066,15 +1271,15 @@ hardware enxerga.
 #### Quanto custa
 
 A ordem de grandeza é a da travessia medida na
-[§4.3](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só) — **23 ns** dentro do
-domínio, **92 ns** entre domínios —, só que paga **a cada acesso**, e sem que
+[§4.3](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só) — **18 ns** dentro do
+domínio, **81 ns** entre domínios —, só que paga **a cada acesso**, e sem que
 nada no código sugira que algo está sendo compartilhado.
 
 > **Ordem de grandeza, e não igualdade.** Aquela medição é um *ping-pong* entre
 > duas threads que se revezam de propósito; o falso compartilhamento é a mesma
 > linha migrando entre núcleos, mas com padrão de leitura e escrita próprio e
 > com a linha passando por estados de coerência que o ping-pong não percorre.
-> Os 23 e os 92 ns dizem **em que faixa** o problema cobra, não quanto custa
+> Os 18 e os 81 ns dizem **em que faixa** o problema cobra, não quanto custa
 > cada invalidação.
 
 Este documento tem uma demonstração involuntária. Durante a construção das
@@ -1364,27 +1569,61 @@ cat /sys/bus/pci/devices/0000:08:00.0/numa_node
 firmware costuma reportar em máquinas de soquete único, onde a pergunta não faz
 sentido. O DPDK trata esse caso como `SOCKET_ID_ANY`.
 
-O erro a evitar é passar esse valor diretamente como nó de alocação. Encadear
-[`rte_eth_dev_socket_id()`][apidevsocket] dentro de
-[`rte_pktmbuf_pool_create()`][apipoolcreate] sem checar o retorno pode falhar ou
-alocar no lugar errado:
+Encadear [`rte_eth_dev_socket_id()`][apidevsocket] direto em
+[`rte_pktmbuf_pool_create()`][apipoolcreate] **não é erro**, e é o que fazem os
+exemplos oficiais do DPDK — `packet_ordering`, `ipv4_multicast` e
+`server_node_efd`, entre outros:
 
 ```c
-/* ERRADO: -1 vira socket_id e a alocação pode não ir para nó nenhum */
 mp = rte_pktmbuf_pool_create(nome, n, cache, priv, tam,
                              rte_eth_dev_socket_id(porta));
+```
 
-/* CERTO: valor negativo significa "qualquer nó serve" */
+O fonte aceita o `-1` de propósito. Em `eal_common_memzone.c` a guarda rejeita
+negativo **exceto** `SOCKET_ID_ANY`:
+
+```c
+if ((socket_id != SOCKET_ID_ANY) && socket_id < 0) {
+    rte_errno = EINVAL;
+    return NULL;
+}
+```
+
+**A armadilha é outra, e é de ambiguidade.** `rte_eth_dev_socket_id()` devolve
+`-1` em três situações distintas, e duas delas são erro:
+
+| situação | retorno | `rte_errno` |
+|---|---:|---|
+| dispositivo sem afinidade declarada | `-1` | **zerado de propósito** |
+| `port_id` fora da faixa | `-1` | `EINVAL` |
+| porta não alocada | `-1` | `EINVAL` |
+
+O fonte zera `rte_errno` no primeiro caso justamente para separá-lo dos outros
+dois:
+
+```c
+socket_id = rte_eth_devices[port_id].data->numa_node;
+if (socket_id == SOCKET_ID_ANY)
+        rte_errno = 0;
+```
+
+Quem trata o `-1` como "qualquer nó serve" sem olhar `rte_errno` aceita em
+silêncio uma porta inexistente. O que **decide** entre os dois não é o sinal do
+retorno, é o `rte_errno`:
+
+```c
+rte_errno = 0;
 int no = rte_eth_dev_socket_id(porta);
-if (no < 0)
-    no = (int)rte_socket_id();          /* nó do lcore corrente */
+if (no == SOCKET_ID_ANY && rte_errno != 0)
+    return -1;                          /* porta invalida, nao "sem afinidade" */
 mp = rte_pktmbuf_pool_create(nome, n, cache, priv, tam, no);
 ```
 
-O `SOCKET_ID_ANY` do DPDK vale `-1` justamente para esse caso; o que não se pode
-é usá-lo como índice sem antes reconhecê-lo. Note que
-[`rte_socket_id()`][apisocketid] devolve o nó do lcore que está executando, que é
-a escolha razoável quando o dispositivo não declara afinidade.
+**Numa máquina de vários soquetes há ainda uma escolha de desempenho**, que é
+diferente de correção: com `-1` a EAL aloca onde couber, e o que se quer é o nó
+da NIC. Quando o dispositivo não o declara,
+[`rte_socket_id()`][apisocketid] — o nó do lcore corrente — é a aproximação
+razoável. Nesta máquina, de soquete único, a distinção não muda nada.
 
 #### Inspecionando a sua máquina
 
@@ -1434,27 +1673,52 @@ medindo o tempo de uma linha de cache viajar de um núcleo para outro:
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  within domain 0 (cpu 0 <-> 2)          20.13  19.42-21.27     17.86-39.18         9.2%  20.5% ~
-  BETWEEN domains (cpu 0 <-> 6)          82.24  82.01-84.34     81.93-128.14        2.8%  11.8%  
-  RATIO between/within (paired)           4.09  3.91-4.32       2.32-6.71           9.9%  18.0% ~
+  within domain 0 (cpu 0 <-> 2)          19.57  18.77-20.96     17.72-21.08        11.2%   5.7% !
+  BETWEEN domains (cpu 0 <-> 6)          81.47  81.44-81.49     81.43-81.61         0.1%   0.1%
+  RATIO between/within (paired)           4.16  3.89-4.34       3.87-4.59          10.9%   5.8% !
 ```
 
-**Atravessar a interconexão custa cerca de 4,0 vezes mais — e são 137% do
+> **O bloco é uma execução; a razão é de quarenta.** A travessia local é o
+> rótulo de maior dispersão do módulo, e o selo `!` na linha diz isso antes de
+> qualquer prosa: dentro de **uma** coleta o `RATIO` varia de 3,87 a 4,59.
+> Publicar o valor de uma execução e chamá-lo de "a razão" seria escolher um
+> ponto de uma nuvem.
+>
+> Juntando as **oito coletas de canal duplo em modo texto**, 40 execuções:
+>
+> | | mediana | faixa |
+> |---|---:|---|
+> | dentro do domínio | 19,71 ns | 16,87–22,70 |
+> | entre domínios | 81,43 ns | 81,36–81,95 |
+> | razão | **4,13** | 3,59–4,83 |
+>
+> A amplitude da razão é de 35 % — e ela vem toda do denominador. A travessia
+> **entre** domínios varia 0,7 %; a **local** varia 35 %. Faz sentido: o mesmo
+> ruído absoluto pesa quatro vezes mais sobre um valor quatro vezes menor.
+>
+> **O bloco acima publicava 3,73**, que é o terceiro menor dos 40 — uma
+> execução no pé da distribuição, apresentada como o resultado. Foi trocado pela
+> execução mais próxima da mediana agregada, e o número que o texto afirma
+> passou a ser o das 40.
+> <!-- retratado: 3,73 3.73 -->
+
+**Atravessar a interconexão custa cerca de 4,1 vezes mais — e são 121% do
 orçamento de um pacote de 64 B em 10 GbE.** Um único repasse entre núcleos mal
 posicionados já estoura o orçamento inteiro, antes de qualquer trabalho útil.
 
 <!-- retratado: 6.3 6,3 14.4 14,4 82.99 82,99 17.50 17,50 -->
 
-A travessia local é a de dispersão moderada (`disp` de 6,5%), e isso
+A travessia local é a de dispersão alta (`disp` de 11,2%, e o selo `!`), e isso
 também é informação: um repasse entre dois núcleos do mesmo bloco de L3 varia
 mais, em termos relativos, do que um que atravessa a interconexão — porque o
-valor é quatro vezes menor e o mesmo ruído absoluto pesa quatro vezes mais.
+valor é quase quatro vezes menor e o mesmo ruído absoluto pesa quase quatro
+vezes mais.
 
 Esse resultado tem consequência direta e imediata no projeto: o
 [tópico 02](../../trilha/01-fundamentos/02-mempool-ring/) passa objetos entre
 produtor e consumidor por um [`rte_ring`][guiaring], e cada repasse faz exatamente essa
 viagem. Escolher `-l 0,2` ou `-l 0,6` na EAL não é detalhe de configuração — é a
-diferença entre 23 ns e 92 ns por travessia.
+diferença entre 20 ns e 81 ns por travessia.
 
 > **Respondendo à pergunta de forma direta:** não vale ativar a opção de BIOS. Ela
 > anunciaria uma assimetria de *memória* que não existe nesta máquina, enquanto a
@@ -1478,9 +1742,9 @@ As seções anteriores mediram mecanismos. Esta as põe lado a lado como
 
 | Técnica | O que ataca | Ganho medido aqui | O que cobra | Quando **não** usar |
 |---|---|---|---|---|
-| **hugepages** | o custo adicional de tradução | **10,40 ns** na coleta publicada, e o ganho **cresce com o conjunto de trabalho**: 1,75 ns em 8 MB, 6,64 em 64 MB, 10,80 em 512 MB ([§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço)) | memória reservada que some do sistema; configuração de boot; sem swap | conjunto de trabalho pequeno o bastante para caber na TLB |
+| **hugepages** | o custo adicional de tradução | **10,64 ns** na coleta vigente, e o ganho **acompanha o conjunto de trabalho sem ser monotônico**: 1,20 ns em 8 MB, 15,03 em 32 MB, 6,56 em 64 MB, 10,64 em 512 MB — o pico em 32 MB é discutido na [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço), e é o ponto que menos se repete: entre as cinco coletas de modo texto ele vai de 9,45 a 31,63 ns, contra menos de 10% de amplitude nos outros três | memória reservada que some do sistema; configuração de boot; sem swap | conjunto de trabalho pequeno o bastante para caber na TLB |
 | **layout contíguo** | a falta de localidade | até 33× de banda ([§4.2](#42-cache-e-localidade)) | refatoração; estruturas menos naturais de escrever | acesso genuinamente disperso, em que não há ordem a explorar |
-| **lote e *prefetch*** | a falta de concorrência | 94 → 7,3 ns amortizados, 13× de vazão ([§4.2](#42-cache-e-localidade)) | **latência**: esperar o lote encher (+23% até K = 16, +133% em K = 64) | quando a cauda de latência é o contrato, e não a vazão |
+| **lote e *prefetch*** | a falta de concorrência | 77 → 5,6 ns amortizados, 13,6× de vazão ([§4.2](#42-cache-e-localidade)) | **latência**: esperar o lote encher (+17% até K = 16, +103% em K = 64) | quando a cauda de latência é o contrato, e não a vazão |
 | **`__rte_cache_aligned`** | o falso compartilhamento | 53 → 8 ns ([§4.2.1](#421-falso-compartilhamento-o-erro-mais-comum-de-quem-escreve-plano-de-dados)) | até 63 bytes desperdiçados por objeto | estrutura só de leitura, ou tocada por um lcore só |
 | **afinidade de memória** | a travessia entre nós | ver [§4.3](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só) | complexidade operacional: fixar lcore, alocar no nó certo, e provar que ficou | máquina de um nó só |
 
@@ -1507,9 +1771,9 @@ três tetos deste capítulo já apareceram:
 | Alavanca | Teto | Onde ele foi medido |
 |---|---|---|
 | localidade | o tamanho do cache | [§4.2](#42-cache-e-localidade): acima de 8 MB a coluna aleatória dispara |
-| hugepages | o alcance da TLB | [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço): 256 entradas cobrem 512 MB, não 512 GB |
+| hugepages | o alcance da TLB | [§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço): 4 096 entradas de 2 MB cobrem 8 GB, contra 16 MB com páginas de 4 KB |
 | concorrência (um núcleo) | a banda da memória | [§4.2](#42-cache-e-localidade): de K = 32 a K = 64 a vazão cresce só 1,33× |
-| concorrência (o sistema) | a mesma banda, **dividida** | [§4.2](#42-cache-e-localidade): com 12 núcleos, cada um faz 20% do que fazia sozinho |
+| concorrência (o sistema) | a mesma banda, **dividida** | [§4.2](#42-cache-e-localidade): com 12 núcleos, cada um faz 46% do que fazia sozinho |
 
 > **Este capítulo não fecha o assunto, e é bom que não feche.** O conflito entre
 > vazão e latência reaparece em duas escalas maiores, com a mesma matemática: no
@@ -1557,8 +1821,8 @@ Daí três migrações com custos diferentes:
 | A thread vai para… | Perde | Custo |
 |---|---|---|
 | o irmão SMT (cpu 0 → 12) | nada de cache | disputa as unidades de execução ([§5.1.1](#511-smt-duas-cpus-lógicas-não-são-dois-núcleos)) |
-| outro núcleo do mesmo bloco (0 → 3) | L1d e L2: **1 MB de estado quente** | a L3 ainda serve — travessia de **23 ns** |
-| um núcleo do outro bloco (0 → 6) | L1d, L2 **e** L3 | cada linha volta pela interconexão — **92 ns**, 4× |
+| outro núcleo do mesmo bloco (0 → 3) | L1d e L2: **1 MB de estado quente** | a L3 ainda serve — travessia de **18 ns** |
+| um núcleo do outro bloco (0 → 6) | L1d, L2 **e** L3 | cada linha volta pela interconexão — **81 ns**, 4,5× |
 
 Os dois tempos são os que a [§4.3](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só)
 já mediu. A migração cara não é qualquer uma: é a que **atravessa o bloco de L3**.
@@ -1619,10 +1883,10 @@ custo dessa competição com trabalho de ALU de alto paralelismo de instruções
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  loop alone on the core                 0.536  0.536-0.537     0.536-0.537         0.1%   0.1%  
-  neighbour on SMT sibling (cpu 12)       1.23  1.23-1.23       1.23-1.24           0.1%   0.1%  
-  RATIO with/without SMT sibling (paired)      2.29  2.29-2.29       2.29-2.30           0.1%   0.1%  
-  neighbour on physical core (cpu 2)     0.550  0.549-0.553     0.537-0.567         0.6%   1.3%  
+  loop alone on the core                 0.536  0.536-0.536     0.536-0.536         0.0%   0.0%
+  neighbour on SMT sibling (cpu 12)       1.23  1.23-1.23       1.23-1.23           0.0%   0.1%
+  RATIO with/without SMT sibling (paired)      2.29  2.29-2.29       2.29-2.29           0.1%   0.1%
+
 ```
 
 **Compartilhar o núcleo custa 129% de tempo por operação** — o laço fica 2,29
@@ -1684,12 +1948,12 @@ largada, cronômetro parando na última a terminar:
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  1 thread  on 1 physical core (cpu 0)    1861.9  1859.3-1862.8   1857.0-2038.0       0.2%   2.1%  
-  2 threads on 2 physical cores (cpu 0,2)    3712.8  3708.5-3717.0   3689.1-3722.1       0.2%   0.2%  
-  2 threads on 2 SMT siblings (cpu 0,12)    1926.9  1923.6-1927.2   1921.7-1927.8       0.2%   0.1%  
+  1 thread  on 1 physical core (cpu 0)    1852.9  1852.3-1853.1   1849.2-2058.4       0.0%   2.4%
+  2 threads on 2 physical cores (cpu 0,2)    3696.3  3695.1-3696.6   3656.8-3698.2       0.0%   0.3%
+  2 threads on 2 SMT siblings (cpu 0,12)    1918.3  1917.6-1918.9   1914.3-1919.4       0.1%   0.1%
 
   two physical cores yield 1.99x one core
-  two SMT siblings    yield 1.03x one core
+  two SMT siblings    yield 1.04x one core
 ```
 
 **Dois núcleos físicos rendem 1,99×. Dois irmãos SMT rendem 1,04×.** O par de
@@ -1812,12 +2076,18 @@ fique visível em vez de precisar ser suposta.
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  atomic relaxed (store+load)            0.410  0.321-0.411     0.205-0.412        21.9%  17.6% !
-  atomic seq_cst (store+load)             3.69  3.69-3.87       3.68-3.99           5.0%   3.2% ~
-  mutex lock+unlock                       8.48  8.48-8.49       8.48-8.73           0.1%   0.8%  
-  spinlock lock+unlock                    4.43  4.43-4.49       4.42-4.73           1.5%   1.7%  
-  semaphore post+wait                     8.30  8.30-8.30       8.30-8.55           0.0%   0.8%  
+  atomic relaxed (store+load)            0.255  0.243-0.255     0.227-0.257         4.8%   3.4% ~
+  atomic seq_cst (store+load)             3.76  3.72-3.78       3.69-3.81           1.5%   0.9%
+  mutex lock+unlock                       8.53  8.51-8.55       8.51-8.61           0.4%   0.3%
+  spinlock lock+unlock                    4.50  4.50-4.52       4.43-4.55           0.4%   0.5%
+  semaphore post+wait                     8.37  8.35-8.40       8.30-8.43           0.6%   0.4%
 ```
+
+<!-- cita-retratado: 0,227 0.227 -->
+<!-- O `0,227` foi retratado noutro ponto do material e reaparece AQUI como
+     medicao nova: ele e o MINIMO DA FAIXA do `atomic relaxed` nesta coleta,
+     nao a mediana que foi derrubada. A coincidencia e de digitos, nao de
+     grandeza, e a isencao vale so para este bloco. -->
 
 As duas últimas colunas medem a confiança do número: `disp` diz se o valor
 típico é reprodutível, `CV` denuncia amostras isoladas destoantes. Como lê-las
@@ -1832,22 +2102,35 @@ juntas está na [§9](#9-validação-reproduza-na-sua-máquina).
 > da rampa.
 >
 > Medindo o mesmo primitivo em duas posições do grupo, com 60 ms ele dá 0,26 e
-> 0,20 ns conforme a posição; a partir de 200 ms as duas concordam em 0,20. É
-> a mesma rampa de 29% que a [§5.1.1](#511-smt-duas-cpus-lógicas-não-são-dois-núcleos)
-> isola, e **a medição mais curta da tabela é a única que a enxerga**.
+> 0,20 ns conforme a posição; a partir de 200 ms as duas concordam. É a mesma
+> rampa que a [§5.1.1](#511-smt-duas-cpus-lógicas-não-são-dois-núcleos) isola,
+> e **a medição mais curta da tabela é a única que a enxerga**.
 >
-> Uma ressalva de quem for reproduzir: o `CV` desta linha ainda sobe a 10–15%
-> em algumas execuções, com `disp` limpa. É uma amostra isolada entre as 25 —
-> a divisão de trabalho entre as duas colunas.
+> **E 400 ms também não bastam, medido em 24/09.** Uma sonda dedicada
+> ([`sonda-relaxed.c`](medicoes/sonda-relaxed.c)) mede o período de clock
+> depois do aquecimento e de novo ao fim: 0,2182 ns logo após os 400 ms —
+> 4,58 GHz — contra 0,1814 ns depois de alguns segundos de carga, 5,51 GHz. O
+> aquecimento tira a coleta do arranque; ele não a põe no topo da rampa.
+>
+> Numa campanha isso não aparece, porque os programas correm em sequência e a
+> CPU já chega quente ao quinto deles. Numa execução isolada, aparece — e é por
+> isso que o valor publicado aqui, 0,255 ns, é maior que os 0,20 desta nota.
+> Os dois são **1,125 ciclos**; muda a frequência, e a
+> [§5.1 da metodologia](metodologia.md#51-o-0397-é-1818--f-e-o-0205-é-1125--f)
+> mostra a conta.
+>
+> Uma ressalva de quem for reproduzir: o `CV` desta linha sobe em algumas
+> execuções, com `disp` limpa. É uma amostra isolada entre as 25 — a divisão de
+> trabalho entre as duas colunas.
 
 **Nenhum desses primitivos é caro — e a forma honesta de mostrar isso é pelo
-pior deles.** Pela mediana, o mutex é o mais lento dos cinco: 8,51 ns, contra
-8,32 ns do semáforo, 4,44 ns do spinlock e 0,205 ns da atômica `relaxed`. E é
+pior deles.** Pela mediana, o mutex é o mais lento dos cinco: 8,52 ns, contra
+8,37 ns do semáforo, 4,50 ns do spinlock e 0,255 ns da atômica `relaxed`. E é
 também o réu habitual, aquele a quem o custo de sincronizar costuma ser
 atribuído. Se **o mais caro da tabela, e justamente o acusado, custa 8,5 ns**,
 os outros quatro não precisam de defesa separada — o argumento os cobre. Para
-dar escala a esse número: são **8,5 dos 67,2 ns do orçamento de um pacote —
-12,6%**, no qual o mutex cabe quase oito vezes.
+dar escala a esse número: são **8,52 dos 67,2 ns do orçamento de um pacote —
+12,7%**, no qual o mutex cabe quase oito vezes.
 
 O que compra esse preço é o caminho rápido do futex: o mutex sem disputa resolve
 tudo em espaço de usuário, sem chamada de sistema. Isso não é sorte da
@@ -1872,23 +2155,53 @@ Todas as medições rodam **com outra thread presente no processo**, que
 > — mas ela não é o eixo desta seção. *Sem disputa* não é sinônimo de
 > *mono-thread*: um programa com dezenas de threads tem travas sem disputa o
 > tempo todo, e é assim que código concorrente bem feito se comporta. E o rótulo
-> "multi-thread" cobriria indistintamente **8,5 ns** (sem disputa), **92 ns**
+> "multi-thread" cobriria indistintamente **8,5 ns** (sem disputa), **81 ns**
 > (repasse entre núcleos) e **1356 ns** (repasse com sono) — exatamente as três
 > parcelas que esta seção existe para separar.
 
 Dois detalhes da tabela merecem nota.
 
-**O mutex custa 2,3 vezes uma atômica `seq_cst`** (8,51 contra 3,69 ns), e a
+**O mutex custa 2,3 vezes uma atômica `seq_cst`** (8,52 contra 3,75 ns), e a
 razão é aritmética: travar executa uma operação atômica de leitura-modificação-
 escrita, destravar executa outra, mais a verificação de que ninguém espera. São
 duas operações travadas contra uma. O mutex não é caro por ser mutex; é caro por
 fazer mais.
 
 **A ordenação de memória tem preço próprio.** A atômica `seq_cst`, com barreira
-completa, custa 3,69 ns contra 0,21 ns da `relaxed` — dezoito vezes mais, sem
-que nenhuma delas envolva outra thread. É por isso que o `rte_ring` usa
-`acquire`/`release` em vez de `seq_cst`: a barreira mais fraca é suficiente para
-a garantia que ele precisa, e a diferença sai do orçamento por pacote.
+completa, custa **3,76 ns** contra **0,255 ns** da `relaxed`, sem que nenhuma
+delas envolva outra thread. A barreira mais fraca é suficiente para muitas
+garantias, e a diferença sai do orçamento por pacote.
+
+> **A razão entre as duas era bimodal, e o que alternava era o `governor`.** A
+> seção registrava isso como questão em aberto: o valor da `relaxed` pulava
+> entre duas medianas, o selo `!` marcava a linha, e "fixar o fator exigiria
+> descobrir o que alterna". Dez coletas em modo texto respondem.
+>
+> | `governor` | `relaxed` | coletas | razão `seq_cst`/`relaxed` |
+> |---|---:|---:|---:|
+> | `powersave` | 0,409–0,411 | 4 | **9,7×** |
+> | `performance` | 0,254–0,256 | 6 | **14,8×** |
+>
+> Cinquenta execuções, separação completa, **nenhuma sobreposição**. Dentro de
+> cada regime o valor é sólido — a amplitude de cada coleta cabe em três
+> milésimos de nanossegundo. Entre regimes ele dobra.
+>
+> A bimodalidade não era propriedade da máquina nem ruído do instrumento: era
+> uma variável de ambiente que as coletas antigas não fixavam. A campanha passou
+> a fixar o `governor` em 24/09, e o `diario.txt` de cada coleta registra qual
+> usou — `governor fixado: sim (era powersave)`. A divisão entre os dois grupos
+> cai exatamente na primeira coleta que o fixou.
+>
+> **O que a tabela publica é o regime `performance`**, que é o da campanha. Em
+> `powersave` a `relaxed` custa 60% a mais e a razão cai para menos de dez; as
+> duas leituras são verdadeiras, sob condições diferentes, e a condição agora
+> está dita.
+>
+> **A leitura conservadora continua valendo, e ganhou piso.** Uma atômica
+> ordenada custa **uma dezena de vezes** uma relaxada em qualquer dos dois
+> regimes, e as duas continuam abaixo de um décimo do orçamento por pacote. O
+> que mudou é que o fator deixou de ser um número que pulava sem explicação.
+> dois modos — que é medição nova, não redação.
 
 **2. No repasse — os mesmos primitivos coordenando duas threads em núcleos
 diferentes:**
@@ -1896,10 +2209,10 @@ diferentes:**
 ```
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  atomic + busy wait (does not sleep)     17.51  17.50-17.53     17.48-18.58         0.1%   2.0%  
-  mutex + busy wait (does not sleep)     95.68  95.25-96.41     94.10-97.55         1.2%   0.9%  
-  mutex + condvar (SLEEPS)              1316.0  1301.0-1331.9   1265.8-1397.8       2.3%   2.3%  
-  POSIX semaphore (SLEEPS)              1281.2  1267.7-1283.5   1224.6-1315.4       1.2%   1.5%  
+  atomic + busy wait (does not sleep)     17.91  17.67-18.09     17.65-18.26         2.4%   1.2%
+  mutex + busy wait (does not sleep)     94.95  94.52-95.48     92.49-97.24         1.0%   1.2%
+  mutex + condvar (SLEEPS)              1269.8  1260.8-1292.9   1221.0-1356.0       2.5%   2.2%
+  POSIX semaphore (SLEEPS)              1208.4  1200.6-1220.7   1135.1-1285.1       1.7%   2.6%
 ```
 <!-- cita-retratado: 17,50 17.50 — NAO e citacao do valor retratado. O `17.50`
      acima e o limite inferior do IQR de `atomic + busy wait`, medicao sem
@@ -1908,7 +2221,7 @@ diferentes:**
 
 **A comparação decisiva são as duas linhas do meio: é o mesmo mutex.** A única
 diferença é que na segunda a thread realmente dorme, esperando ser acordada por
-uma variável de condição. Isso multiplica o custo por **15**.
+uma variável de condição. Isso multiplica o custo por **13**.
 
 Ou seja: o problema nunca foi o mutex, nem o semáforo, nem a atômica. **O
 problema é dormir.** Quando a thread bloqueia, entra o escalonador do sistema —
@@ -1918,12 +2231,12 @@ contexto — e é isso que custa mais de mil nanossegundos.
 **No orçamento do plano de dados:**
 
 ```
-    espera ativa cabe 3.8 vezes nele
-    dormir gasta 20.2 orcamentos inteiros
+    busy waiting fits 3.8 times in it
+    sleeping spends 18.9 whole budgets
 ```
 
-Acordar uma thread consome o equivalente a **20 pacotes de 10 GbE**. No tempo de
-ser acordado, vinte pacotes teriam chegado — e sido descartados por falta
+Acordar uma thread consome o equivalente a **19 pacotes de 10 GbE**. No tempo de
+ser acordado, dezenove pacotes teriam chegado — e sido descartados por falta
 de buffer. Não há orçamento para dormir, e é por isso, e não por gosto por
 micro-otimização, que o plano de dados faz polling.
 
@@ -1953,7 +2266,7 @@ medições desta seção a sustentam, e cada uma isola uma variável diferente:
 |---|---|---|
 | Sem disputa × no repasse | o custo do primitivo sozinho contra o de coordenar de fato | o primitivo é barato; **dormir** é que custa 13× |
 | [Espelho em C e C++23](medicoes/custo-espera-cpp.cpp) | se a linguagem altera a conta | razão ~1,00× para atômica, mutex e condvar |
-| [Posicionamento entre núcleos](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só) | o mesmo código em núcleos diferentes | 23 ns no mesmo domínio, 92 ns entre domínios |
+| [Posicionamento entre núcleos](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só) | o mesmo código em núcleos diferentes | 18 ns no mesmo domínio, 81 ns entre domínios |
 
 O segundo importa especialmente aqui: como os números batem em **duas
 linguagens**, a orientação abaixo não é peculiaridade da glibc nem do libstdc++ —
@@ -1996,9 +2309,27 @@ do DPDK, isso vale. Numa thread comum, o escalonador pode tirá-la do núcleo
 segurando a trava, e todos os que giram queimam CPU esperando alguém que não
 está executando — trocando 4 ns por milissegundos.
 
-**Ordenação forte raramente é necessária.** `seq_cst` custa dezoito vezes a
-`relaxed` e é o padrão da linguagem, não a escolha certa por omissão. Prefira
-`acquire`/`release`, que é o que o [`rte_ring`][guiaring] usa.
+**Ordenação forte raramente é necessária.** `seq_cst` custa **uma dezena de
+vezes** a `relaxed` — o fator exato não é estável entre coletas, e a §5.2
+explica por quê — e é o padrão da linguagem, não a escolha certa por omissão.
+Prefira `acquire`/`release`.
+
+> **O `rte_ring` seria o exemplo óbvio aqui, e nesta máquina ele não é.** A
+> biblioteca tem duas implementações do movimento de cabeça, escolhidas por
+> `RTE_USE_C11_MEM_MODEL` — e o `config/meson.build` só liga esse sinalizador
+> para MSVC, arm64 e riscv. **Em x86 com GCC, que é este build, o 25.11 compila
+> `rte_ring_generic_pvt.h`**: `rte_smp_rmb()`/`rte_smp_wmb()`, que em x86 são
+> `rte_compiler_barrier()`, mais `rte_atomic32_cmpset` na reserva MP/MC — que
+> vira `lock cmpxchg`, barreira **completa**. O binário desta campanha tem 24
+> delas.
+>
+> O 26.07 troca o genérico por `rte_ring_gcc_pvt.h` e deixa o motivo no fonte:
+> *"The C11 is preferred but on x86 GCC has 10% performance drop"*.
+>
+> Ou seja: a recomendação de preferir `acquire`/`release` continua valendo como
+> **princípio**, e o `rte_ring` em x86/GCC escolheu o contrário por medida de
+> desempenho. Citá-lo como exemplo do princípio era citar o caso que o
+> contradiz.
 
 > **A melhor trava é a que não existe.** O modelo do DPDK — um lcore por núcleo,
 > cada um com seu estado — não é preferência estética: é a forma de tornar a
@@ -2199,7 +2530,7 @@ A simetria é exata, e a consequência é importante:
 |---|---|---|
 | Traduz | MMU | IOMMU |
 | Cache de traduções | TLB | **IOTLB** |
-| Custo da falta | page walk (§4.1: ~11 ns nesta máquina, com as tabelas em cache) | page walk servido pela IOMMU, no caminho do DMA |
+| Custo da falta | page walk (§4.1: ~10 ns nesta máquina, com as tabelas em cache) | page walk servido pela IOMMU, no caminho do DMA |
 | Alcance | entradas × tamanho de página | entradas × tamanho de página |
 
 Uma falta de IOTLB é pior que uma falta de TLB, porque a caminhada acontece
@@ -2379,11 +2710,11 @@ Os três números, para este experimento:
 | Grandeza | Valor | De onde vem |
 |---|---:|---|
 | `λ_pico` | 3 881 988 pacotes/s | enlace de 10 Gb/s com datagrama de 322 B no fio |
-| `μ` | 1 365 326 pacotes/s | **medido nesta máquina**: 732 ns por pacote, 25 amostras |
+| `μ` | 1 363 015 pacotes/s | **medido nesta máquina**: 734 ns por pacote, 25 amostras |
 | `T` | 1 ms | ordem de grandeza de uma rajada de abertura |
 
 ```
-ΔQ = (3 881 988 − 1 365 326) × 1 ms  =  2 517 descritores
+ΔQ = (3 881 988 − 1 363 015) × 1 ms  =  2 519 descritores
 ```
 
 > **A previsão, antes de medir.** Anéis de 256, 512 e 1 024 devem ser
@@ -2419,14 +2750,14 @@ tempo**. A distribuição exata está no
   chegada       anel(n)     perda  ocup.max   p99(us)
   -----------   -------  --------  --------  --------
   cadenciada        512    0.000%         1       0.7
-  rajada            512   26.544%       512     375.5
-  rajada           1024   21.639%      1024     750.2
-  rajada           4096    6.319%      4096    2998.6
-  rajada          32768    0.000%     21234    6948.8
+  rajada            512   26.585%       512     376.4
+  rajada           1024   21.679%      1024     752.0
+  rajada           4096    6.341%      4096    3005.7
+  rajada          32768    0.000%     21262    6974.9
 ```
 
 **A previsão se sustenta.** Com 512 descritores a perda é de 26,6%; o anel de
-4 096 — acima dos 2 517 que a conta pedia — derruba para 6,3%, e não a zero,
+4 096 — acima dos 2 519 que a conta pedia — derruba para 6,3%, e não a zero,
 porque as rajadas longas continuam existindo. E a linha cadenciada mostra que
 **o mesmo tráfego, distribuído por igual, não perde nada e nunca ocupa mais que
 um descritor**.
@@ -2443,7 +2774,7 @@ A tabela completa, com todas as profundidades e as colunas de mediana e
 #### O que o buffer compra, e o que ele cobra
 
 A última linha da tabela é a lição que fica: com 32 768 descritores a perda
-chega a zero — e o p99 vai a **7,0 ms**. Num feed de market data isso é o mesmo
+chega a zero — e o p99 vai a **6,9 ms**. Num feed de market data isso é o mesmo
 que descarte, porque a ordem já foi executada por outro.
 
 > **Buffer não cria capacidade. Ele transforma parte da perda em fila.** E cobra
@@ -2461,16 +2792,17 @@ Submetendo o mesmo tráfego aos dois, com profundidade equivalente:
 ```
   caminho                          fila    perda    drenagem
   ------------------------------  -----  -------  ----------
-  anel de descritores              8192   1.084%   1 365 326 pacotes/s
-  socket UDP (recv um a um)        8738   1.765%     935 507 pacotes/s
-  socket UDP (recvmmsg em lote)    8738   1.596%   1 002 327 pacotes/s
+  anel de descritores              8192   1.089%   1 363 015 pacotes/s
+  socket UDP (recv um a um)        8738   1.174%   1 191 880 pacotes/s
+  socket UDP (recvmmsg em lote)    8738   1.166%   1 196 001 pacotes/s
 ```
 
 **Mesma fila, mesma rajada, e o socket perde mais** — a diferença inteira é a
-drenagem um terço menor, porque cada datagrama paga a travessia do kernel e a
-cópia além do trabalho da aplicação. O lote via `recvmmsg` devolve parte disso,
-pelo mesmo mecanismo de amortização do
-[§6.2](#62-o-barramento-também-tem-orçamento).
+drenagem **12,6% menor**, porque cada datagrama paga a travessia do kernel e a
+cópia além do trabalho da aplicação. O lote via `recvmmsg` devolve pouco disso
+aqui — 0,08 ponto percentual de perda —, e a ressalva sobre o que essa margem
+estreita sustenta está no
+[aprofundamento](6.3-aprofundamento.md#2-so_rcvbuf-a-fila-que-você-pede-não-é-a-que-você-tem).
 
 E é aqui que os dois mundos se separam: no caminho de socket as alavancas são
 **indiretas** — `SO_RCVBUF` entrega bem menos fila do que aparenta e satura em
@@ -2513,7 +2845,7 @@ feed de canal único, e uma segunda âncora — a orientação de rajadas de at�
 datagramas, descritores e bits que ela obriga a fazer.
 
 > **O que é medido e o que é modelado.** Não é medição de NIC: não há rede,
-> driver nem DPDK, e reproduzir 4,5 milhões de pacotes por segundo exige a NIC e
+> driver nem DPDK, e reproduzir os 3,88 milhões de pacotes por segundo do pico exige a NIC e
 > o gerador de tráfego previstos para o nível 6. A honestidade possível hoje é
 > dizer, linha por linha, de onde vem cada número:
 >
@@ -2675,16 +3007,27 @@ vira o caso comum do sistema.**
 Duas regras que evitam a maioria dos erros de medição:
 
 **Latência se reporta por percentis**, não por média. Tome telefonia como régua:
-a [ITU-T G.114][g114] recomenda **até 150 ms** de atraso fim a fim num sentido, e
-jitter **abaixo de 40 ms** para ser imperceptível. Esse orçamento é repartido
-entre codec, buffer de *jitter*, propagação e **cada elemento de rede** no
-caminho.
+a [ITU-T G.114][g114] diz que abaixo de **150 ms** de atraso num sentido a
+interatividade é *"essencialmente transparente"* para a maioria das aplicações,
+e que acima de **400 ms** o atraso é inaceitável para planejamento de rede.
+Esse orçamento é repartido entre codec, buffer de *jitter*, propagação e **cada
+elemento de rede** no caminho.
 
-Agora considere o sistema do gráfico acima, descrito como "média de 10 µs".
-Parece consumir 0,007% do orçamento — desprezível. Mas o p99,9 dele é 5 ms, que
-é **500 vezes a média** e sozinho leva **12% do orçamento de jitter**, em 1 de
-cada 1000 pacotes. Não inviabiliza a chamada sozinho; compromete a folga que
-todos os outros elementos também precisam. E a média não mostra nada disso.
+<!-- retratado: 40 ms 12% -->
+> **A G.114 não fixa orçamento numérico de jitter, e esta seção já atribuiu um
+> a ela.** A recomendação trata variação de atraso de forma qualitativa — ela
+> precisa ser removida por um buffer de *de-jitter* antes da reprodução, e o
+> ouvido é intolerante a variação de curto prazo. Números de jitter como 40 ms
+> vêm de literatura secundária, não da G.114. O que a recomendação **fixa** é o
+> atraso de um sentido, e é contra ele que a conta abaixo é feita.
+
+Agora considere o sistema do gráfico acima, descrito como "média de 14 µs".
+Parece consumir 0,009% do orçamento — desprezível. Mas o p99,9 dele é 5 ms, que
+é **357 vezes a média**. Cinco milissegundos são **3,3% do orçamento de 150 ms**,
+consumidos por 1 em cada 1000 pacotes — e, por virem como variação, precisam ser
+absorvidos pelo buffer de *de-jitter*, que por sua vez **soma ao mesmo
+orçamento**. Não inviabiliza a chamada sozinho; compromete a folga que todos os
+outros elementos também precisam. E a média não mostra nada disso.
 
 **Vazão só significa algo com a perda declarada.** "14 Mpps" com 3% de descarte
 não é 14 Mpps. A métrica honesta da indústria é a taxa sem perda
@@ -2787,6 +3130,7 @@ que ninguém tinha rodado: alternar ócio e medição.
 > medido, derrubou a linha de base de 0,536 para 0,449 ns. E o controle que
 > fecha o caso é a linha do `-falign-loops=32`, em que os dois valores **trocam
 > de lugar** — se fosse estado da máquina, não trocariam.
+> <!-- cita-retratado: 0,449 0.449 -->
 
 **Nenhum instrumento de uma escala enxerga a seguinte**, e é isso que torna a
 distinção útil em vez de acadêmica. Aumentar `n` caracteriza melhor a primeira
@@ -2796,12 +3140,33 @@ e os quatro casos estão publicados: a `atomica relaxed` (dentro da coleta, a
 de SMT (entre compilações, a §5.1.1) e a travessia entre núcleos (entre estados
 da máquina, abaixo).
 
+> **O primeiro exemplo perdeu força, e a razão é ela própria uma lição.** A
+> `atomica relaxed` foi escolhida como caso de dispersão dentro da coleta
+> quando publicava 27,5% e selo `!`. Na coleta de 24/09, em modo texto e com
+> governor fixo, a mesma medição publica **4,8% e selo `~`** — continua sendo
+> dispersão dentro da coleta, mas deixou de ser a mais indisciplinada da
+> tabela.
+>
+> O que mudou não foi a medição; foi a condição. A
+> [§5.1 da metodologia](metodologia.md#51-o-0397-é-1818--f-e-o-0205-é-1125--f)
+> mostra que aquele número vale 1,125 ciclos em qualquer ambiente, e que os
+> 27,5% eram o relógio variando durante a coleta — não o primitivo variando.
+>
+> <!-- cita-retratado: 27,5 27.5 -->
+>
+> **A escala continua existindo**; o que se perdeu foi o exemplo extremo dela.
+> Quem quiser um hoje encontra 20,6% em `2 MB hugepages` na região de 32 MB,
+> e ali a causa é outra: a competição por TLB de segundo nível, que a §4.1
+> descreve.
+> <!-- retratado: 27,5 27.5 -->
+
 #### A quarta, e por que ela é a mais fácil de confundir com as outras
 
-O `custo-comunicacao` variava de 17,7 a 27,2 ns entre coletas. O comentário do
-fonte atribuía isso à rampa de frequência e declarava o problema resolvido por
-uma acomodação de clock — **e a acomodação não pegou**. O protocolo que
-descobriu por quê alterna 30 s de ócio com medição:
+O `custo-comunicacao` varia de 16,9 a 22,7 ns entre execuções — faixa medida
+nas 50 execuções das dez coletas que o projeto arquiva. O comentário do fonte
+atribuía isso à rampa de frequência e declarava o problema resolvido por uma
+acomodação de clock — **e a acomodação não pegou**. O protocolo que descobriu
+por quê alterna 30 s de ócio com medição:
 
 ```
   apos 30 s de ociosidade   23,12  25,17  25,42  25,23
@@ -2815,8 +3180,10 @@ nucleo` — ALU pura, que depende diretamente do clock do core — não se move
 O que variava era o tráfego **entre núcleos**, e o reparo teve de condicionar
 com o próprio tráfego que se ia medir, por segundos — não com trabalho de ALU,
 que é o que já se fazia. Depois dele, as faixas passam a se sobrepor, e a
-travessia entre domínios fica em 81,45 ns com amplitude de 0,03 ns
-independentemente do estado da máquina.
+travessia entre domínios fica em **81,43 ns** de mediana, com amplitude de
+0,035 ns **dentro** de uma execução. Entre as 50 execuções ela vai de 81,36 a
+82,67 ns — 1,6% —, e as duas pontas são as coletas de canal único e de
+4800 MT/s: a grandeza que sobrou depende da memória, e quase nada.
 
 **Um comentário de código que declara um problema resolvido é mais perigoso que
 a ausência dele**, porque desliga a desconfiança de quem vem depois. Este ficou
@@ -3119,11 +3486,11 @@ revelou um viés que nenhuma estatística interna detectaria.
 
 | Medição | Aqui | Literatura | Veredito |
 |---|---:|---:|---|
-| Latência entre núcleos, mesmo CCD | ~23 ns | < 25 ns ([Tom's Hardware][th]) | **concorda** |
-| Latência entre núcleos, CCDs distintos | 83–102 ns entre execuções | 180–200 ns antes; 75–95 ns depois do AGESA 1.2.0.2 ([Tom's][th], [TechSpot][ts]) | **intermediário — ver abaixo** |
-| Falta de TLB / *page walk* | 10,40 ns (512 MB, pareado) | 8,80 ns em Core Duo T2600; 18,17 ns em Athlon 64 ([Gorman][lwntlb]) | **entre os dois — concorda** |
+| Latência entre núcleos, mesmo CCD | ~18 ns | < 25 ns ([Tom's Hardware][th]) | **concorda** |
+| Latência entre núcleos, CCDs distintos | 81,4 ns (mediana de 50 execuções) | 180–200 ns antes; 75–95 ns depois do AGESA 1.2.0.2 ([Tom's][th], [TechSpot][ts]) | **intermediário — ver abaixo** |
+| Falta de TLB / *page walk* | 10,64 ns (512 MB, pareado) | 8,80 ns em Core Duo T2600; 18,17 ns em Athlon 64 ([Gorman][lwntlb]) | **entre os dois — concorda** |
 | Custo de uma syscall | ~33 ns | centenas de ns; < 100 ns nos melhores casos ([Gregg][gregg], [Stoll][syscalls]) | **abaixo — explicado** |
-| Latência de memória (acesso disperso) | ~100 ns | ~70 ns em 9950X ([ChipsAndCheese][cc]); 139,5 ns em Opteron 844 ([McKenney][perfbook]) | **entre os dois — explicado** |
+| Latência de memória (acesso disperso) | ~89 ns | ~70 ns em 9950X ([ChipsAndCheese][cc]); 139,5 ns em Opteron 844 ([McKenney][perfbook]) | **entre os dois — explicado** |
 | Acordar thread bloqueada | ~1300 ns | ordem de µs; caminho lento por projeto ([futex][futex]) | concorda |
 
 ### Sincronização: confronto com a referência canônica
@@ -3147,10 +3514,10 @@ por isso que a tabela dele atravessa vinte anos e continua comparável
 | Operação | McKenney (Opteron 844, 4 soq., 1,8 GHz) | Aqui (Zen 5, 1 soq., ~5,6 GHz) |
 |---|---:|---:|
 | Período de clock | 0,6 ns | 0,180 ns |
-| CAS em melhor caso | 37,9 ns | 7,14 ns |
-| Trava em melhor caso | 65,6 ns | 2,04 ns |
-| Falta de cache | 139,5 ns | 20,96 ns (mesmo CCD) · 92,33 ns (outro) |
-| CAS com falta de cache | 306,0 ns | 19,31 ns (mesmo) · 91,55 ns (outro) |
+| CAS em melhor caso | 37,9 ns | 7,13 ns |
+| Trava em melhor caso | 65,6 ns | 2,06 ns |
+| Falta de cache | 139,5 ns | 20,86 ns (mesmo CCD) · 81,68 ns (outro) |
+| CAS com falta de cache | 306,0 ns | 20,08 ns (mesmo) · 81,50 ns (outro) |
 
 **Em ciclos de clock** — que é onde a comparação fica honesta, porque neutraliza
 a diferença de frequência entre as duas máquinas:
@@ -3159,8 +3526,8 @@ a diferença de frequência entre as duas máquinas:
 |---|---:|---:|---:|
 | CAS em melhor caso | 63 | 40 | — |
 | Trava em melhor caso | 109 | **11** | — |
-| Falta de cache | 232 | 116 | **513** |
-| CAS com falta de cache | 510 | 107 | **509** |
+| Falta de cache | 232 | 116 | **454** |
+| CAS com falta de cache | 510 | 112 | **453** |
 
 Duas leituras, e a segunda é o achado que justifica todo o exercício.
 
@@ -3169,10 +3536,11 @@ ciclos — dez vezes, e não por clock, já que a comparação está em ciclos. 
 efeito acumulado do caminho rápido do futex (§ abaixo) e de vinte anos de
 microarquitetura.
 
-**A travessia de fronteira de coerência não barateou nada.** Um CAS sobre linha
-detida por núcleo de outro domínio custa **509 ciclos aqui, contra 510 no
-Opteron de quatro soquetes de 2004**. Praticamente idêntico. A distância física
-e o protocolo de coerência não seguiram a lei de Moore.
+**A travessia de fronteira de coerência quase não barateou.** Um CAS sobre linha
+detida por núcleo de outro domínio custa **453 ciclos aqui, contra 510 no
+Opteron de quatro soquetes de 2004** — 11% em vinte anos, contra o fator de dez
+da trava local. A distância física e o protocolo de coerência não seguiram a lei
+de Moore.
 
 É essa assimetria que explica por que o gargalo se deslocou: quando a
 sincronização local fica dez vezes mais barata e atravessar um limite de
@@ -3191,7 +3559,7 @@ estudo mais exaustivo de sincronização até então, foi:
 
 É exatamente o que as medições da [§4.3](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só)
 mostram nesta máquina: **o mesmo código**, mudando apenas em quais núcleos as
-threads rodam, custa 23 ns ou 92 ns. Não há alteração de algoritmo, de
+threads rodam, custa 18 ns ou 81 ns. Não há alteração de algoritmo, de
 primitivo ou de linguagem — só de posicionamento.
 
 ### Por que o mutex sem disputa é tão barato: o projeto por trás
@@ -3258,7 +3626,7 @@ razão cai. Quanto exatamente depende de CPU, geração, PCID, versão de kernel
 de quais mitigações estão ativas — este documento não mede nada disso, e não
 afirma o que não mediu.
 
-**Consequência prática, e é ela que importa:** os **33,55 ns** medidos aqui não
+**Consequência prática, e é ela que importa:** os **33,3 ns** medidos aqui não
 são "o custo de uma syscall". São o custo *nesta CPU, neste kernel, com as
 mitigações efetivamente ativas nesta máquina*. Um leitor em outra configuração
 medirá outra coisa, e estará igualmente certo. O que **não** muda é a conclusão
@@ -3270,8 +3638,8 @@ A tese sobrevive ao caso mais favorável a mim.
 A comparação parece desfavorável até se olhar a metodologia. O número da
 ChipsAndCheese isola a latência de memória; o meu é um percurso disperso por
 512 MB que **inclui as faltas de TLB**. E esse custo eu medi separadamente na
-[§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço): ~11 ns de
-*page walk*, que somem com hugepages. Descontando os ~11 ns de page walk, restam ~94 ns, ainda acima dos ~70
+[§4.1](#41-memória-virtual-o-que-significa-traduzir-um-endereço): ~10 ns de
+*page walk*, que somem com hugepages. Descontando os ~10 ns de page walk, restam ~79 ns, ainda acima dos ~70
 — diferença compatível com configuração de memória diferente (velocidade e
 timings do DDR5 não são os mesmos).
 
@@ -3291,13 +3659,18 @@ Hardware][th], [TechSpot][ts]). São resultados de *benchmarks* em configuraçõ
 específicas — **não valores especificados pela AMD**, e não uma caracterização
 oficial do defeito.
 
-Nesta máquina os resultados caem entre essas faixas, com dispersão alta: a
-mediana variou de **83 a 102 ns** entre execuções, e dentro de uma mesma coleta
-as amostras foram de 83 a 123 ns. Essa instabilidade é, ela própria, um
-resultado — ver a nota da [§4.3](#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só)
-— mas **a causa não foi isolada**.
+Nesta máquina o resultado cai **dentro** da faixa posterior ao AGESA 1.2.0.2, e
+é estável: a mediana é de **81,43 ns**, e as 50 execuções arquivadas em dez
+coletas ficam entre 81,36 e 82,67 ns, com dispersão interna de 0,0% a 0,1%. As
+duas coletas que mais se afastam são as de um pente só e as de 4800 MT/s, e o
+afastamento é de 1,6% — coerente com a [§4.2](#42-cache-e-localidade),
+onde a travessia entre domínios é justamente a grandeza menos sensível à
+memória.
 
-Há pelo menos quatro variáveis ainda não controladas:
+<!-- retratado: 102 123 -->
+
+Concordar com a faixa externa não fecha a questão. Restam três variáveis não
+controladas, e elas limitam o que a concordância autoriza a dizer:
 
 **1. Metodologia.** O ping-pong mede uma ida e volta e divide por dois. Esse
 número inclui não só a transferência e a coerência da linha de cache, mas também
@@ -3316,21 +3689,22 @@ e posteriores ao 1.2.0.2.
 controlar exatamente quais núcleos físicos e quais CCDs participam de cada
 amostra, e excluir migração de thread e pares SMT como variáveis.
 
-**4. Frequência.** As medições rodaram com escalonamento dinâmico ativo — e
-[a §9](#9-validação-reproduza-na-sua-máquina) documenta o que isso faz: no mesmo
-laço, ciclos por operação constantes e tempo por operação variando 29% com o
-clock.
+> **A frequência foi controlada, e não move esta grandeza.** A coleta em modo
+> texto com o governor em `performance` dá **81,43 ns** — o mesmo valor das
+> coletas em `powersave`. O escalonamento dinâmico move o tempo por operação em
+> outros laços, e [a §9](#9-validação-reproduza-na-sua-máquina) documenta 29%
+> num deles; neste, não move. É o tipo de variável que só sai da lista quando
+> alguém a mede, e não quando alguém argumenta que ela não deveria importar.
 
-> **Portanto, 83–102 ns não é apresentado aqui como a latência entre CCDs do Zen
-> 5.** É o intervalo observado por **este** experimento, nesta máquina e sob
-> essas condições. E convém a precisão de vocabulário: o ping-pong mede uma
+> **Portanto, 81,4 ns não é apresentado aqui como a latência entre CCDs do Zen
+> 5.** É o valor observado por **este** experimento, nesta máquina e sob essas
+> condições. E convém a precisão de vocabulário: o ping-pong mede uma
 > **latência de comunicação entre duas threads**, da qual a transferência da
-> linha de cache é um componente. Chamar os 83–123 ns de "o tempo de a linha
+> linha de cache é um componente. Chamar os 81,4 ns de "o tempo de a linha
 > viajar" torna misteriosa uma divergência que, assim enunciada, deixa de ser.
 
-Fechar a questão exigiria identificar a versão de BIOS/AGESA, fixar frequência e
-afinidade, repetir exatamente os mesmos pares de núcleos e comparar com uma
-ferramenta de referência. Esse grau de caracterização pertence à Etapa 5 do
+Fechar a questão exigiria identificar a versão de BIOS/AGESA, repetir exatamente
+os mesmos pares de núcleos e comparar com uma ferramenta de referência. Esse grau de caracterização pertence à Etapa 5 do
 [roadmap](../../ROADMAP.md); para Fundamentos basta **registrar a discrepância
 sem atribuir a ela uma causa que o experimento não isolou**.
 
@@ -3376,13 +3750,13 @@ nível. `ρ = serviço / orçamento`, com o serviço medido **em saturação** �
 
 | Trabalho | Serviço | ρ | Perdidos | Latência mediana | Latência p99 |
 |---:|---:|---:|---:|---:|---:|
-| 8 | 33,5 ns | 0,50 | 0,0 % | 32 ns | 2 426 ns |
-| 16 | 35,3 ns | 0,52 | 0,0 % | 33 ns | 55 ns |
-| 24 | 41,0 ns | 0,61 | 0,0 % | 39 ns | 60 ns |
-| 32 | 46,6 ns | 0,69 | 0,0 % | 47 ns | 1 822 ns |
-| 40 | 52,5 ns | 0,78 | 0,0 % | 50 ns | 7 443 ns |
-| 64 | 70,7 ns | **1,05** | **1,5 %** | **38 762 ns** | 44 595 ns |
-| 96 | 105,9 ns | 1,58 | 22,5 % | 51 830 ns | 56 412 ns |
+| 8 | 32,3 ns | 0,48 | 0,0 % | 30 ns | 381 ns |
+| 16 | 35,3 ns | 0,53 | 0,0 % | 34 ns | 50 ns |
+| 24 | 41,0 ns | 0,61 | 0,0 % | 36 ns | 58 ns |
+| 32 | 46,9 ns | 0,70 | 0,0 % | 38 ns | 60 ns |
+| 40 | 52,5 ns | 0,78 | 0,0 % | 52 ns | 188 ns |
+| 64 | 69,7 ns | **1,04** | **1,2 %** | **38 253 ns** | 39 650 ns |
+| 96 | 92,6 ns | 1,38 | 19,2 % | 50 648 ns | 52 067 ns |
 
 ### 11.2 Três leituras
 
@@ -3391,21 +3765,76 @@ aparece depois de 1. Não existe regime estável de "levemente sobrecarregado":
 passando de 1, o excesso é cumulativo, e a fila não se recupera enquanto a
 chegada não parar.
 
-**2. A latência mediana muda de grandeza na travessia.** De 50 ns para
-38 762 ns — cerca de 775 vezes — entre ρ = 0,78 e ρ = 1,05. Não é a mesma
+**2. A latência mediana muda de grandeza na travessia.** De 52 ns para
+38 253 ns — cerca de 736 vezes — entre ρ = 0,78 e ρ = 1,04. Não é a mesma
 variável ficando maior: antes da travessia a latência **é** o tempo de serviço;
 depois, é a profundidade da fila. Um gráfico de latência que atravesse esse
 ponto está mostrando duas coisas diferentes com o mesmo eixo.
 
-**3. A cauda degrada primeiro — e este é o achado operacional.** Em ρ = 0,78 a
-perda ainda é 0,0 % e a mediana ainda é 50 ns, mas o p99 já está em 7 443 ns:
-**149 vezes a mediana**. Quem monitora média e utilização média não vê nada,
-porque as duas continuam saudáveis. O percentil alto é o único indicador que
-avisa **antes** do dano.
+**3. A cauda NÃO avisa antes — e é isso que delimita o achado.** Na travessia
+os dois saltam **juntos** — 38 253 ns de mediana contra 39 650 de p99, razão
+1,0×. Quem esperasse o percentil alto como alarme antecipado não teria aviso
+nenhum neste experimento.
 
-É a mesma tese da [§7](#7-métricas-o-vocabulário-para-não-se-enganar) —
-desempenho não é previsibilidade — agora com o mecanismo à vista: a fila começa
-a formar antes de transbordar, e formar fila aparece primeiro na cauda.
+> **E abaixo de ρ = 1 a razão p99/mediana não é um múltiplo pequeno estável.**
+> A própria tabela dá 1,5× em ρ = 0,53, 1,6× em ρ = 0,61 e 0,70 — e então
+> **3,6× em ρ = 0,78** e **12,7× em ρ = 0,48**. Uma versão anterior deste
+> parágrafo lia a linha errada e publicava "1,4× em ρ = 0,78", que é a razão da
+> linha de ρ = 0,53.
+>
+> As duas razões altas **não são fila**: ρ = 0,48 é o ponto mais folgado da
+> tabela, e a nota da §11.1 mostra que aquele p99 varia de 340 a 29 935 ns
+> entre execuções enquanto a mediana não se move. O que elas dizem é que a
+> razão entre percentis, nesta escala, é governada por evento raro e não por
+> ocupação — e por isso ela não serve como alarme antecipado em nenhuma
+> direção, nem alta nem baixa.
+> <!-- retratado: interpretacao -->
+
+E isso não é surpresa, é a teoria da subseção seguinte aplicada a este
+programa: `orcamento-estourado.c` simula chegada **por prazo fixo**, e chegada
+determinística tem `ca² ≈ 0`. Por Kingman a espera abaixo de ρ = 1 é
+praticamente zero — não há fila se formando para aparecer primeiro na cauda.
+
+> **Esta leitura publicava o contrário, e a coleta limpa a derrubou.** O texto
+> afirmava que em ρ = 0,78 o p99 já estava em 7 443 ns, **149 vezes a mediana**,
+> e tirava dali um "achado operacional". Esse valor não aparece em nenhuma das
+> dez repetições das duas coletas em modo texto: o p99 daquela linha fica entre
+> 70 e 213 ns. A coluna inteira estava contaminada — as linhas de 8 e 32 passos
+> publicavam 2 426 e 1 822 ns, e na coleta limpa dão 381 e 60.
+>
+> O que se media era **ruído do ambiente**, não formação de fila, e a afirmação
+> contradizia a teoria que o próprio documento enuncia quatro parágrafos abaixo.
+> Um percentil alto num sistema com chegada regular mede a interferência da
+> máquina; foi preciso tirar a sessão gráfica do caminho para ver isso.
+>
+> A tese da [§7](#7-métricas-o-vocabulário-para-não-se-enganar) — desempenho não
+> é previsibilidade — continua de pé, e ganha uma condição: **a cauda avisa
+> antes quando a chegada é irregular**, que é o caso da
+> [§6.3](#63-quantos-descritores-e-o-que-eles-não-compram), onde a mesma carga
+> em rajada perde 26,6 % enquanto cadenciada não perde nada. Com chegada regular
+> ela não avisa, e monitorar p99 esperando aviso seria esperar de um instrumento
+> o que a distribuição não oferece.
+>
+> <!-- retratado: interpretacao -->
+> <!-- Os quatro valores derrubados aqui -- 7 443, 149, 2 426 e 1 822 -- sao
+>      INTEIROS, e este portao so rastreia decimais. Marca-los seria escrever
+>      uma garantia que ele nao pode dar. O 26,6 % do bloco esta VIVO: e a
+>      perda da coleta atual, nao um valor retratado. -->
+
+> **Uma exceção na tabela, e ela não é fila.** A linha de 8 passos dá p99 de
+> 381 ns contra mediana de 30 — 12,7×, a maior razão da tabela. Não pode ser
+> fila: ρ = 0,48 é o ponto mais folgado. É um custo fixo ocasional — uma
+> interrupção, uma falta de cache — que pesa **relativamente** mais justamente
+> onde a mediana é menor. Razão entre percentis exige olhar a escala absoluta
+> antes de virar conclusão.
+>
+> **E esse p99 não é estável, o que reforça a leitura.** Nas 50 execuções
+> arquivadas desta medição, a mediana da latência fica entre 30 e 33 ns, mas o
+> p99 desta linha vai de **340 ns a 29 935 ns** — quartis em 376 e 427, mediana
+> em 388. Uma cauda que varia oitenta vezes entre execuções enquanto a mediana
+> não se move é a assinatura de evento raro, não de acúmulo: fila deixaria
+> rastro na mediana. O valor publicado acima é de uma execução, e está perto da
+> mediana entre elas; uma única execução não mede esta cauda.
 
 #### O que a teoria diz, e onde ela diverge desta medição
 
@@ -3439,13 +3868,13 @@ utilização. A observação do documento estava certa e sem nome.
 >
 > **E isso deixou de ser advertência.** A
 > [§6.3](#63-quantos-descritores-e-o-que-eles-não-compram) mede o mesmo tráfego
-> nas duas distribuições: cadenciado, perda zero; em rajada, **30,8 % de perda
-> com ρ médio de 0,022**. O `ca²` sai de 0,00 para 2,82.
+> nas duas distribuições: cadenciado, perda zero; em rajada, **26,6 % de perda
+> com ρ médio de 0,019**. O `ca²` sai de 0,00 para 2,99.
 
 > **Correção: esta seção atribuía essa perda ao termo de Kingman, e a
 > atribuição estava errada.** O texto dizia que o `ca²` medido era "o termo de
 > Kingman, medido em vez de suposto", o que sugere que a aproximação explica os
-> 30,8 %. Ela não explica, e a §6.3 sempre disse o contrário — *"com `ρ > 1` não
+> 26,6 %. Ela não explica, e a §6.3 sempre disse o contrário — *"com `ρ > 1` não
 > há estado estacionário para calcular; é aritmética de acúmulo"*. O documento
 > contradizia a si mesmo, e o lado errado era este.
 >
@@ -3455,7 +3884,7 @@ utilização. A observação do documento estava certa e sem nome.
 > de 1 e não há estado estacionário; o anel de descritores é finito; e um
 > processo de dois estados tem intervalos **correlacionados**, porque o estado
 > modulador persiste. A própria aritmética denuncia o problema — uma
-> aproximação avaliada em `ρ = 0,022` prevê espera desprezível, não 30,8 % de
+> aproximação avaliada em `ρ = 0,019` prevê espera desprezível, não 26,6 % de
 > perda.
 >
 > O que governa é o acúmulo, `dQ/dt = λ_rajada − μ`, integrado sobre a duração
@@ -3467,6 +3896,7 @@ utilização. A observação do documento estava certa e sem nome.
 > `ca²` e concentração temporal diferente enchem uma fila finita de modos
 > diferentes. Um número que resume uma distribuição não carrega a dependência
 > temporal dela.
+> <!-- retratado: interpretacao -->
 
 > **Consequência de projeto.** Dimensionar para a carga média é insuficiente. O
 > que decide a sobrevivência é a margem sobre o **pico**, e o indicador que
@@ -3559,6 +3989,7 @@ reproduz é a **aritmética** da sobrecarga, que é a mesma; o que ela não repr
 [napi]: https://www.kernel.org/doc/html/latest/networking/napi.html
 [scaling]: https://www.kernel.org/doc/html/latest/networking/scaling.html
 [hugetlb]: https://www.kernel.org/doc/html/latest/admin-guide/mm/hugetlbpage.html
+[sogzen5]: https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/software-optimization-guides/58455_amd-zen5-software-optimization-guide.pdf
 [thp]: https://docs.kernel.org/admin-guide/mm/transhuge.html
 [superpages]: https://www.usenix.org/legacy/event/osdi02/tech/full_papers/navarro/navarro.pdf
 [lwntlb]: https://lwn.net/Articles/379748/

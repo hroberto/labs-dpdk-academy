@@ -1,0 +1,28 @@
+EAL: Detected CPU lcores: 24
+EAL: Detected NUMA nodes: 1
+EAL: Detected shared linkage of DPDK
+EAL: Multi-process socket /tmp/dpdk/camp_cont_5/mp_socket
+EAL: Selected IOVA mode 'VA'
+  origin: custo-contencao @ v0.07.00-25-g836c47a  |  dskhmartins Linux 7.0.0-34-generic  |  gcc 15.2.0  |  2026-09-25T18:12:11-0300  |  DPDK 25.11.0
+
+
+== Contention over the SAME source of objects ==
+  pool of 32767 objects of 128 B, batch 32, per-lcore cache = 0
+  lcores available: 24
+
+  repetitions per point: 9 (median; disp = IQR/median)
+
+  threads               mempool               malloc      ratio
+  -------               -------               ------      -----
+  1               0.62 ns     0%       12.62 ns     0%        20x
+  2               3.46 ns     1%       12.44 ns     0%      3.6x
+  4              11.72 ns     0%       12.46 ns     0%      1.1x
+  8              58.51 ns     0%       12.66 ns     0%      0.2x  <- cruza CCD
+  16            150.39 ns     0%       15.27 ns     1%      0.1x  <- cruza CCD e SMT
+
+  The marks on the right say which boundary each row crosses.
+  Rows are NOT comparable across a mark: with more threads than
+  physical cores in one L3 domain, contention starts crossing the
+  interconnect; past the physical core count, two threads share one
+  core's execution units. Three factors, one column.
+

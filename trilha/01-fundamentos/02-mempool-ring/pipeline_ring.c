@@ -35,6 +35,7 @@
 
 #include <getopt.h>
 #include <inttypes.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -159,9 +160,31 @@ struct consumer_context {
     unsigned burst;
     uint64_t target;
     struct summary r;
+    /* OS DOIS CAMPOS ABAIXO SAO LIDOS POR UM LCORE E ESCRITOS POR OUTRO.
+     *
+     * `volatile` nao serve para isso, e a distincao nao e academica: ele impede
+     * o compilador de eliminar o acesso, e NAO torna o acesso indivisivel nem
+     * ordena nada contra o modelo de memoria. Um `uint64_t` lido enquanto outro
+     * nucleo o escreve e corrida de dados -- comportamento indefinido em C11,
+     * independentemente de x86-64 na pratica devolver o valor inteiro. O
+     * compilador tem licenca para supor que a corrida nao existe, e e por essa
+     * licenca que otimizacao quebra codigo que "funcionava".
+     *
+     * `memory_order_relaxed` nos dois: nenhum deles publica OUTRO dado. Sao
+     * sinais isolados -- "pare" e "estou avancando" --, e o que se exige deles e
+     * atomicidade e visibilidade eventual, nao ordenacao. Um `acquire`/`release`
+     * aqui seria custo sem consumidor. Isso NAO e licenca geral: o anel e o
+     * mempool publicam dados, e la a ordenacao e da biblioteca. */
+
     /* Pedido de parada, escrito pelo produtor e lido pelo consumidor. A
      * terminacao e pedida, nao imposta. Ver README.md secao 6.5 "Terminacao sob falha". */
-    volatile int parar;
+    _Atomic int parar;
+    /* Progresso do consumidor, para o cao de guarda do produtor.
+     *
+     * Separado de `r.packets` de proposito: aquele e o contador do caminho
+     * quente, lido e escrito so pelo consumidor, e torna-lo atomico mudaria o
+     * que o programa mede. Este e escrito UMA vez por lote, nao por pacote. */
+    _Atomic uint64_t progresso;
     /* Maior lote REALMENTE desenfileirado de uma vez. O parametro ecoado nao
      * e evidencia de uso. Ver README.md secao 5.2 "O contrato e o codigo de saida, nao a mensagem". */
     unsigned maior_deq;
@@ -177,13 +200,16 @@ static int consumer_loop(void *arg)
     struct packet *burst[BURST_MAX];
 #endif
 
-    while (c->r.packets < c->target && !c->parar) {
+    while (c->r.packets < c->target && !atomic_load_explicit(&c->parar, memory_order_relaxed)) {
 #ifndef DPDK_ACADEMY_INJECT_PAUSE
         const unsigned deq = rte_ring_dequeue_burst(c->ring, (void **)burst, c->burst, NULL);
         if (deq > c->maior_deq) c->maior_deq = deq;
         if (deq > 0) {
             packet_process_burst(burst, deq, &c->r);
             rte_mempool_put_bulk(c->pool, (void *const *)burst, deq);
+            /* Uma escrita por LOTE. O cao de guarda so precisa saber que o
+             * numero anda, nao qual e. */
+            atomic_store_explicit(&c->progresso, c->r.packets, memory_order_relaxed);
         }
 #else
         /* CONSUMIDOR PARADO DE PROPOSITO, compilado so na variante de teste.
@@ -192,6 +218,26 @@ static int consumer_loop(void *arg)
 #endif
     }
     return 0;
+}
+
+/* Primeira CPU do cpuset de um lcore.
+ *
+ * `rte_lcore_id()` devolve o identificador de lcore da EAL, que NAO e um numero
+ * de CPU: a identidade entre os dois so vale quando o comando usa `-l` com uma
+ * lista que coincide, e quebra em silencio com `--lcores` remapeando. Passar o
+ * lcore direto a `freq_ghz` leria a frequencia de outro nucleo -- ou de nenhum,
+ * e o zero de "sysfs nao expoe" e indistinguivel do zero de "CPU errada".
+ *
+ * Nao se usa `rte_lcore_to_cpu_id()`: ela e descrita de formas incompativeis
+ * entre a documentacao e a implementacao conforme a release. O cpuset e o
+ * contrato estavel. Mesmo criterio de custo-contencao.c. */
+static unsigned cpu_do_lcore(unsigned lcore)
+{
+    rte_cpuset_t cs = rte_lcore_cpuset(lcore);
+    for (unsigned c = 0; c < CPU_SETSIZE; c++)
+        if (CPU_ISSET(c, &cs))
+            return c;
+    return lcore; /* sem cpuset legivel, o lcore e o melhor palpite disponivel */
 }
 
 /* Frequência corrente do núcleo, em GHz, ou 0 se o sistema não a expuser.
@@ -353,6 +399,8 @@ int main(int argc, char **argv)
         ctx.burst = cfg.burst;
         ctx.target = cfg.num_packets;
         ctx.r.packets = 0;
+        atomic_store_explicit(&ctx.progresso, 0, memory_order_relaxed);
+        atomic_store_explicit(&ctx.parar, 0, memory_order_relaxed);
         ctx.r.bytes = 0;
         /* O retorno importa, e a falha mais provável é instrutiva: -EBUSY
          * significa que o lcore NÃO está em WAIT — ou seja, já recebeu trabalho
@@ -432,10 +480,15 @@ int main(int argc, char **argv)
          * bloquear e `rte_eal_wait_lcore`, nao o laco do produtor.
          * Ver README.md secao 6.5 "Terminacao sob falha". */
         if (prazo_ciclos && !sem_progresso) {
-            uint64_t visto = ctx.r.packets, desde = rte_rdtsc();
-            while (ctx.r.packets < cfg.num_packets) {
-                if (ctx.r.packets != visto) {
-                    visto = ctx.r.packets;
+            uint64_t visto = atomic_load_explicit(&ctx.progresso, memory_order_relaxed);
+            uint64_t desde = rte_rdtsc();
+            for (;;) {
+                const uint64_t agora_visto =
+                    atomic_load_explicit(&ctx.progresso, memory_order_relaxed);
+                if (agora_visto >= cfg.num_packets)
+                    break;
+                if (agora_visto != visto) {
+                    visto = agora_visto;
                     desde = rte_rdtsc();
                 } else if (rte_rdtsc() - desde > prazo_ciclos) {
                     sem_progresso = 1;
@@ -446,12 +499,14 @@ int main(int argc, char **argv)
         }
         /* Pede a parada ANTES de esperar. Ver README.md secao 6.5 "Terminacao sob falha". */
         if (sem_progresso)
-            ctx.parar = 1;
+            atomic_store_explicit(&ctx.parar, 1, memory_order_relaxed);
         rte_eal_wait_lcore(lcore_consumer);
         r = ctx.r;
     }
 
     const uint64_t cycles = rte_rdtsc() - t0;
+    /* Lido aqui, fora dos lacos: o portao recusa getenv() por iteracao. */
+    const int relatar_bruto = getenv("DPDK_ACADEMY_BRUTO") != NULL;
     const double ns_per_packet = (double)cycles * 1e9 / (double)rte_get_tsc_hz() / (double)r.packets;
 
     print_provenance("pipeline_ring");
@@ -473,8 +528,8 @@ int main(int argc, char **argv)
         printf("Mode: 1 lcore (%u), producer and consumer interleaved\n", rte_lcore_id());
     /* DRENAGEM: o que ficou no anel volta ao pool antes de qualquer relato.
      * Ver README.md secao 6.5 "Terminacao sob falha". */
-    uint64_t descartados = 0;
     if (sem_progresso) {
+        uint64_t descartados = 0;
         void *sobra[BURST_MAX];
         unsigned deq;
         while ((deq = rte_ring_dequeue_burst(ring, sobra, BURST_MAX, NULL)) > 0) {
@@ -489,7 +544,26 @@ int main(int argc, char **argv)
     relatar_mempool(pool);
     if (r.packets >= MIN_TO_MEASURE) {
         printf("Mean time: %.1f ns/packet\n", ns_per_packet);
-        const double f = freq_ghz(rte_lcore_id());
+        /* INGREDIENTES BRUTOS, so quando pedidos.
+         *
+         * A media acima sai com UMA casa decimal, e isso e deliberado: sobre
+         * ~5 ns por pacote, publicar mais casas afirmaria uma precisao que uma
+         * execucao nao sustenta -- o mesmo argumento que o README faz contra o
+         * numero de `-n 10`.
+         *
+         * Mas uma casa quantiza em 2%, e o estudo que quer ligar taxa de miss a
+         * TEMPO precisa comparar diferencas dessa mesma ordem. Emitir os tres
+         * inteiros de onde a media sai resolve os dois lados: nao ha
+         * arredondamento nenhum, e nenhuma precisao e afirmada -- quem analisa
+         * deriva a que os dados sustentarem.
+         *
+         * Fora da variavel, a saida nao muda um byte, e os blocos publicados
+         * que reproduzem esta saida continuam valendo. */
+        if (relatar_bruto)
+            printf("raw timing: cycles=%" PRIu64 " tsc_hz=%" PRIu64
+                   " packets=%" PRIu64 "\n",
+                   cycles, rte_get_tsc_hz(), r.packets);
+        const double f = freq_ghz(cpu_do_lcore(rte_lcore_id()));
         if (f > 0.0)
             printf("Frequency of lcore %u: %.2f GHz (the time above varies with it)\n",
                    rte_lcore_id(), f);

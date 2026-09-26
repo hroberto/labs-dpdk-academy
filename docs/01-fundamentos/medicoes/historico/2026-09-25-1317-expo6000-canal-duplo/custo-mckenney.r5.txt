@@ -1,0 +1,34 @@
+  origin: custo-mckenney @ v0.07.00-23-g75b86d7  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-25T14:05:02-0300
+
+McKenney's Table 3.1, reproduced on this machine
+(25 samples per measurement; times in ns)
+
+  Reference: McKenney, "Is Parallel Programming Hard...", Table 3.1,
+  measured on an AMD Opteron 844, 1.8 GHz, 4 sockets.
+  Here: 1 socket, 2 L3 domains. Measured clock period: 0.181 ns.
+
+BEST CASE - the cache line is already on this core
+
+  measurement                           median  p25-p75 (IQR)     cycles       disp
+  ---------------------------------- ---------  --------------- --------      -----
+  CAS, best case                          7.14  7.14-7.15             40        0.1%  
+  lock, best case                         2.04  2.03-2.04             11        0.5%  
+
+CACHE MISS - the line is on another core and has to migrate
+
+  measurement                           median  p25-p75 (IQR)     cycles       disp
+  ---------------------------------- ---------  --------------- --------      -----
+  plain miss, same L3 domain             20.79  20.77-20.96          115        0.9%  
+  CAS with miss, same L3 domain          20.03  19.99-20.06          111        0.4%  
+  plain miss, OTHER L3 domain            81.77  81.75-81.79          453        0.0%  
+  CAS with miss, OTHER L3 domain         81.45  81.44-81.48          451        0.0%  
+
+  For comparison, McKenney's values in CYCLES (0.6 ns period):
+    CAS best case    63 | lock best case   109
+    cache miss      232 | CAS with miss     510
+
+  McKenney's system has 4 sockets; there 'another core' can
+  mean another socket. Here the equivalent distinction is between the
+  two L3 domains -- the last two rows against the two
+  before them. That is the SOSP 2013 conclusion: the scalability of
+  synchronisation is, above all, a property of the hardware.

@@ -1,8 +1,0 @@
-inicio: 2026-09-20T12:48:32-03:00  carga: 0.41 0.25 0.10  uptime: up 4 minutes
-[aquecimento(descartado)] 12:48:32 carga 0.41
-[rodada1] 12:52:26 carga 1.18
-[rodada2] 12:56:20 carga 1.29
-[rodada3] 13:00:08 carga 1.56
-[rodada4] 13:03:49 carga 1.05
-[rodada5] 13:07:29 carga 1.07
-fim: 2026-09-20T13:11:09-03:00  carga: 1.01 1.10 0.99

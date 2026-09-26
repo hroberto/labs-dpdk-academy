@@ -105,8 +105,8 @@ fi
 # --- 2. Consistência específica deste projeto -----------------------------
 titulo "2. Consistência do projeto"
 
-# INCIDENTE: `--in-memory --no-huge` juntos são rejeitados até o DPDK 23.11
-# (`--no-huge` liga `--legacy-mem`, incompatível com `--in-memory`). Passava
+# INCIDENTE: `--in-memory --no-huge` juntos são rejeitados até o DPDK 25.07
+# (`--no-huge` liga `legacy_mem`, incompatível com `--in-memory`). Passava
 # aqui, quebrava na CI. Só vale para INVOCAÇÕES; a prosa pode citar a
 # combinação, e cita, para ensinar por que ela falha.
 # `-e` e nao `--`: com `--` o grep trata `--include` como NOME DE ARQUIVO, e
@@ -145,10 +145,17 @@ if [ -f .github/workflows/ci.yml ]; then
     # depende de rede e de `gh`, e um pre-commit que exige os dois nao roda em
     # aviao nem em maquina de terceiros.
     if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-        while read -r acao sha; do
+        # O MAJOR VEM DO COMENTARIO MAIS PROXIMO ACIMA DO PIN, e nao do
+        # primeiro do arquivo.
+        #
+        # A versao anterior fazia `grep ... | head -1`: com uma acao so, ela
+        # acertava; ao entrar a segunda (`actions/cache@v4`), passou a comparar
+        # o SHA dela contra `v7` do checkout e acusar divergencia que nao
+        # existia. Verificador que erra quando o arquivo cresce nao protege o
+        # arquivo crescido.
+        while read -r acao sha major; do
             [ -n "$sha" ] || continue
-            major=$(grep -oE "# *Corresponde a v[0-9]+" .github/workflows/ci.yml | grep -oE 'v[0-9]+' | head -1)
-            [ -n "$major" ] || { aviso "pin de $acao sem 'Corresponde a vN' no comentario"; continue; }
+            [ -n "$major" ] || { aviso "pin de $acao sem 'Corresponde a vN' num comentario acima"; continue; }
             esperado=$(timeout 20 gh api "repos/$acao/git/ref/tags/$major" --jq '.object.sha' 2>/dev/null || echo "")
             if [ -z "$esperado" ]; then
                 aviso "nao consegui resolver $acao@$major (offline?)"
@@ -159,8 +166,12 @@ if [ -f .github/workflows/ci.yml ]; then
                 printf '          fixado:  %s\n          %s hoje: %s\n' "$sha" "$major" "$esperado"
                 printf '          Se veio de um PR do Dependabot, confira se e salto de major.\n'
             fi
-        done < <(grep -oE 'uses: [a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+@[0-9a-f]{40}' .github/workflows/ci.yml \
-                 | sed 's/uses: //' | tr '@' ' ')
+        done < <(awk '
+            /^[[:space:]]*#.*Corresponde a v[0-9]+/ { match($0, /v[0-9]+/); m = substr($0, RSTART, RLENGTH) }
+            match($0, /uses: [a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+@[0-9a-f]{40}/) {
+                t = substr($0, RSTART + 6, RLENGTH - 6)
+                split(t, p, "@"); print p[1], p[2], m; m = "" }
+        ' .github/workflows/ci.yml)
     else
         aviso "gh ausente ou nao autenticado: versao do SHA fixado nao verificada"
     fi
@@ -258,6 +269,54 @@ if [ -x ferramental/qualidade/verificar-retratacoes.py ]; then
         | grep -oP '^\s+\K[0-9]+(?= SEM CLASSIFICACAO)' || true)
     if [ -n "$n" ] && [ "$n" -gt 0 ]; then
         aviso "$n numero(s) arredondados SEM CLASSIFICACAO (triagem: --arredondados)"
+    fi
+fi
+
+# CELULA DE TABELA SEM LASTRO: visivel, e fora do veredito.
+#
+# Tabela Markdown nao e bloco de cerca, entao o `verificar-blocos` nao a ve. Em
+# 25/09/2026 eram 141 linhas de tabela com numero medido em 10 documentos, sem
+# quem as conferisse -- e foi por ai que o modulo 02 passou a publicar 117,8 ms
+# e 122,4 ms para a MESMA configuracao, no mesmo documento.
+#
+# Fora do veredito porque a maioria das celulas sem lastro pede CAMPANHA ou
+# DECISAO editorial: o valor e calculado da taxa de linha, citado de outra
+# maquina, ou vem de coleta que o projeto descartou de proposito. Vermelho que
+# ninguem consegue limpar ensina a passar `--no-verify`.
+if [ -x ferramental/qualidade/relatar-tabelas-medidas.py ]; then
+    out=$(./ferramental/qualidade/relatar-tabelas-medidas.py 2>&1 || true)
+    n=$(grep -oE '[0-9]+ sem lastro' <<<"$out" | grep -oE '^[0-9]+' || echo 0)
+    if [ "${n:-0}" -gt 0 ]; then
+        aviso "tabelas: $n celula(s) com unidade sem lastro em coleta arquivada"
+        echo "          detalhe: ./ferramental/qualidade/relatar-tabelas-medidas.py --listar"
+        echo "          triagem: temp/pendencias-tabelas-medidas.md"
+    else
+        ok "tabelas: toda celula com unidade tem lastro em coleta"
+    fi
+fi
+
+# ENVELHECIMENTO DE BLOCO: visivel, e fora do veredito.
+#
+# O `verificar-blocos` pergunta se cada linha existe em ALGUMA coleta. Certo
+# contra invencao, cego a envelhecimento: depois de uma coleta nova a linha
+# continua existindo na velha, e o portao segue verde enquanto o documento
+# publica o que a maquina nao produz mais.
+#
+# O `comparar-publicado` faz a pergunta complementar -- a coleta ATUAL
+# contradiz? -- e NAO entra no laco acima porque nao se chama `verificar-*`.
+# Mesma armadilha que deixou o `inventariar-dados` anos fora da barra.
+#
+# FORA DO VEREDITO, e por decisao: a coleta mais nova pode ser um braco de
+# controle, e o documento publicar a de referencia de proposito. Um portao que
+# acusa o certo ensina a ignorar o errado. O que ele nao pode e ficar invisivel.
+if [ -x ferramental/qualidade/comparar-publicado.py ]; then
+    out=$(./ferramental/qualidade/comparar-publicado.py 2>&1 || true)
+    n=$(grep -oE '[0-9]+ com MEDIANA diferente' <<<"$out" | grep -oE '^[0-9]+' || echo 0)
+    if [ "${n:-0}" -gt 0 ]; then
+        aviso "envelhecimento: $n linha(s) publicada(s) com mediana diferente da coleta atual"
+        echo "          detalhe: ./ferramental/qualidade/comparar-publicado.py --so-mediana"
+    else
+        ok "envelhecimento: nenhuma mediana publicada contradiz a coleta atual"
     fi
 fi
 
@@ -415,7 +474,13 @@ if [ -n "${CI:-}${GITHUB_ACTIONS:-}" ]; then
     fi
 elif [ "$(git config --get commit.gpgsign || echo false)" = "true" ]; then
     chave=$(git config --get user.signingkey || echo "")
-    if [ -n "$chave" ]; then ok "commit.gpgsign ativo (chave ${chave:0:16}…)"
+    # TRUNCAR NAO BASTA QUANDO A CHAVE E UM CAMINHO. Os dezesseis primeiros
+    # caracteres de um caminho sob o diretorio pessoal sao exatamente o prefixo
+    # que carrega o nome de usuario, e a saida deste portao e arquivada junto
+    # das campanhas -- num repositorio publico.
+    # Chave por ID continua sendo mostrada; caminho vira so o nome do arquivo.
+    case "$chave" in /*|~*) chave="…/$(basename "$chave")" ;; esac
+    if [ -n "$chave" ]; then ok "commit.gpgsign ativo (chave ${chave:0:24}…)"
     else falha "commit.gpgsign ativo mas user.signingkey não definido"; fi
 else
     falha "commit.gpgsign desligado — a main exige assinatura verificada"

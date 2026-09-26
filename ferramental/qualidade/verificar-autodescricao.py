@@ -192,14 +192,25 @@ def formas_do_numero(numero):
     documento usa. O custo de uma forma a mais e um falso negativo raro; o custo
     de uma forma a menos e ruido constante, que custa mais.
     """
+    # O FECHAMENTO E ITERATIVO, e esse e o ponto.
+    #
+    # Aplicar cada substituicao apenas sobre a forma ORIGINAL cobre numeros que
+    # diferem em UM ponto. Nao cobre `1,112.6` contra `1 112,6`, que difere em
+    # DOIS ao mesmo tempo -- milhar e decimal -- e e a grafia de qualquer numero
+    # de quatro digitos com casa decimal. Sem a iteracao, toda tabela com um
+    # desses e acusada.
     formas = {numero}
-    for f in list(formas):
-        formas |= {f.replace(".", ","), f.replace(",", "."),
-                   f.replace(",", ""), f.replace(".", ""),
-                   f.replace(",", "\u202f"), f.replace(",", " "),
-                   f.replace(".", "\u202f"),
-                   f.replace(" ", "\u202f"), f.replace("\u202f", " "),
-                   f.replace("\u202f", ""), f.replace(" ", "")}
+    for _ in range(3):          # tres passadas bastam: ha dois pontos a trocar
+        antes = len(formas)
+        for f in list(formas):
+            formas |= {f.replace(".", ","), f.replace(",", "."),
+                       f.replace(",", ""), f.replace(".", ""),
+                       f.replace(",", "\u202f"), f.replace(",", " "),
+                       f.replace(".", "\u202f"), f.replace(".", " "),
+                       f.replace(" ", "\u202f"), f.replace("\u202f", " "),
+                       f.replace("\u202f", ""), f.replace(" ", "")}
+        if len(formas) == antes:
+            break
     return formas
 
 
@@ -275,6 +286,19 @@ def verificar(raiz="."):
         # ROADMAP passaria a falar de um total que não corresponde ao material,
         # só à contagem de arquivos. É o mesmo documento noutra língua.
         if doc.endswith(".en.md"):
+            continue
+        # NOTA DENTRO DE UMA COLETA NAO E UM DOCUMENTO DO MATERIAL.
+        #
+        # `historico/README.md` E documento: ele explica o diretorio e o leitor
+        # o procura. Ja um arquivo dentro de `historico/<coleta>/` viaja com os
+        # dados daquela execucao -- e o lugar certo para dizer por que aquela
+        # coleta e parcial, ou o que ela nao responde.
+        #
+        # Sem esta distincao o censo sobe a cada coleta anotada, e a alternativa
+        # -- nao anotar -- e pior: deixa um diretorio de numeros sem quem diga o
+        # que eles valem.
+        rel = os.path.relpath(doc, raiz).split(os.sep)
+        if "historico" in rel and rel.index("historico") < len(rel) - 2:
             continue
         docs += 1
         try:
@@ -728,11 +752,14 @@ def autoteste():
     #   34. o limite declarado -- numero TROCADO por outro que existe no
     #       documento passa. Fica registrado para nao se confundir esta regra
     #       com conferencia de valor.
-    par_pt = "# m\n\ntexto com 1\u202f023 e 4,4 ns.\n"
+    par_pt = "# m\n\ntexto com 1\u202f023, 1 112,6 e 4,4 ns.\n"
     for rotulo, en, espera in (
             ("numero inventado", "# m\n\ntext with 9,876 and 4.4 ns.\n", 1),
             ("grafia inglesa do milhar", "# m\n\ntext with 1,023 and 4.4 ns.\n", 0),
-            ("numero trocado por outro do documento", "# m\n\ntext with 4.4 and 4.4 ns.\n", 0)):
+            ("numero trocado por outro do documento", "# m\n\ntext with 4.4 and 4.4 ns.\n", 0),
+            # 34b. milhar E decimal ao mesmo tempo -- o caso que exige o
+            # fechamento iterativo de `formas_do_numero`.
+            ("milhar com casa decimal", "# m\n\ntext with 1,112.6 and 4.4 ns.\n", 0)):
         rc, saida = rodar({"trilha/m.md": par_pt, "trilha/m.en.md": en})
         if rc != espera:
             print(f"  AUTOTESTE 31-34 FALHOU: {rotulo} deu rc={rc}, esperado {espera}")

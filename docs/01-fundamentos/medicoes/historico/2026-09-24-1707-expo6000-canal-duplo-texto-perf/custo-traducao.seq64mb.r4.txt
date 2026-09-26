@@ -1,0 +1,23 @@
+  origin: custo-traducao @ v0.06.00-30-g7e66c68  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-24T17:30:49-0300
+
+Address translation cost (sequential walk over 64 MB)
+(21 samples per measurement; times in ns)
+
+  measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
+  ---------------------------------- ---------  --------------- ----------------- ----- -----
+  4 KB pages                              1.27  1.23-1.33       1.23-1.37           7.2%   3.8% ~
+  2 MB hugepages                          1.36  1.35-1.37       1.33-1.38           1.1%   0.9%  
+
+  The difference below is PAIRED -- delta_i = t_4k,i - t_2m,i in the same
+  loop iteration -- and therefore has a distribution of its own:
+
+  DIFFERENCE attributable to translation    -0.081  IQR -0.125 to -0.042   range -0.142 to 0.019   19/21 pairs
+
+  page walk cost: -0.08 ns  (-6.4% of the 4 KB access)
+  the last column is what supports the conclusion: in 19 of 21 pairs the
+  4 KB page was the slower one. Subtracting two medians does not say that.
+
+  RAM latency (~1 ns) appears in both measurements and does not
+  depend on page size. The difference above is the cost of the
+  page walk, which hugepages remove: -0.1% of the budget of
+  67.2 ns per packet at 10 GbE, spent before any useful work.

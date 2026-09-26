@@ -64,9 +64,54 @@ static enum modo caso_modo;
 
 static volatile uint32_t sumidouro;
 
+/* O QUE A COLUNA `sequencial` MEDE, E O QUE ELA NAO MEDE.
+ *
+ * O laco acumula em `soma`, e essa soma e uma CADEIA CARREGADA PELO LACO: o
+ * `add` da iteracao seguinte espera o da anterior. Latencia de 1 ciclo,
+ * portanto teto de ~1 elemento por ciclo -- a 4,4 GHz, 4 bytes por ciclo dao
+ * cerca de 21 GB/s.
+ *
+ * ESSA DESCRICAO SO PASSOU A SER VERDADE COM O ACUMULADOR EM REGISTRADOR. Ver a
+ * nota em `medir()`: enquanto `soma` era `volatile`, a cadeia real era a de
+ * store-to-load forwarding pela pilha, e nao a do `add`.
+ *
+ * Esse teto NAO DEPENDE DE ONDE O DADO ESTA. Com o conjunto na L1d o valor e o
+ * mesmo que com ele em DRAM, porque nos dois casos a memoria entrega mais do
+ * que o laco consome. Daqui sai a leitura correta da coluna:
+ *
+ *   MEDE     a taxa de emissao que o prefetcher consegue sustentar -- e o
+ *            resultado e que ele a sustenta CHEIA ate 256 MB em DRAM.
+ *   NAO MEDE banda de memoria. Converter 0,187 ns/elemento em "21 GB/s de
+ *            banda" atribui ao subsistema de memoria um numero do laco.
+ *
+ * POR QUE NAO SE CONSERTA COM UM LACO MELHOR, aqui.
+ *
+ * Quebrar a cadeia com varios acumuladores sobe o teto para ~32-36 GB/s, e a
+ * DRAM desta maquina entrega mais que isso -- os niveis continuam
+ * indistinguiveis. Para ver o gradiente e preciso vetorizar, o que exige
+ * `-march=native` ou equivalente. O projeto compila com `-O2` portavel de
+ * proposito, para que a mesma fonte produza numero comparavel em outra
+ * maquina. A escolha e essa, e o custo dela e esta coluna nao servir de
+ * bandimetro.
+ *
+ * As colunas `aleatorio` e `dependente` nao tem esse problema: as duas ficam
+ * ordens de grandeza abaixo do teto do laco, e por isso medem a memoria.
+ */
 static double medir(const uint32_t *a, const uint32_t *ordem, size_t n, size_t repeticoes)
 {
-    volatile uint64_t soma = 0;
+    /* ACUMULADOR EM REGISTRADOR, COM UM UNICO ESCAPE DEPOIS DO LACO.
+     *
+     * `volatile` aqui punha um store e um load na pilha POR ELEMENTO, e a
+     * cadeia medida passava a ser a de store-to-load forwarding -- 4 a 6 ciclos
+     * nesta microarquitetura -- em vez da soma. O laco emitido era:
+     *
+     *     mov 0x18(%rsp),%rsi ; mov (%rdx),%ecx ; add %rsi,%rcx
+     *     mov %rcx,0x18(%rsp) ; jne
+     *
+     * O objdump e o criterio, nao a intencao: o `volatile` estava ali para
+     * impedir que o laco fosse apagado, e a forma mais barata de fazer isso
+     * sem entrar no caminho quente e o escape vazio de asm depois do laco. */
+    uint64_t soma = 0;
     const uint64_t t0 = academy_now_ns();
     if (ordem == NULL) {
         for (size_t r = 0; r < repeticoes; r++)
@@ -77,7 +122,9 @@ static double medir(const uint32_t *a, const uint32_t *ordem, size_t n, size_t r
             for (size_t i = 0; i < n; i++)
                 soma += a[ordem[i]];
     }
-    (void)soma;
+    /* UMA vez, fora da janela do laco: o compilador nao pode provar que `soma`
+     * nao e usada, e portanto nao pode apagar as leituras. */
+    __asm__ __volatile__("" : : "r"(soma) : "memory");
     return (double)(academy_now_ns() - t0) / (double)(n * repeticoes);
 }
 

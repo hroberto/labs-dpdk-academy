@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 612" width="880" height="612" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
 <title id="t">Vazão se compra com concorrência — e se paga com latência</title>
-<desc id="d">Dois gráficos empilhados com o mesmo eixo horizontal K em escala logarítmica, de 1 a 64 acessos em voo. No primeiro, a vazão sobe de 10,6 para 291 M acessos/s e satura; uma linha tracejada marca o line rate de 10 GbE. No segundo, em escala log nos dois eixos, o custo amortizado por acesso cai de 94 para 3,44 ns enquanto o tempo até o lote ficar pronto permanece plano em torno de 100 ns até K = 16 e sobe para 220 ns em K = 64. As duas curvas estão em nanossegundos; a segunda é a primeira multiplicada por K.</desc>
+<desc id="d">Dois gráficos empilhados com o mesmo eixo horizontal K em escala logarítmica, de 1 a 64 acessos em voo. No primeiro, a vazão sobe de 12,9 para 410 M acessos/s e satura; uma linha tracejada marca o line rate de 10 GbE. No segundo, em escala log nos dois eixos, o custo amortizado por acesso cai de 77 para 2,44 ns enquanto o tempo até o lote ficar pronto permanece plano em torno de 80 ns até K = 16 e sobe para 156 ns em K = 64. As duas curvas estão em nanossegundos; a segunda é a primeira multiplicada por K.</desc>
 <rect width="880" height="612" fill="#fcfcfb"/>
 <text x="28.0" y="34.0" fill="#0b0b0b" font-size="17" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">Vazão se compra com concorrência — e se paga com latência</text>
 <text x="28.0" y="55.0" fill="#52514e" font-size="13" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">K acessos independentes em voo sobre a mesma região — custo-paralelismo.c</text>
@@ -18,17 +18,17 @@
 <text x="88.0" y="128.0" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">300</text>
 <line x1="100.0" y1="283.7" x2="730.0" y2="283.7" stroke="#52514e" stroke-width="2" stroke-dasharray="5 4"/>
 <text x="742.0" y="287.7" fill="#52514e" font-size="12" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">line rate 10 GbE</text>
-<polyline points="100.0,286.1 205.0,280.0 310.0,269.4 415.0,249.8 476.4,231.1 520.0,214.8 625.0,170.0 730.0,129.2" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="100.0" cy="286.1" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="205.0" cy="280.0" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="310.0" cy="269.4" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="415.0" cy="249.8" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="476.4" cy="231.1" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="520.0" cy="214.8" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="625.0" cy="170.0" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="730.0" cy="129.2" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<text x="724.0" y="113.2" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">291 M/s</text>
-<text x="112.0" y="274.1" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">10,6 M/s</text>
+<polyline points="100.0,284.8 205.0,277.3 310.0,264.9 415.0,240.3 476.4,216.5 520.0,193.2 625.0,117.5 730.0,62.5" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="100.0" cy="284.8" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="205.0" cy="277.3" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="310.0" cy="264.9" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="415.0" cy="240.3" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="476.4" cy="216.5" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="520.0" cy="193.2" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="625.0" cy="117.5" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="730.0" cy="62.5" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<text x="724.0" y="46.5" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">410 M/s</text>
+<text x="112.0" y="272.8" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">12,9 M/s</text>
 <text x="100.0" y="352.0" fill="#0b0b0b" font-size="14" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">2 · e o que isso custa em espera</text>
 <text x="28.0" y="332.0" fill="#898781" font-size="11" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">ns (escala log)</text>
 <line x1="100.0" y1="527.6" x2="730.0" y2="527.6" stroke="#e1e0d9" stroke-width="1"/>
@@ -41,27 +41,27 @@
 <text x="88.0" y="408.6" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">100</text>
 <line x1="100.0" y1="366.0" x2="730.0" y2="366.0" stroke="#e1e0d9" stroke-width="1"/>
 <text x="88.0" y="370.0" fill="#898781" font-size="11" font-weight="400" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">300</text>
-<polyline points="100.0,406.6 205.0,407.1 310.0,404.9 415.0,402.5 476.4,401.1 520.0,399.3 625.0,391.1 730.0,376.9" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="100.0,406.6 205.0,431.4 310.0,453.5 415.0,475.5 476.4,488.3 520.0,496.6 625.0,512.7 730.0,522.8" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="100.0" cy="406.6" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="205.0" cy="407.1" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="310.0" cy="404.9" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="415.0" cy="402.5" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="476.4" cy="401.1" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="520.0" cy="399.3" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="625.0" cy="391.1" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="730.0" cy="376.9" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="100.0" cy="406.6" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="205.0" cy="431.4" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="310.0" cy="453.5" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="415.0" cy="475.5" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="476.4" cy="488.3" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="520.0" cy="496.6" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="625.0" cy="512.7" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<circle cx="730.0" cy="522.8" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-<text x="724.0" y="360.9" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">220 ns</text>
-<text x="724.0" y="544.8" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">3,44 ns</text>
-<text x="112.0" y="394.6" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">94 ns</text>
+<polyline points="100.0,413.6 205.0,414.0 310.0,411.2 415.0,409.6 476.4,408.6 520.0,408.0 625.0,403.6 730.0,388.9" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="100.0,413.6 205.0,438.3 310.0,459.9 415.0,482.6 476.4,495.8 520.0,505.3 625.0,525.2 730.0,534.9" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="100.0" cy="413.6" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="205.0" cy="414.0" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="310.0" cy="411.2" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="415.0" cy="409.6" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="476.4" cy="408.6" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="520.0" cy="408.0" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="625.0" cy="403.6" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="730.0" cy="388.9" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="100.0" cy="413.6" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="205.0" cy="438.3" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="310.0" cy="459.9" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="415.0" cy="482.6" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="476.4" cy="495.8" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="520.0" cy="505.3" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="625.0" cy="525.2" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="730.0" cy="534.9" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<text x="724.0" y="372.9" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">156 ns</text>
+<text x="724.0" y="556.9" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="end" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">2,44 ns</text>
+<text x="112.0" y="401.6" fill="#0b0b0b" font-size="12" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">77 ns</text>
 <text x="100.0" y="556.0" fill="#898781" font-size="12" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">1</text>
 <text x="205.0" y="556.0" fill="#898781" font-size="12" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">2</text>
 <text x="310.0" y="556.0" fill="#898781" font-size="12" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-variant-numeric="tabular-nums">4</text>

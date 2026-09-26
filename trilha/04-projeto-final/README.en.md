@@ -27,7 +27,7 @@ a citation.
 | Finding | Number | Where |
 |---|---|---|
 | A syscall costs dozens of function calls | 33.8 ns against 0.73 ns warm (**46×**) or 0.92 cold (36×) | [fundamentals §2](../../docs/01-fundamentos/README.en.md) |
-| Bringing up the EAL is not free | **123 ms** | [runtime §2](../../docs/02-runtime-dpdk/README.en.md#2-the-cost-of-existing-how-long-the-eal-takes-to-be-born) |
+| Bringing up the EAL is not free | **118 ms** | [runtime §2](../../docs/02-runtime-dpdk/README.en.md#2-the-cost-of-existing-how-long-the-eal-takes-to-be-born) |
 | Crossing a cache domain dominates everything | **4.0 to 4.8×** | [mempool-ring](../01-fundamentos/02-mempool-ring/) |
 | Parallelising can make things worse | 1 lcore beats 2 across almost the whole table | [mempool-ring](../01-fundamentos/02-mempool-ring/) |
 | Backpressure is the pool/queue ratio, not the queue | boundary at capacity = 4 095 | [backpressure §6](../02-pipeline/02-batching-backpressure/) |
@@ -56,7 +56,7 @@ is left to teach better, the other domain wins: the object of study is DPDK.
 
 | Approach | What it costs | What it delivers |
 |---|---|---|
-| **DPDK** | hugepages, dedicated cores, driver bound to the process, 123 ms to come up | lower latency and higher packet rate |
+| **DPDK** | hugepages, dedicated cores, driver bound to the process, 118 ms to come up | lower latency and higher packet rate |
 | **C++23 over sockets** | a syscall and a copy per packet | runs anywhere, without privilege |
 | **AF_XDP** | driver and kernel requirements | partial *bypass* keeping the kernel's driver and security model |
 

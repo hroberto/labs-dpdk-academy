@@ -302,7 +302,7 @@ se declarar pronto.
 >
 > O `! -name '*.en.md'` não é filigrana. Desde a paridade de 16/09/2026 cada
 > documento tem um par em inglês, e contá-lo dobraria o total sem haver um
-> documento novo: sem o filtro este comando devolve 56 para 28 documentos. O
+> documento novo: sem o filtro este comando devolve 55 para 28 documentos. O
 > verificador aplica o mesmo corte, e é por isso que os dois concordam.
 > ```
 

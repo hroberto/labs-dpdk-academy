@@ -1,5 +1,12 @@
 # Mempool, ring and mbuf — DPDK's data model
 
+<!-- cita-retratado: 0,227 0.227 14,2 14.2 0,437 0.437 -->
+<!-- These values were retracted elsewhere in the material and reappear
+     here as a NEW measurement from the text-mode collection. The
+     coincidence is numeric, not of quantity: `0.227` is the range
+     minimum of `atomic relaxed`, `14.2` is the instrument resolution of
+     custo-anel and `0.437` is the mempool bulk at batch 128. -->
+
 *Leia em [português](README.md).*
 
 > **Level 4** of the [study plan](../plano-estudo-dpdk.en.md) ·
@@ -67,26 +74,58 @@ on the same machine, with the same methodology as the project's other programs.
 
   measurement                           median  p25-p75 (IQR)   range min-max      disp    CV
   ---------------------------------- ---------  --------------- ----------------- ----- -----
-  malloc/free                             2.78  2.77-2.78       2.77-2.79           0.2%   0.1%  
-  mempool get/put, with cache             1.25  1.25-1.62       1.23-1.62          29.7%  12.6% !
-  mempool get/put, NO cache              13.27  10.53-13.42     10.36-13.44        21.8%  11.1% !
+  malloc/free                             2.18  2.17-2.19       2.15-2.19           0.9%   0.6%
+  mempool get/put, with cache             1.27  1.27-1.28       1.27-1.28           0.3%   0.3%
+  mempool get/put, NO cache              10.45  10.44-10.49     10.44-10.68         0.4%   0.5%
 ```
 
 ```
-  frequency of core 0 during the measurement: 4.33 -> 5.57 GHz
+  frequency of core 0 during the measurement: 5.58 -> 5.56 GHz
   ratios, which do NOT depend on frequency:
-    mempool with cache is 2.23x faster than malloc
-    the per-lcore cache is worth 10.6x (with cache against without)
+    mempool with cache is 1.71x faster than malloc
+    the per-lcore cache is worth 8.2x (with cache against without)
     without the cache, the mempool is 4.8x SLOWER than malloc
 ```
 
-> **Why the program publishes ratios, and not only nanoseconds.** Without pinning the
-> processor's frequency — and this project does not pin it, as its
-> [limitations](../00-visao-geral/README.en.md#5-the-measurement-environment) declare — the
-> absolute values change between runs: the same binary gave 2.19 ns and 2.77 ns for
-> `malloc`, depending on whether turbo engaged. The **ratios** were identical (2.23×
-> in both). That is why this module claims "twice as fast" and not "0.98
-> nanoseconds": the ratio is the claim; the nanosecond is circumstance.
+> **These two blocks came from different runs, and the arithmetic gave it away.**
+> The table published `with cache 1.28` and the ratio line published `2.11x
+> faster than malloc`. With `malloc` at 2.18 ns, 2.18 ÷ 1.28 = **1.70** — not
+> 2.11. Getting 2.11 requires a denominator of 1.03 ns, which is the value from
+> **another** repetition of the same campaign.
+>
+> The cause is that the measurement was **bimodal**. In the 24/09 collection,
+> `with cache` alternated between ~0.99 ns and ~1.28 ns *within a single run*:
+> the per-repetition ranges were `0.988–1.279`, `1.28–1.28`, `0.99–1.28`,
+> `1.28–1.28`, `0.986–0.991`. Three of the five repetitions spanned both modes.
+> Whoever assembled the blocks took the table from a repetition in the high mode
+> and the ratios from one in the low mode, and no gate saw it: `verificar-blocos`
+> checks whether each line exists literally in **some** archived collection, and
+> both did.
+>
+> **This is a verification gap, and it is declared here.** Neither
+> `verificar-blocos` nor Gate B checks coherence *between blocks of the same
+> document* — the first compares line against file, the second prose against
+> block. Block against block has no owner.
+>
+> In the 25/09 collection the bimodality does not reproduce: all five
+> repetitions give `1.27–1.28`, and the two blocks above come from the same one.
+> **What produced the low mode remains undetermined** — the declared condition
+> (text mode, `performance` governor, EXPO 6000, dual channel) is the same in
+> both collections, and what changed between them was the code of other
+> programs, not of this one.
+> <!-- cita-retratado: 2,11 2.11 0,99 0.99 1,03 1.03 -->
+
+> **Why the program publishes ratios, and not only nanoseconds.** The absolute
+> value of the first row depends on the *governor*: the same binary gave
+> **2.78 ns** under `powersave` and **2.18 ns** under `performance` for the
+> single-object `malloc` — 27%, with no overlap across fifty archived runs. The
+> 128-object batch ratio, in the same measurement, stays between **44.0× and
+> 45.7×** across those same fifty. That is why this module claims "twice as fast"
+> and not "1.25 nanoseconds": the ratio is the claim; the nanosecond is
+> circumstance. The [methodology](metodologia.en.md#1-1--why-the-program-publishes-ratios-not-just-nanoseconds)
+> explains why the first row suffers most.
+>
+> <!-- cita-retratado: 2,19 2.19 2,77 2.77 2,23 2.23 -->
 
 **`malloc()` costs 2.18 ns, not tens.** Repeatedly allocating and freeing an object
 of the same size is the case where glibc is good: the allocator has a per-thread
@@ -101,7 +140,7 @@ line explains where the gain comes from.
 
 A mempool has two layers ([mempool guide][guiamempool]): a common, shared ring, and a **per-lcore cache** acting as
 a buffer. Creating the same pool with `cache_size = 0`, the operation goes from
-**0.98 ns to 10.45 ns** — ten times more expensive, and five times more expensive
+**1.28 ns to 10.45 ns** — eight times more expensive, and almost five times more expensive
 than `malloc()`.
 
 The reading matters more than the number: **without the per-lcore cache, the mempool
@@ -152,15 +191,15 @@ This is the section's main result, and it appears in no published comparison:
 
   batch         malloc/free   mempool bulk      ratio
   -----         -----------   ------------      -----
-  1                 2.74 ns       1.853 ns       1.5x
-  8                 2.28 ns       0.632 ns       3.6x
-  32               12.42 ns       0.465 ns      26.7x
-  128              19.61 ns       0.436 ns      45.0x
+  1                 2.57 ns       1.810 ns       1.4x
+  8                 2.44 ns       0.629 ns       3.9x
+  32               12.36 ns       0.483 ns      25.6x
+  128              19.58 ns       0.433 ns      45.2x
 ```
 
 Asking for more objects at once **cheapens** each object in the mempool
-(1.84 → 0.45 ns) and **makes it more expensive** in `malloc` (2.39 → 19.64 ns). The
-ratio between the two goes from 1.3× to 37.5×.
+(1.81 → 0.43 ns) and **makes it more expensive** in `malloc` (2.57 → 19.58 ns). The
+ratio between the two goes from 1.4× to 45.2×.
 
 That is decisive because the data plane **is** batch processing.
 [§3 of the practical topic](../../trilha/01-fundamentos/02-mempool-ring/README.en.md)
@@ -182,6 +221,8 @@ the regime where the difference is smallest.
 > reason the fundamentals came to do so after discarding an invalid measurement.
 > Without pinning it, the measurement came out bimodal: p25 of 10.5 ns against p75 of
 > 25.4 ns in the same measurement.
+>
+> <!-- cita-retratado: 10,5 10.5 25,4 25.4 -->
 
 ---
 
@@ -194,10 +235,19 @@ larger. The guidance accompanying the change is that, in applications where one
 lcore only gets and another only puts, it is worth **doubling** the configured
 cache.
 
-The question this experiment asks is not "did 26.07 get faster". It is:
+The question this experiment asks is not "did 26.07 get faster" — and it is not
+about performance either, because **nothing here measures time**. It is:
 
-> Does the change alter the relationship between `cache_size` and performance
-> **differently** depending on the execution model?
+> Does the change alter the relationship between `cache_size` and **traffic to
+> the common ring** differently depending on the execution model?
+
+Swapping "performance" for "traffic to the common ring" is not editorial
+fussiness. Going to the common ring is the event the cache exists to avoid, and
+counting it is what this campaign can do without a PMU. How much of it turns
+into nanoseconds is a **separate** question, and it has its own section:
+*[The link between the count and time, measured](#the-link-between-the-count-and-time-measured)*,
+with prefixes built without `RTE_LIBRTE_MEMPOOL_STATS` precisely so the counter
+is not on the timed path.
 
 #### The design
 
@@ -212,13 +262,15 @@ alternate on the same lcore and both operations hit the same cache; with
 | inner sweep | `cache_size` ∈ {16, 24, 32, 48, 64, 96, 128, 256, 512} |
 | control | `cache_size` = 0, which **disables** the cache rather than sizing it |
 | repetitions | 6 per cell, 240 runs |
-| metric | cache miss rate, a library counter |
+| metric | trips to the common ring per million packets, a library counter (**not** the miss rate — see below) |
 
 **The collection is interleaved**, and that is a validity condition, not style:
 the two versions of a given cell run adjacent to each other, and the cell order
 is permuted on every repetition. Arms in blocks confound the effect with machine
 state drift — that is how, in an earlier campaign of this same study, a
 difference of 0.70 ns per packet became 0.15 ns when reproduced interleaved.
+
+<!-- cita-retratado: 0,70 0.70 0,15 0.15 -->
 
 **The metric is a library counter**, not a hardware event: it does not depend on
 the PMU, which is blocked on this machine. It counts the times the per-lcore
@@ -420,16 +472,188 @@ the direction matches expectation — faster producer, more retries — but in t
 others there is no order, and a final sample does not represent a run in which
 the governor moves.
 
+#### The replication on other hardware, and the boundary it reveals
+
+The campaign was repeated on 2026-09-23 with a single difference: the machine
+went from one memory stick to two, from single to dual channel. Same kernel,
+same binaries, same 240-run protocol.
+
+Nothing about that change has anything to do with the mempool. That is why it
+works as a test.
+
+**In the symmetric topology the twenty cells come out identical** — the same
+31,314 and the same 0.5 per million, including the `cache_size` = 24 boundary
+that separates the two versions.
+
+In the asymmetric one the result splits, and it does not split just anywhere:
+
+| | identical across the two machines | varying across the two machines |
+|---|---|---|
+| **25.11** | `cache_size` ≥ **64** | `cache_size` < 64 |
+| **26.07** | `cache_size` ≥ **32** | `cache_size` < 32 |
+
+Those two numbers were not chosen for the table. They are **exactly** the
+absorption thresholds the previous subsection derives from the source:
+`size ≥ 2n` for 25.11 and `size ≥ n` for 26.07, with the batch `n` = 32.
+
+**The prediction this tested.** If the law is right, a cell that absorbs the
+producer's return does not let the back-and-forth reach the common ring — and
+then its count depends only on the arithmetic of the refill, which is a property
+of the code. A cell that does not absorb exposes the race between the two
+lcores, and the race is a property of the **machine**. Therefore: changing the
+machine should move the cells below and leave the ones above untouched.
+
+That is what was measured. Above the threshold the counts are equal **digit for
+digit** on both machines; below it, they move by 2% to 4%.
+
+**The replication also corrected one cell.** In the single-channel collection,
+`25.11` with `cache_size` = 24 came out constant across the six runs, and the
+law predicts that it should **vary** — 24 is below 64. In the dual-channel
+collection it does vary, by a single count out of 62,500. The first campaign was
+not wrong; it did not have enough runs to see a rare event. What the law
+predicted and the first collection did not show, the second showed.
+
+> **Why this is a better test than repeating the campaign.** Repeating on the
+> same machine distinguishes a stable measurement from a noisy one, and nothing
+> more. Changing the hardware separates two things the first campaign could only
+> **argue** were distinct: what the code determines and what the race between
+> lcores determines. The boundary between them appears on its own, in the
+> predicted place, out of a variable nobody chose for convenience.
+
+The collection is in
+[`../../trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-cache/`](../../trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-cache/),
+with the raw outputs. It comes from the 24/09 campaign in text mode: the
+earlier collections, taken with an active graphical session, were withdrawn.
+
+#### The link between the count and time, measured
+
+The preceding subsection measures **trips to the common ring**, and the
+upstream claim is about miss rate. Neither is time. Linking them — whether more
+trips cost more, and how much — required a pair of prefixes built **without**
+`RTE_LIBRTE_MEMPOOL_STATS`, because that macro's counter is updated on the hot
+path and the instrumented binary is not the production one.
+
+The prefixes without the counter were built, and the collection ran in **text
+mode**, with no graphical session, for the reason documented in the
+[CPU isolation topic](../../trilha/03-performance/03-isolamento-cpu/README.en.md#666-intervention-collecting-without-a-graphical-session):
+the quantity of interest here is of the order of tenths of a nanosecond per
+packet, and the graphical session's noise is larger than that.
+
+| Element | Value |
+|---|---|
+| prefixes | 25.11 and 26.07 **without** `RTE_LIBRTE_MEMPOOL_STATS` |
+| repetitions | 21 per cell |
+| metric | nanoseconds per packet, from the three integers of `DPDK_ACADEMY_BRUTO` |
+| environment | `multi-user.target`, no display manager |
+
+##### The control: same trips, different versions
+
+The symmetric topology with `cache_size` ≥ 32 is an exact control, and not by
+construction of this experiment: both versions make **the same** single
+fill-up trip there — 0.5 per million packets, the value in the previous table.
+If the time differs, the difference cannot come from the trips.
+
+```
+  cache   25.11    26.07    delta
+  -----  ------   ------   ------
+     32   2.350    2.527   +0.177
+     48   2.350    2.526   +0.176
+     64   2.349    2.525   +0.176
+     96   2.352    2.527   +0.175
+    128   2.349    2.525   +0.176
+    256   2.349    2.528   +0.179
+    512   2.349    2.527   +0.178
+
+  median delta: +0.176 ns/packet   spread: 0.004 ns
+```
+
+26.07 costs **0.176 ns more per packet** than 25.11 at the same number of
+trips. The seven cells agree to within four picoseconds — a spread smaller than
+the last digit the program publishes. It is a version difference, measured with
+the trips held constant.
+
+##### The cost of one trip
+
+In the asymmetric topology the trips vary by two orders of magnitude, and time
+follows. Fitting time against trips per packet, with each version restricted to
+the cells **above its own absorption threshold** — 64 for 25.11, 32 for 26.07,
+the thresholds the previous subsection derives from the source:
+
+```
+  25.11:  ns/packet = 3.723 + 82.9 x trips/packet    R2 = 0.869   n = 5
+  26.07:  ns/packet = 3.920 + 37.4 x trips/packet    R2 = 0.710   n = 7
+```
+
+The slope has units of **nanoseconds per trip**: each trip to the common ring
+costs about 83 ns on 25.11 and 37 ns on 26.07.
+
+Restricting to the cells above the threshold is not convenience. Below it the
+producer does not absorb its own return, and the count begins to measure the
+race between the two lcores rather than what the cache governs — the previous
+subsection shows that this is exactly where the counts vary between runs and
+between machines. Fitting over them would measure the race.
+
+##### The reading: more trips is not proportionally worse
+
+The two lines together answer the question the count alone does not. 26.07
+makes **two to three times more** trips than 25.11 at the same `cache_size` —
+that is the law of the previous subsection, and it has not changed. But each of
+its trips costs **less than half**.
+
+The ratio between the slopes is 2.2. The ratio between the refill sizes the
+source predicts for the fitted cells ranges from 2.1 to 3.0, depending on
+`cache_size`. The two are compatible, and the reading this suggests is that a
+trip's cost is dominated by **how many objects it moves**, not by the fact that
+it happens. The fit does not isolate that relation — refill size varies within
+each line — so it stands as a compatible reading, not as a measurement.
+
+##### What this fit does not support
+
+26.07's `R²` is 0.710, and the cause is in the data: three cells with
+`cache_size` 32, 48 and 64 make **exactly** 31,250 trips and measure 4.888,
+4.891 and 5.160 ns per packet. The spread at identical trips is 0.27 ns —
+larger than the version effect the control isolates.
+
+There is therefore a second source of variation in the asymmetric topology that
+trips do not explain. The symmetric control does not see it, because there the
+trips are a single one and the system has no race. The natural hypothesis is
+the same lcore race that governs the retries, whose count the previous
+subsection shows varying from 25 thousand to 139 thousand within the same cell;
+confirming it would require instrumenting the relative speed of the two lcores
+over the run, which the current program does not do.
+
 #### What this experiment does not authorize
 
-- **There is no timing measurement**, for two independent reasons. First, both
-  DPDKs were built with `RTE_LIBRTE_MEMPOOL_STATS`, whose counter is updated on
-  the hot path, so the program measured is not the one in production. Second is
-  the instrument — `pipeline_ring` prints the time with `%.1f`, which over
-  ~5 ns per packet quantizes at 2%, the same order as the differences there
-  would be to detect. Measuring that link takes both fixes, not one. The
-  upstream claim is about miss rate, and that is what this experiment answers —
-  no more, no less.
+- **The timing measurement exists, and it covers less than the count.** The
+  blocker was twofold and both halves fell. The first belonged to the build:
+  both DPDKs were built with `RTE_LIBRTE_MEMPOOL_STATS`, whose counter is
+  updated on the hot path, so the program measured was not the one in
+  production. **The prefixes without the counter were built**, and the
+  preceding section carries the result. What it covers is the asymmetric
+  topology above the absorption thresholds and the symmetric control; below the
+  thresholds timing measures the lcore race, and in that band there is no
+  claim.
+
+  The second belonged to the instrument — `pipeline_ring` printed the time with
+  `%.1f`, which over ~5 ns per packet quantizes at 2%, the same order as the
+  differences there would be to detect. **This one has fallen:** with the
+  `DPDK_ACADEMY_BRUTO` environment variable the program emits the three
+  integers the mean comes from, with no rounding at all.
+
+  ```
+  raw timing: cycles=1590116 tsc_hz=4391800000 packets=200000
+  ```
+
+  The published line still carries **one** decimal place, deliberately: over
+  ~5 ns, more digits would assert a precision one run does not sustain. Emitting
+  the ingredients instead of more digits settles both sides — whoever analyses
+  derives the precision the data sustains, and the program asserts none. Without
+  the variable the output does not change by a byte, and the published blocks
+  that reproduce it remain valid.
+
+  What is still missing to measure the link is therefore **only** the pair of
+  prefixes without `RTE_LIBRTE_MEMPOOL_STATS`. The upstream claim is about miss
+  rate, and that is what this experiment answers — no more, no less.
 - **The workload is a two-stage pipeline with one ring.** Real applications have
   more stages and more rings, and the upstream guidance may well be sufficient
   in topologies this program does not represent.
@@ -455,9 +679,9 @@ the governor moves.
 > reason the timing column is out.
 
 The collection is in
-[`medicoes/historico/2026-09-21-mempool-cache-intercalada/`](medicoes/historico/2026-09-21-mempool-cache-intercalada/),
-with the raw output of each of the 240 runs and the provenance the program
-prints — DPDK version, commit, host, compiler and date.
+[`../../trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-cache/`](../../trilha/03-performance/03-isolamento-cpu/historico/2026-09-24-1917-expo6000-canal-duplo/mempool-cache/),
+with the raw output of each run and the provenance the program prints — DPDK
+version, commit, host, compiler and date.
 
 ---
 
@@ -507,17 +731,38 @@ decides sizing and rarely appears before memory runs out.
     buf_len            54  0
     pool               56  0
     next               64  1
+    tx_offload         72  1
+    shinfo             80  1
+    priv_size          88  1
+    timesync           90  1
+    dynfield1          92  1
 ```
 
-All the fields but one fit in the first line. What was left over for the second was
-`next` — which only has value in a segmented packet, the less common case. DPDK's own
-header refers to it as *"next pointer in the second cache line"*.
+The first line holds what the hot path reads on **every** packet: buffer, offsets,
+lengths, refcount and pool. The second holds **six** fields — `next`, `tx_offload`,
+`shinfo`, `priv_size`, `timesync` and `dynfield1`.
+
+`next` is the one DPDK's header names explicitly, *"next pointer in the second cache
+line"*, because it is the one whose **absence** from the first line was a design choice:
+it only has value in a segmented packet, the less common case.
+
+> **And a single-segment packet still touches the second line.** The generic free path
+> reads it:
+>
+> ```c
+> /* rte_mbuf.h, rte_pktmbuf_prefree_seg() */
+> if (m->next != NULL)
+>         m->next = NULL;
+> ```
+>
+> That runs on **every** segment released, segmented or not. The split's saving is on
+> the RX/TX hot path, **not** over the mbuf's whole life: allocation and release reach
+> the second line regardless.
 
 The consequence connects directly to
-[§4.2 of the fundamentals](../01-fundamentos/README.en.md#42-cache-and-locality): a
-single-segment packet touches **one** cache line per mbuf. At 14.88 million packets
-per second, one extra line per packet is cache bandwidth that is not left for the
-packet itself.
+[§4.2 of the fundamentals](../01-fundamentos/README.en.md#42-cache-and-locality): at
+14.88 million packets per second, one extra line **on the hot path** is cache bandwidth
+that is not left for the packet itself.
 
 ### 2.2 The headroom, and why it exists
 
@@ -602,14 +847,14 @@ a single lcore, with no contention at all**:
 ```
   batch      SP/SC (ns/obj)   MP/MC (ns/obj) MP/MC cost
   -----      --------------   -------------- -----------
-  1                1.626 ns         8.233 ns       406%
-  8                0.530 ns         1.283 ns       142%
-  32               0.397 ns         0.484 ns        22%
-  128              0.375 ns         0.303 ns       -19%
+  1                1.905 ns         8.242 ns       333%
+  8                0.546 ns         1.282 ns       135%
+  32               0.404 ns         0.484 ns        20%
+  128              0.371 ns         0.302 ns       -19%
 ```
 
 **The cost does not depend on contention existing.** With a single producer, MP/MC
-mode still costs 406% more at batch 1 — because the atomic instruction is executed
+mode still costs 404% more at batch 1 — because the atomic instruction is executed
 anyway. What you pay for is not the contention; it is the *possibility* of it.
 
 And batching solves it — more than solves it. At 128 objects per call the difference
@@ -733,7 +978,7 @@ measures.
 
 #### Why the atomic costs with nobody contending
 
-The 406% at batch 1 were measured **on a single lcore**. There is no second
+The 404% at batch 1 were measured **on a single lcore**. There is no second
 producer, the CAS never fails, and the loop runs once.
 
 What remains is the cost of the instruction. The `f0` prefix that `objdump`
@@ -841,7 +1086,7 @@ is architectural:
          ↓
     does the measured gain justify it?
 
-The last question has no general answer, and the §3 table shows why: 406% at
+The last question has no general answer, and the §3 table shows why: 404% at
 batch 1, 22% at batch 32. **If the application already works in large batches,
 the invariant costs a lot and yields little.** If it processes object by
 object, the account inverts.

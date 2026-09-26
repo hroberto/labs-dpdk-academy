@@ -1,0 +1,128 @@
+==> campanha em modo texto  2026-09-25T13:18:17-03:00
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1317-expo6000-canal-duplo
+    modo declarado   : texto
+    governor fixado  : sim (era powersave)
+    alvo systemd     : graphical.target
+    processos grafico: 0
+    governor cpu2    : performance
+    C3 disable cpu2  : 0
+    cmdline          : BOOT_IMAGE=/boot/vmlinuz-7.0.0-31-generic root=UUID=bdd65119-6069-4cc3-898a-7e0a0beba60b ro quiet splash amd_iommu=on iommu=pt crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M systemd.unit=multi-user.target
+    kernel           : 7.0.0-31-generic
+    uptime           : up 1 minute
+    memoria          : avail 26,13 GiB, swap em uso 0,00 GiB
+    carga            : 1.70 0.53 0.19
+
+==> 1/6 osnoise hist, 10 min na CPU 2  (13:18:17)
+    ok
+    over:         0 
+    count:    48451 
+    min:          1 
+    avg:       1.98 
+    max:         81 
+
+==> 2/6 campanha de isolamento, 4 celulas x 5 repeticoes  (13:28:17)
+==> campanha de isolamento: CPU 2 (irmao SMT 14), outra CPU 4
+    4 celulas x 5 repeticoes x 30s
+    repeticao 1 de 5 concluida
+    repeticao 2 de 5 concluida
+    repeticao 3 de 5 concluida
+    repeticao 4 de 5 concluida
+    repeticao 5 de 5 concluida
+==> 20 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1317-expo6000-canal-duplo/isolamento/isolamento.csv
+    ok
+
+==> 3/6 campanha de tempo do mempool  (13:38:17)
+==> campanha B4-tempo: 2 versoes x 2 topologias
+    x 10 tamanhos de cache x 21 repeticoes
+    prefixos SEM RTE_LIBRTE_MEMPOOL_STATS, metrica em ns/pacote
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1317-expo6000-canal-duplo/mempool-tempo/mempool-tempo.csv
+    repeticao 1 de 21 concluida
+    repeticao 2 de 21 concluida
+    repeticao 3 de 21 concluida
+    repeticao 4 de 21 concluida
+    repeticao 5 de 21 concluida
+    repeticao 6 de 21 concluida
+    repeticao 7 de 21 concluida
+    repeticao 8 de 21 concluida
+    repeticao 9 de 21 concluida
+    repeticao 10 de 21 concluida
+    repeticao 11 de 21 concluida
+    repeticao 12 de 21 concluida
+    repeticao 13 de 21 concluida
+    repeticao 14 de 21 concluida
+    repeticao 15 de 21 concluida
+    repeticao 16 de 21 concluida
+    repeticao 17 de 21 concluida
+    repeticao 18 de 21 concluida
+    repeticao 19 de 21 concluida
+    repeticao 20 de 21 concluida
+    repeticao 21 de 21 concluida
+==> 840 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1317-expo6000-canal-duplo/mempool-tempo/mempool-tempo.csv
+    ok
+
+==> 4/6 campanha de miss do mempool  (13:40:09)
+==> campanha B4: 2 versoes x 2 topologias
+    x 9 tamanhos de cache x 6 repeticoes
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1317-expo6000-canal-duplo/mempool-cache/mempool-cache.csv
+    repeticao 1 de 6 concluida
+    repeticao 2 de 6 concluida
+    repeticao 3 de 6 concluida
+    repeticao 4 de 6 concluida
+    repeticao 5 de 6 concluida
+    repeticao 6 de 6 concluida
+==> 240 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1317-expo6000-canal-duplo/mempool-cache/mempool-cache.csv
+    ok
+
+==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  (13:40:41)
+    referencia para comparar: 2026-09-25-0046-expo6000-canal-duplo
+    hugepage do feed: /mnt/huge-academia (efemera, desmontada no fim)
+CONCLUIDA -> docs/01-fundamentos/medicoes/historico/2026-09-25-1317-expo6000-canal-duplo
+          -> docs/02-runtime-dpdk/medicoes/historico/2026-09-25-1317-expo6000-canal-duplo
+          -> docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-25-1317-expo6000-canal-duplo
+Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medicoes/historico/{outra,2026-09-25-1317-expo6000-canal-duplo}
+    ok
+    feed: 12 arquivos, completo
+    hugepage do feed desmontada
+
+==> 6/6 revisao dos dados do projeto  (14:12:39)
+    rotulos que se moveram mais de 5%: 6
+        custo-traducao.regiao16mb: DIFFERENCE attributable to translation           1.550           1.650    +6.5%  <<<
+        custo-traducao.regiao32mb: DIFFERENCE attributable to translation          17.420          16.110    -7.5%  <<<
+        custo-traducao.regiao64mb: DIFFERENCE attributable to translation           6.550           6.940    +6.0%  <<<
+        custo-traducao.seq16mb: DIFFERENCE attributable to translation              0.080           0.062   -22.5%  <<<
+        custo-traducao.seq32mb: DIFFERENCE attributable to translation              0.055           0.061   +10.9%  <<<
+        custo-traducao.seq8mb: DIFFERENCE attributable to translation               0.027           0.038   +40.7%  <<<
+    dos 6 marcados, 0 sao mudanca de codigo declarada
+    PREVISAO SUSTENTADA (6 rotulo(s) nao explicado(s), <= 8)
+      192 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+      11 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+      3 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+    comparacao completa em trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1317-expo6000-canal-duplo/comparacao.txt
+
+    portao de qualidade:
+        [aviso] 17 numero(s) arredondados SEM CLASSIFICACAO (triagem: --arredondados)
+        [aviso] tabelas: 41 celula(s) com unidade sem lastro em coleta arquivada
+        [aviso] envelhecimento: 49 linha(s) publicada(s) com mediana diferente da coleta atual
+        [ok]    build limpo, zero avisos
+        3 aviso(s) — não bloqueiam
+        [1mtudo passou.[0m Pode commitar.
+
+==> CONCLUIDA  2026-09-25T14:13:44-03:00
+
+    O que ficou em trilha/03-performance/03-isolamento-cpu/historico/2026-09-25-1317-expo6000-canal-duplo:
+      ambiente.txt      estado da maquina antes de medir
+      osnoise-hist.txt  distribuicao de ruido, dez minutos
+      isolamento/       20 celulas do stall_probe
+      mempool-tempo/    ns por pacote, prefixos sem estatisticas
+      mempool-cache/    idas ao anel, mesma condicao do tempo
+      comparacao.txt    o que se moveu contra a coleta com sessao grafica
+      portao.txt        portao de qualidade completo
+
+    A campanha de hardware ficou nos historicos dos tres modulos,
+    sob 2026-09-25-1317-expo6000-canal-duplo.
+
+    Para voltar ao modo grafico:
+      sudo systemctl set-default graphical.target && sudo reboot
+      (aqui e modo texto: nao ha sessao grafica inibindo, entao -i nao
+       faz falta. O set-default SIM: ele e persistente.)
+==> governor restaurado para powersave

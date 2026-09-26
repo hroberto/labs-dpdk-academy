@@ -19,11 +19,18 @@ if [ "$mode" = pausedtwo ]; then
 fi
 "$bin" -l "$cores" --no-huge --no-pci --file-prefix="academy_failure_$$" -- -n 64 -b 32 -t 20 >"$out" 2>&1 || rc=$?
 cat "$out"
+# O MODO `leak` FOI REMOVIDO DAQUI, e a razao e que ele nao podia funcionar.
+#
+# O vazamento vive no caminho de RETORNO PARCIAL, que so executa quando o ring
+# enche. Com os `-n 64 -b 32` fixos acima o ring nunca enche -- o proprio
+# programa reporta "did not fit in the queue: 0" -- e o pool termina integro.
+# O `meson.build` nunca chamou este modo, e o ramo ficou anos como teste que
+# parece existir e nao roda.
+#
+# O controle negativo do vazamento esta em `l2_run.sh`, que varre tres
+# tamanhos ate o ring encher, CONFERE que encheu e sai com 77 quando nao
+# encheu, em vez de seguir em silencio.
 case "$mode" in
-  leak)
-    [ "$rc" -eq 1 ]
-    grep -q 'INVARIANT VIOLATED' "$out"
-    grep -Eq 'nao couberam na fila: [1-9][0-9]*' "$out" ;;
   paused|pausedtwo)
     [ "$rc" -eq 3 ]
     grep -q 'NO PROGRESS' "$out"

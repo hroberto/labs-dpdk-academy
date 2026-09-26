@@ -1,0 +1,33 @@
+# RTLA osnoise histogram
+# Time unit is microseconds (us)
+# Duration:   0 00:10:00
+Index   CPU-002
+1         38474 
+2           956 
+3            75 
+4            21 
+5            15 
+6             5 
+7            17 
+8            16 
+9             5 
+10           11 
+11          395 
+12          130 
+13           22 
+14           49 
+15           26 
+16            1 
+17            2 
+18         1459 
+19          832 
+20           46 
+21            1 
+22            4 
+23            2 
+25            1 
+over:         0 
+count:    42565 
+min:          1 
+avg:       2.15 
+max:         25 

@@ -47,7 +47,7 @@ The split is not arbitrary, and explaining it is part of the content:
   runtime up — pool integrity after thousands of reuse cycles — stays at L2.
 
 That separation has a concrete cost worth knowing: bringing the EAL up takes
-**123 ms** on this machine
+**118 ms** on this machine
 ([§2 of the runtime module](../../docs/02-runtime-dpdk/README.en.md#2-the-cost-of-existing-how-long-the-eal-takes-to-be-born)).
 A suite that required the runtime for every assertion would pay that price in
 every test case.

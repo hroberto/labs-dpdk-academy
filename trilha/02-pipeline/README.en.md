@@ -80,6 +80,10 @@ deeper at the same batch moves far less, and the ranges touch.
 > The refusal **count** does not appear here, and the reason is in the submodule's
 > retraction: eight runs of the same configuration gave 118,626 to 286,625 — 128%
 > amplitude. It answers **whether there was** backpressure, not **how much**.
+> <!-- retratado: referencia -->
+> <!-- This block retracts nothing: it CITES the submodule's retraction. The two
+>      numbers are counts of refused objects, and the comma is a thousands
+>      separator, not a decimal point. -->
 
 ## Commitments already published
 

@@ -114,6 +114,72 @@ static int cpu_of_lcore(unsigned lcore)
     return -1;
 }
 
+/* Le um campo de topologia do sysfs. -1 quando o campo nao existe. */
+static int topologia(int cpu, const char *campo)
+{
+    char caminho[160];
+    snprintf(caminho, sizeof(caminho),
+             "/sys/devices/system/cpu/cpu%d/%s", cpu, campo);
+    FILE *f = fopen(caminho, "r");
+    if (f == NULL)
+        return -1;
+    int v = -1;
+    if (fscanf(f, "%d", &v) != 1)
+        v = -1;
+    fclose(f);
+    return v;
+}
+
+/* QUE FRONTEIRA CADA LINHA ATRAVESSA -- e por que isso vai na saida.
+ *
+ * `n` dobra ate `rte_lcore_count()`, e numa maquina de 12 nucleos fisicos em
+ * dois CCDs as linhas nao medem todas a mesma coisa:
+ *
+ *   n <= 6    todas as threads no mesmo dominio de L3
+ *   n = 8     duas delas no outro CCD: a disputa passa a atravessar a
+ *             interconexao, que a §4.2 do modulo 01 mede em ~81 ns
+ *   n = 16    quatro delas sao IRMAS SMT de outras: duas threads dividem as
+ *             unidades de execucao de um nucleo fisico
+ *
+ * Publicar a coluna sem dizer isso convida a ler a curva como se o unico fator
+ * fosse o numero de threads. Sao tres fatores, e a tabela nao os separa -- o
+ * que ela pode fazer, e passa a fazer, e DECLARAR onde cada um entra.
+ *
+ * Nao se corrige escolhendo lcores "melhores": com 8 threads em 6 nucleos por
+ * CCD, atravessar e inevitavel. O que se corrige e o silencio. */
+static void marcar_fronteira(char *buf, size_t n_buf, unsigned n)
+{
+    int l3 = -1, ccd = 0, smt = 0;
+    unsigned vistos[128];
+    unsigned n_vistos = 0;
+    unsigned id;
+    RTE_LCORE_FOREACH(id) {
+        if (n_vistos >= n || n_vistos >= 128)
+            break;
+        const int cpu = cpu_of_lcore(id);
+        if (cpu < 0)
+            continue;
+        /* IRMAO SMT: o mesmo `core_id` ja visto significa que duas threads
+         * caem no mesmo nucleo fisico. */
+        const int core = topologia(cpu, "topology/core_id");
+        for (unsigned k = 0; k < n_vistos; k++)
+            if ((int)vistos[k] == core)
+                smt = 1;
+        vistos[n_vistos++] = (unsigned)core;
+        /* CCD: o primeiro campo de `shared_cpu_list` da L3 identifica o
+         * dominio. Mudou entre threads, atravessou. */
+        const int dom = topologia(cpu, "cache/index3/id");
+        if (dom >= 0) {
+            if (l3 < 0) l3 = dom;
+            else if (dom != l3) ccd = 1;
+        }
+    }
+    if (ccd && smt)      snprintf(buf, n_buf, "  <- cruza CCD e SMT");
+    else if (ccd)        snprintf(buf, n_buf, "  <- cruza CCD");
+    else if (smt)        snprintf(buf, n_buf, "  <- cruza SMT");
+    else                 buf[0] = '\0';
+}
+
 static double measure_malloc(unsigned n)
 {
     atomic_store(&start_flag, 0); atomic_store(&ns_total, 0);
@@ -206,10 +272,28 @@ int main(int argc, char **argv)
         measure_pool(n); measure_malloc(n);                 /* aquecimento */
         for (int i = 0; i < R; i++) { vp[i] = measure_pool(n); vm[i] = measure_malloc(n); }
         const struct statistics ep = summarize(vp, R), em = summarize(vm, R);
-        printf("  %-8u %11.2f ns %5.0f%% %11.2f ns %5.0f%% %9.0fx\n", n, ep.median, ep.disp,
-               em.median, em.disp, ep.median > 0 ? em.median / ep.median : 0.0);
+        char fronteira[32];
+        marcar_fronteira(fronteira, sizeof(fronteira), n);
+        /* UMA CASA ABAIXO DE 10, E NAO `%.0f` SEMPRE.
+         *
+         * Com 8 threads o mempool PERDE do malloc, e a razao vira 0,21 --
+         * que `%.0f` imprime como `0x`. O documento publicava `0,2x` porque
+         * alguem calculou a mao o que o programa nao sabia dizer, e numero
+         * transcrito a mao e numero sem quem o confira. */
+        const double razao = ep.median > 0 ? em.median / ep.median : 0.0;
+        if (razao < 10.0)
+            printf("  %-8u %11.2f ns %5.0f%% %11.2f ns %5.0f%% %8.1fx%s\n", n, ep.median,
+                   ep.disp, em.median, em.disp, razao, fronteira);
+        else
+            printf("  %-8u %11.2f ns %5.0f%% %11.2f ns %5.0f%% %9.0fx%s\n", n, ep.median,
+                   ep.disp, em.median, em.disp, razao, fronteira);
     }
     free(vp); free(vm);
+    printf("\n  The marks on the right say which boundary each row crosses.\n");
+    printf("  Rows are NOT comparable across a mark: with more threads than\n");
+    printf("  physical cores in one L3 domain, contention starts crossing the\n");
+    printf("  interconnect; past the physical core count, two threads share one\n");
+    printf("  core's execution units. Three factors, one column.\n");
     printf("\n");
     rte_mempool_free(pool); rte_eal_cleanup(); return 0;
 }

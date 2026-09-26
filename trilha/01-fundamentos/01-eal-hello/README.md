@@ -92,7 +92,7 @@ várias configurações, por exemplo — tem de validar antes, ou aceitar que a
 tentativa custa um processo.
 
 **E ela não é barata.** Medida com **exatamente a configuração deste tópico**
-(`-l 0 --in-memory --no-huge`), `rte_eal_init()` custa **123 ms** de mediana,
+(`-l 0 --in-memory --no-huge`), `rte_eal_init()` custa **118 ms** de mediana,
 contra **0,30 ms** de [`rte_eal_cleanup()`][apiealclean] — mais de duas ordens de
 grandeza entre nascer e morrer. O número é medido por
 [`docs/02-runtime-dpdk/medicoes/custo-init.c`](../../../docs/02-runtime-dpdk/medicoes/custo-init.c),
@@ -113,7 +113,7 @@ O comando de estudo é:
 | `-l 0` | usa apenas o lcore 0 | nenhum, para este exemplo |
 | [`--in-memory`][optmem] | não grava arquivos de runtime em disco | impede processos secundários |
 
-> **As duas juntas não funcionam antes do DPDK 24, e a mensagem não ajuda.**
+> **As duas juntas só funcionam a partir do DPDK 25.11, e a mensagem não ajuda.**
 >
 > Este documento publicava `-l 0 --in-memory --no-huge` como comando de estudo,
 > e ele funciona no DPDK 25.11 da máquina de referência. Na CI, com o 23.11 do
@@ -125,9 +125,24 @@ O comando de estudo é:
 > ```
 >
 > Repare no que a mensagem cita: **`--legacy-mem`, que ninguém passou.** Ela é
-> ligada por dentro pelo `--no-huge` naquela release — uma opção que aciona
-> outra, e o conflito aparece com o nome da opção implícita, não da que você
-> escreveu. É o tipo de erro que faz procurar no lugar errado.
+> ligada por dentro pelo `--no-huge` — uma opção que aciona outra, e o conflito
+> aparece com o nome da opção implícita, não da que você escreveu. É o tipo de
+> erro que faz procurar no lugar errado.
+>
+> **A fronteira é 25.11, e não 24.** O `eal_common_options.c` das releases
+> mostra onde ela está: em **23.11, 24.03, 24.11 e 25.07** o teste é
+> `internal_cfg->legacy_mem && internal_cfg->in_memory` — sobre a configuração
+> **derivada**, e `--no-huge` grava `legacy_mem` nela. Em **25.11** o mesmo
+> teste virou `CONFLICTING_OPTIONS(args, legacy_mem, in_memory)`, sobre os
+> argumentos **digitados** — e `args.legacy_mem` fica zero quando ninguém
+> escreveu `--legacy-mem`.
+>
+> Ou seja: o que mudou não foi a incompatibilidade, foi **onde ela é
+> conferida**. Uma refatoração moveu a verificação da configuração derivada
+> para a linha de comando, e o conflito deixou de disparar. Vale como aviso de
+> método: o que o programa aceita não é o mesmo que o que o programa
+> suporta.
+> <!-- retratado: interpretacao -->
 >
 > **O que fazer:** use uma de cada vez. Para rodar sem hugepages e sem
 > privilégio, `--no-huge` basta. O que se perde é o isolamento que
@@ -239,7 +254,7 @@ o que existe; usa o que foi pedido.
 4. Troque `--no-huge` por `--in-memory`. Funciona na sua máquina? Se sim, de
    onde veio a memória — e por que ela não precisou de `/dev/hugepages`?
 5. Agora passe **as duas juntas**: `--in-memory --no-huge`. Numa release
-   anterior ao DPDK 24 isso falha, e a mensagem cita `--legacy-mem`, que você
+   anterior ao DPDK 25.11 isso falha, e a mensagem cita `--legacy-mem`, que você
    não passou. Confira sua versão com `pkg-config --modversion libdpdk` antes
    de concluir qualquer coisa sobre o resultado.
 6. Remova todas as opções de memória, deixando só `-l 0`. A EAL provavelmente

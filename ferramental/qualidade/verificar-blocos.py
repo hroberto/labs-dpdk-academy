@@ -60,6 +60,10 @@ CERCA = "`" * 3
 MIN_CHARS = 12
 
 
+# A marca que o `vcs_tag` grava quando a arvore tem alteracao nao commitada.
+DIRTY = re.compile(r"^\s*origin:.*-dirty\b", re.M)
+
+
 def forma(l):
     """A linha com todo número trocado por '#': a ASSINATURA do formato.
 
@@ -79,7 +83,38 @@ def coletas():
                   set(RAIZ.glob("trilha/**/historico/*/")))
     for d in dirs:
         for f in d.glob("*.txt"):
-            for l in f.read_text(errors="replace").split("\n"):
+            # A REPETICAO r0 NAO E PROCEDENCIA, e a propria campanha diz isso:
+            # `campanha-hardware.sh` a rotula `aquecimento(descartado)` no
+            # diario. Enquanto ela entrava aqui, um bloco tirado do aquecimento
+            # passava neste portao -- e em 25/09/2026 havia 22 linhas
+            # publicadas nessa condicao, incluindo a razao `3.42` entre dominios,
+            # que nenhuma repeticao valida de nenhuma coleta reproduz (o minimo
+            # e 3.73).
+            #
+            # A primeira execucao apos ociosidade e justamente a que o proprio
+            # projeto documentou como diferente: e o achado do governor, na
+            # §6.6.6 do topico de isolamento. Aceita-la como procedencia era
+            # aceitar a condicao que o desenho exclui.
+            if f.name.endswith(".r0.txt"):
+                continue
+            texto = f.read_text(errors="replace")
+            # BINARIO DE ARVORE SUJA NAO E PROCEDENCIA.
+            #
+            # `-dirty` no `git describe` significa que o executavel foi
+            # compilado de uma arvore com alteracoes NAO COMMITADAS. O commit
+            # que a linha de procedencia cita nao descreve o programa que
+            # produziu aquele numero, e o diff nao existe em lugar nenhum: a
+            # cadeia "todo numero publicado tem um programa que o produz" esta
+            # rompida, e de um jeito que nao da para reparar depois.
+            #
+            # Em 25/09/2026 havia tres linhas publicadas -- a tabela de
+            # `--lcores` da §5 do modulo 02 -- sustentadas SO por um
+            # `estado-lcore @ v0.06.00-41-g0ae1546-dirty`. Os valores estavam
+            # certos, e isso e o que torna o caso instrutivo: o defeito nao era
+            # o numero, era nao haver como reproduzi-lo.
+            if DIRTY.search(texto):
+                continue
+            for l in texto.split("\n"):
                 literais.add(l.rstrip())
                 formas.add(forma(l))
     return literais, formas, sorted({d.name for d in dirs})

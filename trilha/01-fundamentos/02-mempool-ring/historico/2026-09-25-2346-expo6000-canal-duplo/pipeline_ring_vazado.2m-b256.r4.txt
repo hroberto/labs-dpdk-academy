@@ -1,0 +1,18 @@
+EAL: Detected CPU lcores: 24
+EAL: Detected NUMA nodes: 1
+EAL: Detected shared linkage of DPDK
+EAL: Multi-process socket /tmp/dpdk/topico02/mp_socket
+EAL: Selected IOVA mode 'VA'
+INVARIANT VIOLATED: 1532 of 4095 objects in the pool at the end. 2563 object(s) leaked: some return path did not give back to the pool.
+  origin: pipeline_ring @ v0.07.00-37-g86ae4d96  |  dskhmartins Linux 7.0.0-34-generic  |  gcc 15.2.0  |  2026-09-26T00:44:55-0300  |  DPDK 25.11.0
+
+Configured per-lcore cache: 64
+Packets processed: 2000000
+Total bytes: 161000000
+Batch (burst): 256 | objects that did not fit in the queue: 2563
+Largest batch actually moved: enqueued 256, dequeued 256
+Mode: 2 lcores (producer 0, consumer 2)
+Free objects in the pool at the end: 1532 of 4095
+mempool cache stats: UNAVAILABLE (DPDK built without RTE_LIBRTE_MEMPOOL_STATS)
+Mean time: 2.4 ns/packet
+Frequency of lcore 0: 5.57 GHz (the time above varies with it)

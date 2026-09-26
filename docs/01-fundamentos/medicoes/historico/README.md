@@ -10,7 +10,7 @@ saída bruta dos programas de medição.
 Este projeto tratava a máquina como constante. Ela não é.
 
 Em 20/09/2026 o perfil EXPO 6000 foi ligado na placa. A latência de RAM caiu
-15%, a vazão agregada de doze núcleos melhorou 42% — e **nada no repositório
+11%, a vazão agregada de doze núcleos melhorou 45% — e **nada no repositório
 registrava a configuração anterior**, porque `scripts/ambiente.sh` não tinha o
 campo. Os números publicados descreviam um hardware que deixou de existir, sem
 que houvesse com o que comparar.

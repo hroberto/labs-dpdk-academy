@@ -1,0 +1,53 @@
+EAL: Detected CPU lcores: 24
+EAL: Detected NUMA nodes: 1
+EAL: Detected shared linkage of DPDK
+EAL: Multi-process socket /tmp/dpdk/camp_pool-esgotado_5/mp_socket
+EAL: Selected IOVA mode 'VA'
+  origin: pool-esgotado @ v0.06.00-23-g6b7d70e  |  dskhmartins Linux 7.0.0-31-generic  |  gcc 15.2.0  |  2026-09-24T11:39:28-0300  |  DPDK 25.11.0
+
+== When the mempool runs dry ==
+  DPDK DPDK 25.11.0 | RTE_MEMPOOL_CACHE_MAX_SIZE = 512
+
+== Experiment 1: the step of rte_mempool_get_bulk ==
+
+  pool of 1023 objects, cache 0, with 10 free at request time
+
+  request   result      delivered     free after
+  8         ok          8             2
+  9         ok          9             1
+  10        ok          10            0
+  11        -ENOBUFS    0             10
+  12        -ENOBUFS    0             10
+
+  Reading: the request for 11 fails with 10 free objects and returns ZERO,
+  not 10. There is no partial batch in get_bulk -- to accept whatever is
+  available one must ask for less, or use rte_mempool_get() one at a time.
+
+== Experiment 2: sizing rule 4, measured ==
+
+  The documentation warns that, with n % cache != 0, "some elements will
+  always stay in the pool and will never be used". dim_leftover_objects()
+  computes how many those would be. Here that number is confronted with a
+  real pool, drained one object at a time until get_bulk fails.
+
+  n      cache  batch    predicted  obtained   leftover matches?
+  1023   0      1        0          1023       0        yes
+  1024   256    1        0          1024       0        yes
+  4095   256    1        255        4095       0        NO
+  1023   32     1        31         1023       0        NO
+
+  2 case(s) DIVERGE -- and the divergence is the result, not an error.
+
+  A single consumer draining the pool obtains ALL objects, even when
+  n % cache != 0. The absolute reading of rule 4 ("never be
+  used") does not hold, and the mechanism is in DPDK's own header:
+  in rte_mempool_do_generic_get(), when refilling the cache fails
+  because there are not enough objects for a whole batch, the code
+  does `goto driver_dequeue` and fetches the missing ones STRAIGHT from
+  the backing ring, bypassing the cache. The rest of the pool stays reachable.
+
+  What rule 4 actually governs is steady-state EFFICIENCY, with several
+  lcores: each cache holds objects the other cores cannot see, and
+  divisibility decides whether refills happen in full batches. It is not
+  a reachability condition -- and that is how dimensionamento.h now
+  states the rule, after this measurement.

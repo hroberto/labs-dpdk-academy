@@ -42,6 +42,9 @@ regime**.
 > Fica o método, que vale além deste caso: **em microbenchmark, desmonte antes
 > de publicar.** Um laço rápido demais é hipótese de erro de medição antes de
 > ser resultado.
+> <!-- retratado: 0,115 0.115 -->
+> <!-- O `294×` tambem caiu, e nao entra na marca: e inteiro, e este portao so
+>      rastreia decimais. -->
 
 ### 1.2 A razão publicada era de outro regime
 
@@ -62,7 +65,7 @@ regime**.
 > 33,8/0,73 = 46.
 >
 > **O argumento desta seção não muda**, porque ele nunca dependeu da razão: sai de
-> 33,5 ns contra 67,2 ns de orçamento, e a chamada de função não entra na conta.
+> 33,3 ns contra 67,2 ns de orçamento, e a chamada de função não entra na conta.
 > Mas a razão é a frase que as pessoas repetem, e ela estava 22% baixa.
 >
 > Reproduza: rode `custo-syscall` uma vez depois de alguns minutos de máquina
@@ -74,9 +77,10 @@ regime**.
 |---|---|---|
 | 0,115 ns / 294× | o instrumento não media o que dizia medir | desmonte o binário antes de publicar |
 | 36× contra 46× | a medição estava certa, o regime não estava declarado | diga se mediu a frio ou em regime |
+<!-- cita-retratado: 0,115 0.115 -->
 
 E uma observação que vale para o documento inteiro: **nenhuma das duas mudou a
-conclusão do §2**. Ela sai de 33,5 ns contra 67,2 ns de orçamento, e a chamada
+conclusão do §2**. Ela sai de 33,3 ns contra 67,2 ns de orçamento, e a chamada
 de função não entra nessa conta. O que as duas atingiram foi a **razão**, que é
 a frase de efeito — exatamente a parte que as pessoas repetem, e por isso a que
 mais precisa estar certa.
@@ -254,7 +258,7 @@ descartado — a razão é metodológica, e é das mais instrutivas do módulo.
 ## 4. §10 — o estado de PTI desta máquina
 
 A [§10](README.md#por-que-a-syscall-aqui-é-tão-barata) afirma que o PTI não
-está ativo nesta máquina, e que por isso os 33,55 ns de syscall não são um custo
+está ativo nesta máquina, e que por isso os 33,3 ns de syscall não são um custo
 universal. A afirmação é **medida**, não inferida da arquitetura — ser AMD não
 implica PTI desligado, porque a mitigação é configurável por parâmetro de boot.
 
@@ -345,6 +349,168 @@ quatro instrumentos faz isso.
 
 ---
 
+### 5.1 O `0,397` é `1,818 / f`, e o `0,205` é `1,125 / f`
+
+A seção acima identificou a causa certa — carga no irmão SMT — por eliminação e
+por um teste de carga que reproduziu a razão. O que faltava era a grandeza
+invariante: **a medição não tem um valor em nanossegundos; tem um valor em
+ciclos**, e tudo o que se observou em nanossegundos é esse número dividido pela
+frequência do momento.
+
+**O instrumento.** O `custo-espera` dá a esta medição nove amostras de 2 milhões
+de rodadas — cerca de 4,5 ms de trabalho. Uma CPU não sai da frequência base
+nesse tempo. Investigar a distribuição pelo programa inteiro custaria 27 s por
+3,6 ms de dado útil, então a pergunta pediu instrumento próprio:
+[`sonda-relaxed.c`](medicoes/sonda-relaxed.c), que repete o laço original —
+mesmo alinhamento, mesma ordem de memória, mesmo sumidouro volátil — e publica
+**as amostras individuais com a frequência de cada uma**, em vez do resumo.
+
+**O que 20 000 amostras mostram.** Com o núcleo sozinho, e depois que a
+frequência estabiliza:
+
+```
+  bloco          ns/operacao   GHz    ciclos
+  -----------   -----------  -----   -------
+      1- 2000        0.2074   5.44     1.129
+   2001- 4000        0.2034   5.53     1.125
+   4001- 6000        0.2036   5.53     1.125
+   6001- 8000        0.2036   5.53     1.125
+   8001-10000        0.2037   5.53     1.125
+  10001-12000        0.2037   5.53     1.126
+  12001-14000        0.2036   5.53     1.125
+  14001-16000        0.2036   5.53     1.125
+  16001-18000        0.2036   5.53     1.125
+  18001-20000        0.2038   5.53     1.126
+```
+
+Os nanossegundos se movem; os **ciclos não**. E com o irmão SMT saturado por um
+laço em `taskset -c 12`, outras 20 000 amostras:
+
+```
+      1- 5000        0.3378   5.38     1.817
+   5001-10000        0.3379   5.38     1.817
+  10001-15000        0.3381   5.38     1.818
+  15001-20000        0.3380   5.38     1.818
+```
+
+**O modelo tem dois parâmetros e explica todos os valores já publicados:**
+
+```
+  ns por operacao = ciclos / frequencia
+
+    ciclos = 1,125   nucleo sozinho
+           = 1,818   irmao SMT saturado
+```
+
+| valor publicado | ciclos implícitos | frequência implícita |
+|---:|---|---:|
+| 0,205 | 1,125 | 5,49 GHz |
+| 0,255 | 1,125 | 4,41 GHz |
+| 0,262 e 0,270 | 1,125 | 4,29 e 4,17 GHz |
+| 0,397 | 1,818 | 4,58 GHz |
+| 0,410 | 1,818 | 4,43 GHz |
+
+A verificação direta fecha na quarta casa: a sonda, executada fria, mede
+**0,2597 ns** com a frequência lida em **4,33 GHz**, e `1,125 / 4,33` é
+**0,2598**.
+
+> **A razão de 1,94× da seção acima era `1,818 / 1,125 = 1,616` mais a
+> diferença de relógio entre as duas observações.** A explicação estava certa;
+> a razão medida misturava dois efeitos, e por isso não batia exatamente com o
+> `1,69×` do teste de carga.
+
+#### Medir o relógio por cadeia dependente mede outra coisa sob SMT
+
+A sonda publicava os ciclos dividindo pelo período de clock que ela mesma mede
+— uma cadeia de somas dependentes, uma por ciclo em regime. Em modo texto, com
+o irmão SMT saturado, ela devolveu **1,046 ciclos** onde o modelo previa 1,818.
+
+A previsão estava certa. Errado estava o denominador.
+
+**O mecanismo.** Uma cadeia dependente mede a **vazão de emissão desta
+thread**, não a frequência do núcleo. Quando o irmão SMT disputa as unidades
+de execução, as duas threads emitem cada uma cerca de metade — e o período
+medido dobra *junto* com a medição que ele deveria normalizar. Numerador e
+denominador caem juntos, e a divisão cancela exatamente o efeito que se quer
+ver.
+
+O `sysfs` não cai, porque lê a frequência do hardware, que não muda por haver
+duas threads no núcleo:
+
+| condição | `sysfs` | cadeia dependente | razão |
+|---|---:|---:|---:|
+| núcleo sozinho | 5,59 GHz | 5,51 GHz | 0,99 |
+| irmão SMT saturado | 5,44 GHz | 3,12 GHz | **0,57** |
+
+E pelo relógio de hardware o modelo fecha na terceira casa: 0,3353 ns a
+5,44 GHz dão **1,824 ciclos**, contra os 1,818 medidos em modo gráfico.
+
+**A sonda passou a publicar os dois**, com o nome do que cada um mede:
+
+```
+  sem carga                      irmao SMT saturado
+  ----------------------------   ----------------------------
+  por HARDWARE  (5.53 GHz) 1.122  por HARDWARE  (5.39 GHz) 1.822
+  por EMISSAO   (5.51 GHz) 1.119  por EMISSAO   (3.13 GHz) 1.057
+  razao 1.00 <- tem o nucleo      razao 0.58 <- nucleo dividido
+```
+
+A razão entre as duas fontes deixa de ser ruído e passa a ser **o
+instrumento**: ela mede quanto do núcleo esta thread está recebendo. Abaixo de
+0,8 o núcleo está sendo dividido, e o número em nanossegundos publicado sem
+essa qualificação descreve uma condição que o leitor não tem como adivinhar.
+
+> **A generalização, que vale além desta medição.** Qualquer aferição de
+> frequência por trabalho executado — cadeia dependente, laço calibrado,
+> contador de ciclos por amostragem de tempo — mede vazão, não relógio. As
+> duas coincidem enquanto a thread tem o núcleo inteiro, e é por isso que a
+> confusão sobrevive: ela só aparece na condição em que a medida importa.
+
+#### A atribuição ao ASLR não se sustenta
+
+A seção acima atribui os valores **intermediários** (0,262 e 0,270) a viés de
+leiaute, porque eles desapareceram ao desligar a aleatorização com `setarch -R`.
+A atribuição é plausível e está errada: os dois braços daquele teste correram
+em **sequência**, e o segundo herdou uma CPU já aquecida pelo primeiro.
+
+Intercalando os braços, de modo que ambos vejam a mesma condição térmica:
+
+```
+  par 1:  com ASLR 0,2585   sem ASLR 0,2023     <- a primeira corrida e fria
+  par 2:  com ASLR 0,2028   sem ASLR 0,2029
+  par 3:  com ASLR 0,2028   sem ASLR 0,2027
+  par 4:  com ASLR 0,2028   sem ASLR 0,2029
+  par 5:  com ASLR 0,2028   sem ASLR 0,2028
+  par 6:  com ASLR 0,2028   sem ASLR 0,2029
+```
+
+Os dois braços são indistinguíveis. O que produz o valor intermediário é a
+**primeira corrida**, com ou sem ASLR — e a corrida fria some do segundo braço
+de um teste sequencial por construção, não por efeito do leiaute.
+
+> **O que sobrevive e o que cai.** Sobrevive a causa do modo alto: carga no
+> irmão SMT, agora com a grandeza invariante medida. Cai a atribuição dos
+> intermediários ao leiaute, que era um confundimento com o estado térmico. O
+> teste que a separa é intercalar os braços, e ele é barato.
+
+> **Os dois valores continuam publicados na tabela acima, e devem.** Eles foram
+> medidos corretamente; o que caiu foi a explicação deles. Retratar a medição
+> seria apagar o dado por causa de um erro que estava na leitura.
+
+#### O que isto obriga em quem mede
+
+Qualquer medição desta ordem de grandeza publicada em nanossegundos, sem a
+frequência ao lado, é um número sobre um eixo não declarado. As três condições
+que o projeto usa dão três respostas para o mesmo laço:
+
+| condição | frequência típica | `atomic relaxed` |
+|---|---:|---:|
+| gráfico, `powersave` | ramp de 4,33 a 5,5 | 0,205 a 0,410 |
+| texto, `powersave` | 4,33 a 4,95 | 0,255 |
+| texto, `performance` | 5,58 estável | 0,205 |
+
+Nenhuma está errada. As três medem o mesmo 1,125 ciclos.
+
 ## 6. Pré-registro: o segundo pente de memória
 
 Esta seção é escrita **antes** da medição, e é a primeira vez que este
@@ -364,17 +530,41 @@ O texto publicado diz, sobre os ~21 GB/s que doze núcleos alcançam juntos:
 > a satura sozinho; oito núcleos dispersos precisam se juntar para isso."*
 
 O EXPO deu o primeiro indício contra a segunda frase. Ele elevou a taxa por
-canal em 25%, e o acesso sequencial de **um** núcleo não se mexeu:
+canal em 25%, e o acesso sequencial de **um** núcleo não se mexeu.
 
-| RAM, um núcleo | antes do EXPO | depois |
-|---|---:|---:|
-| `sequencial` (amortizado) | 0,194 ns | **0,195 ns** |
-| `aleatorio` (amortizado) | 7,21 ns | 6,49 ns |
-| `dependente` (latência) | 101,5 ns | 89,31 ns |
+O contraste foi refeito em 25/09/2026, com as duas coletas em **modo texto**,
+canal duplo, mesmo kernel e mesmo binário dos dois lados — `4800 → 6000 MT/s`,
+que é o mesmo salto de 25%:
 
-Latência caiu 12%, vazão de acesso disperso caiu 10% — e o sequencial ficou
-parado. Um número que não responde a memória mais rápida **não está limitado
-pela memória**.
+| RAM, um núcleo | 4800 MT/s | 6000 MT/s | variação |
+|---|---:|---:|---:|
+| `sequencial` (amortizado) | 0,184 ns | **0,196 ns** | **+6,5%** |
+| `aleatorio` (amortizado) | 3,33 ns | 3,06 ns | −8,1% |
+| `dependente` (latência) | 96,64 ns | 86,02 ns | −11,0% |
+
+Latência caiu 11%, o acesso disperso 8% — e o sequencial **subiu**. Um número
+que não responde a memória mais rápida não está limitado pela memória; um que
+responde na direção errada está medindo outra coisa, e a §4.2 diz qual: o teto
+de emissão do laço.
+
+> **A medição original não sobreviveu, e a substituição é mais forte.** A tabela
+> publicava `98,73 → 88,00 ns` para a latência, de uma coleta feita em setembro
+> antes do protocolo de modo texto — e essa coleta foi **descartada** em 24/09
+> junto com as outras quinze. O estado "antes do EXPO" não é recoletável sem
+> reverter a BIOS, então aqueles dois números ficariam para sempre sem
+> procedência.
+>
+> O contraste de 25/09 mede **a mesma coisa** — 25% a mais de taxa por canal —
+> com coleta arquivada dos dois lados. E chega ao mesmo número: `−11,0%` contra
+> os `−10,9%` de antes. O argumento não dependia daquela coleta; dependia do
+> contraste, e o contraste se reproduz.
+>
+> **O sinal do `sequencial` mudou, e isso não enfraquece a leitura — reforça.**
+> Onde a medição antiga dava −2,5% (quase nada), a nova dá +6,5%: memória mais
+> rápida com resultado *pior*. Nenhuma das duas é compatível com "limitado pela
+> memória", e a segunda é incompatível de forma mais evidente.
+> <!-- cita-retratado: 98,73 98.73 88,00 88.00 0,200 0.200 0,195 0.195 7,09 7.09 6,45 6.45 -->
+> <!-- retratado: 98,73 88,00 7,09 6,45 -->
 
 ### As previsões, e o que refuta cada uma
 
@@ -417,12 +607,14 @@ A campanha de 20/09, cinco rodadas em máquina ociosa, com o aquecimento
 descartado, comparada com os valores publicados:
 
 ```
-  12 nucleos (agregado)      36,56 -> 21,28 ns/acesso    -41,8%   RESPONDE
-  1 nucleo, sequencial        0,194 -> 0,190 ns/acesso     -2,1%   nao responde
+  12 nucleos (agregado)      30,92 -> 21,27 ns/acesso    -31,2%   RESPONDE
+  1 nucleo, sequencial        0,200 -> 0,195 ns/acesso     -2,5%   nao responde
 ```
 
+<!-- cita-retratado: 31,2 31.2 -->
+
 **Previsão 1 confirmada, previsão 2 confirmada.** Memória 25% mais rápida
-melhorou o agregado em 42% e não fez nada pelo núcleo sozinho. As duas metades
+melhorou o agregado em 45% de vazão e não fez nada pelo núcleo sozinho. As duas metades
 da frase da §4.2 se separam: o agregado **é** limitado pela banda; o núcleo
 sequencial sozinho **não é** — ele está limitado por si mesmo.
 
@@ -432,7 +624,7 @@ independente, com outra intervenção sobre a mesma grandeza.
 
 ### E uma confirmação que a §4.1 declarava não ter
 
-A [§4.1](README.md#por-que-a-diferença-é-11-ns-e-não-três-acessos-à-ram) explica
+A [§4.1](README.md#por-que-a-diferença-é-10-ns-e-não-três-acessos-à-ram) explica
 que o custo extra de tradução é servido pelo L3, e classifica a explicação como
 *"compatível, não demonstrado"* — porque demonstrar exigiria contador de
 hardware.
@@ -441,12 +633,12 @@ O EXPO produziu a evidência por outro caminho. Se a penalidade é servida pelo
 L3, memória mais rápida **não deve** baratea-la:
 
 ```
-  L3 dependente                 9,70 -> 9,70 ns      0,0%
-  DIFERENCA de traducao        10,40 -> 11,02 ns    +6,0%
-  RAM dependente              101,50 -> 86,14 ns   -15,1%
+  L3 dependente                  9,69 ->  9,69 ns    +0,0%
+  DIFERENCA de traducao         10,32 -> 10,64 ns    +3,1%
+  RAM dependente                96,64 -> 86,02 ns   -11,0%
 ```
 
-A DRAM melhorou 15%, o L3 não se moveu, e a tradução **acompanhou o L3**. Não é
+A DRAM melhorou 11%, o L3 não se mexeu, e a tradução **acompanhou o L3** com 3,1%. Não é
 o contador de hardware que a seção pede, e não prova o caminho percorrido; mas
 é uma predição arriscada que se confirmou, e o experimento original não
 conseguia produzi-la.
@@ -454,10 +646,29 @@ conseguia produzi-la.
 ### A linha divisória, como validação do conjunto
 
 Vale o registro geral, porque ele diz mais sobre os instrumentos que sobre o
-hardware: das medições comparadas, **doze não se moveram** (0,0% a 1,5%) e
-**dez se moveram entre 11% e 42%**. O critério que as separa é único — tocar a
-DRAM ou o fabric. `laco sozinho`, `RAZAO com/sem irmao SMT`, `L1d dependente` e
-`L3 dependente` saíram em **0,0%**.
+hardware. Das **56** medições que o `comparar-hardware.py` confronta hoje:
+
+| Faixa | Quantas | O que há nela |
+|---|---:|---|
+| até 1,5% | **24** | cache, atômicas, travas locais — nada que toque a DRAM |
+| 1,6% a 9,0% | 16 | caminhos mistos: parte do trabalho em cache, parte fora |
+| 10,9% a 31,2% | **16** | DRAM e o *fabric* entre CCDs |
+
+<!-- cita-retratado: 31,2 31.2 -->
+
+> **A faixa do meio existe, e uma versão anterior desta seção a omitia.** O
+> texto dizia "doze não se moveram, dez se moveram", como se a divisão fosse
+> limpa. Ela era limpa no conjunto menor que a ferramenta cobria então; com
+> 56 comparações há dezesseis medições entre 1,6% e 9,0%, e apagá-las tornaria
+> o argumento mais bonito do que os dados permitem.
+
+O que sustenta a validação não é a ausência de meio-termo, e sim **os extremos
+caírem onde o mecanismo prevê**. `laco sozinho`, `RAZAO com/sem irmao SMT`,
+`L1d dependente` e `L3 dependente` saíram em **0,0%** — nenhum deles toca a
+memória principal. O agregado de doze núcleos saiu em **31,2%**, o maior de
+todos, e é o que mais disputa banda.
+
+<!-- cita-retratado: 31,2 31.2 -->
 
 Instrumento que responde onde deve e fica quieto onde deve é a única evidência
 possível de que ele mede o que diz medir.
@@ -502,6 +713,172 @@ efeito com um e com dois pentes, o instrumento está consistente, e a diferença
 restante entre as linhas fica atribuível ao par capacidade+canal — declarado
 como par, e não como banda.
 
+### Desfecho: as quatro previsões, medidas
+
+O segundo pente entrou em 23/09/2026. A coleta é
+`2026-09-23-expo6000-canal-duplo`, mesmo protocolo e mesmo estado de máquina da
+linha de base — `powersave`, C3 ativo, seis rodadas com a de aquecimento
+descartada. Uma variável: o número de canais.
+
+| # | Previsão | Limite declarado | Medido | Desfecho |
+|---|---|---|---:|---|
+| 1 | `sequencial` de um núcleo não se move | < 5% | −4,1% | **NÃO TESTÁVEL** |
+| 2 | vazão agregada de doze núcleos sobe muito | > 40% | **+68,0%** | **confirmada** |
+| 3 | latência `dependente` muda pouco | < 5% | **−1,8%** | **confirmada** |
+| 4 | `custo-comunicacao` não se move | < 5% | **maior desvio 4,2%** | **confirmada** |
+
+```
+  1 nucleo, sequencial        0,195 -> 0,187 ns/acesso    -4,1%   <- instrumento
+  12 nucleos, agregado        21,27 -> 12,66 ns/acesso   -40,5%
+                              564,2 -> 947,9 M acessos/s +68,0%
+  RAM dependente              88,00 -> 86,38 ns           -1,8%   <- historico
+  1 nucleo, custo-paralelismo  6,20 ->  5,85 ns/acesso    -5,6%   <- substituta
+```
+
+<!-- cita-retratado: 40,5 40.5 88,00 88.00 -->
+
+> **Este bloco é REGISTRO, e não medição corrente.** Os valores da coluna
+> esquerda vêm da coleta de setembro que foi descartada em 24/09, ao adotar o
+> protocolo de modo texto. Ele fica porque é o que o pré-registro previu e o que
+> foi medido **na época** — reescrevê-lo com números de hoje falsificaria o
+> registro, que é justamente o que um pré-registro existe para impedir.
+>
+> <!-- cita-retratado: 88,00 88.00 -->
+> O `88,00` leva a marca `<- historico` na linha. O contraste equivalente,
+> medido com coleta arquivada, está na tabela de `4800 → 6000 MT/s` acima.
+
+> **A previsão 1 não podia falhar, e por isso não conta.** A coluna
+> `sequencial` do `efeito-cache` é limitada pelo laço que a mede, não pela
+> memória: o acumulador forma uma cadeia carregada pelo laço com teto de cerca
+> de um elemento por ciclo, e esse teto é o mesmo com o conjunto na L1d e com
+> ele em DRAM. Um número que não pode se mover não tem como refutar uma
+> previsão de que ele não se move.
+>
+> A previsão foi registrada de boa-fé e o desfecho medido está correto como
+> aritmética. O que não existe é o **valor evidencial**: o critério de
+> refutação — "subir mais de 20%" — era inalcançável por construção. A §4.2 do
+> módulo 01 traz a ressalva do instrumento, e um
+> [teste L2](README.md#42-cache-e-localidade) trava a armadilha.
+>
+> **A substituta está na última linha do bloco.** O `custo-paralelismo` mede um
+> núcleo sozinho com o mesmo instrumento que mede os doze, e ali o número
+> **pode** se mover: ele se moveu 14,5% quando a frequência mudou. Que tenha se
+> movido só 5,6% com o canal é resultado, não teto. A previsão 1 seria melhor
+> servida por esse instrumento, e é assim que fica registrada para a próxima
+> configuração de hardware.
+>
+> **O fatorial de 24/09 refez esse par com pareamento melhor** e deu −11,0 a
+> −11,6 % para a frequência contra −7,7 a −8,4 % para o canal. A leitura
+> sobrevive — o núcleo sozinho responde mais à frequência —, com margem bem mais
+> estreita do que estes 14,5 contra 5,6 sugerem.
+> <!-- cita-retratado: 14,5 14.5 88,00 88.00 -->
+
+**A previsão 4 é a que dá valor às outras duas.** `custo-comunicacao` mede
+tráfego de linha de cache entre núcleos, que não toca a DRAM: se o canal
+mexesse nele, a intervenção teria efeito onde não deveria e as demais
+perderiam o sentido. As cinco medições do programa ficaram entre 0,0% e 4,2%,
+com a razão entre irmão SMT e núcleo distinto parada em **2,29 → 2,29**.
+
+Um instrumento que responde onde deve e fica quieto onde deve é a única
+evidência possível de que ele mede o que diz medir — e desta vez isso foi
+declarado antes, não observado depois.
+
+> **E o controle negativo não protegeu contra o defeito da previsão 1.** Ele
+> confere se a **intervenção** vaza para onde não deveria. O que derrubou a
+> previsão 1 foi outra coisa: o **instrumento** dela ter um teto próprio, que
+> nenhuma intervenção alcança. São falhas de famílias diferentes, e um controle
+> negativo bem construído passa verde sobre a segunda.
+>
+> A pergunta que teria pego o defeito não é "a intervenção vazou?", e sim **"o
+> que este número faria se a hipótese fosse falsa?"**. Para a previsão 1 a
+> resposta era "o mesmo", e isso podia ter sido respondido antes de medir — ou
+> depois, com o teste de variar o nível de cache e observar que o valor não se
+> move. Fica registrada como a pergunta a fazer em todo pré-registro futuro.
+
+<!-- cita-retratado: 14,5 14.5 31,2 31.2 5,6 5.6 40,5 40.5 7,2 7.2 -->
+
+#### O que o desfecho obrigou a mudar
+
+A seção previa: *"se 1 e 2 se confirmarem, a §4.2 fica mais precisa e mais
+curta"*. Foi o que aconteceu. A frase *"um núcleo sequencial a satura sozinho"*
+saiu do módulo 01, e a subseção passou a publicar as **duas** intervenções lado
+a lado, porque elas medem a mesma grandeza por caminhos independentes:
+
+| Intervenção | 12 núcleos | 1 núcleo | razão |
+|---|---:|---:|---:|
+| 4800 → 6000 MT/s, com 1 pente | −28,6% | −11,6% | 2,5× |
+| 4800 → 6000 MT/s, com 2 pentes | −26,3% | −11,0% | 2,4× |
+| 1 → 2 pentes, a 4800 MT/s | −44,6% | −8,4% | 5,3× |
+| 1 → 2 pentes, a 6000 MT/s | −42,8% | −7,7% | 5,6× |
+
+A segunda intervenção é a mais limpa das duas, e por uma razão de mecanismo:
+**dobrar os canais dobra a banda sem tocar na latência**, enquanto trocar a
+frequência move as duas coisas ao mesmo tempo. Confirmar a mesma assimetria
+pelos dois caminhos é mais forte do que confirmar por um só.
+
+> **Estes valores são de 24/09 e substituem os do bloco acima, que é de 23/09.**
+> O bloco fica como está: ele registra o que aquela comparação deu, e reescrevê-lo
+> apagaria o pré-registro em vez de completá-lo. O que mudou não foi a medição,
+> foi o **pareamento**. O contraste de canal de 23/09 comparava uma coleta com a
+> CPU fria, partindo de 4,33 GHz, contra outra quente e estável a 5,58 GHz —
+> regime de frequência como terceira variável dentro de um contraste que se
+> propunha a isolar canais.
+>
+> As quatro células de 24/09 medem cada fator nos **dois níveis** do outro, em
+> condição única, e concordam entre si: a frequência move o mesmo com um pente
+> ou dois, o canal move o mesmo a 4800 ou a 6000. O efeito de um núcleo é o que
+> mais se desloca — de −5,6 % para −8,4 % —, porque é o mais sensível ao relógio
+> e era o mais contaminado.
+
+#### O fatorial 2×2 tem três células de quatro
+
+O desenho proposto acima cruzava velocidade com canal. Com esta coleta ele fica
+assim:
+
+| | 4800 MT/s | 6000 MT/s |
+|---|---|---|
+| **16 GB, canal único** | coletado | coletado |
+| **32 GB, canal duplo** | **falta** | coletado |
+
+A célula que falta exige voltar a BIOS para 4800 com os dois pentes instalados.
+Ela não decide nenhuma das quatro previsões — todas já se resolveram — mas
+responde a uma pergunta diferente: **se o efeito da velocidade é o mesmo nas
+duas configurações de canal**, o que testaria a consistência do instrumento
+através de uma mudança de hardware. Fica registrada como coleta disponível, não
+como pendência de conclusão.
+
+#### O confundimento capacidade+canal continua declarado
+
+Acrescentar o pente mudou capacidade e canal juntos, e **isto não foi
+resolvido** — nenhum desenho viável nesta máquina os separa sem remover o
+pente, intervenção que o responsável pela máquina recusou. É decisão
+registrada, não bloqueio técnico. O que o desfecho
+acrescenta é que a previsão 3 restringe o espaço: se a capacidade fosse o que
+move o agregado, ela teria de fazê-lo **sem** alterar a latência de uma cadeia
+dependente de 512 MB, que é o que a previsão 3 mediu parada em −1,8%.
+
+Capacidade sobrando não tem por onde acelerar uma cadeia que já cabia na
+memória disponível — a memória livre durante a coleta de canal único ficou em
+torno de 7 GiB, catorze vezes o conjunto de trabalho. É argumento de mecanismo
+somado a fato registrado, e continua **não sendo um controle**.
+
+#### Um nó NUMA, e o que isso encerra
+
+Com os dois pentes, `numactl --hardware` continua reportando **um único nó**, e
+`/sys/devices/system/node/` tem só `node0`. Canal duplo é propriedade do
+controlador de memória, não da topologia NUMA: esta CPU apresenta toda a memória
+como um domínio.
+
+Qualquer experimento que dependa de **mais de um nó NUMA** — localidade de pool
+por nó, custo de acesso remoto, posicionamento de lcore por nó — permanece
+impossível nesta máquina, e não por falta de pentes. A
+[§4.3 do módulo 01](README.md#43-numa-quando-a-memória-deixa-de-ser-uma-coisa-só)
+já declara que os números de NUMA ali vêm da literatura e que medi-los exige
+hardware de dois soquetes. Este registro fecha a porta de um caminho que a troca
+de hardware parecia ter aberto: **canal duplo é propriedade do controlador de
+memória, não da topologia NUMA**, e as duas coisas se confundem com facilidade
+justamente porque ambas falam de "quantos caminhos até a memória".
+
 ### O que já está registrado como limitação
 
 A máquina mediu **em canal único** tudo o que foi publicado até aqui, e o
@@ -509,6 +886,161 @@ documento não dizia isso — nem o `scripts/ambiente.sh`, que existe justamente
 para o ambiente não ser descrito em prosa. Os dois campos entraram junto com
 esta seção; quando exigem privilégio, eles **declaram que não foram lidos** em
 vez de sumir.
+
+---
+
+## 7. A condição de coleta: por que a sessão gráfica foi excluída
+
+O protocolo de medição deste repositório especifica máquina dedicada, sem
+carga concorrente, e os scripts de campanha o declaram no cabeçalho — *"a
+máquina está exclusiva para esta finalidade"*. A condição foi tratada como
+suficiente até que o rastreamento por evento a contradisse.
+
+### O que a medição mostrou
+
+O rastreador `osnoise` atribuiu as paradas mais longas de uma CPU ociosa à
+função `amdgpu_device_delay_enable_gfx_off`, que reativa o *power gating* do
+bloco gráfico da GPU integrada. A execução ocorre em *workqueue* por CPU e
+consome centenas de microssegundos. Com a sessão gráfica suspensa, a mesma
+CPU apresentou máximo de 25 µs contra 711 µs — e a função desapareceu do
+rastro. A cadeia completa, com pré-registro e critério de refutação, está em
+[§6.6.5 e §6.6.6 do módulo de isolamento de CPU][iso].
+
+A consequência para o protocolo é direta: **fechar o navegador não suspende a
+sessão gráfica**. O compositor, o servidor de display e o driver da GPU
+permanecem ativos e produzem, sozinhos, eventos de até 800 µs a intervalos de
+poucos segundos. A declaração de exclusividade descrevia uma condição que não
+era a condição medida.
+
+### O que isso obriga, e o que não obriga
+
+O efeito sobre os resultados já publicados é limitado pelo desenho estatístico.
+O projeto reporta **mediana com dispersão**, não média; um evento raro de
+800 µs desloca pouco a mediana de uma coleta com bilhões de amostras. A
+medida direta desse deslocamento, na métrica mais sensível disponível — a
+mediana da maior parada, composta inteiramente por cauda — foi de 24,8 µs para
+21,5 µs, ou 13 %. Métricas de corpo da distribuição deslocam menos.
+
+Esses 13 % valem para coleta que corre com a **sessão gráfica ociosa**, e não
+generalizam. Entre as nove coletas do tópico de isolamento, oito ficam entre
+21,5 e 30,9 µs e uma fica em 515,5 µs — todas na mesma máquina, as duas pontas
+com sessão gráfica ativa. A contribuição da sessão não é constante aditiva:
+depende de quanto ela trabalhou durante a medição, porque a reativação do
+*power gating* é agendada por atividade gráfica.
+
+A especificação passa a distinguir dois regimes:
+
+| Grandeza de interesse | Condição exigida |
+|---|---|
+| mediana, média, razão entre medianas | máquina dedicada, sessão gráfica permitida |
+| dispersão, jitter, p99, p99,9, máximo | **modo texto**, sem gerenciador de display |
+
+O modo texto é obtido por entrada de GRUB de boot único com
+`systemd.unit=multi-user.target`. O script
+[`ferramental/qualidade/campanha.sh`][cmt] recusa execução
+enquanto houver processo gráfico vivo, de modo que a condição seja verificada
+pelo programa e não pela lembrança do operador.
+
+### O limite desta correção
+
+Os 198 rótulos que o `comparar-hardware.py` confronta **não foram
+reexecutadas** em modo texto. Pelo argumento da mediana espera-se deslocamento
+reduzido, mas trata-se de expectativa, não de medição. O achado também é de
+uma máquina, com GPU integrada AMD: plataformas com GPU discreta ou outro
+driver não estão cobertas.
+
+### 7.1 Pré-registro: a coleta gráfica de controle
+
+*Escrito antes da coleta. O que estiver abaixo não pode ser reescrito depois de
+ver o resultado; o desfecho entra como seção própria.*
+
+A subseção acima declara uma **expectativa**, não uma medição: espera-se que o
+deslocamento das medianas seja reduzido, e ninguém mediu. A razão de não ter
+medido é que o arquivo não tem o par: a única coleta com sessão gráfica que
+sobreviveu — `2026-09-23-expo6000-canal-duplo`, recuperável da história do git —
+saiu de **árvore suja** (`v0.05.00-2-geb54750-dirty`) e, pela regra deste
+projeto, não é procedência. Toda afirmação texto-contra-gráfico do material se
+apoia nela.
+
+**O par que falta.** Uma coleta com sessão gráfica viva, binário de árvore
+limpa, e todo o resto igual a `2026-09-25-1720-expo6000-canal-duplo`: mesma
+memória (6000 MT/s, canal duplo), mesmo kernel (7.0.0-34), *governor* fixado em
+`performance` nos dois lados, e as fontes de medição **idênticas** — nenhum
+`.c` mudou entre `v0.07.00-25-g836c47a`, que produziu a coleta de texto, e a
+árvore de hoje.
+
+Fixar o *governor* dos dois lados é o que torna este par melhor que o de 23/09:
+lá a coleta gráfica corria em `powersave`, e sessão e relógio estavam
+confundidos. Aqui sobra uma variável só.
+
+**Comparação declarada:** a coleta nova (5 repetições) contra as seis coletas
+de texto com `performance` reunidas (30 repetições), por teste de postos
+bilateral, grandeza a grandeza.
+
+| | previsão | refutada se |
+|---|---|---|
+| **P1** | as duas primitivas que dormem — `mutex + condvar` e `POSIX semaphore` — saem **maiores** com sessão gráfica, as duas com `p < 0,05` | nenhuma das duas sair maior |
+| **P2** | `atomic relaxed` **não** difere além de 3%, porque o *governor* está fixo dos dois lados e os 36% da comparação de 23/09 eram relógio, não sessão | a diferença passar de 3% |
+| **P3** | *controle negativo*: `laço sozinho no núcleo` — ALU pura — não se move além de 1% | ele se mover |
+
+P1 é a previsão que carrega a hipótese: se a sessão gráfica custa alguma coisa,
+ela custa onde a tarefa **volta a ser escalonada**, disputando a CPU com o
+compositor. P3 é o que separa "a sessão custa" de "o instrumento se moveu": se
+o laço de ALU andar, a diferença é de máquina e não de condição, e nenhuma das
+outras conclusões vale.
+
+**O que este par não decide.** A magnitude medida vale para uma sessão gráfica
+**ociosa**, com o compositor e o servidor de display vivos e nada mais. Uma
+sessão em uso — navegador, IDE, compilação — é outra condição, e a §7 já
+registra que a contribuição da sessão não é constante aditiva. A coleta declara
+quantos processos gráficos havia, e é por isso que ela declara.
+
+### 7.2 Desfecho: as três previsões, medidas
+
+A coleta `2026-09-25-2346-expo6000-canal-duplo` correu em 26/09/2026 com a
+sessão gráfica viva e **nada mais** — dois processos, `gnome-shell` e
+`Xwayland` —, árvore limpa, *governor* em `performance` nos dois lados. Ela é
+confrontada com as seis coletas de texto com `performance`, 30 repetições, por
+teste de postos bilateral.
+
+**As três se sustentam.**
+
+| | previsão | medido | |
+|---|---|---|---|
+| **P1** | as duas que dormem saem maiores, `p < 0,05` | `mutex + condvar` **+3,3%** (p < 0,001); `POSIX semaphore` **+3,8%** (p < 0,001) | sustentada |
+| **P2** | `atomic relaxed` não difere além de 3% | **+0,4%** | sustentada |
+| **P3** | o laço de ALU não se move além de 1% | **+0,0%** (p = 1,000) | sustentada |
+
+O controle negativo é o que dá força ao resto: o laço de ALU pura publica
+`0,537 ns` nas duas condições, sem um dígito de diferença. O instrumento não se
+moveu; o que se moveu foi o que depende de voltar a ser escalonado.
+
+**A magnitude responde o que a §7 deixou em aberto.** Aquela seção esperava
+"deslocamento reduzido" e dizia que era expectativa. Agora está medido: de 33
+grandezas, **nenhuma** se move mais de 1,3% — exceto as duas que dormem, em 3
+a 4%. As seis que separam com `p < 0,05` são as duas que dormem (maiores com
+sessão gráfica), a `atomic relaxed` (+0,4%, significante e desprezível) e três
+pontos de `custo-paralelismo` (−0,4% a −1,3%).
+
+> **Por que as que dormem, e só elas.** `mutex + condvar` e `POSIX semaphore`
+> são as duas medições em que a thread **cede a CPU e volta**. O compositor e o
+> servidor de display são tarefas executáveis: quando a thread medida acorda,
+> ela disputa o processador com elas, e o atraso do despertar entra na medida.
+> As outras 31 grandezas nunca soltam a CPU, e por isso não veem a sessão. É a
+> mesma leitura da §6.4 do [tópico de isolamento][iso] por outro caminho: o que
+> a sessão gráfica custa não é largura de banda nem cache, é **latência de
+> reescalonamento**.
+
+**O que este desfecho autoriza, e o que não.** Ele autoriza publicar mediana e
+razão com a sessão gráfica viva, que é o que a tabela de dois regimes da §7 já
+dizia — e agora com número em vez de expectativa. Não autoriza nada sobre
+cauda: a mesma coleta, na métrica de maior parada, se comporta de outro modo, e
+o [tópico de isolamento][iso] registra isso na §6. Também não generaliza para
+sessão **em uso**: dois processos gráficos ociosos é a condição medida, e a §7
+já registra que a contribuição da sessão não é constante aditiva.
+
+[iso]: ../../trilha/03-performance/03-isolamento-cpu/README.md#665-identificação-da-fonte-por-rastreamento-de-eventos
+[cmt]: ../../ferramental/qualidade/campanha.sh
 
 ---
 
