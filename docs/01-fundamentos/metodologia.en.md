@@ -441,25 +441,29 @@ doubles *along with* the measurement it was supposed to normalise. Numerator
 and denominator fall together, and the division cancels precisely the effect
 one wants to see.
 
-`sysfs` does not fall, because it reads the hardware frequency, which does not
-change because two threads share the core:
+The `sysfs` value does not fall, and that is what makes it useful here. It is
+**not the hardware frequency** — it is what the driver reports, and the kernel
+documentation states that in most cases it corresponds to the last P-state
+requested, and may or may not reflect the frequency actually executed. What the
+comparison needs from it is less than that: only that it **does not fall under
+contention**, and that is observed:
 
 | condition | `sysfs` | dependency chain | ratio |
 |---|---:|---:|---:|
 | core alone | 5.59 GHz | 5.51 GHz | 0.99 |
 | SMT sibling saturated | 5.44 GHz | 3.12 GHz | **0.57** |
 
-And by the hardware clock the model closes to the third decimal: 0.3353 ns at
-5.44 GHz gives **1.824 cycles**, against the 1.818 measured in graphical mode.
+And by the reported frequency the model closes to the third decimal: 0.3353 ns
+at 5.44 GHz gives **1.824 cycles**, against the 1.818 measured in graphical mode.
 
 **The probe now publishes both**, named for what each measures:
 
 ```
-  no load                        SMT sibling saturated
-  ----------------------------   ----------------------------
-  by HARDWARE  (5.53 GHz) 1.122  by HARDWARE  (5.39 GHz) 1.822
-  by ISSUE     (5.51 GHz) 1.119  by ISSUE     (3.13 GHz) 1.057
-  ratio 1.00 <- owns the core    ratio 0.58 <- core is shared
+  no load                              SMT sibling saturated
+  ---------------------------------    ---------------------------------
+  by reported freq.    (5.53) 1.122    by reported freq.    (5.39) 1.822
+  by issue             (5.51) 1.119    by issue             (3.13) 1.057
+  ratio 1.00 <- owns the core          ratio 0.58 <- core is shared
 ```
 
 The ratio between the two sources stops being noise and becomes **the

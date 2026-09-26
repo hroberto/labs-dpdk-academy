@@ -453,6 +453,13 @@ test('scripts - L1 (apuracao e mutacoes)', bash,
      args : [meson.project_source_root() / 'scripts/tests/l1_apuracao.sh'],
      suite : ['l1', 'scripts'], timeout : 60)
 
+# A campanha decide pela MATRIZ e nao pela contagem, e isso precisa de teste:
+# a versao que contava arquivos declarava COMPLETA uma coleta com celula
+# trocada, e o passo 6 comparava contra celulas inexistentes.
+test('scripts - L1 (completude da campanha e por matriz)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_campanha_completa.sh'],
+     suite : ['l1', 'scripts'], timeout : 60)
+
 test('02-runtime - L1 (FAIL e SKIP dos runners multiprocesso)', bash,
      args : [meson.project_source_root() / 'docs/02-runtime-dpdk/medicoes/tests/l1_multiprocesso.sh'],
      suite : ['l1', 'runtime'], timeout : 60)

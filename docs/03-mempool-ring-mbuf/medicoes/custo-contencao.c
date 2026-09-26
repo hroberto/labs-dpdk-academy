@@ -115,6 +115,20 @@ static void *worker_malloc(void *arg)
     return NULL;
 }
 
+/* AMOSTRA QUE NAO VALE, e nao um numero ruim.
+ *
+ * Os dois medidores abaixo precisam recusar a amostra quando a condicao
+ * declarada nao ocorreu -- fixacao que falhou, thread que nao subiu. O jeito
+ * usado no resto do projeto e `exit()`, e aqui ele esta PROIBIDO: a EAL esta
+ * de pe, e sair no meio pula `rte_eal_cleanup()`. O cabecalho do
+ * `tests/coleta_zero.c` ja registra essa restricao.
+ *
+ * Entao a recusa viaja como valor de retorno, o `main` invalida a LINHA
+ * inteira em que ela aparece, e o codigo de saida sai diferente de zero depois
+ * do cleanup. Negativo serve de sentinela porque tempo por operacao nao e: o
+ * menor valor legitimo e maior que zero. */
+#define AMOSTRA_INVALIDA (-1.0)
+
 static double measure_pool(unsigned n_lcores)
 {
     atomic_store(&start_flag, 0); atomic_store(&ns_total, 0);
@@ -130,9 +144,17 @@ static double measure_pool(unsigned n_lcores)
     /* O ROTULO DA LINHA AFIRMA `n` THREADS, e so o lancamento sabe se foram
      * tantas. `rte_eal_remote_launch` so conta em sucesso, e uma falha dele
      * deixaria a linha rotulada com um numero que nao foi medido. */
-    if (launched_n + 1 != n_lcores)
-        fprintf(stderr, "  AVISO: pedi %u thread(s) e lancei %u -- a linha nao"
-                        " mede o que o rotulo diz\n", n_lcores, launched_n + 1);
+    /* AVISAR E PUBLICAR E A PROPRIA MENTIRA. Ate aqui esta condicao imprimia
+     * "a linha nao mede o que o rotulo diz" e devolvia o numero na linha
+     * seguinte; o `main` imprimia a linha sob o `n` pedido, e quem lesse a
+     * tabela veria um valor rotulado com uma contagem de threads que nao
+     * correu. O stderr de uma campanha nao lida nao desfaz uma tabela lida. */
+    if (launched_n + 1 != n_lcores) {
+        fprintf(stderr, "  AMOSTRA INVALIDA: pedi %u thread(s) e lancei %u;"
+                        " a linha seria rotulada com um numero que nao foi"
+                        " medido\n", n_lcores, launched_n + 1);
+        return AMOSTRA_INVALIDA;
+    }
     const unsigned long long falhou = atomic_load(&falhas_get);
     if (falhou > 0)
         fprintf(stderr, "  AVISO: %llu lote(s) de get_bulk falharam com %u"
@@ -258,29 +280,63 @@ static double measure_malloc(unsigned n)
     pthread_t t[MAX_THREADS];
     if (n > MAX_THREADS) {
         fprintf(stderr, "measure_malloc: n=%u above the ceiling of %u threads\n", n, MAX_THREADS);
-        return 0.0;
+        return AMOSTRA_INVALIDA;
     }
     /* A thread principal fica no cpus[0] -- onde a EAL já a colocou -- e cada
      * filha recebe a CPU do lcore seguinte, uma por núcleo, como no lado do
-     * mempool. Se o cpuset não puder ser aplicado, a thread ainda roda: o
-     * teste avisa em vez de mentir sobre a colocação. */
+     * mempool.
+     *
+     * A COLOCAÇÃO É A COMPARAÇÃO, e por isso falhar aqui elimina a amostra.
+     * A versão anterior imprimia `warning: could not pin` e media assim mesmo,
+     * dizendo em comentário que isso era "avisar em vez de mentir sobre a
+     * colocação" -- mas avisar e publicar é a mentira, e é exatamente a classe
+     * de defeito que o `fixar_cpu.h` eliminou nos outros sete programas.
+     *
+     * O retorno de `pthread_create` também é conferido, e não por simetria: o
+     * laço antigo o descartava e logo depois chamava `pthread_join(t[i], NULL)`
+     * sobre um `pthread_t` que podia nunca ter sido escrito -- comportamento
+     * indefinido, não viés de medição. Agora só se espera pelo que subiu. */
+    unsigned criadas = 0;
+    int invalida = 0;
     for (unsigned i = 0; i + 1 < n; i++) {
         pthread_attr_t at;
         pthread_attr_init(&at);
-        if (i + 1 < n_cpus) {
+        if (i + 1 >= n_cpus) {
+            fprintf(stderr, "  AMOSTRA INVALIDA: sem CPU para a thread %u"
+                            " (%u lcore(s) mapeado(s) para %u pedida(s))\n",
+                    i, n_cpus, n);
+            invalida = 1;
+        } else {
             cpu_set_t cs;
             CPU_ZERO(&cs);
             CPU_SET(cpus[i + 1], &cs);
-            if (pthread_attr_setaffinity_np(&at, sizeof(cs), &cs) != 0)
-                fprintf(stderr, "warning: could not pin thread %u to CPU %d\n", i, cpus[i + 1]);
+            if (pthread_attr_setaffinity_np(&at, sizeof(cs), &cs) != 0) {
+                fprintf(stderr, "  AMOSTRA INVALIDA: nao fixei a thread %u na"
+                                " CPU %d; a linha compararia %u nucleo(s)"
+                                " contra outro numero\n", i, cpus[i + 1], n);
+                invalida = 1;
+            }
         }
-        pthread_create(&t[i], &at, worker_malloc, NULL);
+        if (pthread_create(&t[criadas], &at, worker_malloc, NULL) != 0) {
+            fprintf(stderr, "  AMOSTRA INVALIDA: pthread_create falhou na"
+                            " thread %u de %u\n", i, n);
+            invalida = 1;
+            pthread_attr_destroy(&at);
+            break;
+        }
+        criadas++;
         pthread_attr_destroy(&at);
     }
+    /* A LIBERACAO E O JOIN ACONTECEM MESMO NA AMOSTRA INVALIDA. As threads que
+     * subiram estao giradas na `start_flag`; voltar daqui sem solta-las
+     * deixaria o processo pendurado no proximo ponto, e uma medicao recusada
+     * nao pode virar travamento. */
     atomic_store_explicit(&start_flag, 1, memory_order_release);
     worker_malloc(NULL);
-    for (unsigned i = 0; i + 1 < n; i++) pthread_join(t[i], NULL);
-    return (double)atomic_load(&ns_total) / 1000.0 / n;
+    for (unsigned i = 0; i < criadas; i++) pthread_join(t[i], NULL);
+    if (invalida || criadas + 1 != n)
+        return AMOSTRA_INVALIDA;
+    return (double)atomic_load(&ns_total) / 1000.0 / (criadas + 1);
 }
 
 int main(int argc, char **argv)
@@ -310,9 +366,27 @@ int main(int argc, char **argv)
     printf("  repetitions per point: %d (median; disp = IQR/median)\n\n", R);
     printf("  %-8s %20s %20s %10s\n", "threads", "mempool", "malloc", "ratio");
     printf("  %-8s %20s %20s %10s\n", "-------", "-------", "------", "-----");
+    /* UMA CELULA INVALIDA CONTAMINA A LINHA INTEIRA, e nao so a repeticao.
+     *
+     * A mediana de R repeticoes esconde uma amostra recusada: bastaria
+     * descarta-la e seguir com R-1 para a tabela sair com aparencia normal e
+     * numero de repeticoes diferente do declarado no cabecalho. A linha inteira
+     * sai como INVALIDA, e o programa termina com codigo diferente de zero --
+     * depois do `rte_eal_cleanup()`. */
+    int linhas_invalidas = 0;
     for (unsigned n = 1; n <= rte_lcore_count(); n *= 2) {
         measure_pool(n); measure_malloc(n);                 /* aquecimento */
-        for (int i = 0; i < R; i++) { vp[i] = measure_pool(n); vm[i] = measure_malloc(n); }
+        int valida = 1;
+        for (int i = 0; i < R; i++) {
+            vp[i] = measure_pool(n); vm[i] = measure_malloc(n);
+            if (vp[i] < 0.0 || vm[i] < 0.0) valida = 0;
+        }
+        if (!valida) {
+            printf("  %-8u %20s %20s %10s   LINHA INVALIDA (ver stderr)\n",
+                   n, "--", "--", "--");
+            linhas_invalidas++;
+            continue;
+        }
         const struct statistics ep = summarize(vp, R), em = summarize(vm, R);
         char fronteira[32];
         marcar_fronteira(fronteira, sizeof(fronteira), n);
@@ -337,5 +411,11 @@ int main(int argc, char **argv)
     printf("  interconnect; past the physical core count, two threads share one\n");
     printf("  core's execution units. Three factors, one column.\n");
     printf("\n");
-    rte_mempool_free(pool); rte_eal_cleanup(); return 0;
+    if (linhas_invalidas > 0)
+        printf("  %d linha(s) NAO foram medidas nas condicoes que o rotulo"
+               " declara; a tabela esta incompleta.\n\n", linhas_invalidas);
+    rte_mempool_free(pool); rte_eal_cleanup();
+    /* O CODIGO DE SAIDA DEPOIS DO CLEANUP. Quem le a tabela ve a linha
+     * INVALIDA; quem automatiza le o `$?`, e os dois precisam concordar. */
+    return linhas_invalidas > 0 ? 1 : 0;
 }

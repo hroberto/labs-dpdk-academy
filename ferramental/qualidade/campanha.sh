@@ -805,8 +805,11 @@ elif mountpoint -q /mnt/huge-academia 2>/dev/null \
     HUGE_PREPARADA=1
     echo "    hugepage do feed: /mnt/huge-academia (efemera, desmontada no fim)"
 else
-    echo "    AVISO: sem hugetlbfs gravavel pelo dono; o feed NAO sera coletado"
-    echo "           a comparacao do passo 6 perdera os rotulos do feed"
+    # PULO, E NAO AVISO. O feed faz parte da campanha; sem ele o passo 6 perde
+    # rotulos, e uma campanha que sabe disso nao pode terminar COMPLETA. Dizer
+    # no diario e deixar o codigo de saida em 0 e exatamente o falso verde que
+    # `pulou()` existe para impedir.
+    pulou "sem hugetlbfs gravavel pelo dono; o feed NAO foi coletado (o passo 6 perde os rotulos do feed)"
 fi
 
 # COLETA INCOMPLETA NAO E COLETA, e distinguir as duas exige contar.
@@ -827,13 +830,28 @@ fi
 #
 # O que constitui a medicao sao as saidas por repeticao, `*.r<N>.txt`. Contar
 # so elas ignora diario, ambiente e qualquer residuo.
-completa() { # <configuracao>  -> 0 se os tres modulos batem com a referencia
-    local c="$1" m a b
+# NOMES, E NAO QUANTIDADE. Contar acerta o numero e erra a pergunta: uma
+# referencia com `A.r1 A.r2 B.r1 B.r2` e uma coleta nova com
+# `A.r1 A.r2 C.r1 C.r2` tem a mesma cardinalidade e nao tem a mesma matriz
+# experimental. A coleta nova passaria por completa faltando B inteiro, e o
+# passo 6 compararia celulas que nao existem do outro lado.
+#
+# A pergunta certa e de CONTINENCIA: toda saida de repeticao da referencia tem
+# homonima na nova? Sobra na nova nao reprova -- a referencia e o piso, nao o
+# teto --, e por isso `comm -13`, que lista so o que esta na referencia e falta
+# na coleta.
+repeticoes_de() { # <diretorio>  -> um nome por linha, ordenado
+    ( cd "$1" 2>/dev/null && ls *.r[0-9]*.txt 2>/dev/null | sort ) || true
+}
+faltando_em() { # <configuracao> <modulo>  -> nomes da referencia ausentes
+    comm -13 <(repeticoes_de "docs/$2/medicoes/historico/$1") \
+             <(repeticoes_de "docs/$2/medicoes/historico/$REF")
+}
+completa() { # <configuracao>  -> 0 se os tres modulos contem a matriz da referencia
+    local c="$1" m
     for m in 01-fundamentos 02-runtime-dpdk 03-mempool-ring-mbuf; do
-        a=$(ls "docs/$m/medicoes/historico/$REF"/*.r[0-9]*.txt 2>/dev/null | wc -l)
-        b=$(ls "docs/$m/medicoes/historico/$c"/*.r[0-9]*.txt   2>/dev/null | wc -l)
-        [ "$a" -gt 0 ] || return 1
-        [ "$b" -ge "$a" ] || return 1
+        [ -n "$(repeticoes_de "docs/$m/medicoes/historico/$REF")" ] || return 1
+        [ -z "$(faltando_em "$c" "$m")" ] || return 1
     done
     return 0
 }
@@ -842,9 +860,14 @@ if [ -d "docs/01-fundamentos/medicoes/historico/$CONF" ] && completa "$CONF"; th
 elif [ -d "docs/01-fundamentos/medicoes/historico/$CONF" ]; then
     echo "    ABORTADO: $CONF existe e esta INCOMPLETA."
     for m in 01-fundamentos 02-runtime-dpdk 03-mempool-ring-mbuf; do
-        printf "              %-22s %s de %s saidas de repeticao\n" "$m" \
+        # NOMEAR O QUE FALTA, e nao so contar: com a conferencia por nomes, "18
+        # de 20" nao diz QUAIS duas celulas nao existem, e sao elas que dizem se
+        # a campanha parou no meio ou pulou um braco inteiro.
+        ausentes=$(faltando_em "$CONF" "$m" | tr '\n' ' ')
+        printf "              %-22s %s de %s saidas de repeticao%s\n" "$m" \
             "$(ls docs/$m/medicoes/historico/$CONF/*.r[0-9]*.txt 2>/dev/null | wc -l)" \
-            "$(ls docs/$m/medicoes/historico/$REF/*.r[0-9]*.txt  2>/dev/null | wc -l)"
+            "$(ls docs/$m/medicoes/historico/$REF/*.r[0-9]*.txt  2>/dev/null | wc -l)" \
+            "${ausentes:+ -- faltam: $ausentes}"
     done
     echo "              A campanha de hardware nao sobrescreve. Para refazer:"
     echo "                rm -rf docs/*/medicoes/historico/$CONF"
@@ -896,7 +919,12 @@ echo "==> 6/6 revisao dos dados do projeto  ($(date +%T))"
 } > "$SAIDA/comparacao.txt" 2>&1
 chown "$DONO" "$SAIDA/comparacao.txt" 2>/dev/null
 marcados=$(grep -c '<<<' "$SAIDA/comparacao.txt" || true)
-echo "    rotulos que se moveram mais de 5%: $marcados"
+# A MENSAGEM DIZ A REGUA QUE RODOU. O limiar deixou de ser 5% fixo quando
+# `comparar-hardware.py` passou a usar `max(piso, 2 x amplitude historica do
+# proprio rotulo)`; a frase ficou para tras e passou a descrever uma regra que
+# nao existe mais. Num projeto cuja tese e rastreabilidade, isso e um numero
+# publicado sem programa que o produza.
+echo "    rotulos marcados (deslocamento acima da amplitude historica do rotulo): $marcados"
 if [ "$marcados" -gt 0 ]; then
     grep '<<<' "$SAIDA/comparacao.txt" | sed 's/^/      /' | head -20
 fi
@@ -930,9 +958,19 @@ echo "    comparacao completa em ${SAIDA#$RAIZ/}/comparacao.txt"
 
 echo
 echo "    portao de qualidade:"
-sudo -u "$DONO" -H ./ferramental/qualidade/pre-commit.sh > "$SAIDA/portao.txt" 2>&1
+# O `if` NAO E ESTILO. Este script roda sob `set -u` e NAO sob `set -e`: uma
+# chamada solta que devolve 1 nao interrompe nada e nao incrementa `FALHAS`, e
+# a campanha seguia para o "CAMPANHA COMPLETA" com o portao de qualidade
+# reprovado. E o mesmo defeito que `FALHAS`/`PULOS` vieram corrigir, sobrevivendo
+# no ultimo passo -- justamente o que decide se a coleta e publicavel.
+if sudo -u "$DONO" -H ./ferramental/qualidade/pre-commit.sh > "$SAIDA/portao.txt" 2>&1; then
+    portao_rc=0
+else
+    portao_rc=$?
+fi
 chown "$DONO" "$SAIDA/portao.txt" 2>/dev/null
 grep -E "FALHA|aviso|tudo passou" "$SAIDA/portao.txt" | sed 's/^/      /'
+[ "$portao_rc" -eq 0 ] || falhou "(portao de qualidade saiu com $portao_rc)"
 
 echo
 echo "==> CONCLUIDA  $(date -Is)"

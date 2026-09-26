@@ -278,30 +278,48 @@ int main(int argc, char **argv)
          * dobra junto com a medicao. Numerador e denominador caem juntos, e a
          * divisao cancela exatamente o efeito que se quer ver.
          *
-         * O sysfs nao cai: ele le a frequencia do hardware, que nao muda por
-         * haver duas threads no nucleo. Medido em 24/09, com o irmao saturado:
-         * sysfs 5,44 GHz contra 3,12 GHz empirico, divergencia de 1,74x. Sem
-         * carga os dois concordam -- 5,59 contra 5,51.
+         * O valor do sysfs nao cai, e e isso que o torna util aqui. Medido em
+         * 24/09, com o irmao saturado: 5,44 GHz reportados contra 3,12 GHz
+         * empiricos, divergencia de 1,74x. Sem carga os dois concordam --
+         * 5,59 contra 5,51.
          *
-         * Por isso os dois sao publicados, com o nome do que cada um mede:
+         * O NOME NAO E "HARDWARE", E DIZER ISSO ESTAVA ERRADO. Este mesmo
+         * arquivo abre declarando que `scaling_cur_freq` e o que o driver ACHA
+         * que pediu; chamar o mesmo numero de frequencia do hardware duzentas
+         * linhas abaixo e uma contradicao interna, e era a saida -- nao a
+         * ressalva -- que o leitor via. A documentacao do kernel e explicita:
+         * na maioria dos casos o valor corresponde ao ultimo P-state
+         * solicitado, e pode ou nao refletir a frequencia efetivamente
+         * executada. Em amd-pstate isso pesa mais, porque o CPPC opera com
+         * niveis abstratos de desempenho e o hardware decide dentro dos
+         * limites que o SO forneceu.
          *
-         *   por HARDWARE  quantos periodos de relogio a operacao ocupa. E o
-         *                 numero comparavel entre condicoes, e o que fecha o
-         *                 modelo: 1,824 com irmao saturado contra 1,818
-         *                 medidos em modo grafico.
-         *   por EMISSAO   quantas oportunidades de emissao DESTA thread a
+         * O DADO FICA, o rotulo muda, e a comparacao continua valendo -- ela
+         * nunca dependeu de o valor ser a frequencia instantanea, so de ele
+         * NAO CAIR sob disputa, que e uma propriedade observada. Se o numero
+         * merece voltar a se chamar frequencia efetiva e questao para um
+         * estudo que o cruze com APERF/MPERF, e nao para uma correcao de
+         * nomenclatura.
+         *
+         *   pela frequencia reportada  quantos ciclos a operacao ocupa, contados
+         *                 pela frequencia que o cpufreq reporta. E o numero
+         *                 comparavel entre condicoes, e o que fecha o modelo:
+         *                 1,824 com irmao saturado contra 1,818 medidos em modo
+         *                 grafico.
+         *   por emissao   quantas oportunidades de emissao DESTA thread a
          *                 operacao consome. Igual ao de cima quando o nucleo
          *                 esta sozinho; menor sob disputa, e a diferenca entre
          *                 os dois E a disputa.
          */
         const double f_hw = freq_ghz(cpu);
         printf("  CICLOS por operacao\n");
-        printf("    por HARDWARE (sysfs %.2f GHz):  %.3f\n", f_hw, med * f_hw);
-        printf("    por EMISSAO  (medido %.2f GHz): %.3f\n",
+        printf("    pela frequencia reportada (sysfs %.2f GHz): %.3f\n",
+               f_hw, med * f_hw);
+        printf("    por emissao (medido %.2f GHz):              %.3f\n",
                T1 > 0 ? 1.0 / T1 : 0.0, T1 > 0 ? med / T1 : 0.0);
         if (f_hw > 0 && T1 > 0) {
             const double razao = (1.0 / T1) / f_hw;
-            printf("    razao emissao/hardware: %.2f", razao);
+            printf("    razao emissao/sysfs:                        %.2f", razao);
             /* Abaixo de ~0,8 a thread nao esta recebendo o nucleo inteiro. O
              * limiar nao e teorico: sem carga a coleta de 24/09 deu 0,99, e
              * com o irmao saturado, 0,57. */
