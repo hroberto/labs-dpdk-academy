@@ -56,9 +56,50 @@ if ldd "$1" 2>/dev/null | grep -q 'libasan'; then
     exit 77
 fi
 
+# 77 E "ESTA MAQUINA NAO OFERECE A CONDICAO", E NAO FALHA.
+#
+# `custo-paralelismo` e `custo-comunicacao` saem com 77 quando a topologia nao
+# tem o que eles exigem -- nucleos fisicos distintos no mesmo dominio de L3,
+# por exemplo. Num runner pequeno isso e o comportamento CORRETO, e a primeira
+# versao deste teste o tratava como defeito:
+#
+#     FALHA: sem injecao, custo-paralelismo devia medir e saiu com 77
+#     FALHA: custo-paralelismo reprovou sem dizer por que
+#
+# A segunda mensagem e consequencia da primeira: sob injecao o programa para no
+# guarda de topologia ANTES de chegar ao caminho de recusa, entao a saida nao
+# fala em coleta invalida -- ele recusou por outro motivo, legitimo.
+#
+# O erro e o mesmo que uma revalidacao apontou no teste de topologia: uma
+# assercao que presume a maquina de referencia. Aqui cada binario e sondado
+# primeiro SEM injecao, e o que nao puder medir nesta maquina e pulado com a
+# razao dita -- em vez de reprovar o runner por nao ser a bancada.
+medivel() { # <binario> -> 0 se mede aqui, 1 se pula, 2 se esta quebrado
+    local rc=0
+    timeout "$LIMITE" env DPDK_ACADEMY_AMOSTRAS=3 DPDK_ACADEMY_RODADAS=1000 \
+        "$1" >/dev/null 2>&1 || rc=$?
+    case "$rc" in
+        0)  return 0 ;;
+        77) return 1 ;;
+        *)  echo "  FALHA: $(basename "$1") sem injecao devia medir ou pular, e saiu com $rc"
+            return 2 ;;
+    esac
+}
+
+exercitados=0
 for bin in "$@"; do
     nome=$(basename "$bin")
     [ -x "$bin" ] || { echo "  FALHA: $bin nao e executavel"; falhas=$((falhas+1)); continue; }
+
+    medivel "$bin"; estado=$?
+    if [ "$estado" -eq 1 ]; then
+        echo "  PULADO para $nome: esta maquina nao oferece a condicao que ele exige (77)"
+        continue
+    elif [ "$estado" -eq 2 ]; then
+        falhas=$((falhas + 1))
+        continue
+    fi
+    exercitados=$((exercitados + 1))
 
     saida=$(mktemp); rc=0
     timeout "$LIMITE" env LD_PRELOAD="$shim" FALHAR_NA_CRIACAO_PARCIAL=1 \
@@ -89,19 +130,20 @@ for bin in "$@"; do
     rm -f "$saida"
 done
 
-# SEM INJEÇÃO O CAMINHO NORMAL CONTINUA VALENDO. Um shim que falhasse sempre
-# faria as asserções acima passarem por motivo errado.
-bin1=$1
-rc=0
-timeout "$LIMITE" env DPDK_ACADEMY_AMOSTRAS=3 DPDK_ACADEMY_RODADAS=1000 \
-    "$bin1" >/dev/null 2>&1 || rc=$?
-if [ "$rc" -ne 0 ]; then
-    echo "  FALHA: sem injecao, $(basename "$bin1") devia medir e saiu com $rc"
-    falhas=$((falhas + 1))
+# O CAMINHO NORMAL JA FOI EXERCITADO por `medivel`, uma vez por binario, antes
+# de cada bloco de injecao. Um shim que falhasse sempre faria as assercoes
+# acima passarem por motivo errado, e e essa sondagem que impede.
+#
+# E SE NENHUM BINARIO PUDER MEDIR AQUI, o teste PULA em vez de dizer "ok": ele
+# nao exercitou nada, e dizer que passou seria a mesma inferencia por ausencia
+# que o resto desta auditoria combate.
+if [ "$exercitados" -eq 0 ] && [ "$falhas" -eq 0 ]; then
+    echo "  PULADO: nenhum dos binarios mede nesta maquina; nada foi exercitado"
+    exit 77
 fi
 
 if [ "$falhas" -gt 0 ]; then
     echo "  $falhas assercao(oes) falharam"
     exit 1
 fi
-echo "  ok: criacao parcial termina e reprova, e a medicao normal segue"
+echo "  ok: $exercitados binario(s) exercitado(s); criacao parcial termina e reprova"
