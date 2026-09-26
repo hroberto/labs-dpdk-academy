@@ -34,6 +34,8 @@ nenhuma forma casa e a linha sai do escopo -- mesma limitacao declarada pelo
 """
 import re
 import sys
+
+import condicao_coleta
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[2]
@@ -183,8 +185,17 @@ def carimbo_mais_recente():
 
     Coletas de experimento (gfxoff, topologia) vivem em OUTRAS arvores, entao
     nao disputam este lugar.
+
+    A CONDICAO ENTRA NO CRITERIO desde 25/09/2026. Naquela noite entrou a
+    primeira coleta com sessao grafica viva, e "a mais nova" passou a apontar
+    para ela: o aviso de envelhecimento saltou de 27 para 47 linhas, e as vinte
+    novas eram a diferenca de condicao, nao o documento envelhecendo. O
+    material publica de modo texto, e a referencia tem de ser da mesma
+    condicao do que ela confere.
     """
-    nomes = [d.name for d in RAIZ.glob("docs/01-fundamentos/medicoes/historico/*/")]
+    dirs = [d for d in RAIZ.glob("docs/01-fundamentos/medicoes/historico/*/")
+            if not d.name.endswith(("-ambiente", "-sonda"))]
+    nomes = [Path(d).name for d in condicao_coleta.so_texto(dirs)]
     stamps = {m.group(0) for n in nomes
               for m in [re.match(r"\d{4}-\d{2}-\d{2}-\d{4}", n)] if m}
     return max(stamps) if stamps else None

@@ -1,0 +1,12 @@
+modo declarado   : grafico
+governor fixado  : sim (era powersave)
+alvo padrao      : graphical.target
+graphical ativo  : active
+processos grafico: 2
+governor cpu2    : performance
+C3 disable cpu2  : 0
+cmdline          : BOOT_IMAGE=/boot/vmlinuz-7.0.0-34-generic root=UUID=bdd65119-6069-4cc3-898a-7e0a0beba60b ro quiet splash amd_iommu=on iommu=pt crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M
+kernel           : 7.0.0-34-generic
+uptime           : up 4 hours, 37 minutes
+memoria          : avail 23,87 GiB, swap em uso 0,00 GiB
+carga            : 0.65 0.67 0.72

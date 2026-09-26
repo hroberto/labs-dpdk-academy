@@ -1,0 +1,110 @@
+  origin: rajada-nasdaq @ v0.07.00-37-g86ae4d96  |  dskhmartins Linux 7.0.0-34-generic  |  gcc 15.2.0  |  2026-09-26T00:17:52-0300
+
+
+  MARKET-DATA BURST AGAINST THE DEPTH OF THE RX RING
+  (discrete-event simulation; 600 s of virtual time)
+
+  link (limit scenario)     : 10 Gb/s   -> peak     3881988 packets/s
+  recommended bandwidth(src): 67 Mb/s   -> mean       26009 packets/s
+  peak/mean ratio           : 149x
+  datagram (premise)        : 256 B of UDP payload, 322 B on the wire
+  mean burst                : 1000 us     duty ratio 0.3361%
+
+  per-packet cost MEASURED on this machine: 732 ns  (25 samples, disp 0.0%  )
+  sustained drain                         : 1365560 packets/s
+  mean rho   0.019     rho during the burst  2.84
+  descriptors ONE mean burst demands: (3881988 - 1365560) x 1000 us = 2516
+
+  1. CADENCED ARRIVAL -- one packet every fixed interval, as in section 11
+
+  ring(n)      offered     dropped      loss   occ.max  median(us)    p99(us)
+  -------      -------     -------      ----   -------  ----------    -------
+      512     15635808           0    0.000%         1         0.7        0.7
+
+     ca2 = 0.0000. Without variability, the ring never exceeds one occupied descriptor.
+
+  2. BURSTY ARRIVAL -- the SAME number of packets, concentrated in time
+
+  ring(n)      offered     dropped      loss   occ.max  median(us)    p99(us)
+  -------      -------     -------      ----   -------  ----------    -------
+      256     15635809     4596365   29.396%       256         0.7      188.2
+      512     15635809     4151712   26.553%       512         0.7      375.7
+     1024     15635809     3384807   21.648%      1024         0.7      750.6
+     2048     15635809     2243563   14.349%      2048         0.7     1500.5
+     4096     15635809      988756    6.324%      4096         0.7     3000.1
+     8192     15635809      169423    1.084%      8192         1.4     5643.8
+    16384     15635809        6538    0.042%     16384        19.6     6871.5
+    32768     15635809           0    0.000%     21241        20.4     6954.4
+
+     ca2 = 2.99, against 0 for the cadenced one: this is the EVIDENCE of the difference in variability.
+     What governs the loss above is the build-up during the burst, (lambda - mu) x T.
+
+  3. THE CONVENTIONAL SOCKET PATH, MEASURED ON THIS MACHINE
+
+  SO_RCVBUF     granted   datagrams  assumed   ratio    recv()  disp     recvmmsg(32)  disp
+  ---------  ----------  ----------  -------  -----  --------  ----  --------------  ----
+     212992      425984         443     1664   3.8x    105 ns  7.3%         101 ns  8.4%
+    1048576     2097152        2184     8192   3.8x    108 ns  5.2%         103 ns  7.4%
+    8388608     8388608        8738    32768   3.8x    108 ns  1.0%         103 ns  0.7%
+   33554432     8388608        8738    32768   3.8x    108 ns  0.5%         103 ns  0.3%
+
+  The SAME burst, drained by the socket instead of the ring (queue = 8738 datagrams):
+
+  ring(n)      offered     dropped      loss   occ.max  median(us)    p99(us)
+  -------      -------     -------      ----   -------  ----------    -------
+     8738     15635809      184069    1.177%      8738         1.7     6847.6
+     8738     15635809      181844    1.163%      8738         1.7     6801.2
+
+     row 1: recv() one by one    -> 840 ns per packet (732 of work + 108 of socket)
+     row 2: recvmmsg in batch    -> 835 ns per packet (732 of work + 103 of socket)
+     drain: 1190198 and 1197411 packets/s, against 1365560 for the pure ring
+
+  4. THE DIVISOR IS THE NUMBER OF CHANNELS, NOT OF QUEUES (ring fixed at 1024)
+
+    chan  queue  ideal.div   burst rho      loss  p99(us)   note
+    ----  -----  ---------   ---------      ----  -------  ----------------------------------------
+       1      1          1        2.84   21.648%    750.6  TotalView-ITCH 4.1, one queue
+       1      4          1        2.84   21.648%    750.6  the SAME feed with 4 RSS queues
+       1     16          1        2.84   21.648%    750.6  and with 16 queues
+       3      3          3        0.95    0.000%     25.0  the SAME traffic partitioned into 3 channels (ideal)
+       8      8          8        0.36    0.000%      2.1  the SAME traffic partitioned into 8 channels (ideal)
+
+     The first three rows are IDENTICAL: 16 queues do not help a
+     single-channel feed. `ideal.div` is the CEILING of what
+     partitioning can yield; the effective divisor depends on the RSS
+     hash and has to be measured on the card.
+
+  5. SCENARIO B -- the published guidance: burst of up to 2000 MESSAGES
+     on a millisecond scale (TotalView-ITCH FPGA FAQ)
+
+     The FAQ speaks of MESSAGES; the ring counts DESCRIPTORS. THREE
+     things here are PREMISE, not source: the 1 ms window (the FAQ
+     says only "millisecond scale"), the 40 B per ITCH message (size
+     varies with type) and the packing, which is the axis of the
+     table precisely because it changes the result the most.
+
+   msgs/datagram   load(B)    wire(B)   datagrams     implied Gb/s   drained/ms     excess
+   -------------   -------    -------   ---------     ------------   ----------     ------
+               1        40        106        2000             1.70         1366        634
+               2        80        146        1000             1.17         1366          0
+               4       160        226         500             0.90         1366          0
+               8       320        386         250             0.77         1366          0
+              16       640        706         125             0.71         1366          0
+              32      1280       1346          63             0.68         1366          0
+              64      2560       2626          32             0.67         1366          0   <- exceeds 1500 B under any reading
+
+     Three different rates on the same row: MESSAGES (the source),
+     DATAGRAMS (what the ring counts) and BITS (what the link carries).
+     Confusing them is the classic RX sizing mistake.
+
+     The two scenarios, in the SAME quantity -- queue excess:
+       A (link limit, mean burst of 1 ms)      : 2516 descriptors
+       B (2000 msgs in 1 ms, 1 msg/datagram)   : 634 descriptors
+       B with 2 messages per datagram          : 0
+
+     There is no contradiction between the sources: they answer
+     different questions. A asks "what if the link is filled to the
+     limit?"; B, "what follows from the published guidance?".
+     A is deliberately conservative; B is anchored in the number of
+     messages the exchange publishes, but STILL requires premises to
+     convert messages into datagrams and duration into rate.

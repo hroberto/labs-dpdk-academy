@@ -655,11 +655,32 @@ CONF="$CONFIG"
 # Agora e a coleta mais recente que EXISTE e que nao e a desta execucao. O
 # carimbo `AAAA-MM-DD-HHMM` na frente do nome faz `sort` ordenar por tempo, que
 # e a razao de ele vir na frente.
+#
+# A CONDICAO ENTRA NO CRITERIO desde 25/09/2026, quando a primeira coleta com
+# sessao grafica viva foi arquivada. Comparar uma campanha de modo texto contra
+# ela mede a DIFERENCA DE CONDICAO e chama isso de deriva: no passo 6 daquela
+# noite a previsao saiu "REFUTADA" com dez rotulos acima de 5%, e os dez eram o
+# par estar em condicoes diferentes. O `condicao_coleta.py` le a condicao do
+# `ambiente.txt` de cada coleta, e so entram as do MESMO modo desta campanha.
 REF=$(ls -d docs/01-fundamentos/medicoes/historico/*/ 2>/dev/null \
       | sed 's:.*/\([^/]*\)/$:\1:' \
       | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}' \
       | grep -v -- "-ambiente\$" | grep -v -- "-sonda\$" \
-      | grep -vF "$CONF" | sort | tail -1)
+      | grep -vF "$CONF" \
+      | while read -r c; do
+            m=$(python3 ferramental/qualidade/condicao_coleta.py \
+                    "docs/01-fundamentos/medicoes/historico/$c" 2>/dev/null \
+                | awk '{print $2}')
+            case "$m" in
+                texto)   [ "$MODO" = "texto" ] && echo "$c" ;;
+                grafico) [ "$MODO" = "grafico" ] && echo "$c" ;;
+                # Nao declarado entra so na campanha de texto: toda coleta
+                # anterior ao campo correu assim, e o portao daquela epoca ja
+                # recusava sessao grafica em `--texto`.
+                *)       [ "$MODO" = "texto" ] && echo "$c" ;;
+            esac
+        done \
+      | sort | tail -1)
 if [ -z "$REF" ]; then
     echo "    AVISO: nenhuma coleta anterior no historico; o passo 6 nao tera par."
 else

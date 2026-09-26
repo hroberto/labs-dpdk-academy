@@ -68,6 +68,8 @@ import os
 import re
 import sys
 
+import condicao_coleta
+
 # As profundidades que a tabela resumida publica, na ordem em que ela publica.
 # A de 512 aparece DUAS VEZES -- cadenciada e em rajada -- e e justamente esse
 # par que carrega o argumento da secao: mesmo trafego, mesma fila, so muda a
@@ -226,17 +228,25 @@ PUBLICADOS = [
 
 
 def referencia(raiz):
-    """A coleta mais recente do modulo, pelo mesmo criterio da `campanha.sh`.
+    """A coleta de MODO TEXTO mais recente do modulo.
 
     O carimbo `AAAA-MM-DD-HHMM` na frente do nome faz a ordem lexicografica ser
     a ordem do tempo. Os sufixos `-ambiente` e `-sonda` sao coletas irmas, de
     outra natureza, e nao trazem `rajada-nasdaq`.
+
+    A CONDICAO ENTRA NO CRITERIO desde 25/09/2026, quando a primeira coleta
+    grafica de controle foi arquivada. "A mais recente" passou a escolher uma
+    coleta de outra condicao, e este verificador acusou quatro divergencias que
+    eram a diferenca entre sessao grafica e modo texto -- nao envelhecimento do
+    documento. O material publica de modo texto; a referencia tem de ser dali.
     """
     base = os.path.join(raiz, "docs/01-fundamentos/medicoes/historico")
     cand = [d for d in sorted(os.listdir(base))
             if re.match(r"^\d{4}-\d{2}-\d{2}-\d{4}", d)
             and not d.endswith(("-ambiente", "-sonda"))
             and glob.glob(os.path.join(base, d, "rajada-nasdaq.r[1-9]*.txt"))]
+    cand = [os.path.basename(str(x).rstrip("/")) for x in
+            condicao_coleta.so_texto([os.path.join(base, d) for d in cand])]
     return os.path.join(base, cand[-1]) if cand else None
 
 

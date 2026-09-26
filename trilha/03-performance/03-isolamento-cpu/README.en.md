@@ -346,6 +346,43 @@ magnitude.
 > 56 µs, is something else — and it is not what was blowing the budget
 > twenty-two times over.
 
+#### 6.1.1 The graphical arm, and what it replicates
+
+The 23/09 collections were removed from the archive, which is why the paragraph
+above cites them without being able to show them. On 26/09/2026 the condition
+was measured again, from a **clean tree**, on the current kernel and with the
+*governor* pinned — collection `2026-09-25-2346-expo6000-canal-duplo`, which
+exists to answer a [pre-registration in module 01][prereg] about another
+quantity and serves here as an arm.
+
+| | text mode | with a graphical session |
+|---|---:|---:|
+| runs | 140 (7 collections) | 20 (1 collection) |
+| max stall, median | 22.0 µs | **26.4 µs** |
+| above the 34.4 µs window | 9/140 | **5/20** |
+| largest observed | 55.7 µs | **784.1 µs** |
+
+The difference in medians is 20% (`p = 0.008` by rank test), and what matters is
+the last row: **the high mode comes back**. The twenty runs give fifteen between
+17.4 and 31.8 µs and then 86.7, 360.4, 494.9, 749.0 and 784.1 µs.
+
+**Collection C, from 23/09, gave fifteen in the low mode and 5/20 above the
+window, with a maximum of 752.9 µs.** The two central numbers repeat in a
+collection made three days later, on another kernel, from a clean tree and with
+the *governor* pinned. §6.6's reading — that the high mode is the GPU's power
+gating, and not the memory channel, nor the C3 state, nor memory pressure —
+gains the replication the removed collections could no longer provide.
+
+> **A caveat about the word "bimodal".** Collection C suggested two disjoint
+> modes, with nothing between 40 and 631 µs. The new arm has 86.7 and 360.4 in
+> the middle of the gap. The separation between body and tail is still clear — a
+> factor of 2.7 between the largest of the body and the smallest of the tail —
+> but "nothing in between" belonged to the sample of twenty, not to the
+> mechanism. What holds up §6.6's argument is the **per-event attribution** of
+> the trace, not the shape of the histogram.
+
+[prereg]: ../../../docs/01-fundamentos/metodologia.en.md#71-pre-registration-the-graphical-control-collection
+
 ### 6.2 H3: the IPI's scope is the address space, not the CPU
 
 It is the cleanest result of the topic, and it comes from comparing two cells

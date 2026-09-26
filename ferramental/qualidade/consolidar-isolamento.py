@@ -68,6 +68,8 @@ import re
 import statistics
 import sys
 
+import condicao_coleta
+
 # A ordem em que a §6 publica as celulas, com o rotulo de cada idioma.
 CELULAS = [("P0", "P0 — só afinidade", "P0 — affinity only"),
            ("P0+ipi-thread", "P0 + provocador **thread**", "P0 + **thread** provoker"),
@@ -87,11 +89,20 @@ IRQ = re.compile(r"^  ([A-Z]{3})\s+(\d+)\s*$")
 JANELA = re.compile(r"^   512 descriptors: ([\d.]+) us")
 
 
-def ler(raiz):
-    """-> {coleta: {celula: [execucao, ...]}}, cada execucao um dict de campos."""
+def ler(raiz, so_texto=True):
+    """-> {coleta: {celula: [execucao, ...]}}, cada execucao um dict de campos.
+
+    `so_texto` FILTRA POR CONDICAO, e o padrao e True porque a §6 publica as
+    coletas sem sessao grafica. Em 25/09/2026, com a primeira coleta grafica
+    arquivada, a versao sem filtro passou a AGREGAR as duas condicoes numa
+    tabela so -- oito coletas e 160 execucoes onde a §6 diz sete e 140. Mediana
+    entre condicoes diferentes nao e mediana de nada.
+    """
     saida = {}
     for d in sorted(glob.glob(os.path.join(raiz, "*", "isolamento"))):
         coleta = os.path.basename(os.path.dirname(d))
+        if so_texto and condicao_coleta.e_texto(os.path.dirname(d)) is False:
+            continue
         for chave, _, _ in CELULAS:
             for f in sorted(glob.glob(os.path.join(d, chave + ".r[1-9]*.txt"))):
                 e = {"irq": {}}

@@ -997,6 +997,51 @@ else. A session in use — browser, IDE, compilation — is another condition, a
 collection declares how many graphical processes there were, and that is why it
 declares it.
 
+### 7.2 Outcome: the three predictions, measured
+
+Collection `2026-09-25-2346-expo6000-canal-duplo` ran on 26/09/2026 with the
+graphical session alive and **nothing else** — two processes, `gnome-shell` and
+`Xwayland` — from a clean tree, with the *governor* on `performance` on both
+sides. It is compared against the six `performance` text collections, 30
+repetitions, by two-sided rank test.
+
+**All three hold.**
+
+| | prediction | measured | |
+|---|---|---|---|
+| **P1** | the two that sleep come out larger, `p < 0.05` | `mutex + condvar` **+3.3%** (p < 0.001); `POSIX semaphore` **+3.8%** (p < 0.001) | holds |
+| **P2** | `atomic relaxed` does not differ by more than 3% | **+0.4%** | holds |
+| **P3** | the ALU loop does not move by more than 1% | **+0.0%** (p = 1.000) | holds |
+
+The negative control is what gives the rest its force: the pure-ALU loop
+publishes `0.537 ns` in both conditions, without a digit of difference. The
+instrument did not move; what moved was what depends on being scheduled again.
+
+**The magnitude answers what §7 left open.** That section expected a "small
+shift" and said so was an expectation. It is now measured: of 33 quantities,
+**none** moves more than 1.3% — except the two that sleep, at 3 to 4%. The six
+that separate at `p < 0.05` are the two that sleep (larger with a graphical
+session), `atomic relaxed` (+0.4%, significant and negligible) and three points
+of `custo-paralelismo` (−0.4% to −1.3%).
+
+> **Why the ones that sleep, and only those.** `mutex + condvar` and
+> `POSIX semaphore` are the two measurements in which the thread **yields the
+> CPU and comes back**. The compositor and the display server are runnable
+> tasks: when the measured thread wakes, it contends for the processor with
+> them, and the wake-up delay enters the measurement. The other 31 quantities
+> never release the CPU, and so never see the session. It is the same reading as
+> §6.4 of the [isolation topic][iso] by another route: what the graphical
+> session costs is not bandwidth or cache, it is **rescheduling latency**.
+
+**What this outcome licenses, and what it does not.** It licenses publishing
+median and ratio with the graphical session alive, which is what §7's
+two-regime table already said — now with a number instead of an expectation. It
+licenses nothing about the tail: the same collection, on the max-stall metric,
+behaves differently, and the [isolation topic][iso] records that in its §6. Nor
+does it generalise to a session **in use**: two idle graphical processes is the
+condition measured, and §7 already records that the session's contribution is
+not a constant addend.
+
 [iso]: ../../trilha/03-performance/03-isolamento-cpu/README.en.md#665-identifying-the-source-by-per-event-tracing
 [cmt]: ../../ferramental/qualidade/campanha.sh
 

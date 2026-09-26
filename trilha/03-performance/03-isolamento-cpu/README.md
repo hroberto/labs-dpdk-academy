@@ -341,6 +341,42 @@ Não há dois modos, e não há nada separado por ordem de grandeza.
 > evento: o *power gating* da GPU. O que resta aqui, de 35 a 56 µs, é outra
 > coisa — e não é o que estourava o orçamento por vinte e duas vezes.
 
+#### 6.1.1 O braço gráfico, e o que ele replica
+
+As coletas de 23/09 foram removidas do histórico, e por isso o parágrafo acima
+as cita sem poder mostrá-las. Em 26/09/2026 a condição foi medida de novo, com
+**árvore limpa**, kernel atual e *governor* fixo — a coleta
+`2026-09-25-2346-expo6000-canal-duplo`, que existe para responder um
+[pré-registro do módulo 01][prereg] sobre outra grandeza e serve aqui como
+braço.
+
+| | modo texto | com sessão gráfica |
+|---|---:|---:|
+| execuções | 140 (7 coletas) | 20 (1 coleta) |
+| maior parada, mediana | 22,0 µs | **26,4 µs** |
+| acima da janela de 34,4 µs | 9/140 | **5/20** |
+| maior observada | 55,7 µs | **784,1 µs** |
+
+A diferença nas medianas é de 20% (`p = 0,008` por teste de postos), e o que
+importa está na última linha: **o modo alto volta**. As vinte execuções dão
+quinze entre 17,4 e 31,8 µs e depois 86,7, 360,4, 494,9, 749,0 e 784,1 µs.
+
+**A coleta C, de 23/09, dava quinze no modo baixo e 5/20 acima da janela, com
+máximo de 752,9 µs.** Os dois números centrais se repetem numa coleta feita
+três dias depois, noutro kernel, com binário de árvore limpa e *governor*
+fixado. A leitura da §6.6 — que o modo alto é o *power gating* da GPU, e não o
+canal de memória, nem o estado C3, nem a pressão de memória — ganha a réplica
+que as coletas removidas não podiam mais dar.
+
+> **Uma ressalva sobre a palavra "bimodal".** A coleta C sugeria dois modos
+> disjuntos, com nada entre 40 e 631 µs. O braço novo tem 86,7 e 360,4 no meio
+> do vão. A separação entre o corpo e a cauda continua clara — um fator de 2,7
+> entre a maior do corpo e a menor da cauda —, mas "nada no meio" era da
+> amostra de vinte, não do mecanismo. O que sustenta o argumento da §6.6 é a
+> **atribuição por evento** do rastro, não a forma do histograma.
+
+[prereg]: ../../../docs/01-fundamentos/metodologia.md#71-pré-registro-a-coleta-gráfica-de-controle
+
 ### 6.2 H3: o escopo do IPI é o espaço de endereçamento, não a CPU
 
 É o resultado mais limpo do tópico, e sai da comparação entre duas células que

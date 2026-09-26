@@ -981,6 +981,50 @@ sessão em uso — navegador, IDE, compilação — é outra condição, e a §7
 registra que a contribuição da sessão não é constante aditiva. A coleta declara
 quantos processos gráficos havia, e é por isso que ela declara.
 
+### 7.2 Desfecho: as três previsões, medidas
+
+A coleta `2026-09-25-2346-expo6000-canal-duplo` correu em 26/09/2026 com a
+sessão gráfica viva e **nada mais** — dois processos, `gnome-shell` e
+`Xwayland` —, árvore limpa, *governor* em `performance` nos dois lados. Ela é
+confrontada com as seis coletas de texto com `performance`, 30 repetições, por
+teste de postos bilateral.
+
+**As três se sustentam.**
+
+| | previsão | medido | |
+|---|---|---|---|
+| **P1** | as duas que dormem saem maiores, `p < 0,05` | `mutex + condvar` **+3,3%** (p < 0,001); `POSIX semaphore` **+3,8%** (p < 0,001) | sustentada |
+| **P2** | `atomic relaxed` não difere além de 3% | **+0,4%** | sustentada |
+| **P3** | o laço de ALU não se move além de 1% | **+0,0%** (p = 1,000) | sustentada |
+
+O controle negativo é o que dá força ao resto: o laço de ALU pura publica
+`0,537 ns` nas duas condições, sem um dígito de diferença. O instrumento não se
+moveu; o que se moveu foi o que depende de voltar a ser escalonado.
+
+**A magnitude responde o que a §7 deixou em aberto.** Aquela seção esperava
+"deslocamento reduzido" e dizia que era expectativa. Agora está medido: de 33
+grandezas, **nenhuma** se move mais de 1,3% — exceto as duas que dormem, em 3
+a 4%. As seis que separam com `p < 0,05` são as duas que dormem (maiores com
+sessão gráfica), a `atomic relaxed` (+0,4%, significante e desprezível) e três
+pontos de `custo-paralelismo` (−0,4% a −1,3%).
+
+> **Por que as que dormem, e só elas.** `mutex + condvar` e `POSIX semaphore`
+> são as duas medições em que a thread **cede a CPU e volta**. O compositor e o
+> servidor de display são tarefas executáveis: quando a thread medida acorda,
+> ela disputa o processador com elas, e o atraso do despertar entra na medida.
+> As outras 31 grandezas nunca soltam a CPU, e por isso não veem a sessão. É a
+> mesma leitura da §6.4 do [tópico de isolamento][iso] por outro caminho: o que
+> a sessão gráfica custa não é largura de banda nem cache, é **latência de
+> reescalonamento**.
+
+**O que este desfecho autoriza, e o que não.** Ele autoriza publicar mediana e
+razão com a sessão gráfica viva, que é o que a tabela de dois regimes da §7 já
+dizia — e agora com número em vez de expectativa. Não autoriza nada sobre
+cauda: a mesma coleta, na métrica de maior parada, se comporta de outro modo, e
+o [tópico de isolamento][iso] registra isso na §6. Também não generaliza para
+sessão **em uso**: dois processos gráficos ociosos é a condição medida, e a §7
+já registra que a contribuição da sessão não é constante aditiva.
+
 [iso]: ../../trilha/03-performance/03-isolamento-cpu/README.md#665-identificação-da-fonte-por-rastreamento-de-eventos
 [cmt]: ../../ferramental/qualidade/campanha.sh
 

@@ -357,24 +357,45 @@ else
     # O modelo preve que os CICLOS nao mudem com governor nem com modo -- so
     # com a carga no irmao SMT. Isso e testavel nos dois modos. O que so o modo
     # texto testa e o contrafactual: sem carga, o estado alto NAO aparece.
-    ciclos() { # <arquivo>  -> ciclos pelo periodo final
-        sed -n 's/.*CICLOS por operacao:.*  *\([0-9.]*\) (pelo final).*/\1/p' "$1" 2>/dev/null
+    # O CAMPO E `por HARDWARE`, e a escolha esta medida.
+    #
+    # A sonda publica DOIS numeros de ciclos desde `d7389083`: um pelo relogio
+    # do sysfs e outro pela cadeia dependente. Sob SMT os dois divergem por
+    # construcao -- a cadeia mede emissao, nao relogio, e a razao entre eles e
+    # justamente o instrumento que detecta o nucleo dividido. O modelo de
+    # 1,125 e 1,818 ciclos e sobre o relogio de HARDWARE, como a §5.1 da
+    # metodologia do modulo 01 registra.
+    ciclos() { # <arquivo>  -> ciclos pelo relogio de hardware
+        sed -n 's/.*por HARDWARE (sysfs [0-9.]* GHz): *\([0-9.]*\).*/\1/p' "$1" 2>/dev/null
     }
     c1=$(ciclos "$SAIDA_SONDA/powersave.txt")
     c2=$(ciclos "$SAIDA_SONDA/performance.txt")
     c3=$(ciclos "$SAIDA_SONDA/performance-smt.txt")
     echo
     echo "    veredito da etapa 1 (modo $MODO)"
-    printf "      powersave        ciclos %-7s  previa 1,125\n" "${c1:-?}"
-    printf "      performance      ciclos %-7s  previa 1,125\n" "${c2:-?}"
-    printf "      performance+SMT  ciclos %-7s  previa 1,818\n" "${c3:-?}"
-    LC_ALL=C awk -v a="${c1:-0}" -v b="${c2:-0}" -v m="$MODO" 'BEGIN {
+    printf "      powersave        ciclos %-7s  previa 1,125\n" "${c1:-NAO APURADO}"
+    printf "      performance      ciclos %-7s  previa 1,125\n" "${c2:-NAO APURADO}"
+    printf "      performance+SMT  ciclos %-7s  previa 1,818\n" "${c3:-NAO APURADO}"
+    # TRES DESFECHOS, E NAO DOIS. Ate 26/09/2026 esta linha tinha so
+    # "sustentado" ou "refutado", e o valor nao lido caia no segundo: a sonda
+    # media 1,120, 1,119 e 1,819 -- o modelo fechando na terceira casa -- e a
+    # campanha imprimiu "MODELO REFUTADO", porque o leitor estava no formato
+    # antigo e devolvia vazio. Portao que anuncia refutacao por nao ter
+    # conseguido ler e pior que portao nenhum: ele publica um resultado falso
+    # com a autoridade de um veredito.
+    LC_ALL=C awk -v a="${c1:-}" -v b="${c2:-}" -v c="${c3:-}" -v m="$MODO" 'BEGIN {
+        if (a == "" || b == "" || c == "") {
+            print "      VEREDITO NAO APURADO: nao li os ciclos da sonda."
+            print "      Isto NAO e refutacao -- e ausencia de leitura. Confira o"
+            print "      formato de `CICLOS por operacao` na saida da sonda."
+            exit 1
+        }
         ok = (a > 1.09 && a < 1.16 && b > 1.09 && b < 1.16)
         print ok ? "      MODELO SUSTENTADO: ciclos invariantes ao governor" \
                  : "      MODELO REFUTADO: os ciclos mudaram com o governor"
         if (m == "grafico")
             print "      (o contrafactual da condicao 3 NAO foi testado: ha sessao grafica)"
-    }'
+    }' || true
 
     chown -R "$DONO" "$SAIDA_SONDA"
     echo "    saida: $SAIDA_SONDA"

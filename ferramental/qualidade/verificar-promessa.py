@@ -96,6 +96,11 @@ EXTERNAS = {
     "linux-headers",
     # ferramentas do DPDK, instaladas junto com ele
     "dpdk-devbind.py", "dpdk-testpmd", "dpdk-pmdinfo.py", "dpdk-hugepages.py",
+    # COMPOSITOR E SERVIDOR DE DISPLAY. A §7.2 da metodologia do modulo 01 os
+    # cita pelo nome porque eles SAO a condicao medida ali: a coleta grafica de
+    # controle correu com `gnome-shell` e `Xwayland` vivos e nada mais, e
+    # nomear os dois processos e o que torna a condicao reproduzivel.
+    "gnome-shell", "Xwayland", "kwin_wayland",
     # modulos de kernel e dispositivos virtuais
     "vfio-pci", "pci-stub", "igb-uio", "vhost-user", "virtio-net", "net-null",
     "net-tap", "af-packet", "uio-pci-generic",
