@@ -93,6 +93,48 @@ int main(void)
     caso(15, "recusa o irmao SMT mesmo quando ele esta no dominio",
          academy_parceiro_serve(0, 12, dom_com_irmao, 4, irmaos, 2), 0);
 
+    /* 13b-bis. A IDENTIDADE FISICA DECIDE, e nao a lista de irmaos.
+     *
+     * Este caso existe porque um mutante sobreviveu sem ele: desligar o ramo
+     * da identidade fazia a funcao cair na lista de irmaos, que nos outros
+     * casos ja rejeitava o candidato sozinha -- as duas concordavam, e o teste
+     * nao distinguia qual das duas tinha trabalhado.
+     *
+     * Aqui elas DISCORDAM de proposito. A CPU 12 e irma SMT da 0 nesta
+     * maquina, e a lista passada e uma lista ERRADA, que nao a contem. So a
+     * identidade fisica pega: mesmo pacote, mesmo core. Se ela fosse ignorada,
+     * o programa aceitaria comparar um nucleo consigo mesmo.
+     *
+     * Uma lista de irmaos incompleta nao e hipotese de laboratorio: e o que
+     * acontece quando o sysfs e lido parcialmente, ou quando alguem passa a
+     * lista de outro nucleo por engano. */
+    long id_zero = -1, id_doze = -1;
+    if (academy_nucleo_fisico(0, &id_zero) == 0 &&
+        academy_nucleo_fisico(12, &id_doze) == 0 && id_zero == id_doze) {
+        const int dom_0_12[2] = {0, 12};
+        const int irmaos_errados[1] = {99};
+        caso(27, "identidade fisica pega o irmao SMT que a lista de irmaos perdeu",
+             academy_parceiro_serve(0, 12, dom_0_12, 2, irmaos_errados, 1), 0);
+    }
+
+    /* 13c-bis. SEM PROVA DE NUCLEO DISTINTO, RECUSA.
+     *
+     * Com CPUs que o sysfs nao conhece, `academy_nucleo_fisico` falha nas duas
+     * e a lista de irmaos vem vazia -- nenhuma das duas fontes demonstra que
+     * sao nucleos fisicos diferentes. A versao anterior ACEITAVA: o laco de
+     * irmaos nao rejeitava nada sobre lista vazia, e qualquer `c != a` do
+     * dominio passava. O programa compararia dois irmaos SMT sob o rotulo
+     * "mesmo dominio", medindo disputa por unidades de execucao e chamando
+     * isso de distancia de cache.
+     *
+     * Aceitar aqui seria inferir por ausencia, que e o que esta auditoria
+     * inteira combate. */
+    const int dom_desconhecido[2] = {77, 78};
+    caso(25, "sem sysfs para nenhuma das duas, recusa",
+         academy_parceiro_serve(77, 78, dom_desconhecido, 2, NULL, 0), 0);
+    caso(26, "e `parceiro_no_dominio` devolve -1 nesse caso",
+         academy_parceiro_no_dominio(77, "77-78", -1), -1);
+
     /* 13d. A PREFERIDA INVALIDA E IGNORADA. Sem este caso, um mutante que
      *    devolvesse a preferida sem conferir nada sobrevivia -- porque o unico
      *    caso anterior passava uma preferida que JA era valida. */

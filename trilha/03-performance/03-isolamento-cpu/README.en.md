@@ -903,12 +903,20 @@ to report would be "no observable effect", not "hypothesis refuted".
 |---|---|---|
 | TLB invalidation IPI | produces **short** stalls | §6.2, §6.3 |
 | ordinary preemption | rate does not track the high mode | §6.4 |
-| deep C-state | **eliminated** | B × C, p = 0.304 |
-| CPU contention | **eliminated** | run-queue = 1 in A and C |
+| deep C-state | **not supported** | B × C, p = 0.304 |
+| CPU contention | **not supported** | run-queue = 1 in A and C |
 | memory pressure as a state | **not supported** | replication E″, p = 0.269 |
 | reclaim activity | descriptive, not causal | §6.6.4 |
 | firmware SMI | **eliminated** | `HW = 0` over ten minutes |
 | ***amdgpu* driver workqueue** | **confirmed** | §6.6.5, §6.6.6 |
+
+> **"Not supported" and "eliminated" are not the same, and the table keeps them
+> apart on purpose.** The first two rows marked that way rest on `p > 0.05` and
+> on an aggregate indicator: neither demonstrates absence -- only that these
+> data, at this sample size, do not distinguish the regimes. The SMI row is a
+> different claim: `HW = 0` is the hardware counter itself, and the proposed
+> mechanism requires it to be non-zero. There the absence was **observed**, not
+> inferred from a failure to reject.
 
 The source was present in the §2 table from the outset, in the row *"Per-CPU
 workqueues"*. What was missing was not the hypothesis but the instrument

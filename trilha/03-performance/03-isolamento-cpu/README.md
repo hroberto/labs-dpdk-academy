@@ -913,12 +913,20 @@ a reportar seria "sem efeito observável", não "hipótese refutada".
 |---|---|---|
 | IPI de invalidação de TLB | produz paradas **curtas** | §6.2, §6.3 |
 | preempção comum | taxa não acompanha o modo alto | §6.4 |
-| estado C profundo | **eliminado** | B × C, p = 0,304 |
-| disputa de CPU | **eliminado** | fila de execução = 1 em A e C |
+| estado C profundo | **não sustentado** | B × C, p = 0,304 |
+| disputa de CPU | **não sustentado** | fila de execução = 1 em A e C |
 | pressão de memória como estado | **não sustentado** | réplica E″, p = 0,269 |
 | atividade de recuperação | descritivo, não causal | §6.6.4 |
 | SMI de firmware | **eliminado** | `HW = 0` em dez minutos |
 | ***workqueue* do driver `amdgpu`** | **confirmado** | §6.6.5, §6.6.6 |
+
+> **"Não sustentado" e "eliminado" não são a mesma coisa, e a tabela distingue
+> os dois de propósito.** As duas primeiras linhas assim marcadas vêm de
+> `p > 0,05` e de um indicador agregado: nenhum dos dois demonstra ausência —
+> apenas que estes dados, neste tamanho de amostra, não distinguem os regimes.
+> A linha do SMI é outra coisa: `HW = 0` é a contagem do próprio contador de
+> hardware, e o mecanismo proposto exige que ela seja diferente de zero. Ali a
+> ausência foi **observada**, não inferida de uma não-rejeição.
 
 A fonte constava da tabela da §2 desde o início, na linha *"Workqueues por
 CPU"*. O elemento ausente não era a hipótese, e sim o instrumento capaz de

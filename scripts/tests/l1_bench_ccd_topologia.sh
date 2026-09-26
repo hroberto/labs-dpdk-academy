@@ -82,14 +82,17 @@ conferir "sem SMT, a proxima do dominio serve" \
 
 # SYSFS MUDO: `thread_siblings_list` ausente ou ilegivel.
 #
-# Este caso existe porque um mutante sobreviveu sem ele. `thread_siblings_list`
-# SEMPRE inclui a propria CPU, entao a conferencia de irmao ja descarta `a` --
-# e a guarda `[ "$c" = "$a" ]` parecia redundante. Ela so tem valor exatamente
-# aqui: sem resposta do sysfs, a lista de irmaos fica vazia e o laco escolheria
-# a PROPRIA CPU como parceiro, produzindo uma comparacao de um nucleo contra
-# ele mesmo rotulada como "mesmo dominio".
-conferir "com o sysfs mudo, nao escolhe a propria CPU" \
-    "$(parceiro_no_dominio 77 '77-79')" "78"
+# A versao anterior ESCOLHIA uma CPU aqui, e estava errada. Com a lista de
+# irmaos vazia nada prova que o candidato esta noutro nucleo fisico: o laco de
+# irmaos nao rejeita ninguem, e o irmao SMT passa. A comparacao "mesmo
+# dominio" mediria disputa por unidades de execucao e chamaria isso de
+# distancia de cache.
+#
+# Recusar e a resposta certa, e o chamador ja sabe o que fazer com ela: o
+# `bench-ccd.sh` aborta dizendo que o dominio nao tem segunda CPU em nucleo
+# fisico distinto.
+conferir "com o sysfs mudo, RECUSA em vez de escolher" \
+    "$(parceiro_no_dominio 77 '77-79' || echo RECUSOU)" "RECUSOU"
 
 unset -f cat
 

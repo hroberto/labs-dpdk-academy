@@ -55,6 +55,13 @@ irmaos_de() {
 parceiro_no_dominio() { # <cpu> <lista-do-dominio>
     local a=$1 irmaos c
     irmaos=",$(expandir "$(irmaos_de "$a")" | tr ' ' ',')"
+    # LISTA DE IRMAOS VAZIA NAO PROVA NADA, e aceitar assim mesmo seria inferir
+    # por ausencia. Sem ela, qualquer CPU do dominio passaria -- inclusive o
+    # irmao SMT --, e a comparacao "mesmo dominio" mediria disputa por unidades
+    # de execucao em vez de distancia de cache.
+    if [ "$irmaos" = ",," ] || [ "$irmaos" = "," ]; then
+        return 1
+    fi
     for c in $(expandir "$2"); do
         [ "$c" = "$a" ] && continue
         case "$irmaos" in *",$c,"*) continue ;; esac

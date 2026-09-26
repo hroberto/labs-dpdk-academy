@@ -79,59 +79,6 @@ static inline int academy_irmaos_smt(int cpu, int *saida, int max)
     return academy_expandir_lista(linha, saida, max);
 }
 
-/* `c` serve de parceira de `a`: está no domínio, não é `a`, não é irmã SMT. */
-static inline int academy_parceiro_serve(int a, int c, const int *dom, int n,
-                                         const int *irmaos, int n_irmaos)
-{
-    if (c == a)
-        return 0;
-    int no_dominio = 0;
-    for (int i = 0; i < n; i++)
-        if (dom[i] == c) {
-            no_dominio = 1;
-            break;
-        }
-    if (!no_dominio)
-        return 0;
-    for (int j = 0; j < n_irmaos; j++)
-        if (irmaos[j] == c)
-            return 0;
-    return 1;
-}
-
-/* A CPU do MESMO domínio, em núcleo físico distinto de `a`. -1 se não houver.
- *
- * `preferida` É CONTINUIDADE, E NÃO SUPERSTIÇÃO -- e a distinção é o ponto.
- *
- * O defeito que este módulo corrige era PRESUMIR uma CPU sem conferir nada.
- * Trocar a presunção por "a primeira válida da lista" corrigiria isso e, nesta
- * máquina, mudaria o par medido de `0 <-> 2` para `0 <-> 1` -- ambos válidos,
- * ambos no CCD0, em núcleos físicos distintos. O custo seria gratuito: 11
- * coletas arquivadas e os blocos publicados carregam o rótulo com `2`, e a
- * série daquele rótulo passaria a comparar contra nada.
- *
- * Então a chamada oferece a CPU historicamente usada, e ela só é aceita se a
- * TOPOLOGIA a confirmar. Não é o número mágico de volta: antes ele era usado
- * sem conferência e em qualquer máquina; agora é uma preferência que precisa
- * passar nas mesmas três condições que qualquer outra candidata, e numa
- * topologia onde não passe, o programa escolhe outra -- ou recusa medir.
- *
- * `preferida < 0` pede simplesmente a primeira válida. */
-static inline int academy_parceiro_no_dominio(int a, const char *lista_dominio, int preferida)
-{
-    int dom[ACADEMY_MAX_CPUS_LISTA], irmaos[64];
-    const int n = academy_expandir_lista(lista_dominio, dom, ACADEMY_MAX_CPUS_LISTA);
-    const int n_irmaos = academy_irmaos_smt(a, irmaos, 64);
-
-    if (preferida >= 0 && academy_parceiro_serve(a, preferida, dom, n, irmaos, n_irmaos))
-        return preferida;
-
-    for (int i = 0; i < n; i++)
-        if (academy_parceiro_serve(a, dom[i], dom, n, irmaos, n_irmaos))
-            return dom[i];
-    return -1;
-}
-
 /* Compõe pacote e núcleo numa identidade única.
  *
  * FUNÇÃO PURA DE PROPÓSITO: numa máquina de um soquete `pacote` é 0, e a
@@ -185,6 +132,85 @@ static inline int academy_nucleo_fisico(int cpu, long *id)
 
     *id = academy_id_nucleo(pacote, core);
     return 0;
+}
+
+/* `c` serve de parceira de `a`: está no domínio e é NÚCLEO FÍSICO DISTINTO.
+ *
+ * A LISTA DE IRMÃOS NÃO BASTA SOZINHA, e a primeira versão desta função
+ * dependia só dela. Quando `thread_siblings_list` não pode ser lido, a lista
+ * volta vazia, o laço de irmãos não rejeita nada, e qualquer `c != a` do
+ * domínio era aceito -- sem prova de estar noutro núcleo físico. O programa
+ * então compararia dois irmãos SMT sob o rótulo "mesmo domínio", medindo
+ * disputa por unidades de execução e chamando isso de distância de cache.
+ *
+ * A identidade física fecha isso: `academy_nucleo_fisico` combina pacote e
+ * núcleo, e dois irmãos SMT compartilham os dois. Quando ela responde, é ela
+ * que decide; a lista de irmãos fica como segunda barreira, útil no caso em
+ * que o `core_id` não esteja exposto e o `thread_siblings_list` esteja.
+ *
+ * E SE NENHUMA DAS DUAS RESPONDER, RECUSA. Não dá para demonstrar a condição
+ * do experimento, e aceitar mesmo assim seria inferir por ausência. */
+static inline int academy_parceiro_serve(int a, int c, const int *dom, int n,
+                                         const int *irmaos, int n_irmaos)
+{
+    if (c == a)
+        return 0;
+    int no_dominio = 0;
+    for (int i = 0; i < n; i++)
+        if (dom[i] == c) {
+            no_dominio = 1;
+            break;
+        }
+    if (!no_dominio)
+        return 0;
+
+    long id_a = -1, id_c = -1;
+    const int tem_id = academy_nucleo_fisico(a, &id_a) == 0 &&
+                       academy_nucleo_fisico(c, &id_c) == 0;
+    if (tem_id)
+        return id_a != id_c;
+
+    /* Sem identidade física: a lista de irmãos é o que resta, e ela precisa
+     * EXISTIR para valer como prova. Vazia, não prova nada. */
+    if (n_irmaos <= 0)
+        return 0;
+    for (int j = 0; j < n_irmaos; j++)
+        if (irmaos[j] == c)
+            return 0;
+    return 1;
+}
+
+/* A CPU do MESMO domínio, em núcleo físico distinto de `a`. -1 se não houver.
+ *
+ * `preferida` É CONTINUIDADE, E NÃO SUPERSTIÇÃO -- e a distinção é o ponto.
+ *
+ * O defeito que este módulo corrige era PRESUMIR uma CPU sem conferir nada.
+ * Trocar a presunção por "a primeira válida da lista" corrigiria isso e, nesta
+ * máquina, mudaria o par medido de `0 <-> 2` para `0 <-> 1` -- ambos válidos,
+ * ambos no CCD0, em núcleos físicos distintos. O custo seria gratuito: 11
+ * coletas arquivadas e os blocos publicados carregam o rótulo com `2`, e a
+ * série daquele rótulo passaria a comparar contra nada.
+ *
+ * Então a chamada oferece a CPU historicamente usada, e ela só é aceita se a
+ * TOPOLOGIA a confirmar. Não é o número mágico de volta: antes ele era usado
+ * sem conferência e em qualquer máquina; agora é uma preferência que precisa
+ * passar nas mesmas três condições que qualquer outra candidata, e numa
+ * topologia onde não passe, o programa escolhe outra -- ou recusa medir.
+ *
+ * `preferida < 0` pede simplesmente a primeira válida. */
+static inline int academy_parceiro_no_dominio(int a, const char *lista_dominio, int preferida)
+{
+    int dom[ACADEMY_MAX_CPUS_LISTA], irmaos[64];
+    const int n = academy_expandir_lista(lista_dominio, dom, ACADEMY_MAX_CPUS_LISTA);
+    const int n_irmaos = academy_irmaos_smt(a, irmaos, 64);
+
+    if (preferida >= 0 && academy_parceiro_serve(a, preferida, dom, n, irmaos, n_irmaos))
+        return preferida;
+
+    for (int i = 0; i < n; i++)
+        if (academy_parceiro_serve(a, dom[i], dom, n, irmaos, n_irmaos))
+            return dom[i];
+    return -1;
 }
 
 #endif /* ACADEMY_TOPOLOGIA_H */

@@ -293,8 +293,27 @@ int main(int argc, char **argv)
         academy_arg_u64(argv[3], "threshold_ns", 1u, UINT64_MAX, &limiar_lido) != 0)
         return 2;
     const uint64_t limiar = (uint64_t)limiar_lido;
+    /* SER UM `double` VALIDO NAO E PERTENCER AO DOMINIO DA OPERACAO.
+     *
+     * `academy_arg_double` recusa lixo textual, conversao parcial, NaN e
+     * infinito -- e `1e30` passa nos quatro. Depois, `(uint64_t)(segundos *
+     * 1e9)` com esse valor e comportamento INDEFINIDO: o resultado nao cabe no
+     * tipo. Medido: `stall_probe 0 1e30` era aceito e anunciava
+     * "1000000000000000019884624838656.0 s".
+     *
+     * A regra que os inteiros ja seguem vale aqui: a faixa faz parte do
+     * contrato. O teto de um dia e folgado de proposito -- a campanha usa
+     * segundos a minutos --, e existe para impedir o transbordo, nao para
+     * limitar o experimento. */
+    const double SEGUNDOS_MAX = 86400.0;   /* um dia */
     if (segundos <= 0.0) {
         fprintf(stderr, "seconds must be greater than zero\n");
+        return 2;
+    }
+    if (segundos > SEGUNDOS_MAX) {
+        fprintf(stderr, "seconds: %.0f is above the accepted ceiling of %.0f"
+                        " (the conversion to nanoseconds would overflow)\n",
+                segundos, SEGUNDOS_MAX);
         return 2;
     }
     /* O teto vem da tabela de /proc/interrupts, nao do escalonador: um CPU
