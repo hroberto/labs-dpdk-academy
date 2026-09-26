@@ -95,6 +95,18 @@ def tag_mais_recente(repo):
     return max(tags, key=chave)
 
 
+# Codigo proprio para "nao foi possivel conferir", distinto de 0 (conferido e
+# em ordem) e de N>0 (conferido e com N problemas). Devolver 0 aqui fazia o
+# portao dizer "ok" sobre um arquivo que ninguem tinha lido -- a mesma familia
+# do `|| true` que a analise estatica carregava.
+#
+# O NUMERO E O 77 DO MESON, de proposito: e o codigo que este repositorio ja usa
+# para PULADO, e a barra de pre-commit o le como aviso fora da CI e como falha
+# dentro dela. A POLITICA NAO MORA AQUI -- se morasse, cada verificador novo
+# teria que reimplementar a mesma decisao, e bastaria um esquecer.
+SEM_FERRAMENTA = 77
+
+
 def verificar(raiz="."):
     caminho = os.path.join(raiz, "CITATION.cff")
     if not os.path.exists(caminho):
@@ -103,8 +115,15 @@ def verificar(raiz="."):
     try:
         import yaml
     except ImportError:
-        print("  CITATION.cff: PyYAML ausente, conferência pulada")
-        return 0
+        # FERRAMENTA AUSENTE NAO E APROVACAO. Devolver 0 aqui fazia o portao
+        # dizer "ok" sobre um arquivo que ninguem tinha lido -- a mesma familia
+        # do `|| true` que a analise estatica carregava. Na CI o PyYAML e
+        # instalado de proposito, entao ausencia ali significa que a instalacao
+        # quebrou, e o veredito nao pode ser verde. Fora da CI o pulo continua
+        # valendo, mas anunciado e com codigo proprio, para que quem chama possa
+        # distinguir "conferido" de "nao conferido".
+        print("  CITATION.cff: PyYAML ausente, conferência NAO ACONTECEU")
+        return SEM_FERRAMENTA
 
     try:
         d = yaml.safe_load(open(caminho, encoding="utf-8"))
@@ -329,4 +348,7 @@ date-released: "%s"
 if __name__ == "__main__":
     if "--autoteste" in sys.argv:
         sys.exit(1 if autoteste() else 0)
-    sys.exit(1 if verificar(sys.argv[1] if len(sys.argv) > 1 else ".") else 0)
+    rc = verificar(sys.argv[1] if len(sys.argv) > 1 else ".")
+    # 77 SAI COMO 77: colapsa-lo em 1 apagaria justamente a distincao entre
+    # "conferido e reprovado" e "nao foi possivel conferir".
+    sys.exit(rc if rc == SEM_FERRAMENTA else (1 if rc else 0))
