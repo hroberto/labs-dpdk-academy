@@ -3150,6 +3150,8 @@ da máquina, abaixo).
 > mostra que aquele número vale 1,125 ciclos em qualquer ambiente, e que os
 > 27,5% eram o relógio variando durante a coleta — não o primitivo variando.
 >
+> <!-- cita-retratado: 27,5 27.5 -->
+>
 > **A escala continua existindo**; o que se perdeu foi o exemplo extremo dela.
 > Quem quiser um hoje encontra 20,6% em `2 MB hugepages` na região de 32 MB,
 > e ali a causa é outra: a competição por TLB de segundo nível, que a §4.1

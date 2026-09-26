@@ -242,14 +242,56 @@ esta Parte A executa.
 
 ## 6. Medição
 
-Nove coletas de 2026-09-23, cada uma com quatro células × cinco repetições ×
-30 s, ordem das células permutada a cada repetição. Máquina declarada
-exclusiva; navegador fechado. CPU medida: 2 (irmão SMT: 14). Provocador na
-CPU 4.
+**Sete coletas de modo texto**, de 24 e 25 de setembro de 2026, cada uma com
+quatro células × cinco repetições × 30 s, ordem das células permutada a cada
+repetição. São **140 execuções**. Máquina declarada exclusiva, sem sessão
+gráfica — boot em `multi-user.target`. CPU medida: 2 (irmão SMT: 14).
+Provocador na CPU 4.
 
-Cada coleta declara o estado da máquina em que correu. A diferença entre elas
-é o instrumento da §6.6: uma coleta sozinha mede; um par que difere em uma
-variável decide.
+| Coleta | maior parada, mediana | acima de 34,4 µs | maior observada |
+|---|---:|---:|---:|
+| `2026-09-24-0955-jedec4800-canal-unico-texto` | 22,1 µs | 1/20 | 38,6 µs |
+| `2026-09-24-1237-jedec4800-canal-duplo-texto` | 21,5 µs | 1/20 | 35,1 µs |
+| `2026-09-24-1917-expo6000-canal-duplo` | 22,6 µs | 2/20 | 43,5 µs |
+| `2026-09-25-0046-expo6000-canal-duplo` | 21,9 µs | 1/20 | 36,6 µs |
+| `2026-09-25-1317-expo6000-canal-duplo` | 22,0 µs | 1/20 | 39,6 µs |
+| `2026-09-25-1547-jedec4800-canal-duplo` | 22,1 µs | 2/20 | 46,1 µs |
+| `2026-09-25-1720-expo6000-canal-duplo` | 22,1 µs | 1/20 | 55,7 µs |
+
+A maior parada mal se move entre as sete: a mediana fica entre 21,5 e 22,6 µs,
+e as coletas atravessam duas configurações de memória — 4800 e 6000 MT/s, canal
+único e duplo. **O canal de memória não aparece na cauda**, e é esse o resultado
+que a §6.6 vai precisar.
+
+**As tabelas por célula agregam as sete coletas**, 35 execuções por célula:
+
+| Célula | limiar | maior parada | paradas ≥ limiar | preempções | `TLB` | `CAL` | `LOC` |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| P0 — só afinidade | 2 µs | 21,7 µs | 285 | 160 | 0 | 12 | 60 048 |
+| P0 + provocador **thread** | 1 µs | 21,8 µs | 21 734 | 145 | 37 940 | 37 956 | 60 030 |
+| P0 + provocador **processo** | 2 µs | 22,0 µs | 300 | 145 | 0 | 0 | 60 033 |
+| P5 — irmão SMT carregado | 2 µs | 23,1 µs | 350 | 136 | 0 | 6 | 60 019 |
+
+> **A coluna de contagem não é comparável entre linhas, e a tabela diz por quê.**
+> A sonda usa limiar de **1 µs** na célula do provocador em thread e de **2 µs**
+> nas outras três — o provocador produz paradas curtas, e um limiar de 2 µs
+> deixaria de contá-las. Somar ou comparar as quatro contagens diretamente é
+> somar respostas a perguntas diferentes, e por isso o limiar é coluna e não
+> nota de rodapé.
+
+#### As nove coletas de 23/09, e por que a tabela delas continua aqui
+
+Antes do protocolo de modo texto, o tópico mediu nove coletas em 23/09/2026,
+cada uma declarando o estado da máquina em que correu. Elas foram **removidas
+do histórico** em 24/09 — os diretórios colidiam no nome e um deles carregava a
+configuração de memória errada — e não são recoletáveis: as duas mais extremas
+exigiriam desfazer decisões de hardware.
+
+A tabela fica porque é o **instrumento da §6.6**: uma coleta sozinha mede; um
+par que difere em uma variável decide. Foi ela que tornou o confundimento
+visível, e reescrevê-la com números de hoje apagaria a razão de a investigação
+ter existido. Nenhum número dela sustenta conclusão do tópico — quem sustenta
+são as sete coletas arquivadas acima.
 
 | | Estado da máquina | maior parada, mediana | acima de 34,4 µs |
 |---|---|---:|---:|
@@ -263,22 +305,13 @@ variável decide.
 | **E″** | idem E: swap 2,51 GiB, disponível 4,87 GiB | 24,0 µs | 1/20 |
 | **T** | **sem sessão gráfica** — boot em `multi-user.target` | **21,5 µs** | **1/20** |
 
-> **As linhas A e E vêm de coletas que o projeto descartou, e ficam marcadas.**
-> As duas correram com **sessão gráfica**, antes de 24/09, e as coletas foram
-> removidas ao adotar o protocolo de modo texto. Os dois números não são
-> recoletáveis sem desfazer decisões de hardware — a A exige remover um módulo,
-> a E exige reproduzir o mesmo estado de swap.
->
-> **E a A já foi superada.** O canal único FOI medido em modo texto, em
-> `2026-09-24-0955-jedec4800-canal-unico-texto`: mediana de **22,1 µs**, com
-> **1/20** acima do limiar — indistinguível do canal duplo. Os 515,5 µs da linha
-> A não eram o canal; eram a sessão gráfica, e a subseção *"O confundimento
-> entre memória e reinício, resolvido"* mede isso com p = 0,433.
->
-> As duas linhas ficam porque a tabela é o **registro do percurso**: foi ela que
-> tornou o confundimento visível. Reescrevê-las com números de hoje apagaria a
-> razão de a investigação ter existido.
-> <!-- cita-retratado: 515,5 515.5 153,9 153.9 -->
+<!-- cita-retratado: 24,8 24.8 26,6 26.6 515,5 515.5 153,9 153.9 29,0 29.0 25,2 25.2 24,1 24.1 24,6 24.6 30,9 30.9 24,0 24.0 26,3 26.3 24,9 24.9 19,7 19.7 31,6 31.6 752,9 752.9 660,4 660.4 631,6 631.6 -->
+
+> **A linha A já foi superada por medição.** O canal único FOI medido em modo
+> texto, em `2026-09-24-0955-jedec4800-canal-unico-texto`: mediana de
+> **22,1 µs**, com **1/20** acima do limiar — indistinguível do canal duplo. Os
+> 515,5 µs não eram o canal; eram a sessão gráfica, e a subseção *"O
+> confundimento entre memória e reinício, resolvido"* mede isso com p = 0,433.
 
 > **A coleta E′ foi planejada como braço com pressão e correu sem nenhuma.** A
 > condição de parada do consumidor de memória era absoluta — "alocar até haver
@@ -287,38 +320,26 @@ variável decide.
 > 22,97 GiB disponíveis. O braço é válido; o que ele mede é a condição **sem
 > pressão**, e é assim que entra nas contas.
 
-**A coleta C é a publicada nas tabelas por célula abaixo.** Medianas de cinco
-execuções:
-
-| Célula | maior parada | preempções | paradas > 2 µs | `TLB` | `CAL` | `LOC` |
-|---|---:|---:|---:|---:|---:|---:|
-| P0 — só afinidade | 26,3 µs | 228 | 563 | 0 | 1 | 59 974 |
-| P0 + provocador **thread** | 24,9 µs | 215 | 24 186 | **38 375** | 38 377 | 59 998 |
-| P0 + provocador **processo** | 19,7 µs | 153 | 326 | **0** | 1 | 60 000 |
-| P5 — irmão SMT carregado | 31,6 µs | 203 | 909 | 0 | 0 | 59 984 |
-
 ### 6.1 H1: a afinidade não segura a cauda
 
-**Cinco das vinte execuções** da coleta C têm a maior parada acima da janela de
-512 descritores, e a maior observada foi **752,9 µs** — 22 vezes essa janela, e
-ainda **2,7 vezes** a janela de 4096 descritores. H1 se sustenta: basta uma
-parada acima da janela para que a afinidade sozinha não garanta o orçamento.
+**Nove das 140 execuções** têm a maior parada acima da janela de 512
+descritores, e a maior observada foi **55,7 µs** — **1,6 vez** essa janela, e
+um quinto da janela de 4096 descritores. H1 se sustenta: basta uma parada acima
+da janela para que a afinidade sozinha não garanta o orçamento. Mas a margem é
+estreita, e dizer *quanto* ela é estreita é parte do resultado.
 
-O que a coleta mostra com mais força é a **forma** da distribuição, não a
-contagem. Quinze execuções ficam entre 15,7 e 31,6 µs, duas encostam na janela
-(34,8 e 40,0 µs) e três saltam para a casa das centenas — 631,6, 660,4 e
-752,9 µs. Não há nada entre 40,0 µs e 631,6 µs: a distribuição é **bimodal**,
-com dois modos separados por mais de uma ordem de grandeza e nada no meio.
+A distribuição é **contínua**. As 140 execuções vão de 13,5 a 55,7 µs sem
+intervalo vazio: a menor das nove acima da janela é de 35,1 µs, encostada nela.
+Não há dois modos, e não há nada separado por ordem de grandeza.
 
-Isso restringe o mecanismo antes de qualquer medição adicional. Uma cauda
-contínua indicaria acúmulo de muitas fontes pequenas, cada uma somando um
-pouco. Dois modos disjuntos indicam um **evento discreto** que ocorre ou não
-ocorre, e cuja duração é propriedade dele, não da carga. A §6.6 persegue esse
-evento.
-
-A separação entre os modos se mantém nas oito coletas. O que muda entre elas é
-**com que frequência** o modo alto acontece — de 1/20 a 16/20 — e não onde ele
-fica.
+> **As coletas de 23/09 mostravam outra coisa, e é dela que a §6.6 trata.** Lá a
+> distribuição era bimodal — quinze execuções entre 15,7 e 31,6 µs, e três na
+> casa das centenas: 631,6, 660,4 e 752,9 µs, sem nada entre 40 e 631 µs. Dois
+> modos disjuntos indicam um **evento discreto** que ocorre ou não ocorre, e
+> cuja duração é propriedade dele, não da carga. Nas 140 execuções de modo
+> texto esse modo alto **não aparece nenhuma vez**, e a §6.6 identifica o
+> evento: o *power gating* da GPU. O que resta aqui, de 35 a 56 µs, é outra
+> coisa — e não é o que estourava o orçamento por vinte e duas vezes.
 
 ### 6.2 H3: o escopo do IPI é o espaço de endereçamento, não a CPU
 
@@ -327,39 +348,46 @@ diferem em **uma** coisa:
 
 | | trabalho | CPU | espaço de endereçamento | `TLB` |
 |---|---|---|---|---:|
-| provocador **thread** | `mmap`/`munmap` de 8 MiB | 4 | **o mesmo** da sonda | 38 375 |
+| provocador **thread** | `mmap`/`munmap` de 8 MiB | 4 | **o mesmo** da sonda | 37 940 |
 | provocador **processo** | idem | 4 | distinto | **0** |
 
 Mesmo trabalho, mesma CPU, mesmo volume de memória. A diferença é de qual
 espaço de endereçamento a thread faz parte, e o efeito **desaparece por
 completo**.
 
-As oito coletas atravessam duas configurações de memória, dois governors e
-quatro condições de pressão. O contraste não se move:
+As sete coletas atravessam duas configurações de memória e dois números de
+canais. O contraste não se move:
 
-| | A | B | C | C′ | E′ | D | E | E″ |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| provocador **thread** | 38 135 | 38 104 | 38 375 | 38 342 | 38 385 | 38 294 | 38 206 | 38 221 |
-| provocador **processo** | 0 | 1 | 0 | 0 | 1 | 0 | 0 | 1 |
+| | 0955 4800 1c | 1237 4800 2c | 1917 6000 2c | 0046 6000 2c | 1317 6000 2c | 1547 4800 2c | 1720 6000 2c |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| provocador **thread** | 39 091 | 37 912 | 38 344 | 38 266 | 37 940 | 37 778 | 37 756 |
+| provocador **processo** | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
-A faixa do lado da thread é de 281 contagens sobre 38 mil — **0,7%** — enquanto
-a maior parada variou por um fator de 21 entre as mesmas coletas. Um efeito que
-ignora tudo que faz a cauda se mexer é propriedade do mecanismo, não do estado
-da máquina.
+A faixa do lado da thread é de 1 335 contagens sobre 38 mil — **3,5%** entre
+coletas, e 5,4% entre as 35 execuções — enquanto **nenhuma** das 140 execuções
+registrou mais de uma contagem do lado do processo. Um efeito que ignora tudo
+que faz a cauda se mexer é propriedade do mecanismo, não do estado da
+máquina.
 
 É por isso que nenhum parâmetro de boot alcança essa fonte: ela não vem de fora
 do processo. O que a remove é não alterar mapeamento no caminho quente.
 
 ### 6.3 A fonte que se pode contar não é a que mais dói
 
-O provocador multiplica por **43** as paradas acima de 2 µs — de 563 para
-24 186 — e ainda assim a célula dele tem mediana de maior parada **abaixo** da
-do P0 limpo: 24,9 µs contra 26,3 µs.
+O provocador injeta **37 940** IPIs de TLB por execução, contra **zero** no P0
+limpo, e a célula dele registra **21 734** paradas acima de 1 µs. E ainda assim
+a mediana da maior parada é **indistinguível** da do P0: 21,8 µs contra
+21,7 µs, com p = 0,37 num teste de postos sobre as 35 execuções de cada uma.
+
+> **As duas contagens de parada não se comparam entre si**, pelo limiar
+> diferente que a tabela da §6 publica. O que se compara aqui é o que a §6
+> mede com a mesma régua nas duas células: os IPIs de TLB, que vão de zero a
+> trinta e oito mil, e a maior parada, que não se move.
 
 Trinta e oito mil IPIs de TLB produzem trinta e oito mil paradas **curtas**. A
 fonte mais fácil de instrumentar é a que menos importa para o orçamento, e a
-relação se repete em todas as coletas, inclusive naquelas em que as medianas
-são vinte vezes maiores.
+relação se repete nas sete coletas — inclusive, como mostra a §6.6, quando a
+mediana era vinte vezes maior.
 
 A consequência prática é sobre o método, não sobre o TLB: **contar eventos de
 uma fonte não mede o que ela custa**. Um painel que some interrupções por
@@ -368,9 +396,9 @@ apontando para o lugar errado.
 
 ### 6.4 Afinidade não impede preempção, e isso é medido
 
-A sonda sofre entre **6,7 e 7,8 trocas de contexto involuntárias por segundo**
-nas oito coletas, com a thread fixada. A taxa é estável; a maior parada, na
-mesma amostra, varia por um fator de 21.
+A sonda sofre entre **2,7 e 5,8 trocas de contexto involuntárias por segundo**
+nas 140 execuções, com a thread fixada. A maior parada, na mesma amostra, varia
+por um fator de 4,1.
 
 `sched_setaffinity` impede que a thread **migre**. Não impede que o escalonador
 a **tire da CPU** em favor de outra tarefa executável: a sonda é `SCHED_OTHER`
@@ -378,26 +406,45 @@ como qualquer processo. O contador de `/proc/self/status` mostra isso sem
 ambiguidade, e custa uma leitura por execução.
 
 > **O que este número NÃO estabelece.** A correlação de posto entre contagem de
-> preempções e maior parada é **ρ = 0,42** na coleta C — positiva e fraca. A
-> contagem não carrega **duração**, e uma preempção longa conta igual a uma
-> curta. Afirmar que a maior parada *é* uma preempção exigiria `osnoise`, que
-> atribui fonte por evento.
+> preempções e maior parada é **ρ = −0,02** nas 140 execuções — ausência de
+> relação, não relação fraca. A contagem não carrega **duração**, e uma
+> preempção longa conta igual a uma curta. Afirmar que a maior parada *é* uma
+> preempção exigiria `osnoise`, que atribui fonte por evento.
 
-A estabilidade da taxa entre coletas é, por si, informação sobre o mecanismo: a
-**frequência** com que a thread perde a CPU não acompanha a cauda. Se o modo
-alto fosse simplesmente "uma preempção qualquer", coletas com 1/20 e com 16/20
-de modo alto precisariam de taxas de preempção diferentes, e elas não têm. O
-evento discreto da §6.1 é mais raro que uma preempção comum, e distingui-lo
-exige instrumento por evento.
+O ρ de −0,02 é, por si, informação sobre o mecanismo: a **frequência** com que
+a thread perde a CPU não acompanha a cauda em nada. Se a maior parada fosse
+simplesmente "uma preempção qualquer", as execuções com mais preempções teriam
+paradas maiores, e não têm. O que produz a cauda é mais raro que uma preempção
+comum, e distingui-lo exige instrumento por evento.
 
-### 6.5 O que a célula P5 não decidiu
+### 6.5 O que a célula P5 decidiu, e o que ela continua sem decidir
 
-A mediana da maior parada com o irmão SMT carregado (31,6 µs) está dentro da
-faixa do P0 limpo (15,7 a 752,9 µs nas vinte execuções). Com cinco repetições e
-essa dispersão, a célula não separa. A
+Com cinco repetições por célula, esta comparação não separava. Com as **35
+execuções** de cada célula nas sete coletas, ela separa: a mediana com o irmão
+carregado é de **23,1 µs** contra **21,7 µs** do P0 limpo, e um teste de postos
+dá **p = 0,0015**, com o irmão carregado produzindo a maior parada em 72% dos
+pares. O efeito existe e é **pequeno**: 1,5 µs de mediana, 6,8%, e as duas
+células ficam bem abaixo da janela de 34,4 µs.
+
+> **Esta comparação é *post hoc*, e isso limita o que ela autoriza.** As sete
+> coletas foram desenhadas para medir cada célula, não para testar esta
+> diferença, e nenhum critério de refutação foi registrado antes. O p diz que a
+> diferença não é ruído de amostragem; ele não a confirma como hipótese. Para
+> isso seria preciso pré-registrar e recoletar — e o tamanho do efeito não
+> justifica a campanha.
+
+A
 [§5.1.1 do módulo 01](../../../docs/01-fundamentos/README.md#511-smt-duas-cpus-lógicas-não-são-dois-núcleos)
-mede **2,29×** de efeito do irmão sobre **vazão**; sobre **cauda**, este
-experimento não mede nada — e são perguntas diferentes.
+mede **2,29×** de efeito do irmão sobre **vazão**. Aqui, sobre **cauda**, o
+efeito é de 6,8% — trinta vezes menor. **São perguntas diferentes, e a
+diferença de magnitude é o resultado**: o irmão SMT disputa unidades de
+execução o tempo todo, e isso domina a vazão; a maior parada é governada por
+evento raro, que a disputa por ALU mal toca.
+
+O que a célula continua sem decidir é o **mecanismo**: se o 1,5 µs a mais vem
+de o irmão atrasar a própria sonda ou de ele aumentar a chance de preempção,
+esta medição não separa. Seriam precisos `osnoise` e atribuição por evento —
+o mesmo instrumento que a §6.4 pede.
 
 ### 6.6 A busca pela fonte do modo alto
 

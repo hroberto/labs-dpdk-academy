@@ -3102,6 +3102,8 @@ machine states, below).
 > shows that the figure is worth 1.125 cycles in any environment, and that the
 > 27.5% was the clock moving during the collection — not the primitive moving.
 >
+> <!-- cita-retratado: 27,5 27.5 -->
+>
 > **The scale still exists**; what was lost is its extreme example. Anyone
 > wanting one today finds 20.6% in `2 MB hugepages` over the 32 MB region, and
 > there the cause is different: contention for the second-level TLB, which §4.1

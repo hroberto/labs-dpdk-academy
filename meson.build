@@ -229,7 +229,7 @@ if python3.found()
   # `consolidar-rajada.py` passou a emitir NBSP (U+00A0) em vez de espaco, e o
   # autoteste PASSOU porque o literal esperado carregava o mesmo caractere
   # errado. Quem acusou foi o `verificar-autodescricao.py`, por acidente.
-  foreach c : ['efeito-cache', 'rajada']
+  foreach c : ['efeito-cache', 'rajada', 'isolamento']
     test('docs - autoteste do consolidador de ' + c, python3,
          args : [meson.project_source_root() / 'ferramental/qualidade/consolidar-' + c + '.py',
                  '--autoteste'],
@@ -238,6 +238,11 @@ if python3.found()
 
   test('docs - blocos consolidados da §6.3 conferem com a coleta', python3,
        args : [meson.project_source_root() / 'ferramental/qualidade/consolidar-rajada.py',
+               '--conferir'],
+       suite : ['l1', 'docs'], timeout : 60)
+
+  test('docs - tabelas do topico de isolamento conferem com o historico', python3,
+       args : [meson.project_source_root() / 'ferramental/qualidade/consolidar-isolamento.py',
                '--conferir'],
        suite : ['l1', 'docs'], timeout : 60)
 else

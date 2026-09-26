@@ -127,3 +127,6 @@
 60	CALCULADO	"os outros 60 bytes" da linha de cache e "60 ms de aquecimento" da §7; colide com 60,87 retratado
 87	MEDIDO	87,18 ns da latencia dependente na RAM, arredondado na prosa da §4.2 e da §4.3
 3,12	MEDIDO	frequencia do irmao SMT saturado, 3,12 GHz, na tabela da metodologia; colide com 3,117 retratado do cpp23
+36,6	MEDIDO	maior parada de 36 559 ns na coleta 2026-09-25-0046, convertida a us pelo consolidar-isolamento.py
+39,6	MEDIDO	maior parada de 39 625 ns na coleta 2026-09-25-1317, convertida a us pelo consolidar-isolamento.py
+46,1	MEDIDO	maior parada de 46 078 ns na coleta 2026-09-25-1547, convertida a us pelo consolidar-isolamento.py

@@ -244,23 +244,56 @@ executes.
 
 ## 6. Measurement
 
-Eight collections from 2026-09-23, each with four cells × five repetitions ×
-30 s, cell order permuted per repetition. Machine declared exclusive; browser
-closed. CPU measured: 2 (SMT sibling: 14). Provoker on CPU 4.
+**Seven text-mode collections**, from 24 and 25 September 2026, each with four
+cells × five repetitions × 30 s, cell order permuted per repetition. That is
+**140 runs**. Machine declared exclusive, with no graphical session — booted
+into `multi-user.target`. CPU measured: 2 (SMT sibling: 14). Provoker on CPU 4.
 
-Each collection declares the machine state it ran in. The difference between
-them is the instrument of §6.6: one collection measures; a pair differing in
-one variable decides.
+| Collection | max stall, median | above 34.4 µs | largest seen |
+|---|---:|---:|---:|
+| `2026-09-24-0955-jedec4800-canal-unico-texto` | 22.1 µs | 1/20 | 38.6 µs |
+| `2026-09-24-1237-jedec4800-canal-duplo-texto` | 21.5 µs | 1/20 | 35.1 µs |
+| `2026-09-24-1917-expo6000-canal-duplo` | 22.6 µs | 2/20 | 43.5 µs |
+| `2026-09-25-0046-expo6000-canal-duplo` | 21.9 µs | 1/20 | 36.6 µs |
+| `2026-09-25-1317-expo6000-canal-duplo` | 22.0 µs | 1/20 | 39.6 µs |
+| `2026-09-25-1547-jedec4800-canal-duplo` | 22.1 µs | 2/20 | 46.1 µs |
+| `2026-09-25-1720-expo6000-canal-duplo` | 22.1 µs | 1/20 | 55.7 µs |
 
-> **Where these collections are.** This topic's `historico/` directory was
-> emptied on 24/09/2026: two runs on the same day had collided on the same name
-> and one ended up labelled with the wrong memory configuration. The nine
-> collections in this table remain in the git history, in the commit preceding
-> the removal, and the four that succeed them — the memory factorial of §6.7 —
-> are archived under names carrying hour, minute and a configuration checked by
-> program. The table is kept because it is the evidence for §6.1 to §6.6; what
-> changed is where it lives, and this block exists so that the change is not
-> discovered by whoever goes looking for the file.
+The max stall barely moves across the seven: the median sits between 21.5 and
+22.6 µs, and the collections span two memory configurations — 4800 and
+6000 MT/s, single and dual channel. **The memory channel does not show up in the
+tail**, and that is the result §6.6 will need.
+
+**The per-cell tables aggregate the seven collections**, 35 runs per cell:
+
+| Cell | threshold | max stall | stalls ≥ threshold | preemptions | `TLB` | `CAL` | `LOC` |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| P0 — affinity only | 2 µs | 21.7 µs | 285 | 160 | 0 | 12 | 60,048 |
+| P0 + **thread** provoker | 1 µs | 21.8 µs | 21,734 | 145 | 37,940 | 37,956 | 60,030 |
+| P0 + **process** provoker | 2 µs | 22.0 µs | 300 | 145 | 0 | 0 | 60,033 |
+| P5 — busy SMT sibling | 2 µs | 23.1 µs | 350 | 136 | 0 | 6 | 60,019 |
+
+> **The count column is not comparable between rows, and the table says why.**
+> The probe uses a **1 µs** threshold on the thread-provoker cell and **2 µs** on
+> the other three — the provoker produces short stalls, and a 2 µs threshold
+> would stop counting them. Adding or comparing the four counts directly is
+> adding answers to different questions, which is why the threshold is a column
+> and not a footnote.
+
+#### The nine collections of 23/09, and why their table is still here
+
+Before the text-mode protocol, the topic measured nine collections on
+23/09/2026, each declaring the machine state it ran in. They were **removed from
+`historico/`** on 24/09 — the directories collided on the same name and one
+carried the wrong memory configuration — and they are not recollectable: the two
+most extreme would require undoing hardware decisions. They remain in the git
+history, in the commit preceding the removal.
+
+The table stays because it is the **instrument of §6.6**: one collection
+measures; a pair differing in one variable decides. It is what made the confound
+visible, and rewriting it with today's numbers would erase the reason the
+investigation existed. No number in it supports a conclusion of the topic — what
+supports them are the seven archived collections above.
 
 | | Machine state | max stall, median | above 34.4 µs |
 |---|---|---:|---:|
@@ -272,24 +305,16 @@ one variable decides.
 | **D** | same as C + memory pressure confined to a cgroup | 30.9 µs | 7/20 |
 | **E** | same as C + global pressure: swap 2.19 GiB, available 5.08 GiB | 153.9 µs | 11/20 |
 | **E″** | same as E: swap 2.51 GiB, available 4.87 GiB | 24.0 µs | 1/20 |
+| **T** | **no graphical session** — booted into `multi-user.target` | **21.5 µs** | **1/20** |
 
-> **Rows A and E come from collections the project discarded, and are marked as
-> such.** Both ran with a **graphical session**, before 24/09, and the
-> collections were removed when the text-mode protocol was adopted. Neither
-> number is recollectable without undoing hardware decisions — A requires
-> removing a module, E requires reproducing the same swap state.
->
-> **And A has already been superseded.** Single channel WAS measured in text
-> mode, in `2026-09-24-0955-jedec4800-canal-unico-texto`: a median of
-> **22.1 µs**, with **1/20** above the threshold — indistinguishable from dual
-> channel. The 515.5 µs of row A were not the channel; they were the graphical
+<!-- cita-retratado: 24,8 24.8 26,6 26.6 515,5 515.5 153,9 153.9 29,0 29.0 25,2 25.2 24,1 24.1 24,6 24.6 30,9 30.9 24,0 24.0 26,3 26.3 24,9 24.9 19,7 19.7 31,6 31.6 752,9 752.9 660,4 660.4 631,6 631.6 -->
+
+> **Row A has already been superseded by measurement.** Single channel WAS
+> measured in text mode, in `2026-09-24-0955-jedec4800-canal-unico-texto`: a
+> median of **22.1 µs**, with **1/20** above the threshold — indistinguishable
+> from dual channel. The 515.5 µs were not the channel; they were the graphical
 > session, and the subsection on the memory-versus-reboot confound measures that
 > at p = 0.433.
->
-> Both rows stay because the table is the **record of the path**: it is what
-> made the confound visible. Rewriting them with today's numbers would erase the
-> reason the investigation existed.
-> <!-- cita-retratado: 515,5 515.5 153,9 153.9 -->
 
 > **Collection E′ was planned as a pressure arm and ran with none.** The memory
 > consumer's stop condition was absolute — "allocate until 2 GiB sit in swap" —
@@ -298,40 +323,28 @@ one variable decides.
 > 22.97 GiB available. The arm is valid; what it measures is the **no-pressure**
 > condition, and that is how it enters the arithmetic.
 
-**Collection C is the one published in the per-cell tables below.** Medians of
-five runs:
-
-| Cell | max stall | preemptions | stalls > 2 µs | `TLB` | `CAL` | `LOC` |
-|---|---:|---:|---:|---:|---:|---:|
-| P0 — affinity only | 26.3 µs | 228 | 563 | 0 | 1 | 59,974 |
-| P0 + **thread** provoker | 24.9 µs | 215 | 24,186 | **38,375** | 38,377 | 59,998 |
-| P0 + **process** provoker | 19.7 µs | 153 | 326 | **0** | 1 | 60,000 |
-| P5 — busy SMT sibling | 31.6 µs | 203 | 909 | 0 | 0 | 59,984 |
-
 ### 6.1 H1: affinity does not hold the tail
 
-**Five of the twenty runs** in collection C have a max stall above the
-512-descriptor window, and the largest observed was **752.9 µs** — 22 times
-that window, and still **2.7 times** the 4096-descriptor window. H1 holds: one
-stall above the window is enough for affinity alone not to guarantee the
-budget.
+**Nine of the 140 runs** have a max stall above the 512-descriptor window, and
+the largest observed was **55.7 µs** — **1.6 times** that window, and a fifth of
+the 4096-descriptor window. H1 holds: one stall above the window is enough for
+affinity alone not to guarantee the budget. But the margin is narrow, and saying
+*how* narrow is part of the result.
 
-What the collection shows more strongly is the **shape** of the distribution,
-not the count. Fifteen runs fall between 15.7 and 31.6 µs, two brush against the
-window (34.8 and 40.0 µs) and three jump to the hundreds — 631.6, 660.4 and
-752.9 µs. There is nothing between 40.0 µs and 631.6 µs: the distribution is
-**bimodal**, with two modes separated by more than an order of magnitude and
-nothing in between.
+The distribution is **continuous**. The 140 runs span 13.5 to 55.7 µs with no
+empty interval: the smallest of the nine above the window is 35.1 µs, brushing
+against it. There are no two modes, and nothing separated by an order of
+magnitude.
 
-That constrains the mechanism before any further measurement. A continuous tail
-would indicate the accumulation of many small sources, each adding a little.
-Two disjoint modes indicate a **discrete event** that either happens or does
-not, and whose duration is a property of the event, not of the load. §6.6
-pursues that event.
-
-The separation between the modes holds across the eight collections. What
-changes between them is **how often** the high mode happens — from 1/20 to
-16/20 — not where it sits.
+> **The 23/09 collections showed something else, and that is what §6.6 is
+> about.** There the distribution was bimodal — fifteen runs between 15.7 and
+> 31.6 µs, and three in the hundreds: 631.6, 660.4 and 752.9 µs, with nothing
+> between 40 and 631 µs. Two disjoint modes indicate a **discrete event** that
+> either happens or does not, and whose duration is a property of the event, not
+> of the load. In the 140 text-mode runs that high mode **never appears**, and
+> §6.6 identifies the event: the GPU's power gating. What is left here, 35 to
+> 56 µs, is something else — and it is not what was blowing the budget
+> twenty-two times over.
 
 ### 6.2 H3: the IPI's scope is the address space, not the CPU
 
@@ -340,38 +353,45 @@ that differ in **one** thing:
 
 | | work | CPU | address space | `TLB` |
 |---|---|---|---|---:|
-| **thread** provoker | 8 MiB `mmap`/`munmap` | 4 | **the same** as the probe | 38,375 |
+| **thread** provoker | 8 MiB `mmap`/`munmap` | 4 | **the same** as the probe | 37,940 |
 | **process** provoker | same | 4 | distinct | **0** |
 
 Same work, same CPU, same volume of memory. The difference is which address
 space the thread belongs to, and the effect **disappears completely**.
 
-The eight collections span two memory configurations, two governors and four
-pressure conditions. The contrast does not move:
+The seven collections span two memory configurations and two channel counts.
+The contrast does not move:
 
-| | A | B | C | C′ | E′ | D | E | E″ |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| **thread** provoker | 38,135 | 38,104 | 38,375 | 38,342 | 38,385 | 38,294 | 38,206 | 38,221 |
-| **process** provoker | 0 | 1 | 0 | 0 | 1 | 0 | 0 | 1 |
+| | 0955 4800 1c | 1237 4800 2c | 1917 6000 2c | 0046 6000 2c | 1317 6000 2c | 1547 4800 2c | 1720 6000 2c |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| **thread** provoker | 39,091 | 37,912 | 38,344 | 38,266 | 37,940 | 37,778 | 37,756 |
+| **process** provoker | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
-The range on the thread side is 281 counts out of 38 thousand — **0.7%** —
-while the max stall varied by a factor of 21 across the same collections. An
-effect that ignores everything that makes the tail move is a property of the
-mechanism, not of the machine state.
+The range on the thread side is 1,335 counts out of 38 thousand — **3.5%**
+across collections, and 5.4% across the 35 runs — while **not one** of the 140
+runs recorded more than a single count on the process side. An effect that
+ignores everything that makes the tail move is a property of the mechanism, not
+of the machine state.
 
 That is why no boot parameter reaches this source: it does not come from
 outside the process. What removes it is not changing mappings on the hot path.
 
 ### 6.3 The source you can count is not the one that hurts most
 
-The provoker multiplies stalls above 2 µs by **43** — from 563 to 24,186 — and
-its cell still has a median max stall **below** the clean P0: 24.9 µs against
-26.3 µs.
+The provoker injects **37,940** TLB IPIs per run, against **zero** in the clean
+P0, and its cell records **21,734** stalls above 1 µs. And still the median max
+stall is **indistinguishable** from P0's: 21.8 µs against 21.7 µs, at p = 0.37
+in a rank test over the 35 runs of each.
+
+> **The two stall counts do not compare with each other**, because of the
+> different threshold the §6 table publishes. What compares here is what §6
+> measures with the same ruler in both cells: the TLB IPIs, which go from zero
+> to thirty-eight thousand, and the max stall, which does not move.
 
 Thirty-eight thousand TLB IPIs produce thirty-eight thousand **short** stalls.
 The source easiest to instrument is the one that matters least to the budget,
-and the relation repeats in every collection, including those whose medians are
-twenty times larger.
+and the relation repeats across the seven collections — including, as §6.6
+shows, when the median was twenty times larger.
 
 The practical consequence is about method, not about the TLB: **counting a
 source's events does not measure what it costs**. A dashboard summing
@@ -380,9 +400,9 @@ would be pointing at the wrong place.
 
 ### 6.4 Affinity does not prevent preemption, and that is measured
 
-The probe takes between **6.7 and 7.8 involuntary context switches per second**
-across the eight collections, with the thread pinned. The rate is stable; the
-max stall, in the same sample, varies by a factor of 21.
+The probe takes between **2.7 and 5.8 involuntary context switches per second**
+across the 140 runs, with the thread pinned. The max stall, in the same sample,
+varies by a factor of 4.1.
 
 `sched_setaffinity` prevents the thread from **migrating**. It does not prevent
 the scheduler from **taking it off the CPU** in favour of another runnable
@@ -390,26 +410,45 @@ task: the probe is `SCHED_OTHER` like any process. The `/proc/self/status`
 counter shows this unambiguously, and costs one read per run.
 
 > **What this number does NOT establish.** The rank correlation between
-> preemption count and max stall is **ρ = 0.42** in collection C — positive and
-> weak. The count does not carry **duration**, and a long preemption counts the
-> same as a short one. Asserting that the max stall *is* a preemption would
-> require `osnoise`, which attributes a source per event.
+> preemption count and max stall is **ρ = −0.02** across the 140 runs — absence
+> of a relation, not a weak one. The count does not carry **duration**, and a
+> long preemption counts the same as a short one. Asserting that the max stall
+> *is* a preemption would require `osnoise`, which attributes a source per
+> event.
 
-The stability of the rate across collections is itself information about the
-mechanism: the **frequency** with which the thread loses the CPU does not track
-the tail. If the high mode were simply "some preemption", collections with 1/20
-and with 16/20 of high mode would need different preemption rates, and they do
-not have them. The discrete event of §6.1 is rarer than an ordinary preemption,
-and telling it apart requires a per-event instrument.
+The ρ of −0.02 is itself information about the mechanism: the **frequency** with
+which the thread loses the CPU does not track the tail at all. If the max stall
+were simply "some preemption", the runs with more preemptions would have larger
+stalls, and they do not. What produces the tail is rarer than an ordinary
+preemption, and telling it apart requires a per-event instrument.
 
-### 6.5 What cell P5 did not decide
+### 6.5 What cell P5 decided, and what it still does not decide
 
-The median max stall with the SMT sibling busy (31.6 µs) falls inside the clean
-P0 range (15.7 to 752.9 µs across the twenty runs). With five repetitions and
-that dispersion, the cell does not separate.
+With five repetitions per cell, this comparison did not separate. With the **35
+runs** of each cell across the seven collections, it does: the median with the
+sibling busy is **23.1 µs** against **21.7 µs** for the clean P0, and a rank
+test gives **p = 0.0015**, with the busy sibling producing the larger stall in
+72% of the pairs. The effect exists and is **small**: 1.5 µs of median, 6.8%,
+and both cells sit well below the 34.4 µs window.
+
+> **This comparison is *post hoc*, and that limits what it licenses.** The seven
+> collections were designed to measure each cell, not to test this difference,
+> and no refutation criterion was registered beforehand. The p says the
+> difference is not sampling noise; it does not confirm it as a hypothesis. That
+> would require pre-registering and recollecting — and the effect size does not
+> justify the campaign.
+
 [§5.1.1 of module 01](../../../docs/01-fundamentos/README.en.md#511-smt-two-logical-cpus-are-not-two-cores)
-measures **2.29×** of sibling effect on **throughput**; on **tail**, this
-experiment measures nothing — and those are different questions.
+measures **2.29×** of sibling effect on **throughput**. Here, on **tail**, the
+effect is 6.8% — thirty times smaller. **Those are different questions, and the
+difference in magnitude is the result**: the SMT sibling contends for execution
+units all the time, and that dominates throughput; the max stall is governed by
+a rare event, which ALU contention barely touches.
+
+What the cell still does not decide is the **mechanism**: whether the extra
+1.5 µs comes from the sibling delaying the probe itself or from it raising the
+chance of preemption, this measurement does not separate. That would need
+`osnoise` and per-event attribution — the same instrument §6.4 asks for.
 
 ### 6.6 The search for the source of the high mode
 
