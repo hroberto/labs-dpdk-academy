@@ -582,7 +582,14 @@ if [ "$FIXAR_GOV" -eq 1 ]; then
 fi
 
 exec > >(tee -a "$SAIDA/diario.txt") 2>&1
-echo "==> campanha em modo texto  $(date -Is)"
+# O MODO SAI DA VARIAVEL, e nao de uma constante.
+#
+# Esta linha dizia "modo texto" sempre, e vai para o `diario.txt`, que e
+# versionado. Tres linhas abaixo o mesmo bloco imprime `modo declarado` com o
+# valor certo: toda coleta grafica arquivada tem um diario que se contradiz na
+# segunda linha. Um registro de condicao que erra a condicao e pior que nenhum,
+# porque quem compara duas coletas le exatamente essa linha.
+echo "==> campanha em modo $MODO  $(date -Is)"
 # CAMINHO RELATIVO, e o motivo nao e estetica. O diario e versionado e o
 # repositorio e publico: um caminho absoluto carrega o nome de usuario da
 # maquina de quem mediu, que e a mesma classe de vazamento que o
@@ -1077,10 +1084,15 @@ echo
 echo "    A campanha de hardware ficou nos historicos dos tres modulos,"
 echo "    sob $CONF."
 echo
-echo "    Para voltar ao modo grafico:"
-echo "      sudo systemctl set-default graphical.target && sudo reboot"
-echo "      (aqui e modo texto: nao ha sessao grafica inibindo, entao -i nao"
-echo "       faz falta. O set-default SIM: ele e persistente.)"
+# MESMO DEFEITO, OUTRO LUGAR: o epilogo ensinava a voltar ao modo grafico e
+# afirmava "aqui e modo texto" mesmo quando a campanha correu com o compositor
+# vivo e contado no cabecalho.
+if [ "$MODO" = "texto" ]; then
+    echo "    Para voltar ao modo grafico:"
+    echo "      sudo systemctl set-default graphical.target && sudo reboot"
+    echo "      (aqui e modo texto: nao ha sessao grafica inibindo, entao -i nao"
+    echo "       faz falta. O set-default SIM: ele e persistente.)"
+fi
 
 # --------------------------------------------------------------------------
 # O VEREDITO, e ele sai no codigo de saida e nao so na tela.

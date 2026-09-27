@@ -38,6 +38,7 @@ trap 'rm -rf "$tmp"' EXIT
 cd "$tmp"
 RAIZ="$tmp" D="$tmp" CONF="teste" MANIFESTO="$tmp/manifesto.txt"
 falhas=0
+total=0
 
 # O CABECALHO E PARTE DO CONTRATO, e o teste o reproduz porque `contar_estado`
 # roda awk sobre o arquivo inteiro: uma linha de cabecalho contada como celula
@@ -51,6 +52,7 @@ zerar_manifesto() {
 }
 
 conferir() { # <descricao> <obtido> <esperado>
+    total=$((total + 1))
     if [ "$2" != "$3" ]; then
         echo "  FALHOU: $1 (esperado '$3', obtido '$2')"
         falhas=$((falhas + 1))
@@ -339,8 +341,46 @@ DPDK_ACADEMY_HUGE_DIR="" corre_feed 6
 conferir "sem hugetlbfs o feed nao registra celula" \
     "$(awk '$1 ~ /^feed-/ { n++ } END { print n+0 }' "$MANIFESTO")" "0"
 
+# ---- 9. nenhum argumento de celula carrega aspas do documento ----------
+#
+# A CELULA `estado-lcore --lcores` NUNCA MEDIU, e ninguem viu por um mes.
+#
+# O documento publica `--lcores '0@6,1@7,2@18'`: no terminal, a virgula e o
+# arroba pedem protecao do shell. Quem automatizou copiou a invocacao com as
+# aspas, e dentro do script elas deixam de delimitar e viram conteudo. O EAL
+# recebia `"'0@6,1@7,2@18'"`, recusava com `invalid lcore mapping list`, e o
+# redirecionamento criava o arquivo mesmo assim -- a coleta parecia completa.
+#
+# A celula nasceu no mesmo commit que arquivou uma saida feita A MAO: o caminho
+# automatizado foi versionado junto com o resultado que ele deveria produzir, e
+# nunca correu antes de ser commitado. Cinco coletas seguintes carregaram a
+# falha em silencio, ate o primeiro `manifesto.txt` a registrar.
+#
+# `rodar` vira um gravador: as celulas nao executam nada, so mostram os
+# argumentos que o programa receberia.
+eval "$(sed -n '/^corre2() {/,/^}/p;/^corre3() {/,/^}/p' "$fonte")"
+for f in corre2 corre3; do
+    declare -F "$f" >/dev/null || { echo "FALHA: nao extrai $f() de campanha-hardware.sh"; exit 1; }
+done
+vistos="$tmp/argumentos.txt"
+: > "$vistos"
+rodar() { shift; printf '%s\n' "$@" >> "$vistos"; }
+D2="$tmp/d2" D3="$tmp/d3" B2="$tmp/b2" B3="$tmp/b3"
+corre2 0
+corre3 0
+conferir "as celulas produziram argumentos" \
+    "$([ -s "$vistos" ] && echo sim || echo nao)" "sim"
+conferir "o mapeamento de lcores chega inteiro ao EAL" \
+    "$(grep -c '^0@6,1@7,2@18$' "$vistos")" "1"
+# A REGRA GERAL, e nao so a celula que quebrou: aspa em argumento aqui e sempre
+# transcricao de uma invocacao de documento, e sempre chega ao programa como
+# caractere.
+conferir "nenhum argumento de celula carrega aspa literal" \
+    "$(grep -c "[\"']" "$vistos")" "0"
+
 if [ "$falhas" -gt 0 ]; then
     echo "  $falhas assercao(oes) falharam"
     exit 1
 fi
-echo "  ok: 37 assercoes; estado por celula sobe do manifesto ate o codigo de saida"
+echo "  ok: $total assercoes; estado por celula sobe do manifesto ate o codigo de saida,"
+echo "      e nenhum argumento de celula carrega aspas do documento"

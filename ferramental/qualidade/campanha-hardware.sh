@@ -251,7 +251,13 @@ corre2() { # <rodada>
     # mapeamento e escolhido, e a §4 do modulo 02 contrasta os dois blocos para
     # mostrar que a quarta coluna -- o core id -- nao muda. Sem arquivar a
     # segunda, esse bloco ficava sem procedencia e so se refazia a mao.
-    rodar "$D2/estado-lcore.lcores.r$1.txt" "$B2/estado-lcore"  --lcores '"'"'0@6,1@7,2@18'"'"' --in-memory
+    #
+    # AS ASPAS SAO DO SHELL DE QUEM DIGITA, E NAO DO ARGUMENTO. O documento
+    # publica `--lcores '0@6,1@7,2@18'` porque, no terminal, a virgula e o
+    # arroba pedem protecao. Copiadas para ca, elas deixam de delimitar e viram
+    # conteudo: o EAL recebia `"'0@6,1@7,2@18'"` e recusava com
+    # `invalid lcore mapping list`. A celula nunca mediu.
+    rodar "$D2/estado-lcore.lcores.r$1.txt" "$B2/estado-lcore"  --lcores 0@6,1@7,2@18 --in-memory
 }
 corre3() { # <rodada>
     for n in custo-alocacao anatomia-mbuf custo-anel pool-esgotado; do
