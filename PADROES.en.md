@@ -193,3 +193,85 @@ ones that directly enforce the rules in this document:
 The criterion for a checker to enter the bar is the same as for any number: it
 has a self-test, and the self-test kills a mutant. A checker that passes on any
 code verifies nothing.
+
+And there are two ways for a self-test to pass without verifying, both learned
+by getting them wrong:
+
+**Presence does not imply validity.** A field used as an authority has four
+ways of being invalid, and checking only that the key exists approves all four:
+key absent, key present and empty, declared sentinel, and a value inside the
+domain that coincides by accident. The manifest's `text_sha256` went through
+all four on the same day — including the last and most treacherous: the
+`sha256` of empty input is 64 legitimate hexadecimal digits, and *every* target
+without a `.text` section received exactly the same one. The assertion is about
+the **domain of the value**, never about the existence of the line.
+
+**The test loads the same code production loads.** Extracting functions from a
+script with `sed`/`eval` forces the test to rebuild the dependency graph by
+hand, and it ages silently: production gains a helper, the `sed` list does not
+follow, and the missing function becomes `command not found` — which interrupts
+nothing inside a command substitution. The suite stays green while exercising a
+mutilated version of what it claims to exercise. When a fragment is big enough
+to be tested, it is big enough to be a file both of them load.
+
+Both rules share a root, and it reaches beyond testing: **the instrument
+answered is not the same as the answer serves.** Telling "I measured and got
+zero" apart from "I could not measure" is what separates a gate from an
+ornament.
+
+### Semantic fail-open
+
+That root has a name, and it deserves to be said because the defect does not
+look like one. The program does not fail, the parser does not break, the test
+stays green. The error is in the **interpretation**:
+
+```
+the instrument produces something
+      ↓
+a result exists syntactically
+      ↓
+the result is empty, ambiguous, invalid or non-authoritative
+      ↓
+the consumer does not tell "I don't know" from "all is well"
+      ↓
+the gate opens
+```
+
+On 2026-09-27 this pattern appeared **eleven times in one day**, six of them
+inside the very mechanism written to enforce it: `%G?` answering `E` — *could
+not check* — and the document reading it as an incident; a text reader matching
+a label the program had stopped printing; a field written empty while the test
+checked only that the key was present; the `sha256` of empty input coinciding
+across different targets; a `NO IDENTITY` state falling into the branch that
+flagged deviation; a ruler measuring one family of artefacts and judging
+another; an anchor degrading into a warning; two sentinels satisfying an
+equality; and a `head -1` choosing between homonyms without saying so.
+
+**Every gate that matters has at least three states**, and the prohibition is a
+single one:
+
+| | |
+|---|---|
+| valid / confirmed | may assert |
+| invalid / refuted | may deny |
+| **not ascertainable / no evidence** | **may become neither of the two** |
+
+From which follows a nearly mechanical rule for whoever writes a test: **for
+every binary decision that matters, test the third state too.** A mutant answers
+"is this line executed?"; the third state answers "is there ambiguous input that
+still opens the gate?" — which is the question the eleven cases answered yes to.
+
+For the characterisation anchor, for instance, there are five cases and not two:
+
+```
+1 reference, equal hash        -> passes
+1 reference, different hash    -> fails
+0 references                   -> fails
+2 references                   -> fails, and does not choose
+unreadable hash                -> fails, and does not compare sentinels
+```
+
+The last defect of that day was closed **before it produced wrong evidence** —
+the ten earlier ones only surfaced after they already had. That is the sign that
+the principle became a review tool, and not merely an explanation of what had
+already hurt.

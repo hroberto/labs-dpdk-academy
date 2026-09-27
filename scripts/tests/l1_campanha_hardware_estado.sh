@@ -44,7 +44,7 @@ ARTEFATOS_VISTOS=""
 . "$raiz/ferramental/qualidade/identidade-artefato.sh"
 
 for f in rodar veredito_hw contar_estado registrar coletar_estado_maquina corre_feed \
-         identidade_artefato _secao _sha_secao _flags_de; do
+         identidade_artefato _secao _sha_secao _flags_de _origem_valida; do
     declare -F "$f" >/dev/null || { echo "FALHA: nao extrai $f() de campanha-hardware.sh"; exit 1; }
 done
 
@@ -437,6 +437,81 @@ conferir "nenhuma linha de identidade conta como celula PASS" \
 conferir "nem como FAIL" "$(contar_estado FAIL)" "0"
 conferir "e o parser posicional ignora os comentarios" \
     "$(awk '$1 !~ /^#/ && $1 != "CELL" { n++ } END { print n+0 }' "$MANIFESTO")" "0"
+# AS FLAGS PODEM VIR DE QUEM CHAMA, e sem isso o campo mente por omissao.
+#
+# `_flags_de` sobe do diretorio do binario ate achar `compile_commands.json`.
+# Artefato que vive DENTRO de uma coleta nao tem nenhum acima, e a
+# caracterizacao de 27/09/2026 gravou `compile_flags=nao-disponivel` nos oito
+# blocos -- no unico campo que dizia qual alinhamento produziu cada um.
+zerar_manifesto; ARTEFATOS_VISTOS=""
+identidade_artefato ./mediu "-O2 -falign-loops=32"
+conferir "as flags de quem chama sao gravadas" \
+    "$(grep -c '^#   compile_flags=-O2 -falign-loops=32$' "$MANIFESTO")" "1"
+conferir "e nao sobra o 'nao-disponivel' da sondagem" \
+    "$(grep -c '^#   compile_flags=nao-disponivel$' "$MANIFESTO")" "0"
+# `source_origin` NAO PODE CASAR A VERSAO DO COMPILADOR.
+#
+# O padrao aceitava `X.Y.Z` sem o `v`, e `strings | grep -m1` devolve a
+# PRIMEIRA ocorrencia: os oito artefatos da caracterizacao de 27/09/2026
+# gravaram `source_origin=15.2.0`, que e o GCC, num campo que existe para
+# dizer de qual fonte o programa veio.
+zerar_manifesto; ARTEFATOS_VISTOS=""
+# O TOKEN VAI SOZINHO NA LINHA, que e como `ACADEMY_COMMIT` aparece num
+# binario: `strings` quebra por sequencia imprimivel, entao `echo 15.2.0`
+# vira a string "echo 15.2.0" e um regex ancorado nao casaria -- a assercao
+# passaria sem exercitar nada.
+printf '15.2.0\nGCC: (Ubuntu 15.2.0) 15.2.0\n' > mentiroso
+identidade_artefato ./mentiroso
+conferir "a versao do compilador nao vira procedencia da fonte" \
+    "$(grep -c '^#   source_origin=15.2.0$' "$MANIFESTO")" "0"
+conferir "e o campo diz que nao ha, em vez de mentir" \
+    "$(grep -c '^#   source_origin=nao-disponivel$' "$MANIFESTO")" "1"
+# E A TAG REAL CONTINUA PASSANDO, inclusive a forma exata sem `-N-gSHA` --
+# que e o que um binario construido sobre `v0.09.00` vai trazer.
+zerar_manifesto; ARTEFATOS_VISTOS=""
+printf 'v0.09.00\n' > comtag
+identidade_artefato ./comtag
+conferir "tag exata e aceita como procedencia" \
+    "$(grep -c '^#   source_origin=v0.09.00$' "$MANIFESTO")" "1"
+
+# O DOMINIO DA PROCEDENCIA, tres casos e o resto.
+#
+# Confiar no valor explicito sem conferir so moveria a heuristica de lugar: um
+# `git describe` que falha devolve "fatal: not a git repository", e grava-lo
+# seria a mesma mentira que `15.2.0` era.
+# `v0.09.00-dirty` ESTA NA LISTA de proposito: e a combinacao tag-pura +
+# arvore-suja, e sem ela a mutacao que remove `-dirty` daquele padrao
+# sobrevive -- os outros casos sujos casam pelo padrao do `git describe`.
+for par in "v0.09.00|v0.09.00" \
+           "v0.09.00-dirty|v0.09.00-dirty" \
+           "v0.09.00-lixo|nao-disponivel" \
+           "v0.08.00-36-gb07a8f94|v0.08.00-36-gb07a8f94" \
+           "v0.08.00-36-gb07a8f94-dirty|v0.08.00-36-gb07a8f94-dirty" \
+           "b07a8f94|b07a8f94" \
+           "b07a8f94-dirty|b07a8f94-dirty" \
+           "15.2.0|nao-disponivel" \
+           "2.39|nao-disponivel" \
+           "fatal: not a git repository|nao-disponivel" \
+           "GCC 15.2.0|nao-disponivel"; do
+    conferir "procedencia '${par%%|*}'" "$(_origem_valida "${par%%|*}")" "${par##*|}"
+done
+# E O CAMINHO INTEIRO: o valor de quem chama chega ao manifesto, ja filtrado.
+zerar_manifesto; ARTEFATOS_VISTOS=""
+identidade_artefato ./mediu "" "v0.09.00"
+conferir "a procedencia de quem chama e gravada" \
+    "$(grep -c '^#   source_origin=v0.09.00$' "$MANIFESTO")" "1"
+zerar_manifesto; ARTEFATOS_VISTOS=""
+identidade_artefato ./mediu "" "fatal: not a git repository"
+conferir "e lixo de quem chama vira ausencia, nao e gravado" \
+    "$(grep -c '^#   source_origin=nao-disponivel$' "$MANIFESTO")" "1"
+
+# SEM ARGUMENTO, A SONDAGEM CONTINUA: o `campanha-hardware.sh` mede binarios
+# do `build/`, onde `_flags_de` acha o que precisa.
+zerar_manifesto; ARTEFATOS_VISTOS=""
+identidade_artefato ./mediu
+conferir "sem argumento, volta a sondar" \
+    "$(grep -c '^#   compile_flags=' "$MANIFESTO")" "1"
+
 # E O CASO NEGATIVO: caminho que nao existe nao produz bloco nenhum. Sem esta
 # assercao, uma funcao que escrevesse cabecalho sempre passaria em tudo acima.
 zerar_manifesto; ARTEFATOS_VISTOS=""

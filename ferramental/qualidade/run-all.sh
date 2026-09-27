@@ -111,8 +111,31 @@ cd "$RAIZ" || exit 1
 # O argumento explicito continua aceito e tem precedencia. Ele serve para o
 # caso em que se quer nomear uma condicao que o hardware nao expressa -- um
 # braco de controle, uma replica, um teste de governor.
-./scripts/ambiente.sh --cachear-memoria >/dev/null 2>&1 \
-    && chown "${SUDO_USER:-root}" .ambiente-memoria 2>/dev/null
+# O RESULTADO DO REFRESH E CONFERIDO, e ate 27/09/2026 nao era.
+#
+# A linha era `--cachear-memoria >/dev/null 2>&1 && chown ...`: o `&&`
+# curto-circuita, ninguem le o codigo, e o script segue com o cache ANTERIOR.
+# O portao de root logo acima fecha o caso de falta de privilegio e diz, no
+# proprio comentario, que sem ele a coleta seria nomeada com a memoria que a
+# maquina tinha antes -- mas `dmidecode` ausente, ou qualquer outro erro,
+# produzia o mesmo desfecho passando pelo portao.
+#
+# ABORTA SO QUANDO O NOME DEPENDE DISSO. Com configuracao explicita na linha de
+# comando, a derivacao nao e usada; o cache velho ainda importa para o portao
+# do `campanha-hardware.sh`, e e ele quem decide, no passo dele.
+if ./scripts/ambiente.sh --cachear-memoria >/dev/null 2>&1; then
+    chown "${SUDO_USER:-root}" .ambiente-memoria 2>/dev/null || :
+elif [ $# -eq 0 ]; then
+    echo "FALHA: nao consegui refazer o cache de memoria, e o nome da coleta" >&2
+    echo "  sai dele -- derivar do cache anterior nomearia esta coleta com a" >&2
+    echo "  configuracao que a maquina tinha ANTES." >&2
+    echo "  Diagnostique com: ./scripts/ambiente.sh --cachear-memoria" >&2
+    echo "  Ou passe o nome explicitamente: $0 <configuracao>" >&2
+    exit 1
+else
+    echo "AVISO: nao refiz o cache de memoria; o nome veio da linha de comando." >&2
+    echo "       O portao do campanha-hardware.sh ainda vai conferi-lo." >&2
+fi
 
 derivar_config() {
     [ -r .ambiente-memoria ] || return 1

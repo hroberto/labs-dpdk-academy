@@ -55,3 +55,8 @@ __pycache__/
 # conseguir rodar.
 CLAUDE.md
 .claude/
+
+# Artefatos binarios de caracterizacao de leiaute. A evidencia que importa e o
+# `text_sha256` no manifesto e a causa isolada na nota; o binario em si nao
+# entra no historico do git, que e permanente e nao guarda diff de ELF.
+docs/**/historico/*-leiaute/artefatos/

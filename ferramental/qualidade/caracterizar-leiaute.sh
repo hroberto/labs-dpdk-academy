@@ -104,8 +104,16 @@ fi
 # "recente" descrevendo outra coisa. `build-all.sh` e no-op quando nada mudou,
 # entao reconstruir custa segundos e fecha o caso inteiro. Chamado sozinho ou
 # pela ETAPA 5 do `run-all`, o caminho e o mesmo.
-echo "==> reconstruindo o build normal (no-op se nada mudou)"
-if ! sudo -u "$DONO" -H ./scripts/build-all.sh build > /tmp/caracterizar-build.$$.log 2>&1; then
+# O BUILD ALVO E O QUE A CAMPANHA MEDE, e nao um qualquer.
+#
+# `campanha-hardware.sh` mede binarios de `build-precommit`. Caracterizar a
+# partir de `build` produziria artefatos de OUTRA familia, e a classificacao
+# resultante nao valeria para os rotulos que a campanha coleta -- que e
+# exatamente a inferencia que o `comparar-hardware.py` recusa quando o
+# `text_sha256` difere.
+BUILD_ALVO=${DPDK_ACADEMY_BUILD:-build-precommit}
+echo "==> reconstruindo o build normal (no-op se nada mudou): $BUILD_ALVO"
+if ! sudo -u "$DONO" -H ./scripts/build-all.sh "$BUILD_ALVO" > /tmp/caracterizar-build.$$.log 2>&1; then
     echo "FALHA: a compilacao nao passou. A caracterizacao NAO comeca." >&2
     tail -20 /tmp/caracterizar-build.$$.log >&2
     rm -f /tmp/caracterizar-build.$$.log
@@ -123,7 +131,7 @@ rm -f /tmp/caracterizar-build.$$.log
 # O `-fno-omit-frame-pointer` sozinho ja muda alocacao de registradores e
 # leiaute -- que e A VARIAVEL SOB ESTUDO. Caracterizar a partir dali mediria o
 # efeito do sanitizador e chamaria de sensibilidade ao leiaute.
-CC_JSON="build/compile_commands.json"
+CC_JSON="$BUILD_ALVO/compile_commands.json"
 [ -f "$CC_JSON" ] || { echo "FALHA: $CC_JSON nao existe mesmo apos reconstruir." >&2; exit 1; }
 
 CARIMBO="$(date +%Y-%m-%d-%H%M)"
@@ -171,72 +179,114 @@ echo "==> governor: $GOV_ANTES -> performance (restaurado no fim)"
 ./scripts/ambiente.sh >> "$SAIDA/ambiente.txt" 2>&1
 
 # ---- CONSTRUIR AS VARIANTES --------------------------------------------
-flags_do_programa() { # <programa> -> flags do meson, sem -falign-loops
-    python3 - "$CC_JSON" "$1" <<'PYF'
-import json, re, sys
-cc = json.load(open(sys.argv[1]))
-alvo = sys.argv[2]
-for e in cc:
-    base = re.sub(r'\.[^.]+$', '', e.get('file', '').split('/')[-1])
-    if base == alvo:
-        fora = []
-        for x in e.get('command', '').split():
-            if not x.startswith('-'):
-                continue
-            if x.startswith(('-I', '-MD', '-MQ', '-MF', '-o', '-falign-loops')):
-                continue
-            if x == '-c':
-                continue
-            fora.append(x)
-        print(' '.join(fora))
-        raise SystemExit
-raise SystemExit("sem entrada para %s" % alvo)
-PYF
-}
-fonte_do_programa() { # <programa> -> caminho ABSOLUTO do .c
-    # O `file` do `compile_commands.json` e relativo ao `directory` (o diretorio
-    # de build), e sai como `../docs/...`. Este script roda de `$RAIZ`, entao
-    # usa-lo cru resolveria para fora da arvore -- em silencio, porque `cc`
-    # diria apenas "arquivo nao encontrado" e a variante seria marcada FAIL.
-    python3 - "$CC_JSON" "$1" <<'PYF'
-import json, os, re, sys
-cc = json.load(open(sys.argv[1]))
-alvo = sys.argv[2]
-for e in cc:
-    if re.sub(r'\.[^.]+$', '', e.get('file', '').split('/')[-1]) == alvo:
-        print(os.path.realpath(os.path.join(e.get('directory', '.'), e['file'])))
-        raise SystemExit
-raise SystemExit("sem fonte para %s" % alvo)
-PYF
-}
+# A RECEITA VEM DE UM ARQUIVO CARREGADO, e nao de um trecho daqui: o
+# `l1_ancora_producao.sh` carrega o mesmo, e para de reconstruir a funcao por
+# `sed`. A razao esta no cabecalho dele.
+. "$RAIZ/ferramental/qualidade/receita-build.sh"
+
+# O ALINHAMENTO DO PROJETO, que e o ponto de ancoragem do portao abaixo.
+AL_PRODUCAO=$(grep -oE "falign-loops=[0-9]+" "$CC_JSON" | head -1 | cut -d= -f2)
+[ -n "$AL_PRODUCAO" ] || { echo "FALHA: nao li o -falign-loops do build." >&2; exit 1; }
+echo "==> alinhamento de producao: $AL_PRODUCAO"
+
+# A PROCEDENCIA DA ARVORE, dita e nao adivinhada. E a mesma string que o
+# `vcs_tag` do meson grava no `academy_version.h`, entao o campo do artefato
+# passa a concordar com a linha `origin:` que o programa imprime.
+ORIGEM_FONTE=$(sudo -u "$DONO" git describe --always --dirty --tags 2>/dev/null || echo nao-disponivel)
+echo "==> procedencia da arvore: $ORIGEM_FONTE"
 
 BINARIOS=""
 for prog in $PROGRAMAS; do
-    fonte=$(fonte_do_programa "$prog") || { echo "FALHA: $prog nao esta no compile_commands.json" >&2; exit 1; }
-    flags=$(flags_do_programa "$prog")
-    inc=$(dirname "$fonte")
+    fonte=$(fonte_do_programa "$prog") || { echo "FALHA: $prog nao esta no $CC_JSON" >&2; exit 1; }
     # A PROCEDENCIA DO FONTE, por programa. E ela que diz, depois, se a
     # classificacao envelheceu: rotulo caracterizado contra um fonte que
     # mudou nao autoriza mais comparacao nenhuma.
     commit_fonte=$(sudo -u "$DONO" git log -1 --format=%H -- "$fonte" 2>/dev/null || echo desconhecido)
-    echo "# FONTE $prog"          >> "$MANIFESTO"
+    echo "# FONTE $prog"            >> "$MANIFESTO"
     echo "#   path=${fonte#$RAIZ/}" >> "$MANIFESTO"
     echo "#   commit=$commit_fonte" >> "$MANIFESTO"
-    echo "#   flags_base=$flags"    >> "$MANIFESTO"
     for al in $ALINHAMENTOS; do
-        bin="$SAIDA/artefatos/$prog.al$al"
-        # shellcheck disable=SC2086
-        if cc -I"$inc" $flags -falign-loops="$al" "$fonte" -o "$bin" -lm 2>"$SAIDA/artefatos/$prog.al$al.erro"; then
-            rm -f "$SAIDA/artefatos/$prog.al$al.erro"
-            identidade_artefato "$bin"
+        bin="$RAIZ/$SAIDA/artefatos/$prog.al$al"
+        erro="$SAIDA/artefatos/$prog.al$al.erro"
+        if ( eval "$(comando_de "$prog" "$al" "$bin")" ) 2>"$erro"; then
+            rm -f "$erro"
+            identidade_artefato "$bin" \
+                "$(comando_de "$prog" "$al" "$bin" | sed 's/^cd [^&]*&& //')" \
+                "$ORIGEM_FONTE"
             BINARIOS="$BINARIOS $prog:$al"
             echo "    construido: $prog -falign-loops=$al"
         else
             printf '%-40s %-7s %s\n' "$prog.al$al" "FAIL" "build" >> "$MANIFESTO"
             echo "    FALHA ao construir $prog -falign-loops=$al" >&2
-            sed 's/^/        /' "$SAIDA/artefatos/$prog.al$al.erro" >&2
+            sed 's/^/        /' "$erro" >&2
         fi
     done
+
+    # O PORTAO QUE TERIA PEGO O DEFEITO DE 27/09/2026 NA HORA.
+    #
+    # No alinhamento de producao, o artefato da caracterizacao tem de ser o
+    # MESMO que a campanha mede -- mesmo `.text`, byte a byte. Se nao for,
+    # alguma coisa alem do alinhamento variou, e a classificacao resultante
+    # nao valeria para os rotulos que a campanha coleta.
+    #
+    # Naquele dia variou: o comando era remontado a mao e perdia o `-I` do
+    # diretorio de build, onde `academy_version.h` e gerado. Os artefatos
+    # compilaram sem a linha de procedencia, com outro `.text`, e a
+    # caracterizacao descreveu um instrumento que ninguem mede.
+    # SEM ANCORA, ZERO MEDICOES. Nao ha desfecho intermediario aqui.
+    #
+    # A primeira versao imprimia AVISO e seguia quando faltava um dos lados --
+    # o que e degradar o portao a informacao. E `_sha_secao` devolve
+    # `nao-disponivel` quando nao ha secao: com os dois lados assim, a
+    # igualdade era satisfeita pela SENTINELA e a ancora aprovava sem comparar
+    # coisa nenhuma. Os dois sao fail-open no portao que existe para fechar
+    # fail-open.
+    prod=$(printf '%s' "$CC_JSON" | sed 's|/compile_commands.json||')
+    # AMBIGUIDADE ABORTA, em vez de escolher a primeira.
+    #
+    # Era `find ... | head -1`. Hoje o alvo e unico e funciona; no dia em que
+    # dois diretorios do build tiverem um executavel com o mesmo nome, a ancora
+    # escolheria um deles em SILENCIO e a caracterizacao passaria a descrever
+    # um instrumento que talvez nao seja o medido -- que e literalmente o
+    # defeito que este portao existe para pegar, entrando pela escolha
+    # arbitraria em vez de pelo comando remontado.
+    prod_bins=$(find "$prod" -type f -name "$prog" -perm -u+x 2>/dev/null)
+    n_prod=$(printf '%s\n' "$prod_bins" | grep -c . || true)
+    if [ "$n_prod" -gt 1 ]; then
+        echo "FALHA: achei $n_prod executaveis chamados $prog em $prod." >&2
+        printf '%s\n' "$prod_bins" | sed 's/^/           /' >&2
+        echo "  Escolher um deles em silencio produziria uma ancora sobre o" >&2
+        echo "  binario errado. Diga qual com DPDK_ACADEMY_BUILD." >&2
+        exit 1
+    fi
+    prod_bin=$(printf '%s\n' "$prod_bins" | head -1)
+    meu="$RAIZ/$SAIDA/artefatos/$prog.al$AL_PRODUCAO"
+    [ -n "$prod_bin" ] || {
+        echo "FALHA: nao achei o binario de producao de $prog em $prod." >&2
+        echo "  Sem o instrumento de referencia nao ha o que ancorar." >&2
+        exit 1; }
+    [ -f "$meu" ] || {
+        echo "FALHA: a variante $prog.al$AL_PRODUCAO nao foi construida." >&2
+        echo "  E ela que ancora a caracterizacao no instrumento medido." >&2
+        exit 1; }
+    a=$(_sha_secao "$prod_bin" .text)
+    b=$(_sha_secao "$meu" .text)
+    # O VALOR TEM DE ESTAR NO DOMINIO ANTES DE SER COMPARADO.
+    for h in "$a" "$b"; do
+        printf '%s' "$h" | grep -qE '^[0-9a-f]{64}$' || {
+            echo "FALHA: nao li a secao .text para ancorar $prog (obtive '$h')." >&2
+            echo "  Comparar sentinelas aprovaria a ancora sem comparar nada." >&2
+            exit 1; }
+    done
+    if [ "$a" = "$b" ]; then
+        echo "    ancora: $prog.al$AL_PRODUCAO reproduz o binario de producao"
+    else
+        echo "FALHA: $prog no alinhamento de producao NAO reproduz o binario medido." >&2
+        echo "  producao      : ${a:0:16}  ($prod_bin)" >&2
+        echo "  caracterizacao: ${b:0:16}" >&2
+        echo "  Algo alem de -falign-loops variou; a classificacao nao valeria." >&2
+        exit 1
+    fi
 done
 [ -n "$BINARIOS" ] || { echo "FALHA: nenhum artefato construido." >&2; exit 1; }
 

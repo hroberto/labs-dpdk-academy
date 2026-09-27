@@ -213,3 +213,61 @@ arquivo que os dois carregam.
 As duas regras têm a mesma raiz, e ela vale para além de teste: **o instrumento
 respondeu não é o mesmo que a resposta serve.** Distinguir "medi e deu zero" de
 "não consegui medir" é o que separa um portão de um enfeite.
+
+### Fail-open semântico
+
+A raiz acima tem nome, e ele merece ser dito porque o defeito não se parece com
+defeito. O programa não falha, o parser não quebra, o teste fica verde. O erro
+está na **interpretação**:
+
+```
+instrumento produz algo
+      ↓
+resultado existe sintaticamente
+      ↓
+resultado é vazio, ambíguo, inválido ou não-autoritativo
+      ↓
+consumidor não distingue "não sei" de "está bem"
+      ↓
+o portão abre
+```
+
+Em 27/09/2026 esse padrão apareceu **onze vezes num dia**, e seis delas dentro
+do próprio mecanismo escrito para aplicá-lo: `%G?` respondendo `E` — *não
+consegui conferir* — e o documento lendo como incidente; um leitor de texto
+casando um rótulo que o programa deixou de imprimir; um campo gravado vazio e
+o teste conferindo apenas a presença da chave; o `sha256` da entrada vazia
+coincidindo entre alvos diferentes; um estado `SEM IDENTIDADE` caindo no ramo
+que marcava desvio; uma régua medindo uma família de artefatos e julgando
+outra; uma âncora degradando para aviso; duas sentinelas satisfazendo uma
+igualdade; e um `head -1` escolhendo entre homônimos sem dizer.
+
+**Todo portão que importa tem pelo menos três estados**, e a proibição é uma
+só:
+
+| | |
+|---|---|
+| válido / confirmado | pode afirmar |
+| inválido / refutado | pode negar |
+| **não apurável / sem evidência** | **não pode virar nenhum dos dois** |
+
+E disso sai uma regra quase mecânica para quem escreve teste: **para cada
+decisão binária que importa, teste também o terceiro estado.** Um mutante
+responde "esta linha é executada?"; o terceiro estado responde "existe entrada
+ambígua que ainda abre o portão?" — que é a pergunta que os onze casos
+respondiam com sim.
+
+Para a âncora da caracterização, por exemplo, são cinco casos e não dois:
+
+```
+1 referência, hash igual       -> passa
+1 referência, hash diferente   -> falha
+0 referências                  -> falha
+2 referências                  -> falha, e não escolhe
+hash ilegível                  -> falha, e não compara sentinelas
+```
+
+O último defeito daquele dia foi fechado **antes de produzir evidência
+errada** — os dez anteriores só apareceram depois de já terem produzido. É o
+sinal de que o princípio virou ferramenta de revisão, e não só explicação do
+que já doeu.
