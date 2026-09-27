@@ -1,0 +1,31 @@
+# CLASSIFICACAO DE SENSIBILIDADE AO LEIAUTE DE CODIGO, por rotulo.
+#
+# POR QUE ESTE ARQUIVO EXISTE, E POR QUE ELE ESTA VAZIO
+#
+# Em 27/09/2026 um bisect mostrou que a vazao agregada do `custo-comunicacao`
+# se movia 7% entre dois commits. Compilando os MESMOS dois fontes com
+# `-falign-loops` 16, 32, 64 e 128, o delta foi de -1,86% a +11,58% -- e trocou
+# de sinal. O efeito atribuido ao codigo nao era identificavel naquele desenho.
+#
+# A razao `with/without SMT sibling`, que o material publica como 2,29x com
+# dispersao de 0,1%, vale 2,75x com outro alinhamento: 20%. Seu numerador nao
+# se move; o denominador sim, e a razao herda a sensibilidade inteira -- razao
+# so cancela leiaute quando numerador e denominador saem do MESMO laco.
+#
+# ESTE ARQUIVO ESTA VAZIO DE PROPOSITO. Aquela caracterizacao correu em modo
+# grafico, com a maquina em uso e com comandos de analise em paralelo -- fora
+# do protocolo que este projeto exige de massa de validacao. Ela sustenta a
+# EXISTENCIA do fenomeno, e nao a classificacao de nenhum rotulo.
+#
+# Preenche-lo com aqueles numeros seria fundar a regra nova numa medicao que a
+# regra antiga reprovaria. As linhas entram depois de uma campanha em maquina
+# dedicada, e a coluna `evidencia` aponta para a coleta que as produziu.
+#
+# FORMATO: <rotulo><TAB><classe><TAB><evidencia>
+#
+#   INVARIAVEL   caracterizado e estavel; comparar entre artefatos e permitido
+#   SENSIVEL     envelope de leiaute acima do piso; nao comparar entre artefatos
+#   DOMINADO     o sinal do efeito depende do leiaute; nao comparar, nunca
+#
+# Rotulo AUSENTE daqui nao e o mesmo que INVARIAVEL: e `identificabilidade nao
+# estabelecida`, e o `comparar-hardware.py` trata os dois de forma diferente.

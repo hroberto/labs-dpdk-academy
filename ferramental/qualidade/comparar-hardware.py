@@ -30,6 +30,7 @@ A execução `r0` é descartada: ela é o aquecimento, e a campanha anterior pro
 que isso importa -- em `custo-mckenney`, quatro linhas foram acusadas como dois
 regimes e nas quatro o destoante era a primeira execução.
 """
+import io
 import os
 import pathlib
 import re
@@ -188,10 +189,38 @@ def amplitudes(diretorio):
     Rotulo com menos de tres irmas nao tem amplitude: tres e o minimo para que
     `max - min` signifique alguma coisa, e abaixo disso o limiar volta ao piso.
     """
+    art_ref = artefatos(diretorio)
     por = {}
     for outro in irmas(diretorio):
+        art_irma = artefatos(outro)
         for k, v in coletar(outro).items():
-            if v and len(v) >= 2:
+            if not (v and len(v) >= 2):
+                continue
+            prog = programa_do_rotulo(k)
+            a = sha_texto_valido((art_ref.get(prog) or {}).get("text_sha256"))
+            b = sha_texto_valido((art_irma.get(prog) or {}).get("text_sha256"))
+            # A REGUA E DE UM INSTRUMENTO SO, e esta era a metade que faltava.
+            #
+            # Filtrar irmas por configuracao e condicao nao basta: a amplitude
+            # de `neighbour on physical core` nas quatro irmas da coleta de
+            # 26/09/2026 e 0,00% -- as quatro deram o MESMO valor -- enquanto
+            # trocar so `-falign-loops` move o rotulo 15,8%. A regua media a
+            # reprodutibilidade de UMA familia de artefatos e era aplicada a
+            # uma comparacao ENTRE familias.
+            #
+            # O LEGADO E AUSENCIA DE BLOCO, e nao "identidade invalida".
+            #
+            # A condicao era `a is None and b is None`, e como `sha_texto_valido`
+            # devolve None tambem para `nao-disponivel`, duas coletas que
+            # DECLARAM nao ter `.text` caiam no ramo do legado -- tratadas como
+            # anteriores ao mecanismo, que nao sao. Perguntar pelo bloco separa
+            # "nunca registrou" de "registrou que nao ha".
+            #
+            # Coleta anterior a 27/09/2026 entra: o portao ja bloqueia a marca
+            # dela por `SEM_IDENTIDADE`, entao a amplitude e informativa e nao
+            # autoriza um `<<<`.
+            legado = prog not in art_ref and prog not in art_irma
+            if (a and b and a == b) or legado:
                 por.setdefault(k, []).append(st.median(v))
     saida = {}
     for k, v in por.items():
@@ -215,6 +244,135 @@ def limiar(amplitude):
     return max(PISO_PCT, FATOR_AMPLITUDE * amplitude)
 
 
+def artefatos(diretorio):
+    """{programa: {campo: valor}} lido dos blocos `# ARTIFACT` do manifesto.
+
+    O `origin:` que cada programa imprime identifica a FONTE. Nao identifica o
+    INSTRUMENTO: o mesmo commit compilado com `-falign-loops` 16, 32, 64 e 128
+    da quatro `.text` diferentes, e a razao `with/without SMT sibling` varia
+    20% entre eles. Sao identidades separadas, e e a terceira que decide se
+    duas medicoes vieram do mesmo aparelho:
+
+        source_origin   qual fonte produziu o programa
+        binary_sha256   qual arquivo ELF foi executado
+        text_sha256     qual codigo executavel foi produzido  <- a autoridade
+
+    Coleta anterior a 27/09/2026 nao tem esses blocos, e ai a resposta e vazia
+    -- que NAO e o mesmo que "os artefatos sao iguais".
+    """
+    man = os.path.join(str(diretorio).rstrip("/"), "manifesto.txt")
+    saida, atual = {}, None
+    try:
+        with io.open(man, encoding="utf-8", errors="replace") as fh:
+            for linha in fh:
+                m = re.match(r"^#\s*ARTIFACT\s+(\S+)", linha)
+                if m:
+                    atual = m.group(1)
+                    saida[atual] = {}
+                    continue
+                # `[a-z_0-9]` E NAO `[a-z_]`: `text_sha256` tem digitos, e a primeira
+                # versao deste regex lia `source_origin` e `build_id` e deixava
+                # passar em SILENCIO justamente o campo que decide a comparacao.
+                # O autoteste 13 pegou; sem ele, o portao responderia
+                # "sem identidade" para todo manifesto que o tivesse.
+                m = re.match(r"^#\s+([a-z_0-9]+)=(.*)$", linha.rstrip("\n"))
+                if m and atual:
+                    saida[atual][m.group(1)] = m.group(2)
+    except OSError:
+        return {}
+    return saida
+
+
+def programa_do_rotulo(rotulo):
+    """`custo-comunicacao: 1 thread ...` -> `custo-comunicacao`."""
+    return rotulo.split(":", 1)[0].strip() if ":" in rotulo else None
+
+
+def classificacao_leiaute():
+    """{rotulo: INVARIAVEL|SENSIVEL|DOMINADO} do arquivo declarado.
+
+    AUSENTE NAO E INVARIAVEL. Um rotulo que nao esta na lista nao foi
+    caracterizado, e a resposta honesta sobre ele e "identificabilidade nao
+    estabelecida" -- nem permissao, nem proibicao.
+    """
+    caminho = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "sensibilidade-leiaute.tsv")
+    fora = {}
+    try:
+        with io.open(caminho, encoding="utf-8") as fh:
+            for linha in fh:
+                if linha.startswith("#") or not linha.strip():
+                    continue
+                partes = linha.rstrip("\n").split("\t")
+                if len(partes) >= 2:
+                    fora[partes[0]] = partes[1].strip().upper()
+    except OSError:
+        pass
+    return fora
+
+
+# O QUE A FERRAMENTA PODE AFIRMAR, POR ROTULO.
+#
+# Ela existe para detectar mudanca da MAQUINA. Quando o instrumento binario
+# muda junto, a diferenca observada tem duas causas possiveis e a ferramenta
+# nao tem como separa-las -- entao ela recusa a inferencia em vez de emitir
+# uma conclusao com um asterisco.
+COMPARAVEL, NAO_ESTABELECIDO, NAO_COMPARAVEL, SEM_IDENTIDADE = range(4)
+
+# A palavra que a campanha grava quando o campo nao existe para aquele alvo.
+AUSENTE = "nao-disponivel"
+
+# O sha256 da ENTRADA VAZIA. Alvo sem secao `.text` -- um script -- produzia
+# este valor, e dois alvos diferentes coincidiam nele.
+SHA_DO_VAZIO = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+
+def sha_texto_valido(bruto):
+    """O `text_sha256` utilizavel, ou None. PRESENCA NAO IMPLICA VALIDADE.
+
+    Um campo usado como autoridade tem quatro modos de ser invalido, e os
+    quatro apareceram neste projeto em 27/09/2026:
+
+        chave ausente         -- coleta anterior ao mecanismo
+        chave presente vazia  -- um auxiliar faltou e ninguem viu
+        sentinela             -- `nao-disponivel`, que e uma string truthy
+        valor fora do dominio -- o sha do vazio, que COINCIDE entre alvos
+
+    Nenhum dos quatro pode significar "mesmo instrumento". Concentrar a regra
+    aqui evita que cada sitio de uso reinvente uma metade dela -- foi assim que
+    a sentinela passou pelo `if not a or not b`.
+    """
+    if not bruto:
+        return None
+    valor = bruto.strip().lower()
+    # O SHA DO VAZIO E O CASO TRAICOEIRO: ele esta DENTRO do dominio -- 64 hex
+    # legitimos -- e coincide entre todo alvo sem secao `.text`. A sentinela
+    # `nao-disponivel` e a string vazia caem no dominio abaixo sozinhas, e
+    # testa-las aqui de novo seria um ramo que nenhuma mutacao distingue.
+    if valor == SHA_DO_VAZIO:
+        return None
+    if not re.fullmatch(r"[0-9a-f]{64}", valor):
+        return None
+    return valor
+
+
+def estado_de_comparacao(rotulo, art_base, art_novo, classes):
+    """Decide o que se pode afirmar sobre este rotulo. Ver COMPARAVEL etc."""
+    prog = programa_do_rotulo(rotulo)
+    a = sha_texto_valido((art_base.get(prog) or {}).get("text_sha256"))
+    b = sha_texto_valido((art_novo.get(prog) or {}).get("text_sha256"))
+    if a is None or b is None:
+        return SEM_IDENTIDADE
+    if a == b:
+        return COMPARAVEL
+    classe = classes.get(rotulo)
+    if classe == "INVARIAVEL":
+        return COMPARAVEL
+    if classe in ("SENSIVEL", "DOMINADO"):
+        return NAO_COMPARAVEL
+    return NAO_ESTABELECIDO
+
+
 def comparar(dirs, rotulos):
     dados = [coletar(d) for d in dirs]
     if any(d is None for d in dados):
@@ -229,6 +387,9 @@ def comparar(dirs, rotulos):
     # A AMPLITUDE E A DA COLETA NOVA, que e a ultima da linha de comando: e ela
     # que esta sendo julgada contra o historico dela.
     amps = amplitudes(dirs[-1])
+    art_base, art_novo = artefatos(dirs[0]), artefatos(dirs[-1])
+    classes = classificacao_leiaute()
+    contagem = {COMPARAVEL: 0, NAO_ESTABELECIDO: 0, NAO_COMPARAVEL: 0, SEM_IDENTIDADE: 0}
     chaves = sorted(set().union(*[set(d) for d in dados]))
     largura = max(len(k) for k in chaves) if chaves else 10
     cab = "  " + "medicao".ljust(largura) + "".join(f"  {r:>14}" for r in rotulos) + "   delta"
@@ -245,13 +406,28 @@ def comparar(dirs, rotulos):
         delta = ""
         if len(vals) > 1 and vals[0] and vals[-1]:
             d = 100.0 * (vals[-1] - vals[0]) / vals[0]
-            a = amps.get(k)
-            lim = limiar(a)
-            # A AMPLITUDE VAI IMPRESSA ao lado do delta. Marca sem a regua que a
-            # produziu obriga quem le a confiar; com ela, da para discordar.
-            regua = "  (amp %5.1f%%)" % a if a is not None else "  (sem regua)"
-            marca = "  <<<" if lim is not None and abs(d) > lim else ""
-            delta = f"  {d:+6.1f}%{regua}{marca}"
+            # O PORTAO DO ARTEFATO VEM ANTES DA REGUA, e a ordem e o ponto:
+            # nao adianta medir bem um desvio que pode nao ser da maquina.
+            est = estado_de_comparacao(k, art_base, art_novo, classes)
+            contagem[est] += 1
+            if est == NAO_COMPARAVEL:
+                delta = f"  {d:+6.1f}%  NAO COMPARAVEL ENTRE ARTEFATOS"
+            elif est == NAO_ESTABELECIDO:
+                delta = f"  {d:+6.1f}%  artefatos diferentes -- identificabilidade nao estabelecida"
+            elif est == SEM_IDENTIDADE:
+                # `SEM_IDENTIDADE` CAIA NO RAMO NORMAL e podia marcar `<<<`,
+                # contradizendo o resumo que o proprio arquivo imprime tres
+                # telas abaixo: "ausencia de identidade NAO e prova de que o
+                # instrumento foi o mesmo". Os quatro estados sao exclusivos.
+                delta = f"  {d:+6.1f}%  SEM IDENTIDADE DE ARTEFATO"
+            else:
+                a = amps.get(k)
+                lim = limiar(a)
+                # A AMPLITUDE VAI IMPRESSA ao lado do delta. Marca sem a regua que a
+                # produziu obriga quem le a confiar; com ela, da para discordar.
+                regua = "  (amp %5.1f%%)" % a if a is not None else "  (sem regua)"
+                marca = "  <<<" if lim is not None and abs(d) > lim else ""
+                delta = f"  {d:+6.1f}%{regua}{marca}"
         print("  " + k.ljust(largura) + cels + delta)
     n_amp = sum(1 for k in chaves if k in amps)
     print(f"\n  {len(chaves)} rotulo(s); mediana das medianas, execucao de aquecimento descartada")
@@ -261,7 +437,33 @@ def comparar(dirs, rotulos):
     if n_amp < len(chaves):
         print(f"  SEM REGUA: {len(chaves) - n_amp} rotulo(s) sem amplitude historica -- nao "
               f"foram julgados, e nenhuma marca acima cobre eles")
+    relatar_artefatos(art_base, art_novo, contagem, rotulos)
     return 0
+
+
+def relatar_artefatos(art_base, art_novo, contagem, rotulos):
+    """Diz de qual INSTRUMENTO cada lado veio, e o que isso permite afirmar."""
+    if contagem[SEM_IDENTIDADE]:
+        print(f"\n  SEM IDENTIDADE DE ARTEFATO: {contagem[SEM_IDENTIDADE]} rotulo(s). Uma das")
+        print("  coletas e anterior a 27/09/2026 e nao registra `# ARTIFACT` no manifesto.")
+        print("  Ausencia de identidade NAO e prova de que o instrumento foi o mesmo.")
+    if contagem[NAO_ESTABELECIDO] or contagem[NAO_COMPARAVEL]:
+        print(f"\n  ARTEFATOS DIFERENTES entre {rotulos[0]} e {rotulos[-1]}:")
+        for prog in sorted(set(art_base) | set(art_novo)):
+            a = (art_base.get(prog) or {}).get("text_sha256", "-")
+            b = (art_novo.get(prog) or {}).get("text_sha256", "-")
+            if a != b:
+                print(f"    {prog}")
+                print(f"      text_sha256 base : {a}")
+                print(f"      text_sha256 nova : {b}")
+        if contagem[NAO_ESTABELECIDO]:
+            print(f"    {contagem[NAO_ESTABELECIDO]} rotulo(s) com identificabilidade NAO ESTABELECIDA:")
+            print("    nao ha caracterizacao de sensibilidade ao leiaute para eles, entao a")
+            print("    diferenca observada tem duas causas possiveis -- maquina e instrumento")
+            print("    -- e esta ferramenta nao separa as duas. Ver sensibilidade-leiaute.tsv.")
+        if contagem[NAO_COMPARAVEL]:
+            print(f"    {contagem[NAO_COMPARAVEL]} rotulo(s) NAO COMPARAVEIS: sensibilidade ao")
+            print("    leiaute demonstrada para eles, e o artefato mudou.")
 
 
 def autoteste():
@@ -326,7 +528,7 @@ def autoteste():
         #     mediana 10,2 da 3,92%.
         amps = amplitudes(nova)
         caso(10, "amplitude = (max-min)/mediana, em %%",
-             round(amps["prog: custo alvo"], 2), 3.92)
+             round(amps.get("prog: custo alvo", -1.0), 2), 3.92)
 
         # 11. MENOS DE TRES IRMAS NAO DA AMPLITUDE. Com duas, `max - min` e um
         #     par de pontos, e chamar isso de dispersao seria inventar regua.
@@ -340,6 +542,152 @@ def autoteste():
         # E com tres ha: e a fronteira pelo outro lado.
         caso(12, "com tres irmas ha amplitude",
              "prog: custo alvo" in amplitudes(coleta("2026-09-10-0100-soduas-x", [1.3, 1.3])), True)
+
+        # 13 a 20. O PORTAO DO ARTEFATO.
+        #
+        # A ferramenta existe para detectar mudanca da MAQUINA. Quando o
+        # instrumento binario muda junto, a diferenca tem duas causas possiveis
+        # e ela nao separa as duas -- entao recusa a inferencia em vez de
+        # marcar com um asterisco.
+        def manifesto(d, text_sha):
+            with io.open(os.path.join(str(d), "manifesto.txt"), "w", encoding="utf-8") as fh:
+                fh.write("%-40s %-7s %s\n" % ("CELL", "STATUS", "RC"))
+                fh.write("# ARTIFACT prog\n")
+                fh.write("#   source_origin=v0.0.0-1-gabc\n")
+                fh.write("#   text_sha256=%s\n" % text_sha)
+                fh.write("%-40s %-7s %s\n" % ("prog.r1.txt", "PASS", "0"))
+
+        base = coleta("2026-09-20-0100-artef-x", [1.0, 1.0])
+        novo = coleta("2026-09-21-0100-artef-x", [1.0, 1.0])
+        # HASHES DO DOMINIO REAL nos fixtures. Com "aaa"/"bbb" o teste passava
+        # por acidente enquanto o codigo aceitava qualquer string; assim que a
+        # validade virou regra, os fixtures reprovaram -- corretamente.
+        SHA_A, SHA_B = "a" * 64, "b" * 64
+        manifesto(base, SHA_A)
+        manifesto(novo, SHA_B)
+        ab, an = artefatos(base), artefatos(novo)
+        caso(13, "o bloco ARTIFACT e lido do manifesto",
+             ab.get("prog", {}).get("text_sha256"), SHA_A)
+        caso(14, "o comentario nao vira celula",
+             ab.get("prog", {}).get("source_origin"), "v0.0.0-1-gabc")
+        caso(15, "artefato igual -> comparavel",
+             estado_de_comparacao("prog: x", ab, ab, {}), COMPARAVEL)
+        caso(16, "artefato diferente e rotulo nao caracterizado -> nao estabelecido",
+             estado_de_comparacao("prog: x", ab, an, {}), NAO_ESTABELECIDO)
+        caso(17, "artefato diferente e rotulo SENSIVEL -> nao comparavel",
+             estado_de_comparacao("prog: x", ab, an, {"prog: x": "SENSIVEL"}), NAO_COMPARAVEL)
+        caso(18, "artefato diferente e rotulo DOMINADO -> nao comparavel",
+             estado_de_comparacao("prog: x", ab, an, {"prog: x": "DOMINADO"}), NAO_COMPARAVEL)
+        # A PERMISSAO SO VEM DE CARACTERIZACAO, e por isso ela e explicita.
+        caso(19, "artefato diferente e rotulo INVARIAVEL -> comparavel",
+             estado_de_comparacao("prog: x", ab, an, {"prog: x": "INVARIAVEL"}), COMPARAVEL)
+        # AUSENCIA DE IDENTIDADE NAO E IDENTIDADE IGUAL: coleta velha nao
+        # registra artefato, e dizer "comparavel" ali seria inventar a garantia.
+        caso(20, "sem bloco ARTIFACT -> sem identidade",
+             estado_de_comparacao("prog: x", {}, an, {}), SEM_IDENTIDADE)
+        caso(21, "rotulo sem programa nao quebra o portao",
+             estado_de_comparacao("sem-dois-pontos", ab, an, {}), SEM_IDENTIDADE)
+        # 22. `nao-disponivel` E AUSENCIA, e nao um valor que possa coincidir.
+        #     Dois alvos sem secao `.text` -- scripts -- gravam a mesma palavra,
+        #     e compara-la por igualdade os faria passar por mesmo instrumento.
+        nd = {"prog": {"text_sha256": "nao-disponivel"}}
+        caso(22, "`nao-disponivel` dos dois lados nao e equivalencia",
+             estado_de_comparacao("prog: x", nd, nd, {}), SEM_IDENTIDADE)
+        caso(23, "campo vazio tambem e ausencia",
+             estado_de_comparacao("prog: x", {"prog": {"text_sha256": ""}}, an, {}),
+             SEM_IDENTIDADE)
+        # 23b. OS QUATRO MODOS DE INVALIDO, num lugar so. O sha do vazio e o
+        #      mais traicoeiro: e um hash legitimo, de 64 hex, que COINCIDE
+        #      entre todo alvo sem secao `.text`.
+        caso(231, "ausente e invalido", sha_texto_valido(None), None)
+        caso(232, "vazio e invalido", sha_texto_valido(""), None)
+        caso(233, "sentinela e invalido", sha_texto_valido(AUSENTE), None)
+        caso(234, "sha do vazio e invalido", sha_texto_valido(SHA_DO_VAZIO), None)
+        caso(235, "hash curto e invalido", sha_texto_valido("abc123"), None)
+        caso(236, "64 caracteres nao-hex sao invalidos", sha_texto_valido("z" * 64), None)
+        caso(2361, "e hex maiusculo vale, normalizado para minusculo",
+             sha_texto_valido("A" * 63 + "B"), "a" * 63 + "b")
+        caso(237, "e o hash real passa, normalizado",
+             sha_texto_valido("  " + "a1" * 32 + "  "), "a1" * 32)
+        caso(238, "o sha do vazio nunca vira identidade",
+             estado_de_comparacao("prog: x", {"prog": {"text_sha256": SHA_DO_VAZIO}},
+                                  {"prog": {"text_sha256": SHA_DO_VAZIO}}, {}),
+             SEM_IDENTIDADE)
+
+        # 24 e 25. A REGUA E DE UM INSTRUMENTO SO.
+        #
+        # Filtrar irmas por configuracao e condicao nao bastava: a amplitude
+        # de `neighbour on physical core` nas quatro irmas de 26/09/2026 era
+        # 0,00% -- as quatro deram o mesmo valor -- enquanto trocar so
+        # `-falign-loops` move o rotulo 15,8%. A regua media a reprodutibilidade
+        # de uma familia de artefatos e julgava uma comparacao entre familias.
+        SHA_IRMA, SHA_OUTRO = "c" * 64, "d" * 64
+        for i, sha in enumerate((SHA_IRMA, SHA_IRMA, SHA_IRMA)):
+            manifesto(coleta("2026-09-2%d-0200-regua-x" % (2 + i), [1.0 + i / 10.0, 1.0 + i / 10.0]), sha)
+        alvo = coleta("2026-09-25-0200-regua-x", [1.2, 1.2])
+        manifesto(alvo, SHA_IRMA)
+        caso(24, "irmas do MESMO artefato formam regua",
+             "prog: custo alvo" in amplitudes(alvo), True)
+        manifesto(alvo, SHA_OUTRO)
+        caso(25, "artefato diferente das irmas deixa o rotulo SEM REGUA",
+             "prog: custo alvo" in amplitudes(alvo), False)
+        # 26. O LEGADO CONTINUA COM REGUA, e e escolha declarada: coleta
+        #     anterior a 27/09/2026 nao tem manifesto de artefato dos DOIS
+        #     lados, e exigi-lo ali apagaria a amplitude do historico inteiro
+        #     sem ganho -- o portao ja bloqueia a marca por SEM_IDENTIDADE.
+        legado = coleta("2026-09-26-0200-legado-x", [1.0, 1.0])
+        for i in (1, 2, 3):
+            coleta("2026-09-2%d-0300-legado-x" % (6 + i % 3), [1.0 + i / 10.0, 1.0 + i / 10.0])
+        # 25b. DECLARAR QUE NAO HA NAO E O MESMO QUE NUNCA TER REGISTRADO.
+        #      Duas coletas com `text_sha256=nao-disponivel` tem bloco, logo
+        #      nao sao legado, e nao podem formar regua de "mesmo artefato".
+        manifesto(alvo, AUSENTE)
+        for i in (1, 2, 3):
+            manifesto(coleta("2026-09-2%d-0400-sent-x" % (2 + i), [1.0, 1.0]), AUSENTE)
+        alvo_s = coleta("2026-09-26-0400-sent-x", [1.0, 1.0])
+        manifesto(alvo_s, AUSENTE)
+        caso(251, "identidade declarada ausente nao forma regua de mesmo artefato",
+             "prog: custo alvo" in amplitudes(alvo_s), False)
+
+        # 25c. O SHA DO VAZIO E O UNICO QUE ENGANA A COMPARACAO CRUA. A
+        #      sentinela cai fora do dominio hex sozinha; este NAO -- sao 64
+        #      hex legitimos, iguais entre todo alvo sem `.text`. Comparar os
+        #      brutos aqui formaria regua de "mesmo artefato" entre programas
+        #      diferentes, que e o fail-open que `sha_texto_valido` fecha.
+        for i in (1, 2, 3):
+            manifesto(coleta("2026-09-2%d-0500-vazio-x" % (2 + i), [1.0, 1.0]), SHA_DO_VAZIO)
+        alvo_v = coleta("2026-09-26-0500-vazio-x", [1.0, 1.0])
+        manifesto(alvo_v, SHA_DO_VAZIO)
+        caso(252, "o sha do vazio nao forma regua de mesmo artefato",
+             "prog: custo alvo" in amplitudes(alvo_v), False)
+
+        caso(26, "sem manifesto dos dois lados a regua do legado permanece",
+             "prog: custo alvo" in amplitudes(legado), True)
+
+        # 27 e 28. O PORTAO SUPRIME O `<<<`, e nao so escreve um aviso.
+        #
+        # `SEM_IDENTIDADE` caia no ramo normal e podia marcar, contradizendo o
+        # resumo que o proprio arquivo imprime. Aqui a saida inteira e capturada
+        # e a ausencia da marca e conferida.
+        import contextlib
+        import io as _io
+
+        def saida_de(dirs):
+            buf = _io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                comparar([str(x) for x in dirs], ["base", "nova"])
+            return buf.getvalue()
+
+        g1 = coleta("2026-09-28-0100-marca-x", [1.0, 1.0])
+        for i in (1, 2, 3):
+            coleta("2026-09-28-0%d00-marca-x" % (i + 1), [1.0, 1.0])
+        g2 = coleta("2026-09-28-0500-marca-x", [2.0, 2.0])   # +100%, marcaria
+        texto = saida_de([g1, g2])
+        caso(27, "sem identidade de artefato o delta NAO e marcado",
+             "<<<" in texto, False)
+        linha = next((l for l in texto.splitlines() if "prog: custo alvo" in l), "")
+        caso(28, "e o motivo sai na PROPRIA LINHA do rotulo",
+             "SEM IDENTIDADE DE ARTEFATO" in linha, True)
 
     print("\n  autoteste: %d assercao(oes) falharam" % falhas)
     return falhas

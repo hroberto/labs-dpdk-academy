@@ -29,7 +29,22 @@ fonte="$raiz/ferramental/qualidade/campanha-hardware.sh"
 [ -r "$fonte" ] || { echo "FALHA: nao achei $fonte"; exit 1; }
 
 eval "$(sed -n '/^rodar() {/,/^}/p;/^veredito_hw() {/,/^}/p;/^contar_estado() {/,/^}/p;/^registrar() {/,/^}/p;/^coletar_estado_maquina() {/,/^}/p;/^corre_feed() {/,/^}/p' "$fonte")"
-for f in rodar veredito_hw contar_estado registrar coletar_estado_maquina corre_feed; do
+ARTEFATOS_VISTOS=""
+# A CADEIA DE IDENTIDADE E CARREGADA, E NAO EXTRAIDA.
+#
+# Ela vinha por `sed`/`eval`, com a lista de funcoes mantida a mao aqui. Isso
+# falhou duas vezes em 27/09/2026: a producao ganhou um auxiliar, a lista nao
+# acompanhou, e a funcao ausente virou "comando nao encontrado" -- que NAO
+# interrompe nada dentro de uma substituicao de comando. O campo saiu vazio e
+# este teste ficou VERDE exercitando um grafo de dependencias mutilado.
+#
+# Carregando o mesmo arquivo que a campanha carrega, o grafo e o mesmo por
+# construcao. Os `declare -F` continuam como contrato explicito -- mas deixam
+# de ser a unica coisa entre o defeito e o falso verde.
+. "$raiz/ferramental/qualidade/identidade-artefato.sh"
+
+for f in rodar veredito_hw contar_estado registrar coletar_estado_maquina corre_feed \
+         identidade_artefato _secao _sha_secao _flags_de; do
     declare -F "$f" >/dev/null || { echo "FALHA: nao extrai $f() de campanha-hardware.sh"; exit 1; }
 done
 
@@ -377,6 +392,57 @@ conferir "o mapeamento de lcores chega inteiro ao EAL" \
 # caractere.
 conferir "nenhum argumento de celula carrega aspa literal" \
     "$(grep -c "[\"']" "$vistos")" "0"
+
+# ---- 10. a identidade do artefato entra SEM quebrar as tres colunas ------
+#
+# O `origin:` que cada programa imprime identifica a FONTE. Nao identifica o
+# INSTRUMENTO: em 27/09/2026 o mesmo commit compilado com `-falign-loops` 16,
+# 32, 64 e 128 deu quatro `.text` diferentes, e a razao `with/without SMT
+# sibling` -- publicada como 2,29x com dispersao de 0,1% -- valeu 2,75x num
+# deles. Sem saber qual binario correu, comparar duas coletas mistura mudanca
+# da maquina com mudanca do instrumento.
+#
+# O MANIFESTO E O LUGAR, e nao o programa medido: acrescentar um `printf` de
+# proveniencia ao benchmark mudaria o leiaute que se quer caracterizar.
+#
+# E O CONTRATO DE TRES COLUNAS NAO PODE QUEBRAR. Os consumidores casam por
+# `$1 == <celula>` ou `$2 == PASS|SKIP|FAIL`; se um campo de identidade caisse
+# nessas posicoes, `contar_estado` passaria a contar metadado como medicao.
+zerar_manifesto
+ARTEFATOS_VISTOS=""
+RAIZ="$tmp"
+antes_pass=$(contar_estado PASS)
+identidade_artefato ./mediu          # um script, nao um ELF
+identidade_artefato ./mediu          # a segunda chamada nao pode repetir o bloco
+conferir "o bloco ARTIFACT e escrito uma vez so" \
+    "$(grep -c '^# ARTIFACT' "$MANIFESTO")" "1"
+conferir "e traz o sha256 do arquivo executado" \
+    "$(grep -c '^#   binary_sha256=[0-9a-f]\{64\}$' "$MANIFESTO")" "1"
+# O VALOR, E NAO A LINHA. `grep -c '^#   text_sha256='` casa tambem quando o
+# campo sai VAZIO -- que foi exatamente o que aconteceu enquanto `_sha_secao`
+# faltava na extracao. Um teste que so confere a presenca da chave aprova o
+# proprio defeito que ele existe para pegar.
+conferir "e o text_sha256 traz hash de 64 hex ou diz que nao ha" \
+    "$(grep -cE '^#   text_sha256=([0-9a-f]{64}|nao-disponivel)$' "$MANIFESTO")" "1"
+# ALVO SEM `.text` NAO PODE HERDAR O SHA DA ENTRADA VAZIA. `sha256sum` de nada
+# da sempre `e3b0c442...`, e dois scripts diferentes passariam por um mesmo
+# instrumento -- fail-open num campo declarado autoridade.
+conferir "script nao-ELF declara ausencia, e nao o sha do vazio" \
+    "$(grep -c '^#   text_sha256=nao-disponivel$' "$MANIFESTO")" "1"
+conferir "e nao grava o sha256 da entrada vazia" \
+    "$(grep -c 'e3b0c44298fc1c149afbf4c8996fb924' "$MANIFESTO")" "0"
+# AS TRES COLUNAS SOBREVIVEM: nenhum campo de identidade vira celula nem estado.
+conferir "nenhuma linha de identidade conta como celula PASS" \
+    "$(contar_estado PASS)" "$antes_pass"
+conferir "nem como FAIL" "$(contar_estado FAIL)" "0"
+conferir "e o parser posicional ignora os comentarios" \
+    "$(awk '$1 !~ /^#/ && $1 != "CELL" { n++ } END { print n+0 }' "$MANIFESTO")" "0"
+# E O CASO NEGATIVO: caminho que nao existe nao produz bloco nenhum. Sem esta
+# assercao, uma funcao que escrevesse cabecalho sempre passaria em tudo acima.
+zerar_manifesto; ARTEFATOS_VISTOS=""
+identidade_artefato ./nao-existe-mesmo
+conferir "binario ausente nao produz bloco" \
+    "$(grep -c '^# ARTIFACT' "$MANIFESTO")" "0"
 
 if [ "$falhas" -gt 0 ]; then
     echo "  $falhas assercao(oes) falharam"

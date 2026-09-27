@@ -189,3 +189,27 @@ Os que aplicam diretamente as regras deste documento:
 O critério para um verificador entrar na barra é o mesmo de qualquer número:
 ele tem autoteste, e o autoteste mata um mutante. Verificador que passa em
 qualquer código não verifica nada.
+
+E há duas formas de um autoteste passar sem verificar, aprendidas errando:
+
+**Presença não implica validade.** Um campo usado como autoridade tem quatro
+modos de ser inválido, e conferir só que a chave existe aprova os quatro:
+chave ausente, chave presente e vazia, sentinela declarada, e valor dentro do
+domínio que coincide por acidente. O `text_sha256` do manifesto passou pelos
+quatro no mesmo dia — inclusive o último, o mais traiçoeiro: `sha256` da
+entrada vazia são 64 hexadecimais legítimos, e *todo* alvo sem seção `.text`
+recebia exatamente o mesmo. A asserção é sobre o **domínio do valor**, nunca
+sobre a existência da linha.
+
+**O teste carrega o mesmo código que a produção carrega.** Extrair funções do
+script por `sed`/`eval` obriga o teste a reconstruir à mão o grafo de
+dependências, e ele envelhece em silêncio: a produção ganha um auxiliar, a
+lista do `sed` não acompanha, e a função ausente vira `comando não encontrado`
+— que não interrompe nada dentro de uma substituição de comando. A suíte fica
+verde exercitando uma versão mutilada do que diz exercitar. Quando o trecho é
+grande o bastante para ser testado, ele é grande o bastante para ser um
+arquivo que os dois carregam.
+
+As duas regras têm a mesma raiz, e ela vale para além de teste: **o instrumento
+respondeu não é o mesmo que a resposta serve.** Distinguir "medi e deu zero" de
+"não consegui medir" é o que separa um portão de um enfeite.

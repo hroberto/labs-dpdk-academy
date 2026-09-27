@@ -101,8 +101,14 @@ MANIFESTO="$D/manifesto.txt"
     printf '%-40s %-7s %s\n' "CELL" "STATUS" "RC"
 } > "$MANIFESTO"
 
+# A IDENTIDADE DO ARTEFATO VEM DE UM ARQUIVO CARREGADO, e nao de um trecho
+# daqui: o teste carrega o mesmo, e para de reconstruir o grafo de dependencias
+# a mao. A razao esta no cabecalho dele.
+. "$RAIZ/ferramental/qualidade/identidade-artefato.sh"
+
 rodar() { # <arquivo-de-saida> <comando...>
     local saida="$1"; shift
+    identidade_artefato "$1"
     "$@" > "$saida" 2>&1
     local rc=$? estado
     case "$rc" in

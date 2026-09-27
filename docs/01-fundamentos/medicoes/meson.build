@@ -270,6 +270,16 @@ sonda_relaxed = executable('sonda-relaxed', 'sonda-relaxed.c',
                            c_args : alinhamento,
                            dependencies : [libm], install : false)
 
+# O leitor de ciclos da ETAPA 2 do `run-all` procurava um rotulo que a sonda
+# deixou de imprimir doze horas depois de o leitor ser escrito. Duas campanhas
+# de uma hora sairam com `VEREDITO NAO APURADO` sobre um dado que estava certo
+# e arquivado. Ler texto de saida de programa quebra em silencio; a defesa e
+# rodar o leitor contra o programa a cada suite.
+test('fundamentos - L1 (o run-all le os ciclos da sonda)', bash,
+     args : [meson.project_source_root() / 'docs/01-fundamentos/medicoes/tests/l1_sonda_ciclos.sh',
+             sonda_relaxed],
+     suite : ['l1', 'fundamentos'], timeout : 60)
+
 custo_espera = executable('custo-espera', 'custo-espera.c', versao_h,
                           c_args : alinhamento,
                           dependencies : [dependency('threads'), libm], install : false)
