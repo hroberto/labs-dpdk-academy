@@ -28,9 +28,15 @@ raiz=$(cd "$(dirname "$0")/../.." && pwd)
 fonte="$raiz/ferramental/qualidade/campanha-hardware.sh"
 [ -r "$fonte" ] || { echo "FALHA: nao achei $fonte"; exit 1; }
 
-eval "$(sed -n '/^_secao() {/,/^}/p;/^_flags_de() {/,/^}/p;/^identidade_artefato() {/,/^}/p;/^rodar() {/,/^}/p;/^veredito_hw() {/,/^}/p;/^contar_estado() {/,/^}/p;/^registrar() {/,/^}/p;/^coletar_estado_maquina() {/,/^}/p;/^corre_feed() {/,/^}/p' "$fonte")"
+eval "$(sed -n '/^_secao() {/,/^}/p;/^_sha_secao() {/,/^}/p;/^_flags_de() {/,/^}/p;/^identidade_artefato() {/,/^}/p;/^rodar() {/,/^}/p;/^veredito_hw() {/,/^}/p;/^contar_estado() {/,/^}/p;/^registrar() {/,/^}/p;/^coletar_estado_maquina() {/,/^}/p;/^corre_feed() {/,/^}/p' "$fonte")"
 ARTEFATOS_VISTOS=""
-for f in rodar veredito_hw contar_estado registrar coletar_estado_maquina corre_feed identidade_artefato; do
+# A LISTA INCLUI OS AUXILIARES, e a razao e uma pegadinha que ja mordeu duas
+# vezes hoje: `rodar` passou a chamar `identidade_artefato`, e esta a chamar
+# `_sha_secao`. Faltando na extracao, a funcao ausente vira "comando nao
+# encontrado" -- que NAO interrompe nada sob `set -u` -- e o campo sai vazio.
+# O teste passava exercitando uma versao mutilada do que dizia exercitar.
+for f in rodar veredito_hw contar_estado registrar coletar_estado_maquina corre_feed \
+         identidade_artefato _secao _sha_secao _flags_de; do
     declare -F "$f" >/dev/null || { echo "FALHA: nao extrai $f() de campanha-hardware.sh"; exit 1; }
 done
 
@@ -404,8 +410,19 @@ conferir "o bloco ARTIFACT e escrito uma vez so" \
     "$(grep -c '^# ARTIFACT' "$MANIFESTO")" "1"
 conferir "e traz o sha256 do arquivo executado" \
     "$(grep -c '^#   binary_sha256=[0-9a-f]\{64\}$' "$MANIFESTO")" "1"
-conferir "e o text_sha256, que e a autoridade sobre o instrumento" \
-    "$(grep -c '^#   text_sha256=' "$MANIFESTO")" "1"
+# O VALOR, E NAO A LINHA. `grep -c '^#   text_sha256='` casa tambem quando o
+# campo sai VAZIO -- que foi exatamente o que aconteceu enquanto `_sha_secao`
+# faltava na extracao. Um teste que so confere a presenca da chave aprova o
+# proprio defeito que ele existe para pegar.
+conferir "e o text_sha256 traz hash de 64 hex ou diz que nao ha" \
+    "$(grep -cE '^#   text_sha256=([0-9a-f]{64}|nao-disponivel)$' "$MANIFESTO")" "1"
+# ALVO SEM `.text` NAO PODE HERDAR O SHA DA ENTRADA VAZIA. `sha256sum` de nada
+# da sempre `e3b0c442...`, e dois scripts diferentes passariam por um mesmo
+# instrumento -- fail-open num campo declarado autoridade.
+conferir "script nao-ELF declara ausencia, e nao o sha do vazio" \
+    "$(grep -c '^#   text_sha256=nao-disponivel$' "$MANIFESTO")" "1"
+conferir "e nao grava o sha256 da entrada vazia" \
+    "$(grep -c 'e3b0c44298fc1c149afbf4c8996fb924' "$MANIFESTO")" "0"
 # AS TRES COLUNAS SOBREVIVEM: nenhum campo de identidade vira celula nem estado.
 conferir "nenhuma linha de identidade conta como celula PASS" \
     "$(contar_estado PASS)" "$antes_pass"

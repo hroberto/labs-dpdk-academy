@@ -189,10 +189,30 @@ def amplitudes(diretorio):
     Rotulo com menos de tres irmas nao tem amplitude: tres e o minimo para que
     `max - min` signifique alguma coisa, e abaixo disso o limiar volta ao piso.
     """
+    art_ref = artefatos(diretorio)
     por = {}
     for outro in irmas(diretorio):
+        art_irma = artefatos(outro)
         for k, v in coletar(outro).items():
-            if v and len(v) >= 2:
+            if not (v and len(v) >= 2):
+                continue
+            prog = programa_do_rotulo(k)
+            a = (art_ref.get(prog) or {}).get("text_sha256")
+            b = (art_irma.get(prog) or {}).get("text_sha256")
+            # A REGUA E DE UM INSTRUMENTO SO, e esta era a metade que faltava.
+            #
+            # Filtrar irmas por configuracao e condicao nao basta: a amplitude
+            # de `neighbour on physical core` nas quatro irmas da coleta de
+            # 26/09/2026 e 0,00% -- as quatro deram o MESMO valor -- enquanto
+            # trocar so `-falign-loops` move o rotulo 15,8%. A regua media a
+            # reprodutibilidade de UMA familia de artefatos e era aplicada a
+            # uma comparacao ENTRE familias.
+            #
+            # Quando os dois lados nao declaram artefato, a irma entra: sao
+            # coletas anteriores ao mecanismo, e o portao ja bloqueia a marca
+            # delas por `SEM_IDENTIDADE`. A amplitude ali e informativa, nunca
+            # autoriza um `<<<`.
+            if (a and b and a == b) or (a is None and b is None):
                 por.setdefault(k, []).append(st.median(v))
     saida = {}
     for k, v in por.items():
@@ -291,13 +311,20 @@ def classificacao_leiaute():
 # uma conclusao com um asterisco.
 COMPARAVEL, NAO_ESTABELECIDO, NAO_COMPARAVEL, SEM_IDENTIDADE = range(4)
 
+# A palavra que a campanha grava quando o campo nao existe para aquele alvo.
+AUSENTE = "nao-disponivel"
+
 
 def estado_de_comparacao(rotulo, art_base, art_novo, classes):
     """Decide o que se pode afirmar sobre este rotulo. Ver COMPARAVEL etc."""
     prog = programa_do_rotulo(rotulo)
     a = (art_base.get(prog) or {}).get("text_sha256")
     b = (art_novo.get(prog) or {}).get("text_sha256")
-    if not a or not b:
+    # `nao-disponivel` E AUSENCIA, E NAO UM VALOR. Alvo sem secao `.text` --
+    # um script, por exemplo -- grava a palavra; compara-la por igualdade faria
+    # dois programas diferentes passarem por "mesmo instrumento", que e o
+    # fail-open exato que este portao existe para fechar.
+    if a in (None, "", AUSENTE) or b in (None, "", AUSENTE):
         return SEM_IDENTIDADE
     if a == b:
         return COMPARAVEL
@@ -350,6 +377,12 @@ def comparar(dirs, rotulos):
                 delta = f"  {d:+6.1f}%  NAO COMPARAVEL ENTRE ARTEFATOS"
             elif est == NAO_ESTABELECIDO:
                 delta = f"  {d:+6.1f}%  artefatos diferentes -- identificabilidade nao estabelecida"
+            elif est == SEM_IDENTIDADE:
+                # `SEM_IDENTIDADE` CAIA NO RAMO NORMAL e podia marcar `<<<`,
+                # contradizendo o resumo que o proprio arquivo imprime tres
+                # telas abaixo: "ausencia de identidade NAO e prova de que o
+                # instrumento foi o mesmo". Os quatro estados sao exclusivos.
+                delta = f"  {d:+6.1f}%  SEM IDENTIDADE DE ARTEFATO"
             else:
                 a = amps.get(k)
                 lim = limiar(a)
@@ -458,7 +491,7 @@ def autoteste():
         #     mediana 10,2 da 3,92%.
         amps = amplitudes(nova)
         caso(10, "amplitude = (max-min)/mediana, em %%",
-             round(amps["prog: custo alvo"], 2), 3.92)
+             round(amps.get("prog: custo alvo", -1.0), 2), 3.92)
 
         # 11. MENOS DE TRES IRMAS NAO DA AMPLITUDE. Com duas, `max - min` e um
         #     par de pontos, e chamar isso de dispersao seria inventar regua.
@@ -513,6 +546,66 @@ def autoteste():
              estado_de_comparacao("prog: x", {}, an, {}), SEM_IDENTIDADE)
         caso(21, "rotulo sem programa nao quebra o portao",
              estado_de_comparacao("sem-dois-pontos", ab, an, {}), SEM_IDENTIDADE)
+        # 22. `nao-disponivel` E AUSENCIA, e nao um valor que possa coincidir.
+        #     Dois alvos sem secao `.text` -- scripts -- gravam a mesma palavra,
+        #     e compara-la por igualdade os faria passar por mesmo instrumento.
+        nd = {"prog": {"text_sha256": "nao-disponivel"}}
+        caso(22, "`nao-disponivel` dos dois lados nao e equivalencia",
+             estado_de_comparacao("prog: x", nd, nd, {}), SEM_IDENTIDADE)
+        caso(23, "campo vazio tambem e ausencia",
+             estado_de_comparacao("prog: x", {"prog": {"text_sha256": ""}}, an, {}),
+             SEM_IDENTIDADE)
+
+        # 24 e 25. A REGUA E DE UM INSTRUMENTO SO.
+        #
+        # Filtrar irmas por configuracao e condicao nao bastava: a amplitude
+        # de `neighbour on physical core` nas quatro irmas de 26/09/2026 era
+        # 0,00% -- as quatro deram o mesmo valor -- enquanto trocar so
+        # `-falign-loops` move o rotulo 15,8%. A regua media a reprodutibilidade
+        # de uma familia de artefatos e julgava uma comparacao entre familias.
+        for i, sha in enumerate(("zzz", "zzz", "zzz")):
+            manifesto(coleta("2026-09-2%d-0200-regua-x" % (2 + i), [1.0 + i / 10.0, 1.0 + i / 10.0]), sha)
+        alvo = coleta("2026-09-25-0200-regua-x", [1.2, 1.2])
+        manifesto(alvo, "zzz")
+        caso(24, "irmas do MESMO artefato formam regua",
+             "prog: custo alvo" in amplitudes(alvo), True)
+        manifesto(alvo, "outro")
+        caso(25, "artefato diferente das irmas deixa o rotulo SEM REGUA",
+             "prog: custo alvo" in amplitudes(alvo), False)
+        # 26. O LEGADO CONTINUA COM REGUA, e e escolha declarada: coleta
+        #     anterior a 27/09/2026 nao tem manifesto de artefato dos DOIS
+        #     lados, e exigi-lo ali apagaria a amplitude do historico inteiro
+        #     sem ganho -- o portao ja bloqueia a marca por SEM_IDENTIDADE.
+        legado = coleta("2026-09-26-0200-legado-x", [1.0, 1.0])
+        for i in (1, 2, 3):
+            coleta("2026-09-2%d-0300-legado-x" % (6 + i % 3), [1.0 + i / 10.0, 1.0 + i / 10.0])
+        caso(26, "sem manifesto dos dois lados a regua do legado permanece",
+             "prog: custo alvo" in amplitudes(legado), True)
+
+        # 27 e 28. O PORTAO SUPRIME O `<<<`, e nao so escreve um aviso.
+        #
+        # `SEM_IDENTIDADE` caia no ramo normal e podia marcar, contradizendo o
+        # resumo que o proprio arquivo imprime. Aqui a saida inteira e capturada
+        # e a ausencia da marca e conferida.
+        import contextlib
+        import io as _io
+
+        def saida_de(dirs):
+            buf = _io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                comparar([str(x) for x in dirs], ["base", "nova"])
+            return buf.getvalue()
+
+        g1 = coleta("2026-09-28-0100-marca-x", [1.0, 1.0])
+        for i in (1, 2, 3):
+            coleta("2026-09-28-0%d00-marca-x" % (i + 1), [1.0, 1.0])
+        g2 = coleta("2026-09-28-0500-marca-x", [2.0, 2.0])   # +100%, marcaria
+        texto = saida_de([g1, g2])
+        caso(27, "sem identidade de artefato o delta NAO e marcado",
+             "<<<" in texto, False)
+        linha = next((l for l in texto.splitlines() if "prog: custo alvo" in l), "")
+        caso(28, "e o motivo sai na PROPRIA LINHA do rotulo",
+             "SEM IDENTIDADE DE ARTEFATO" in linha, True)
 
     print("\n  autoteste: %d assercao(oes) falharam" % falhas)
     return falhas

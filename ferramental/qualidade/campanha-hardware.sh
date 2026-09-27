@@ -125,6 +125,13 @@ _secao() { # <binario> <secao>  -> conteudo bruto, ou nada
     cat "$t" 2>/dev/null
     rm -f "${t:?}"
 }
+_sha_secao() { # <binario> <secao>  -> sha256 da secao, ou nao-disponivel
+    local t saida; t=$(mktemp)
+    objcopy --dump-section "$2=$t" "$1" /dev/null 2>/dev/null
+    if [ -s "$t" ]; then saida=$(sha256sum "$t" | cut -d' ' -f1); else saida="nao-disponivel"; fi
+    rm -f "${t:?}"
+    printf '%s' "$saida"
+}
 _flags_de() { # <binario>  -> as flags que o meson usou, ou nao-disponivel
     local real d
     real=$(readlink -f -- "$1" 2>/dev/null) || { echo "nao-disponivel"; return; }
@@ -162,14 +169,23 @@ identidade_artefato() { # <programa>  -> bloco `# ARTIFACT` no manifesto, uma ve
     # O COMENTARIO NAO QUEBRA O CONTRATO DE TRES COLUNAS. Os consumidores
     # casam por `$1 == <celula>` ou `$2 == PASS|SKIP|FAIL`; um `#` na primeira
     # coluna nunca produz nenhum dos dois. O cabecalho ja usava comentario.
+    # A TAG EXATA TAMBEM CONTA. O padrao anterior exigia `-N-gSHA`, entao um
+    # binario construido exatamente sobre `v0.09.00` -- que e o proximo destino
+    # deste repositorio -- sairia como `nao-disponivel`. Aceita tag pura,
+    # `git describe` pos-tag, e o sufixo `-dirty` em qualquer das duas.
     orig=$(strings -a "$real" 2>/dev/null \
-           | grep -m1 -E '^v?[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-g[0-9a-f]+' || true)
+           | grep -m1 -E '^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+-g[0-9a-f]+)?(-dirty)?$' || true)
     {
         echo "# ARTIFACT $(basename "$real")"
         echo "#   path=${real#$RAIZ/}"
         echo "#   source_origin=${orig:-nao-disponivel}"
         echo "#   binary_sha256=$(sha256sum "$real" | cut -d' ' -f1)"
-        echo "#   text_sha256=$(_secao "$real" .text | sha256sum | cut -d' ' -f1)"
+        # SECAO AUSENTE NAO E SECAO VAZIA. `sha256sum` de entrada vazia da
+        # sempre `e3b0c442...`, entao todo alvo nao-ELF -- `ambiente.sh`, por
+        # exemplo -- receberia o MESMO `text_sha256` e o comparador os trataria
+        # como o mesmo instrumento. Num campo declarado autoridade isso e
+        # fail-open, e a resposta certa e dizer que nao ha.
+        echo "#   text_sha256=$(_sha_secao "$real" .text)"
         # NEM TODO ALVO E ELF: `ambiente.sh` e um script, e ali nao ha nota
         # nenhuma. O `od -j16` sobre entrada vazia reclama na saida de erro; a
         # ausencia e resposta legitima e nao ruido para quem le o diario.

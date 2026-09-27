@@ -75,10 +75,24 @@ conferir "e e o valor do relogio do sysfs, nao o da emissao" "$lido" "$esperado"
 
 conferir "o valor e um numero" \
     "$(printf '%s' "$lido" | grep -cE '^[0-9]+\.[0-9]+$')" "1"
-# Faixa larga de propósito: isto afere o LEITOR, nao o modelo. Estreita-la
-# faria o teste reprovar numa maquina cujo hardware simplesmente e outro.
-conferir "e cai numa faixa fisicamente plausivel" \
-    "$(awk -v v="$lido" 'BEGIN { print (v > 0.3 && v < 20) ? "sim" : "nao" }')" "sim"
+# A FAIXA FISICA SAIU, e a razao e de escopo.
+#
+# Ela exigia `0,3 < ciclos < 20`. O runner do `releases-dpdk (26.07)` nao
+# expoe `scaling_cur_freq`, a sonda reporta frequencia 0,00 GHz e o campo do
+# sysfs sai `0.000` -- corretamente. O leitor leu certo, e o teste reprovou.
+#
+# Este L1 afere se o `run-all` CONTINUA ENTENDENDO a saida da sonda. Transformar
+# a disponibilidade de cpufreq do runner em contrato do parser e testar outra
+# coisa -- e foi assim que a CI ficou vermelha por uma propriedade da maquina.
+#
+# A assercao que o escopo pede ja existe e e mais forte: o valor lido tem de
+# ser o DA LINHA do sysfs, e nao qualquer numero da vizinhanca.
+if [ "$(awk -v v="$lido" 'BEGIN { print (v > 0) ? "sim" : "nao" }')" = "sim" ]; then
+    conferir "quando o sysfs reporta frequencia, o valor e plausivel" \
+        "$(awk -v v="$lido" 'BEGIN { print (v > 0.3 && v < 20) ? "sim" : "nao" }')" "sim"
+else
+    echo "  (sysfs sem frequencia nesta maquina: a faixa fisica nao se aplica)"
+fi
 
 # O CASO NEGATIVO: com o rotulo ANTIGO o leitor tem de devolver vazio. Sem
 # esta assercao, um `sed` que casasse qualquer linha passaria em tudo acima --
