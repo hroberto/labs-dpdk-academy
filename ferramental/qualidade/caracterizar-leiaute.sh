@@ -106,11 +106,29 @@ fi
 # na compilacao sem aparecer ali. Foi um arquivo solto -- varrido para a
 # arvore por um `git add -A` descuidado -- que originou este portao.
 #
-# `historico/` FICA DE FORA, e a excecao e declarada: coleta e SAIDA de
-# medicao, nunca entra em caminho de inclusao. Sem esta excecao, a segunda
-# campanha seria bloqueada pelos arquivos que a primeira produziu.
-sujeira=$(sudo -u "$DONO" git status --porcelain --untracked-files=all 2>/dev/null \
-          | grep -v '/historico/' || true)
+# A EXCECAO DE `historico/` E SO PARA ARQUIVO NOVO NAO RASTREADO.
+#
+# A primeira versao filtrava `/historico/` inteiro, e com isso ignorava
+# tambem coleta ja versionada que tivesse sido MODIFICADA ou REMOVIDA -- o
+# portao diria "limpo" enquanto o `git describe` responderia `-dirty`. Dois
+# estados diferentes tratados como um.
+#
+# A excecao vale porque coleta NOVA e saida de medicao e nunca entra em
+# caminho de inclusao; sem ela a segunda campanha seria bloqueada pelos
+# arquivos que a primeira produziu -- sao 4248 nesta arvore contra 1 fora.
+# Alterar evidencia ja arquivada e outra coisa, e bloqueia.
+#
+# E `git status` QUE FALHA NAO E ARVORE LIMPA. A versao anterior tinha
+# `2>/dev/null ... || true`: sem repositorio, sem permissao ou com o indice
+# corrompido, o portao respondia "limpo" -- que e o fail-open semantico que
+# este projeto acabou de nomear, dentro do portao escrito para aplica-lo.
+if ! estado_git=$(sudo -u "$DONO" git status --porcelain --untracked-files=all 2>&1); then
+    echo "FALHA: nao consegui verificar o estado da arvore git." >&2
+    printf '%s\n' "$estado_git" | sed 's/^/           /' >&2
+    echo "  Nao conseguir conferir nao e o mesmo que estar limpa." >&2
+    exit 1
+fi
+sujeira=$(printf '%s\n' "$estado_git" | grep -vE '^\?\? docs/.*/historico/' || true)
 if [ -n "$sujeira" ]; then
     echo "FALHA: a caracterizacao exige arvore git limpa." >&2
     printf '%s\n' "$sujeira" | sed 's/^/           /' >&2

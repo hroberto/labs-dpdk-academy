@@ -60,6 +60,19 @@ montar() { # <graficos> <uid> <build-all devolve> <cria build/>
     chmod +x "$tmp/arv/scripts"/*.sh
     printf '#!/bin/sh\necho %s\n' "$2" > "$tmp/bin/id"
     printf '#!/bin/sh\necho %s\n' "$1" > "$tmp/bin/pgrep"
+    # `sudo` DE MENTIRA EM TODO CENARIO, e nao so nos da ancora.
+    #
+    # O `sudo` real reseta o `PATH` por `secure_path`, entao um stub de `git`
+    # nunca era alcancado -- e, pior, os cenarios dependiam de credencial em
+    # cache para funcionar: a suite passava ou nao conforme o operador tivesse
+    # rodado `sudo` nos ultimos minutos.
+    cat > "$tmp/bin/sudo" <<'SUFIM'
+#!/bin/sh
+while [ $# -gt 0 ]; do
+    case "$1" in -u) shift 2 ;; -H|-n) shift ;; *) break ;; esac
+done
+exec "$@"
+SUFIM
     chmod +x "$tmp/bin"/*
 }
 # A ARVORE DE MENTIRA E UM REPOSITORIO, porque o portao da arvore limpa
@@ -151,15 +164,7 @@ for a in "\$@"; do
 done
 exit 0
 CCFIM
-    # `sudo` de mentira: tira `-u <quem>` e `-H`, e executa o resto.
-    cat > "$tmp/bin/sudo" <<'SUFIM'
-#!/bin/sh
-while [ $# -gt 0 ]; do
-    case "$1" in -u) shift 2 ;; -H|-n) shift ;; *) break ;; esac
-done
-exec "$@"
-SUFIM
-    chmod +x "$tmp/bin/cc" "$tmp/bin/sudo"
+    chmod +x "$tmp/bin/cc"
     congelar_git
 }
 rodar_x() { PATH="$tmp/bin:$PATH" bash "$tmp/arv/ferramental/qualidade/caracterizar-leiaute.sh" \
@@ -231,12 +236,48 @@ conferir "arquivo NAO RASTREADO aborta"         "$rc" "1"
 conferir "e ele e nomeado"                      \
     "$(printf '%s' "$saida" | grep -c 'solto.h')" "1"
 
-# A EXCECAO DECLARADA: coleta e saida de medicao, nunca entra em caminho de
-# inclusao. Sem ela, a segunda campanha seria barrada pelo que a primeira
+# A EXCECAO DECLARADA: coleta NOVA e saida de medicao, nunca entra em caminho
+# de inclusao. Sem ela, a segunda campanha seria barrada pelo que a primeira
 # produziu -- sao milhares de arquivos.
 saida=$(sujar 'mkdir -p "$tmp/arv/docs/01-fundamentos/medicoes/historico/x"
                echo dado > "$tmp/arv/docs/01-fundamentos/medicoes/historico/x/r1.txt"')
-conferir "coleta nao rastreada em historico NAO suja a arvore" \
+conferir "coleta NOVA nao rastreada em historico NAO suja a arvore" \
+    "$(printf '%s' "$saida" | grep -c 'arvore git limpa')" "0"
+
+# MAS ALTERAR EVIDENCIA JA ARQUIVADA E OUTRA COISA. A primeira versao filtrava
+# `/historico/` inteiro e ignorava modificacao e remocao de coleta versionada:
+# o portao dizia "limpo" enquanto o `git describe` responderia `-dirty`.
+montar 0 0 0 sim
+mkdir -p "$tmp/arv/docs/01-fundamentos/medicoes/historico/y"
+echo original > "$tmp/arv/docs/01-fundamentos/medicoes/historico/y/r1.txt"
+congelar_git
+echo alterado >> "$tmp/arv/docs/01-fundamentos/medicoes/historico/y/r1.txt"
+saida=$(rodar 2>&1); rc=$?
+conferir "coleta JA VERSIONADA modificada aborta" "$rc" "1"
+conferir "e ela e nomeada" \
+    "$(printf '%s' "$saida" | grep -c 'historico/y/r1.txt')" "1"
+
+montar 0 0 0 sim
+mkdir -p "$tmp/arv/docs/01-fundamentos/medicoes/historico/z"
+echo original > "$tmp/arv/docs/01-fundamentos/medicoes/historico/z/r1.txt"
+congelar_git
+rm -f "$tmp/arv/docs/01-fundamentos/medicoes/historico/z/r1.txt"
+rc=0; rodar >/dev/null 2>&1 || rc=$?
+conferir "coleta JA VERSIONADA removida aborta"   "$rc" "1"
+
+# E `git status` QUE FALHA NAO E ARVORE LIMPA. Era `2>/dev/null ... || true`:
+# sem repositorio, sem permissao ou com o indice corrompido, o portao
+# respondia "limpo" -- o fail-open semantico dentro do portao escrito para
+# aplica-lo.
+montar 0 0 0 sim; congelar_git
+printf '#!/bin/sh\necho "fatal: not a git repository" >&2\nexit 128\n' > "$tmp/bin/git"
+chmod +x "$tmp/bin/git"
+saida=$(rodar 2>&1); rc=$?
+rm -f "$tmp/bin/git"
+conferir "git status falhando aborta"             "$rc" "1"
+conferir "e diz que nao conseguiu conferir" \
+    "$(printf '%s' "$saida" | grep -c 'nao consegui verificar')" "1"
+conferir "e NAO afirma que a arvore esta limpa" \
     "$(printf '%s' "$saida" | grep -c 'arvore git limpa')" "0"
 
 if [ "$falhas" -gt 0 ]; then
