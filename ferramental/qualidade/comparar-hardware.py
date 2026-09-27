@@ -197,8 +197,8 @@ def amplitudes(diretorio):
             if not (v and len(v) >= 2):
                 continue
             prog = programa_do_rotulo(k)
-            a = (art_ref.get(prog) or {}).get("text_sha256")
-            b = (art_irma.get(prog) or {}).get("text_sha256")
+            a = sha_texto_valido((art_ref.get(prog) or {}).get("text_sha256"))
+            b = sha_texto_valido((art_irma.get(prog) or {}).get("text_sha256"))
             # A REGUA E DE UM INSTRUMENTO SO, e esta era a metade que faltava.
             #
             # Filtrar irmas por configuracao e condicao nao basta: a amplitude
@@ -208,11 +208,19 @@ def amplitudes(diretorio):
             # reprodutibilidade de UMA familia de artefatos e era aplicada a
             # uma comparacao ENTRE familias.
             #
-            # Quando os dois lados nao declaram artefato, a irma entra: sao
-            # coletas anteriores ao mecanismo, e o portao ja bloqueia a marca
-            # delas por `SEM_IDENTIDADE`. A amplitude ali e informativa, nunca
+            # O LEGADO E AUSENCIA DE BLOCO, e nao "identidade invalida".
+            #
+            # A condicao era `a is None and b is None`, e como `sha_texto_valido`
+            # devolve None tambem para `nao-disponivel`, duas coletas que
+            # DECLARAM nao ter `.text` caiam no ramo do legado -- tratadas como
+            # anteriores ao mecanismo, que nao sao. Perguntar pelo bloco separa
+            # "nunca registrou" de "registrou que nao ha".
+            #
+            # Coleta anterior a 27/09/2026 entra: o portao ja bloqueia a marca
+            # dela por `SEM_IDENTIDADE`, entao a amplitude e informativa e nao
             # autoriza um `<<<`.
-            if (a and b and a == b) or (a is None and b is None):
+            legado = prog not in art_ref and prog not in art_irma
+            if (a and b and a == b) or legado:
                 por.setdefault(k, []).append(st.median(v))
     saida = {}
     for k, v in por.items():
@@ -314,17 +322,46 @@ COMPARAVEL, NAO_ESTABELECIDO, NAO_COMPARAVEL, SEM_IDENTIDADE = range(4)
 # A palavra que a campanha grava quando o campo nao existe para aquele alvo.
 AUSENTE = "nao-disponivel"
 
+# O sha256 da ENTRADA VAZIA. Alvo sem secao `.text` -- um script -- produzia
+# este valor, e dois alvos diferentes coincidiam nele.
+SHA_DO_VAZIO = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+
+def sha_texto_valido(bruto):
+    """O `text_sha256` utilizavel, ou None. PRESENCA NAO IMPLICA VALIDADE.
+
+    Um campo usado como autoridade tem quatro modos de ser invalido, e os
+    quatro apareceram neste projeto em 27/09/2026:
+
+        chave ausente         -- coleta anterior ao mecanismo
+        chave presente vazia  -- um auxiliar faltou e ninguem viu
+        sentinela             -- `nao-disponivel`, que e uma string truthy
+        valor fora do dominio -- o sha do vazio, que COINCIDE entre alvos
+
+    Nenhum dos quatro pode significar "mesmo instrumento". Concentrar a regra
+    aqui evita que cada sitio de uso reinvente uma metade dela -- foi assim que
+    a sentinela passou pelo `if not a or not b`.
+    """
+    if not bruto:
+        return None
+    valor = bruto.strip().lower()
+    # O SHA DO VAZIO E O CASO TRAICOEIRO: ele esta DENTRO do dominio -- 64 hex
+    # legitimos -- e coincide entre todo alvo sem secao `.text`. A sentinela
+    # `nao-disponivel` e a string vazia caem no dominio abaixo sozinhas, e
+    # testa-las aqui de novo seria um ramo que nenhuma mutacao distingue.
+    if valor == SHA_DO_VAZIO:
+        return None
+    if not re.fullmatch(r"[0-9a-f]{64}", valor):
+        return None
+    return valor
+
 
 def estado_de_comparacao(rotulo, art_base, art_novo, classes):
     """Decide o que se pode afirmar sobre este rotulo. Ver COMPARAVEL etc."""
     prog = programa_do_rotulo(rotulo)
-    a = (art_base.get(prog) or {}).get("text_sha256")
-    b = (art_novo.get(prog) or {}).get("text_sha256")
-    # `nao-disponivel` E AUSENCIA, E NAO UM VALOR. Alvo sem secao `.text` --
-    # um script, por exemplo -- grava a palavra; compara-la por igualdade faria
-    # dois programas diferentes passarem por "mesmo instrumento", que e o
-    # fail-open exato que este portao existe para fechar.
-    if a in (None, "", AUSENTE) or b in (None, "", AUSENTE):
+    a = sha_texto_valido((art_base.get(prog) or {}).get("text_sha256"))
+    b = sha_texto_valido((art_novo.get(prog) or {}).get("text_sha256"))
+    if a is None or b is None:
         return SEM_IDENTIDADE
     if a == b:
         return COMPARAVEL
@@ -522,11 +559,15 @@ def autoteste():
 
         base = coleta("2026-09-20-0100-artef-x", [1.0, 1.0])
         novo = coleta("2026-09-21-0100-artef-x", [1.0, 1.0])
-        manifesto(base, "aaa")
-        manifesto(novo, "bbb")
+        # HASHES DO DOMINIO REAL nos fixtures. Com "aaa"/"bbb" o teste passava
+        # por acidente enquanto o codigo aceitava qualquer string; assim que a
+        # validade virou regra, os fixtures reprovaram -- corretamente.
+        SHA_A, SHA_B = "a" * 64, "b" * 64
+        manifesto(base, SHA_A)
+        manifesto(novo, SHA_B)
         ab, an = artefatos(base), artefatos(novo)
         caso(13, "o bloco ARTIFACT e lido do manifesto",
-             ab.get("prog", {}).get("text_sha256"), "aaa")
+             ab.get("prog", {}).get("text_sha256"), SHA_A)
         caso(14, "o comentario nao vira celula",
              ab.get("prog", {}).get("source_origin"), "v0.0.0-1-gabc")
         caso(15, "artefato igual -> comparavel",
@@ -555,6 +596,23 @@ def autoteste():
         caso(23, "campo vazio tambem e ausencia",
              estado_de_comparacao("prog: x", {"prog": {"text_sha256": ""}}, an, {}),
              SEM_IDENTIDADE)
+        # 23b. OS QUATRO MODOS DE INVALIDO, num lugar so. O sha do vazio e o
+        #      mais traicoeiro: e um hash legitimo, de 64 hex, que COINCIDE
+        #      entre todo alvo sem secao `.text`.
+        caso(231, "ausente e invalido", sha_texto_valido(None), None)
+        caso(232, "vazio e invalido", sha_texto_valido(""), None)
+        caso(233, "sentinela e invalido", sha_texto_valido(AUSENTE), None)
+        caso(234, "sha do vazio e invalido", sha_texto_valido(SHA_DO_VAZIO), None)
+        caso(235, "hash curto e invalido", sha_texto_valido("abc123"), None)
+        caso(236, "64 caracteres nao-hex sao invalidos", sha_texto_valido("z" * 64), None)
+        caso(2361, "e hex maiusculo vale, normalizado para minusculo",
+             sha_texto_valido("A" * 63 + "B"), "a" * 63 + "b")
+        caso(237, "e o hash real passa, normalizado",
+             sha_texto_valido("  " + "a1" * 32 + "  "), "a1" * 32)
+        caso(238, "o sha do vazio nunca vira identidade",
+             estado_de_comparacao("prog: x", {"prog": {"text_sha256": SHA_DO_VAZIO}},
+                                  {"prog": {"text_sha256": SHA_DO_VAZIO}}, {}),
+             SEM_IDENTIDADE)
 
         # 24 e 25. A REGUA E DE UM INSTRUMENTO SO.
         #
@@ -563,13 +621,14 @@ def autoteste():
         # 0,00% -- as quatro deram o mesmo valor -- enquanto trocar so
         # `-falign-loops` move o rotulo 15,8%. A regua media a reprodutibilidade
         # de uma familia de artefatos e julgava uma comparacao entre familias.
-        for i, sha in enumerate(("zzz", "zzz", "zzz")):
+        SHA_IRMA, SHA_OUTRO = "c" * 64, "d" * 64
+        for i, sha in enumerate((SHA_IRMA, SHA_IRMA, SHA_IRMA)):
             manifesto(coleta("2026-09-2%d-0200-regua-x" % (2 + i), [1.0 + i / 10.0, 1.0 + i / 10.0]), sha)
         alvo = coleta("2026-09-25-0200-regua-x", [1.2, 1.2])
-        manifesto(alvo, "zzz")
+        manifesto(alvo, SHA_IRMA)
         caso(24, "irmas do MESMO artefato formam regua",
              "prog: custo alvo" in amplitudes(alvo), True)
-        manifesto(alvo, "outro")
+        manifesto(alvo, SHA_OUTRO)
         caso(25, "artefato diferente das irmas deixa o rotulo SEM REGUA",
              "prog: custo alvo" in amplitudes(alvo), False)
         # 26. O LEGADO CONTINUA COM REGUA, e e escolha declarada: coleta
@@ -579,6 +638,29 @@ def autoteste():
         legado = coleta("2026-09-26-0200-legado-x", [1.0, 1.0])
         for i in (1, 2, 3):
             coleta("2026-09-2%d-0300-legado-x" % (6 + i % 3), [1.0 + i / 10.0, 1.0 + i / 10.0])
+        # 25b. DECLARAR QUE NAO HA NAO E O MESMO QUE NUNCA TER REGISTRADO.
+        #      Duas coletas com `text_sha256=nao-disponivel` tem bloco, logo
+        #      nao sao legado, e nao podem formar regua de "mesmo artefato".
+        manifesto(alvo, AUSENTE)
+        for i in (1, 2, 3):
+            manifesto(coleta("2026-09-2%d-0400-sent-x" % (2 + i), [1.0, 1.0]), AUSENTE)
+        alvo_s = coleta("2026-09-26-0400-sent-x", [1.0, 1.0])
+        manifesto(alvo_s, AUSENTE)
+        caso(251, "identidade declarada ausente nao forma regua de mesmo artefato",
+             "prog: custo alvo" in amplitudes(alvo_s), False)
+
+        # 25c. O SHA DO VAZIO E O UNICO QUE ENGANA A COMPARACAO CRUA. A
+        #      sentinela cai fora do dominio hex sozinha; este NAO -- sao 64
+        #      hex legitimos, iguais entre todo alvo sem `.text`. Comparar os
+        #      brutos aqui formaria regua de "mesmo artefato" entre programas
+        #      diferentes, que e o fail-open que `sha_texto_valido` fecha.
+        for i in (1, 2, 3):
+            manifesto(coleta("2026-09-2%d-0500-vazio-x" % (2 + i), [1.0, 1.0]), SHA_DO_VAZIO)
+        alvo_v = coleta("2026-09-26-0500-vazio-x", [1.0, 1.0])
+        manifesto(alvo_v, SHA_DO_VAZIO)
+        caso(252, "o sha do vazio nao forma regua de mesmo artefato",
+             "prog: custo alvo" in amplitudes(alvo_v), False)
+
         caso(26, "sem manifesto dos dois lados a regua do legado permanece",
              "prog: custo alvo" in amplitudes(legado), True)
 

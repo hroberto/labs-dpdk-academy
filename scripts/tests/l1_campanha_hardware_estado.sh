@@ -28,13 +28,21 @@ raiz=$(cd "$(dirname "$0")/../.." && pwd)
 fonte="$raiz/ferramental/qualidade/campanha-hardware.sh"
 [ -r "$fonte" ] || { echo "FALHA: nao achei $fonte"; exit 1; }
 
-eval "$(sed -n '/^_secao() {/,/^}/p;/^_sha_secao() {/,/^}/p;/^_flags_de() {/,/^}/p;/^identidade_artefato() {/,/^}/p;/^rodar() {/,/^}/p;/^veredito_hw() {/,/^}/p;/^contar_estado() {/,/^}/p;/^registrar() {/,/^}/p;/^coletar_estado_maquina() {/,/^}/p;/^corre_feed() {/,/^}/p' "$fonte")"
+eval "$(sed -n '/^rodar() {/,/^}/p;/^veredito_hw() {/,/^}/p;/^contar_estado() {/,/^}/p;/^registrar() {/,/^}/p;/^coletar_estado_maquina() {/,/^}/p;/^corre_feed() {/,/^}/p' "$fonte")"
 ARTEFATOS_VISTOS=""
-# A LISTA INCLUI OS AUXILIARES, e a razao e uma pegadinha que ja mordeu duas
-# vezes hoje: `rodar` passou a chamar `identidade_artefato`, e esta a chamar
-# `_sha_secao`. Faltando na extracao, a funcao ausente vira "comando nao
-# encontrado" -- que NAO interrompe nada sob `set -u` -- e o campo sai vazio.
-# O teste passava exercitando uma versao mutilada do que dizia exercitar.
+# A CADEIA DE IDENTIDADE E CARREGADA, E NAO EXTRAIDA.
+#
+# Ela vinha por `sed`/`eval`, com a lista de funcoes mantida a mao aqui. Isso
+# falhou duas vezes em 27/09/2026: a producao ganhou um auxiliar, a lista nao
+# acompanhou, e a funcao ausente virou "comando nao encontrado" -- que NAO
+# interrompe nada dentro de uma substituicao de comando. O campo saiu vazio e
+# este teste ficou VERDE exercitando um grafo de dependencias mutilado.
+#
+# Carregando o mesmo arquivo que a campanha carrega, o grafo e o mesmo por
+# construcao. Os `declare -F` continuam como contrato explicito -- mas deixam
+# de ser a unica coisa entre o defeito e o falso verde.
+. "$raiz/ferramental/qualidade/identidade-artefato.sh"
+
 for f in rodar veredito_hw contar_estado registrar coletar_estado_maquina corre_feed \
          identidade_artefato _secao _sha_secao _flags_de; do
     declare -F "$f" >/dev/null || { echo "FALHA: nao extrai $f() de campanha-hardware.sh"; exit 1; }
