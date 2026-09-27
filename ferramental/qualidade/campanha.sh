@@ -428,6 +428,18 @@ fi
 #   pulo pedido por flag (--so-ruido, --so-hardware) nao conta: foi escolha.
 FALHAS=0
 PULOS=0
+# O PORTAO DE QUALIDADE E CONTADO A PARTE, e a razao esta no veredito.
+#
+# Os passos 1 a 5 medem: se um deles falha, a COLETA esta incompleta. O passo 6
+# roda o portao do REPOSITORIO, que julga se o material publicado ainda bate
+# com o que se acabou de medir. Reprovar ali nao torna a coleta incompleta --
+# torna o documento desatualizado, que e outra coisa e se resolve republicando.
+#
+# A campanha de 27/09/2026 saiu com os seis passos `ok` e o portao reprovado, e
+# o veredito anunciou "A coleta NAO esta completa" sobre uma coleta com 200 de
+# 200 celulas PASS. Mensagem que nomeia o culpado errado manda consertar a
+# coisa errada.
+FALHAS_PORTAO=0
 falhou()  { echo "    FALHA${1:+ $1}"; FALHAS=$((FALHAS + 1)); }
 pulou()   { echo "    PULADO: $1"; PULOS=$((PULOS + 1)); }
 # O VEREDITO SAI NO CODIGO DE SAIDA, e nao so na tela. Quem le o diario ve as
@@ -438,7 +450,15 @@ veredito() {
     if [ "$FALHAS" -gt 0 ]; then
         echo "==> CAMPANHA COM FALHA: $FALHAS passo(s) correram e falharam" \
              "${PULOS:+e $PULOS pulado(s) por pre-requisito}"
-        echo "    A coleta em ${SAIDA#$RAIZ/} NAO esta completa."
+        if [ "$FALHAS" -eq "${FALHAS_PORTAO:-0}" ]; then
+            echo "    A coleta em ${SAIDA#$RAIZ/} esta COMPLETA:"
+            echo "    todos os passos de medicao correram. O que reprovou foi o portao"
+            echo "    de qualidade, que julga o REPOSITORIO -- o material publicado nao"
+            echo "    bate mais com esta coleta. Republique os blocos consolidados; a"
+            echo "    coleta nao precisa ser refeita."
+        else
+            echo "    A coleta em ${SAIDA#$RAIZ/} NAO esta completa."
+        fi
         exit 1
     fi
     if [ "$PULOS" -gt 0 ]; then
@@ -1067,7 +1087,10 @@ else
 fi
 chown "$DONO" "$SAIDA/portao.txt" 2>/dev/null
 grep -E "FALHA|aviso|tudo passou" "$SAIDA/portao.txt" | sed 's/^/      /'
-[ "$portao_rc" -eq 0 ] || falhou "(portao de qualidade saiu com $portao_rc)"
+if [ "$portao_rc" -ne 0 ]; then
+    falhou "(portao de qualidade saiu com $portao_rc)"
+    FALHAS_PORTAO=$((FALHAS_PORTAO + 1))
+fi
 
 echo
 echo "==> CONCLUIDA  $(date -Is)"

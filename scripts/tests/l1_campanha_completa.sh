@@ -246,9 +246,40 @@ conferir "em modo grafico o epilogo NAO aparece" \
     "$(bash -c "MODO=grafico
 $epilogo" 2>&1 | grep -c 'Para voltar ao modo grafico')" "0"
 
+# ---- o veredito nomeia o culpado certo -------------------------------
+#
+# A campanha de 27/09/2026 saiu com os seis passos `ok`, 200 de 200 celulas
+# PASS nos tres modulos, e o veredito anunciou:
+#
+#     A coleta em trilha/.../2026-09-27-0853-... NAO esta completa.
+#
+# A coleta estava completa. O que reprovou foi o passo 6, que roda o portao do
+# REPOSITORIO -- e ele reprovou porque os blocos publicados ficaram para tras
+# das coletas novas, que e o sinal que aquele portao existe para dar.
+#
+# Mensagem que nomeia o culpado errado manda consertar a coisa errada: refazer
+# uma hora de campanha em vez de republicar quatro blocos.
+vereditar() { # <FALHAS> <FALHAS_PORTAO> -> a frase sobre a coleta
+    bash -c "FALHAS=$1; PULOS=0; FALHAS_PORTAO=$2; SAIDA=/r/coleta; RAIZ=/r
+$(awk '/^veredito\(\) \{/,/^\}/' "$fonte")
+veredito" 2>&1
+}
+conferir "so o portao reprovou: a coleta esta COMPLETA" \
+    "$(vereditar 1 1 | grep -c 'esta COMPLETA')" "1"
+conferir "e manda republicar, nao remedir" \
+    "$(vereditar 1 1 | grep -c 'coleta nao precisa ser refeita')" "1"
+conferir "medicao falhou: a coleta NAO esta completa" \
+    "$(vereditar 1 0 | grep -c 'NAO esta completa')" "1"
+conferir "medicao E portao falharam: prevalece a coleta incompleta" \
+    "$(vereditar 2 1 | grep -c 'NAO esta completa')" "1"
+# Os dois desfechos continuam sendo falha da campanha: coleta completa que o
+# repositorio contradiz nao e publicavel enquanto ninguem republicar.
+rc=0; vereditar 1 1 >/dev/null 2>&1 || rc=$?
+conferir "e o codigo de saida continua 1" "$rc" "1"
+
 if [ "$falhas" -gt 0 ]; then
     echo "  $falhas assercao(oes) falharam"
     exit 1
 fi
-echo "  ok: 21 assercoes; completude por matriz E por estado registrado,"
+echo "  ok: 26 assercoes; completude por matriz E por estado registrado,"
 echo "      e a condicao declarada segue a medida"

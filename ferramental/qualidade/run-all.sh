@@ -443,7 +443,19 @@ else
     # O modelo preve que os CICLOS nao mudem com governor nem com modo -- so
     # com a carga no irmao SMT. Isso e testavel nos dois modos. O que so o modo
     # texto testa e o contrafactual: sem carga, o estado alto NAO aparece.
-    # O CAMPO E `por HARDWARE`, e a escolha esta medida.
+    # O CAMPO E O DO RELOGIO DO SYSFS, e a escolha esta medida.
+    #
+    # O ROTULO MUDOU E O LEITOR NAO. `6a6dd828` escreveu este `sed` as 01:13 de
+    # 26/09/2026 procurando `por HARDWARE (sysfs ...)`; `ba7b8b1d`, as 13:31 do
+    # mesmo dia, renomeou a linha da sonda para `pela frequencia reportada
+    # (sysfs ...)`. Doze horas, e as duas campanhas de 26 e 27/09 sairam com
+    # `VEREDITO NAO APURADO` -- a sonda medindo 1,125, o modelo fechando na
+    # terceira casa, e a etapa sem conseguir dizer isso.
+    #
+    # Nao reprovou nada, e e esse o ponto: ler por texto a saida de um programa
+    # falha em SILENCIO. O `l1_sonda_ciclos.sh` passa a rodar a sonda de verdade
+    # contra este leitor, para que a proxima renomeacao quebre a suite -- que e
+    # barata -- em vez da campanha, que custa uma hora de maquina dedicada.
     #
     # A sonda publica DOIS numeros de ciclos desde `d7389083`: um pelo relogio
     # do sysfs e outro pela cadeia dependente. Sob SMT os dois divergem por
@@ -452,7 +464,7 @@ else
     # 1,125 e 1,818 ciclos e sobre o relogio de HARDWARE, como a §5.1 da
     # metodologia do modulo 01 registra.
     ciclos() { # <arquivo>  -> ciclos pelo relogio de hardware
-        sed -n 's/.*por HARDWARE (sysfs [0-9.]* GHz): *\([0-9.]*\).*/\1/p' "$1" 2>/dev/null
+        sed -n 's/.*pela frequencia reportada (sysfs [0-9.]* GHz): *\([0-9.]*\).*/\1/p' "$1" 2>/dev/null
     }
     c1=$(ciclos "$SAIDA_SONDA/powersave.txt")
     c2=$(ciclos "$SAIDA_SONDA/performance.txt")

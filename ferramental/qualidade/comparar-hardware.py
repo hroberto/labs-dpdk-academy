@@ -30,6 +30,7 @@ A execução `r0` é descartada: ela é o aquecimento, e a campanha anterior pro
 que isso importa -- em `custo-mckenney`, quatro linhas foram acusadas como dois
 regimes e nas quatro o destoante era a primeira execução.
 """
+import io
 import os
 import pathlib
 import re
@@ -215,6 +216,99 @@ def limiar(amplitude):
     return max(PISO_PCT, FATOR_AMPLITUDE * amplitude)
 
 
+def artefatos(diretorio):
+    """{programa: {campo: valor}} lido dos blocos `# ARTIFACT` do manifesto.
+
+    O `origin:` que cada programa imprime identifica a FONTE. Nao identifica o
+    INSTRUMENTO: o mesmo commit compilado com `-falign-loops` 16, 32, 64 e 128
+    da quatro `.text` diferentes, e a razao `with/without SMT sibling` varia
+    20% entre eles. Sao identidades separadas, e e a terceira que decide se
+    duas medicoes vieram do mesmo aparelho:
+
+        source_origin   qual fonte produziu o programa
+        binary_sha256   qual arquivo ELF foi executado
+        text_sha256     qual codigo executavel foi produzido  <- a autoridade
+
+    Coleta anterior a 27/09/2026 nao tem esses blocos, e ai a resposta e vazia
+    -- que NAO e o mesmo que "os artefatos sao iguais".
+    """
+    man = os.path.join(str(diretorio).rstrip("/"), "manifesto.txt")
+    saida, atual = {}, None
+    try:
+        with io.open(man, encoding="utf-8", errors="replace") as fh:
+            for linha in fh:
+                m = re.match(r"^#\s*ARTIFACT\s+(\S+)", linha)
+                if m:
+                    atual = m.group(1)
+                    saida[atual] = {}
+                    continue
+                # `[a-z_0-9]` E NAO `[a-z_]`: `text_sha256` tem digitos, e a primeira
+                # versao deste regex lia `source_origin` e `build_id` e deixava
+                # passar em SILENCIO justamente o campo que decide a comparacao.
+                # O autoteste 13 pegou; sem ele, o portao responderia
+                # "sem identidade" para todo manifesto que o tivesse.
+                m = re.match(r"^#\s+([a-z_0-9]+)=(.*)$", linha.rstrip("\n"))
+                if m and atual:
+                    saida[atual][m.group(1)] = m.group(2)
+    except OSError:
+        return {}
+    return saida
+
+
+def programa_do_rotulo(rotulo):
+    """`custo-comunicacao: 1 thread ...` -> `custo-comunicacao`."""
+    return rotulo.split(":", 1)[0].strip() if ":" in rotulo else None
+
+
+def classificacao_leiaute():
+    """{rotulo: INVARIAVEL|SENSIVEL|DOMINADO} do arquivo declarado.
+
+    AUSENTE NAO E INVARIAVEL. Um rotulo que nao esta na lista nao foi
+    caracterizado, e a resposta honesta sobre ele e "identificabilidade nao
+    estabelecida" -- nem permissao, nem proibicao.
+    """
+    caminho = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "sensibilidade-leiaute.tsv")
+    fora = {}
+    try:
+        with io.open(caminho, encoding="utf-8") as fh:
+            for linha in fh:
+                if linha.startswith("#") or not linha.strip():
+                    continue
+                partes = linha.rstrip("\n").split("\t")
+                if len(partes) >= 2:
+                    fora[partes[0]] = partes[1].strip().upper()
+    except OSError:
+        pass
+    return fora
+
+
+# O QUE A FERRAMENTA PODE AFIRMAR, POR ROTULO.
+#
+# Ela existe para detectar mudanca da MAQUINA. Quando o instrumento binario
+# muda junto, a diferenca observada tem duas causas possiveis e a ferramenta
+# nao tem como separa-las -- entao ela recusa a inferencia em vez de emitir
+# uma conclusao com um asterisco.
+COMPARAVEL, NAO_ESTABELECIDO, NAO_COMPARAVEL, SEM_IDENTIDADE = range(4)
+
+
+def estado_de_comparacao(rotulo, art_base, art_novo, classes):
+    """Decide o que se pode afirmar sobre este rotulo. Ver COMPARAVEL etc."""
+    prog = programa_do_rotulo(rotulo)
+    a = (art_base.get(prog) or {}).get("text_sha256")
+    b = (art_novo.get(prog) or {}).get("text_sha256")
+    if not a or not b:
+        return SEM_IDENTIDADE
+    if a == b:
+        return COMPARAVEL
+    classe = classes.get(rotulo)
+    if classe == "INVARIAVEL":
+        return COMPARAVEL
+    if classe in ("SENSIVEL", "DOMINADO"):
+        return NAO_COMPARAVEL
+    return NAO_ESTABELECIDO
+
+
 def comparar(dirs, rotulos):
     dados = [coletar(d) for d in dirs]
     if any(d is None for d in dados):
@@ -229,6 +323,9 @@ def comparar(dirs, rotulos):
     # A AMPLITUDE E A DA COLETA NOVA, que e a ultima da linha de comando: e ela
     # que esta sendo julgada contra o historico dela.
     amps = amplitudes(dirs[-1])
+    art_base, art_novo = artefatos(dirs[0]), artefatos(dirs[-1])
+    classes = classificacao_leiaute()
+    contagem = {COMPARAVEL: 0, NAO_ESTABELECIDO: 0, NAO_COMPARAVEL: 0, SEM_IDENTIDADE: 0}
     chaves = sorted(set().union(*[set(d) for d in dados]))
     largura = max(len(k) for k in chaves) if chaves else 10
     cab = "  " + "medicao".ljust(largura) + "".join(f"  {r:>14}" for r in rotulos) + "   delta"
@@ -245,13 +342,22 @@ def comparar(dirs, rotulos):
         delta = ""
         if len(vals) > 1 and vals[0] and vals[-1]:
             d = 100.0 * (vals[-1] - vals[0]) / vals[0]
-            a = amps.get(k)
-            lim = limiar(a)
-            # A AMPLITUDE VAI IMPRESSA ao lado do delta. Marca sem a regua que a
-            # produziu obriga quem le a confiar; com ela, da para discordar.
-            regua = "  (amp %5.1f%%)" % a if a is not None else "  (sem regua)"
-            marca = "  <<<" if lim is not None and abs(d) > lim else ""
-            delta = f"  {d:+6.1f}%{regua}{marca}"
+            # O PORTAO DO ARTEFATO VEM ANTES DA REGUA, e a ordem e o ponto:
+            # nao adianta medir bem um desvio que pode nao ser da maquina.
+            est = estado_de_comparacao(k, art_base, art_novo, classes)
+            contagem[est] += 1
+            if est == NAO_COMPARAVEL:
+                delta = f"  {d:+6.1f}%  NAO COMPARAVEL ENTRE ARTEFATOS"
+            elif est == NAO_ESTABELECIDO:
+                delta = f"  {d:+6.1f}%  artefatos diferentes -- identificabilidade nao estabelecida"
+            else:
+                a = amps.get(k)
+                lim = limiar(a)
+                # A AMPLITUDE VAI IMPRESSA ao lado do delta. Marca sem a regua que a
+                # produziu obriga quem le a confiar; com ela, da para discordar.
+                regua = "  (amp %5.1f%%)" % a if a is not None else "  (sem regua)"
+                marca = "  <<<" if lim is not None and abs(d) > lim else ""
+                delta = f"  {d:+6.1f}%{regua}{marca}"
         print("  " + k.ljust(largura) + cels + delta)
     n_amp = sum(1 for k in chaves if k in amps)
     print(f"\n  {len(chaves)} rotulo(s); mediana das medianas, execucao de aquecimento descartada")
@@ -261,7 +367,33 @@ def comparar(dirs, rotulos):
     if n_amp < len(chaves):
         print(f"  SEM REGUA: {len(chaves) - n_amp} rotulo(s) sem amplitude historica -- nao "
               f"foram julgados, e nenhuma marca acima cobre eles")
+    relatar_artefatos(art_base, art_novo, contagem, rotulos)
     return 0
+
+
+def relatar_artefatos(art_base, art_novo, contagem, rotulos):
+    """Diz de qual INSTRUMENTO cada lado veio, e o que isso permite afirmar."""
+    if contagem[SEM_IDENTIDADE]:
+        print(f"\n  SEM IDENTIDADE DE ARTEFATO: {contagem[SEM_IDENTIDADE]} rotulo(s). Uma das")
+        print("  coletas e anterior a 27/09/2026 e nao registra `# ARTIFACT` no manifesto.")
+        print("  Ausencia de identidade NAO e prova de que o instrumento foi o mesmo.")
+    if contagem[NAO_ESTABELECIDO] or contagem[NAO_COMPARAVEL]:
+        print(f"\n  ARTEFATOS DIFERENTES entre {rotulos[0]} e {rotulos[-1]}:")
+        for prog in sorted(set(art_base) | set(art_novo)):
+            a = (art_base.get(prog) or {}).get("text_sha256", "-")
+            b = (art_novo.get(prog) or {}).get("text_sha256", "-")
+            if a != b:
+                print(f"    {prog}")
+                print(f"      text_sha256 base : {a}")
+                print(f"      text_sha256 nova : {b}")
+        if contagem[NAO_ESTABELECIDO]:
+            print(f"    {contagem[NAO_ESTABELECIDO]} rotulo(s) com identificabilidade NAO ESTABELECIDA:")
+            print("    nao ha caracterizacao de sensibilidade ao leiaute para eles, entao a")
+            print("    diferenca observada tem duas causas possiveis -- maquina e instrumento")
+            print("    -- e esta ferramenta nao separa as duas. Ver sensibilidade-leiaute.tsv.")
+        if contagem[NAO_COMPARAVEL]:
+            print(f"    {contagem[NAO_COMPARAVEL]} rotulo(s) NAO COMPARAVEIS: sensibilidade ao")
+            print("    leiaute demonstrada para eles, e o artefato mudou.")
 
 
 def autoteste():
@@ -340,6 +472,47 @@ def autoteste():
         # E com tres ha: e a fronteira pelo outro lado.
         caso(12, "com tres irmas ha amplitude",
              "prog: custo alvo" in amplitudes(coleta("2026-09-10-0100-soduas-x", [1.3, 1.3])), True)
+
+        # 13 a 20. O PORTAO DO ARTEFATO.
+        #
+        # A ferramenta existe para detectar mudanca da MAQUINA. Quando o
+        # instrumento binario muda junto, a diferenca tem duas causas possiveis
+        # e ela nao separa as duas -- entao recusa a inferencia em vez de
+        # marcar com um asterisco.
+        def manifesto(d, text_sha):
+            with io.open(os.path.join(str(d), "manifesto.txt"), "w", encoding="utf-8") as fh:
+                fh.write("%-40s %-7s %s\n" % ("CELL", "STATUS", "RC"))
+                fh.write("# ARTIFACT prog\n")
+                fh.write("#   source_origin=v0.0.0-1-gabc\n")
+                fh.write("#   text_sha256=%s\n" % text_sha)
+                fh.write("%-40s %-7s %s\n" % ("prog.r1.txt", "PASS", "0"))
+
+        base = coleta("2026-09-20-0100-artef-x", [1.0, 1.0])
+        novo = coleta("2026-09-21-0100-artef-x", [1.0, 1.0])
+        manifesto(base, "aaa")
+        manifesto(novo, "bbb")
+        ab, an = artefatos(base), artefatos(novo)
+        caso(13, "o bloco ARTIFACT e lido do manifesto",
+             ab.get("prog", {}).get("text_sha256"), "aaa")
+        caso(14, "o comentario nao vira celula",
+             ab.get("prog", {}).get("source_origin"), "v0.0.0-1-gabc")
+        caso(15, "artefato igual -> comparavel",
+             estado_de_comparacao("prog: x", ab, ab, {}), COMPARAVEL)
+        caso(16, "artefato diferente e rotulo nao caracterizado -> nao estabelecido",
+             estado_de_comparacao("prog: x", ab, an, {}), NAO_ESTABELECIDO)
+        caso(17, "artefato diferente e rotulo SENSIVEL -> nao comparavel",
+             estado_de_comparacao("prog: x", ab, an, {"prog: x": "SENSIVEL"}), NAO_COMPARAVEL)
+        caso(18, "artefato diferente e rotulo DOMINADO -> nao comparavel",
+             estado_de_comparacao("prog: x", ab, an, {"prog: x": "DOMINADO"}), NAO_COMPARAVEL)
+        # A PERMISSAO SO VEM DE CARACTERIZACAO, e por isso ela e explicita.
+        caso(19, "artefato diferente e rotulo INVARIAVEL -> comparavel",
+             estado_de_comparacao("prog: x", ab, an, {"prog: x": "INVARIAVEL"}), COMPARAVEL)
+        # AUSENCIA DE IDENTIDADE NAO E IDENTIDADE IGUAL: coleta velha nao
+        # registra artefato, e dizer "comparavel" ali seria inventar a garantia.
+        caso(20, "sem bloco ARTIFACT -> sem identidade",
+             estado_de_comparacao("prog: x", {}, an, {}), SEM_IDENTIDADE)
+        caso(21, "rotulo sem programa nao quebra o portao",
+             estado_de_comparacao("sem-dois-pontos", ab, an, {}), SEM_IDENTIDADE)
 
     print("\n  autoteste: %d assercao(oes) falharam" % falhas)
     return falhas
