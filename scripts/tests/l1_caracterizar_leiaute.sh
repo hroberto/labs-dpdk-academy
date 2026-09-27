@@ -165,6 +165,18 @@ conferir "e diz que nao ha o que ancorar" \
 conferir "e NAO degrada para aviso" \
     "$(printf '%s' "$saida" | grep -c 'AVISO')" "0"
 
+# 6a2. DOIS BINARIOS COM O MESMO NOME -> aborta, em vez de escolher.
+#      Era `find ... | head -1`. No dia em que dois diretorios do build
+#      tiverem um executavel homonimo, a ancora escolheria um em SILENCIO e
+#      passaria a descrever um instrumento que talvez nao seja o medido.
+montar_ancora sim nao
+mkdir -p "$tmp/arv/build-precommit/sub"
+printf 'outro\n' > "$tmp/arv/build-precommit/sub/x"; chmod +x "$tmp/arv/build-precommit/sub/x"
+saida=$(rodar_x); rc=$?
+conferir "dois binarios homonimos abortam"       "$rc" "1"
+conferir "e os dois sao listados"                \
+    "$(printf '%s' "$saida" | grep -c 'build-precommit/x$\|build-precommit/sub/x$')" "2"
+
 # 6b. A VARIANTE DO ALINHAMENTO DE PRODUCAO NAO CONSTRUIU -> aborta.
 montar_ancora sim sim
 saida=$(rodar_x); rc=$?

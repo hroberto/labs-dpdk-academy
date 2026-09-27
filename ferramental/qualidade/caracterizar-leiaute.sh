@@ -242,7 +242,24 @@ for prog in $PROGRAMAS; do
     # coisa nenhuma. Os dois sao fail-open no portao que existe para fechar
     # fail-open.
     prod=$(printf '%s' "$CC_JSON" | sed 's|/compile_commands.json||')
-    prod_bin=$(find "$prod" -type f -name "$prog" -perm -u+x 2>/dev/null | head -1)
+    # AMBIGUIDADE ABORTA, em vez de escolher a primeira.
+    #
+    # Era `find ... | head -1`. Hoje o alvo e unico e funciona; no dia em que
+    # dois diretorios do build tiverem um executavel com o mesmo nome, a ancora
+    # escolheria um deles em SILENCIO e a caracterizacao passaria a descrever
+    # um instrumento que talvez nao seja o medido -- que e literalmente o
+    # defeito que este portao existe para pegar, entrando pela escolha
+    # arbitraria em vez de pelo comando remontado.
+    prod_bins=$(find "$prod" -type f -name "$prog" -perm -u+x 2>/dev/null)
+    n_prod=$(printf '%s\n' "$prod_bins" | grep -c . || true)
+    if [ "$n_prod" -gt 1 ]; then
+        echo "FALHA: achei $n_prod executaveis chamados $prog em $prod." >&2
+        printf '%s\n' "$prod_bins" | sed 's/^/           /' >&2
+        echo "  Escolher um deles em silencio produziria uma ancora sobre o" >&2
+        echo "  binario errado. Diga qual com DPDK_ACADEMY_BUILD." >&2
+        exit 1
+    fi
+    prod_bin=$(printf '%s\n' "$prod_bins" | head -1)
     meu="$RAIZ/$SAIDA/artefatos/$prog.al$AL_PRODUCAO"
     [ -n "$prod_bin" ] || {
         echo "FALHA: nao achei o binario de producao de $prog em $prod." >&2
