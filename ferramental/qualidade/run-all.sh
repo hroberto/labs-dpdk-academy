@@ -2,12 +2,12 @@
 # =========================================================================
 # UMA EXECUCAO, TUDO QUE PRECISA DA MAQUINA LIMPA
 #
-#   sudo ./ferramental/qualidade/run-all.sh                  as quatro etapas
+#   sudo ./ferramental/qualidade/run-all.sh                  as cinco etapas
 #   sudo ./ferramental/qualidade/run-all.sh --so-ruido       so os passos de ruido
 #   sudo ./ferramental/qualidade/run-all.sh --so-hardware    so a campanha de hardware
 #   sudo ./ferramental/qualidade/run-all.sh --so-leiaute     so a caracterizacao
 #
-# OS DOIS RECORTES MANTEM A ETAPA 1. Ela recompila antes de medir e grava a
+# OS TRES RECORTES MANTEM A ETAPA 1. Ela recompila antes de medir e grava a
 # procedencia da maquina, e e por isso que nao ha motivo para chamar a
 # `campanha.sh` direto: o atalho economiza a unica parte que nao se reconstroi
 # depois.
@@ -137,7 +137,7 @@ uso() {
     echo >&2
     echo "uso: $0 [--so-ruido | --so-hardware] [<configuracao>]" >&2
     echo >&2
-    echo "  sem flag        as quatro etapas." >&2
+    echo "  sem flag        as cinco etapas." >&2
     echo "  --so-ruido      etapas 1 e 3 (passos de ruido). A sonda e os blocos" >&2
     echo "                  da trilha medem custo, e ficam de fora." >&2
     echo "  --so-hardware   etapas 1 e 3 (campanha de hardware), que e onde o" >&2
@@ -154,7 +154,7 @@ uso() {
 #
 # Uma intervencao sobre o que TOMA a CPU -- desligar o power gating da GPU, por
 # exemplo -- precisa da procedencia e dos passos de ruido, e nao e afetada pelo
-# resto. Rodar as quatro etapas para responder isso custaria uma hora em vez de
+# resto. Rodar as cinco etapas para responder isso custaria mais de uma hora em vez de
 # vinte minutos, e a diferenca vira desculpa para nao repetir.
 #
 # A ETAPA 1 NAO E PULADA NEM AQUI, e e a razao principal de passar pelo
@@ -175,7 +175,7 @@ uso() {
 # linha de procedencia apontando para o commit de hoje. O atalho foi usado em
 # 26/09/2026, e a coleta que saiu dele nao e publicavel por esse motivo.
 #
-# A ETAPA 1 NAO E PULADA POR NENHUM DOS DOIS RECORTES. E ela que reconstroi
+# A ETAPA 1 NAO E PULADA POR NENHUM DOS TRES RECORTES. E ela que reconstroi
 # antes de medir e grava o estado da maquina; sem ela o recorte deixa de ser
 # um recorte e vira outra coisa.
 SO_RUIDO=0
@@ -191,8 +191,8 @@ while [ $# -gt 0 ]; do
         *)  break ;;
     esac
 done
-# OS DOIS JUNTOS NAO SE SOMAM, SE CONTRADIZEM: um pede os passos de ruido e o
-# outro pede os de hardware, e a campanha executaria so o segundo em silencio.
+# DOIS RECORTES JUNTOS NAO SE SOMAM, SE CONTRADIZEM: cada um nomeia um objeto
+# diferente, e a execucao atenderia so o ultimo em silencio.
 # Recusar e dizer qual recorte se quer e mais barato que descobrir depois que a
 # coleta nao tem o braco que se foi medir.
 if [ $((SO_RUIDO + SO_HARDWARE + SO_LEIAUTE)) -gt 1 ]; then
@@ -343,10 +343,15 @@ chown "$DONO" .ambiente-memoria 2>/dev/null   # o cache ja foi refeito ao deriva
     echo "modo detectado : $MODO ($graficos processo(s) grafico(s))"
     echo "configuracao   : $CONFIG"
     echo "carimbo        : $CARIMBO"
+    # NAO ENUMERAR AS ETAPAS AQUI, e a razao e a que este arquivo ja pagou
+    # tres vezes hoje: a lista envelhece sozinha. Ela dizia "etapas 2 e 4 nao
+    # correram", e sob `--so-leiaute` quem nao corre sao 2, 3 e 4. Cada etapa
+    # ja declara o proprio `PULADA` no diario, com o motivo; aqui basta dizer
+    # QUE houve recorte e qual.
     if [ -n "$RECORTE" ]; then
-        echo "execucao       : RECORTADA por $RECORTE -- etapas 2 e 4 nao correram"
+        echo "execucao       : RECORTADA por $RECORTE"
     else
-        echo "execucao       : completa (quatro etapas)"
+        echo "execucao       : completa (cinco etapas)"
     fi
     echo
 } > "$SAIDA_AMB/ambiente.txt"
@@ -615,7 +620,7 @@ echo
 echo "==> ETAPA 4/5  blocos da trilha, com repeticoes  ($(date +%T))"
 if [ -n "$RECORTE" ]; then
     echo "    PULADA ($RECORTE): os blocos publicados da trilha nao sao objeto"
-    echo "            de nenhum dos dois recortes"
+    echo "            de nenhum dos recortes"
     # AQUI HAVIA UM `exit` ANTECIPADO, e ele tinha dois defeitos em sequencia.
     #
     # O primeiro era descartar o `rc` da campanha: com `--so-ruido`, uma

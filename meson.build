@@ -503,6 +503,15 @@ test('scripts - L1 (o tarball do DPDK e conferido)', bash,
 # O `run-all` esta acima da campanha e tinha os mesmos caminhos de falso
 # sucesso que ela: `--so-ruido` descartava o resultado, SIGTERM nao terminava,
 # e a etapa 4 criava arquivos sem conferir retorno.
+# A CARACTERIZACAO SO RESPONDE SE VARIAR UMA COISA, e cada portao dela fecha
+# um jeito de varrer uma segunda variavel para dentro sem aviso. O pior era o
+# fallback para `build-san`: configurado com `-Db_sanitize=address,undefined`,
+# ele passa `-fno-omit-frame-pointer`, que muda alocacao de registradores e
+# leiaute -- exatamente a variavel sob estudo.
+test('scripts - L1 (a caracterizacao so corre com uma variavel livre)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_caracterizar_leiaute.sh'],
+     suite : ['l1', 'scripts'], timeout : 120)
+
 test('scripts - L1 (run-all so conclui se tudo concluir)', bash,
      args : [meson.project_source_root() / 'scripts/tests/l1_run_all_veredito.sh'],
      suite : ['l1', 'scripts'], timeout : 60)

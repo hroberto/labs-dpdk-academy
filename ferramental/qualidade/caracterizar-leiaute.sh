@@ -92,14 +92,39 @@ if [ "$graficos" -ne 0 ]; then
     exit 1
 fi
 
-# ---- PORTAO 3: O BUILD DO PROJETO PRECISA EXISTIR -----------------------
-# E dele que saem as flags. Sem `compile_commands.json` nao ha como garantir
-# que os artefatos diferem da producao em uma variavel so.
-CC_JSON=""
-for d in build build-san; do
-    [ -f "$d/compile_commands.json" ] && { CC_JSON="$d/compile_commands.json"; break; }
-done
-[ -n "$CC_JSON" ] || { echo "FALHA: nao achei compile_commands.json; rode ./scripts/build-all.sh antes." >&2; exit 1; }
+# ---- PORTAO 3: RECONSTRUIR ANTES DE LER AS FLAGS ------------------------
+#
+# O contrato desta etapa e simples e precisa continuar simples:
+#
+#   a caracterizacao deriva as flags do BUILD NORMAL ATUAL, que acabou de
+#   passar pela mesma reconstrucao que a campanha usa.
+#
+# Conferir a data do `compile_commands.json` nao bastaria: uma mudanca no
+# `meson.build` altera as flags sem tocar em nenhum `.c`, e o arquivo ficaria
+# "recente" descrevendo outra coisa. `build-all.sh` e no-op quando nada mudou,
+# entao reconstruir custa segundos e fecha o caso inteiro. Chamado sozinho ou
+# pela ETAPA 5 do `run-all`, o caminho e o mesmo.
+echo "==> reconstruindo o build normal (no-op se nada mudou)"
+if ! sudo -u "$DONO" -H ./scripts/build-all.sh build > /tmp/caracterizar-build.$$.log 2>&1; then
+    echo "FALHA: a compilacao nao passou. A caracterizacao NAO comeca." >&2
+    tail -20 /tmp/caracterizar-build.$$.log >&2
+    rm -f /tmp/caracterizar-build.$$.log
+    exit 1
+fi
+rm -f /tmp/caracterizar-build.$$.log
+
+# SO O BUILD NORMAL, E NUNCA UM FALLBACK.
+#
+# A versao anterior aceitava `build-san` quando `build` faltava. O `build-san`
+# e configurado com `-Db_sanitize=address,undefined`, e suas flags trazem
+#
+#     -fsanitize=address,undefined -fno-omit-frame-pointer
+#
+# O `-fno-omit-frame-pointer` sozinho ja muda alocacao de registradores e
+# leiaute -- que e A VARIAVEL SOB ESTUDO. Caracterizar a partir dali mediria o
+# efeito do sanitizador e chamaria de sensibilidade ao leiaute.
+CC_JSON="build/compile_commands.json"
+[ -f "$CC_JSON" ] || { echo "FALHA: $CC_JSON nao existe mesmo apos reconstruir." >&2; exit 1; }
 
 CARIMBO="$(date +%Y-%m-%d-%H%M)"
 SAIDA="docs/01-fundamentos/medicoes/historico/$CARIMBO-leiaute"
