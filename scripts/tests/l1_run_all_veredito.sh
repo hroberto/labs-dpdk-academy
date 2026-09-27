@@ -74,45 +74,97 @@ echo \$rc_final" 2>/dev/null)
     conferir "campanha rc=$1 agrega como $2" "$obtido" "$2"
 done
 
-# ---- 2. NENHUM RECORTE descarta o resultado -----------------------------
+# ---- 2. NENHUM RECORTE descarta o resultado, E NENHUM SAI ANTES --------
 #
-# Eram dois caminhos curtos e viraram tres: sem flag, `--so-ruido` e
-# `--so-hardware`. O atalho da etapa 4 vale para os dois recortes, e o `rc` da
-# campanha tem de sobreviver a ele em ambos -- o defeito original existia so no
-# mais usado, que e exatamente onde ninguem olha.
-veredito_real=$(awk '/^veredito_linha\(\) \{/,/^\}/' "$fonte")
-recorte4=$(recorte_bloco 'ETAPA 4/4' 'if [ -n "$RECORTE" ]; then')
-[ -n "$recorte4" ] || { echo "  FALHOU: nao recortei o bloco da etapa 4"; falhas=$((falhas + 1)); }
+# A etapa 4 saia com `exit` sob recorte. Isso teve dois defeitos em sequencia:
+# primeiro descartava o `rc` da campanha -- `--so-ruido` com campanha falhando
+# em 42 produzia `run-all CONCLUIDO` e codigo 0 --, e depois, quando a
+# caracterizacao virou a ETAPA 5, passaria a PULAR a etapa seguinte sob
+# qualquer recorte, inclusive sob `--so-leiaute`, cujo unico proposito e
+# chegar nela.
+#
+# O veredito e unico e fica no fim do arquivo. Nenhum caminho o contorna.
+recorte_ate_else() { # <ancora> <marcador> -> do marcador ate o `else` de coluna zero
+    awk -v anc="$1" -v ini="$2" '
+        index($0, anc) { achou = 1 }
+        achou && index($0, ini) { dentro = 1 }
+        dentro { print }
+        dentro && /^else$/ { exit }
+    ' "$fonte"
+}
+guarda4=$(recorte_ate_else 'ETAPA 4/5' 'if [ -n "$RECORTE" ]; then')
+[ -n "$guarda4" ] || { echo "  FALHOU: nao recortei a guarda da etapa 4"; falhas=$((falhas + 1)); }
 
-for r in --so-ruido --so-hardware; do
-    rc=0
-    saida=$(bash -c "RECORTE='$r'; rc=42; rc_final=1
-$veredito_real
-$recorte4" 2>&1) || rc=$?
-    conferir "$r com campanha falhando devolve o erro" "$rc" "1"
-    conferir "$r nao imprime CONCLUIDO quando falhou" \
-        "$(printf '%s' "$saida" | grep -c 'run-all CONCLUIDO')" "0"
-    # O MOTIVO DO PULO NOMEIA O RECORTE. Um "PULADA" generico deixaria o diario
-    # sem dizer QUAL escolha removeu a etapa, que e a informacao de que quem le
-    # a coleta depois precisa.
-    conferir "$r diz qual recorte pulou a etapa 4" \
+# O MARCADOR VAI DEPOIS DO `fi`, e nao dentro do `else`.
+#
+# A primeira versao desta assercao punha `echo SEGUIU` no ramo `else`, que NAO
+# corre quando ha recorte -- entao ela reprovava a guarda correta. O que se
+# quer provar e que o fluxo ATRAVESSA a guarda, e isso so se ve depois do `fi`.
+executar4() { # <recorte> -> o que a guarda da etapa 4 fez
+    # `rc_final` VAI DEFINIDO, e isso nao e detalhe do harness.
+    #
+    # Sem ele, um `exit "$rc_final"` reintroduzido vira `exit ""` -- que o bash
+    # RECUSA com "requer argumento numerico" e NAO executa, seguindo o fluxo.
+    # A assercao ficava cega justamente a mutacao que ela existe para pegar:
+    # o teste exercitava uma versao degradada do defeito.
+    bash -c "rc_final=0; RECORTE='$1'
+$guarda4
+echo CORPO_DA_ETAPA_4
+fi
+echo ATRAVESSOU_A_ETAPA_4" 2>&1
+}
+for r in --so-ruido --so-hardware --so-leiaute; do
+    saida=$(executar4 "$r")
+    conferir "$r pula a etapa 4 dizendo qual recorte" \
         "$(printf '%s' "$saida" | grep -c "PULADA ($r)")" "1"
-
-    rc=0
-    bash -c "RECORTE='$r'; rc=0; rc_final=0
-$veredito_real
-$recorte4" >/dev/null 2>&1 || rc=$?
-    conferir "$r com campanha boa devolve 0" "$rc" "0"
+    conferir "$r nao executa o corpo da etapa 4" \
+        "$(printf '%s' "$saida" | grep -c CORPO_DA_ETAPA_4)" "0"
+    # O QUE MUDOU: a guarda NAO pode mais terminar o fluxo, senao a ETAPA 5
+    # ficaria inalcancavel sob `--so-leiaute`, que existe para chegar nela.
+    conferir "$r nao interrompe o fluxo antes da etapa 5" \
+        "$(printf '%s' "$saida" | grep -c ATRAVESSOU_A_ETAPA_4)" "1"
 done
 
-# E O CASO NEGATIVO: sem recorte, a etapa 4 NAO pode ser pulada. Sem esta
-# assercao, um `if true` no lugar da condicao passaria em tudo acima.
-saida=$(bash -c "RECORTE=''; rc=0; rc_final=0
-$veredito_real
-$recorte4
-echo SEGUIU_PARA_A_ETAPA_4" 2>&1)
+# E O CASO NEGATIVO: sem recorte, o corpo corre e nada e pulado.
+saida=$(executar4 "")
 conferir "sem recorte a etapa 4 corre" \
-    "$(printf '%s' "$saida" | grep -c SEGUIU_PARA_A_ETAPA_4)" "1"
+    "$(printf '%s' "$saida" | grep -c CORPO_DA_ETAPA_4)" "1"
+conferir "e nao imprime PULADA" \
+    "$(printf '%s' "$saida" | grep -c PULADA)" "0"
+
+# ---- 2b. A ETAPA 5 e o unico lugar onde a caracterizacao roda ----------
+#
+# Ela exige modo texto: com compositor vivo a faixa entre execucoes fica
+# ilegivel, e o numero PARECERIA valido -- foi o que aconteceu em 27/09/2026,
+# quando uma execucao perturbada em dez levou a faixa de `lock, best case` a
+# 84%. Pular e declarar e a resposta certa; medir assim nao e.
+guarda5=$(recorte_bloco 'ETAPA 5/5' 'if [ "$SO_RUIDO" -eq 1 ] || [ "$SO_HARDWARE" -eq 1 ]; then')
+[ -n "$guarda5" ] || { echo "  FALHOU: nao recortei a guarda da etapa 5"; falhas=$((falhas + 1)); }
+
+executar5() { # <SO_RUIDO> <SO_HARDWARE> <MODO> -> o que a etapa 5 fez
+    bash -c "SO_RUIDO=$1; SO_HARDWARE=$2; MODO='$3'; RECORTE='-'; graficos=2
+marcar_incompleta() { echo MARCOU_INCOMPLETA; }
+marcar_falha() { echo MARCOU_FALHA; }
+LEIAUTE_REPETICOES=1; LEIAUTE_PROGRAMAS=x
+cd \"\$(mktemp -d)\"; mkdir -p ferramental/qualidade
+printf '#!/bin/sh\necho CARACTERIZOU\n' > ferramental/qualidade/caracterizar-leiaute.sh
+chmod +x ferramental/qualidade/caracterizar-leiaute.sh
+$guarda5" 2>&1
+}
+conferir "em modo texto e sem recorte, a caracterizacao roda" \
+    "$(executar5 0 0 texto | grep -c CARACTERIZOU)" "1"
+conferir "em modo grafico ela NAO roda" \
+    "$(executar5 0 0 grafico | grep -c CARACTERIZOU)" "0"
+# PULAR NAO E PASSAR: a coleta fica incompleta, e o historico precisa saber.
+conferir "e o pulo por modo grafico marca a execucao como incompleta" \
+    "$(executar5 0 0 grafico | grep -c MARCOU_INCOMPLETA)" "1"
+conferir "--so-ruido pula a caracterizacao" \
+    "$(executar5 1 0 texto | grep -c CARACTERIZOU)" "0"
+conferir "--so-hardware pula a caracterizacao" \
+    "$(executar5 0 1 texto | grep -c CARACTERIZOU)" "0"
+# E O PULO POR RECORTE NAO E INCOMPLETUDE: foi escolha declarada.
+conferir "pulo por recorte nao marca incompleta" \
+    "$(executar5 1 0 texto | grep -c MARCOU_INCOMPLETA)" "0"
 
 # ---- 3. SIGTERM TERMINA o fluxo -----------------------------------------
 # O trap antigo restaurava o governor e devolvia o controle: `kill -TERM $$`
@@ -196,8 +248,11 @@ conferir "--so-ruido marca o recorte"        "$(analisar --so-ruido cfg)"     "1
 conferir "--so-hardware marca o recorte"     "$(analisar --so-hardware cfg)"  "0 1 [--so-hardware] cfg"
 conferir "e a configuracao sobrevive a flag" "$(analisar --so-hardware x-y)"  "0 1 [--so-hardware] x-y"
 
-rc=0; analisar --so-ruido --so-hardware >/dev/null 2>&1 || rc=$?
-conferir "os dois juntos sao recusados" "$rc" "2"
+conferir "--so-leiaute marca o recorte"        "$(analisar --so-leiaute cfg)"   "0 0 [--so-leiaute] cfg"
+for par in "--so-ruido --so-hardware" "--so-ruido --so-leiaute" "--so-hardware --so-leiaute"; do
+    rc=0; analisar $par >/dev/null 2>&1 || rc=$?
+    conferir "recortes juntos sao recusados ($par)" "$rc" "2"
+done
 rc=0; analisar --nao-existe >/dev/null 2>&1 || rc=$?
 conferir "opcao desconhecida e recusada" "$rc" "2"
 
@@ -247,4 +302,4 @@ if [ "$falhas" -gt 0 ]; then
     exit 1
 fi
 echo "  ok: $total assercoes; run-all so conclui se todas as etapas concluirem,"
-echo "      e os dois recortes preservam a etapa 1 e o veredito"
+echo "      e os tres recortes preservam a etapa 1 e o veredito unico"

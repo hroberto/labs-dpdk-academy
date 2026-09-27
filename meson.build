@@ -265,6 +265,20 @@ if python3.found()
                '--autoteste'],
        suite : ['l1', 'docs'], timeout : 60)
 
+  # O CLASSIFICADOR ENTRA NA BARRA PELO MESMO CRITERIO QUE TODO VERIFICADOR:
+  # tem autoteste, e o autoteste mata um mutante. Ele decide quais rotulos
+  # podem ser comparados entre artefatos diferentes, entao um defeito nele
+  # devolve a autorizacao que o `comparar-hardware.py` veio retirar.
+  #
+  # O caso que ele existe para nao errar e o terceiro do autoteste: quando a
+  # variacao entre execucoes do MESMO artefato engole o envelope entre
+  # alinhamentos, a resposta nao e "invariavel" -- e "nao consegui
+  # distinguir", e o rotulo fica fora da tabela.
+  test('docs - autoteste do classificador de leiaute', python3,
+       args : [meson.project_source_root() / 'ferramental/qualidade/classificar-leiaute.py',
+               '--autoteste'],
+       suite : ['l1', 'docs'], timeout : 60)
+
   test('docs - autoteste da leitura de condicao da coleta', python3,
        args : [meson.project_source_root() / 'ferramental/qualidade/condicao_coleta.py',
                '--autoteste'],
@@ -489,6 +503,15 @@ test('scripts - L1 (o tarball do DPDK e conferido)', bash,
 # O `run-all` esta acima da campanha e tinha os mesmos caminhos de falso
 # sucesso que ela: `--so-ruido` descartava o resultado, SIGTERM nao terminava,
 # e a etapa 4 criava arquivos sem conferir retorno.
+# A CARACTERIZACAO SO RESPONDE SE VARIAR UMA COISA, e cada portao dela fecha
+# um jeito de varrer uma segunda variavel para dentro sem aviso. O pior era o
+# fallback para `build-san`: configurado com `-Db_sanitize=address,undefined`,
+# ele passa `-fno-omit-frame-pointer`, que muda alocacao de registradores e
+# leiaute -- exatamente a variavel sob estudo.
+test('scripts - L1 (a caracterizacao so corre com uma variavel livre)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_caracterizar_leiaute.sh'],
+     suite : ['l1', 'scripts'], timeout : 120)
+
 test('scripts - L1 (run-all so conclui se tudo concluir)', bash,
      args : [meson.project_source_root() / 'scripts/tests/l1_run_all_veredito.sh'],
      suite : ['l1', 'scripts'], timeout : 60)
