@@ -92,7 +92,34 @@ if [ "$graficos" -ne 0 ]; then
     exit 1
 fi
 
-# ---- PORTAO 3: RECONSTRUIR ANTES DE LER AS FLAGS ------------------------
+# ---- PORTAO 3: ARVORE LIMPA ---------------------------------------------
+#
+# O `PADROES.md` §1 diz que binario de arvore suja nao e procedencia. Aqui isso
+# NAO E FORMALIDADE: em 27/09/2026 um arquivo removido deixou o `git describe`
+# em `-dirty`, seis caracteres a mais, e o `.text` do binario mudou -- porque
+# o tamanho da string de procedencia desloca o `.rodata` e os deslocamentos
+# entram no codigo. A sujeira alterou o INSTRUMENTO, que e a variavel sob
+# estudo.
+#
+# `--untracked-files=all` E NAO SO O `--dirty` DO DESCRIBE. O `git describe`
+# ignora arquivo nao rastreado, e um `.h` solto no diretorio de fontes entra
+# na compilacao sem aparecer ali. Foi um arquivo solto -- varrido para a
+# arvore por um `git add -A` descuidado -- que originou este portao.
+#
+# `historico/` FICA DE FORA, e a excecao e declarada: coleta e SAIDA de
+# medicao, nunca entra em caminho de inclusao. Sem esta excecao, a segunda
+# campanha seria bloqueada pelos arquivos que a primeira produziu.
+sujeira=$(sudo -u "$DONO" git status --porcelain --untracked-files=all 2>/dev/null \
+          | grep -v '/historico/' || true)
+if [ -n "$sujeira" ]; then
+    echo "FALHA: a caracterizacao exige arvore git limpa." >&2
+    printf '%s\n' "$sujeira" | sed 's/^/           /' >&2
+    echo "  O tamanho da string de procedencia entra no `.text`: um `-dirty`" >&2
+    echo "  no describe muda o binario, e com ele o instrumento medido." >&2
+    exit 1
+fi
+
+# ---- PORTAO 4: RECONSTRUIR ANTES DE LER AS FLAGS ------------------------
 #
 # O contrato desta etapa e simples e precisa continuar simples:
 #
