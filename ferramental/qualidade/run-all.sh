@@ -2,7 +2,14 @@
 # =========================================================================
 # UMA EXECUCAO, TUDO QUE PRECISA DA MAQUINA LIMPA
 #
-#   sudo ./ferramental/qualidade/run-all.sh
+#   sudo ./ferramental/qualidade/run-all.sh                  as quatro etapas
+#   sudo ./ferramental/qualidade/run-all.sh --so-ruido       so os passos de ruido
+#   sudo ./ferramental/qualidade/run-all.sh --so-hardware    so a campanha de hardware
+#
+# OS DOIS RECORTES MANTEM A ETAPA 1. Ela recompila antes de medir e grava a
+# procedencia da maquina, e e por isso que nao ha motivo para chamar a
+# `campanha.sh` direto: o atalho economiza a unica parte que nao se reconstroi
+# depois.
 #
 # O nome da coleta se monta sozinho:
 #
@@ -125,6 +132,21 @@ derivar_config() {
     printf '%s-%s' "$perfil" "$canal"
 }
 
+uso() {
+    echo >&2
+    echo "uso: $0 [--so-ruido | --so-hardware] [<configuracao>]" >&2
+    echo >&2
+    echo "  sem flag        as quatro etapas." >&2
+    echo "  --so-ruido      etapas 1 e 3 (passos de ruido). A sonda e os blocos" >&2
+    echo "                  da trilha medem custo, e ficam de fora." >&2
+    echo "  --so-hardware   etapas 1 e 3 (campanha de hardware), que e onde o" >&2
+    echo "                  manifesto nasce. O resto nao depende do perfil de" >&2
+    echo "                  memoria." >&2
+    echo >&2
+    echo "  A ETAPA 1 corre nos tres casos: ela recompila e grava a procedencia." >&2
+    echo "  O modo -- texto ou grafico -- e detectado, nunca informado." >&2
+}
+
 # `--so-ruido` ATRAVESSA ATE A CAMPANHA, e existe para experimento de fonte.
 #
 # Uma intervencao sobre o que TOMA a CPU -- desligar o power gating da GPU, por
@@ -136,8 +158,43 @@ derivar_config() {
 # `run-all` em vez de chamar a campanha direto: e ela que grava a linha de boot
 # do kernel, e `amdgpu.pg_mask=0` vive exatamente ali. Experimento cuja
 # intervencao nao esta no arquivo e anedota.
+# `--so-hardware` EXISTE PELA MESMA RAZAO, E PELO CAMINHO OPOSTO.
+#
+# Ele recorta a execucao no que depende do PERFIL DE MEMORIA -- a campanha de
+# hardware, que e onde o `manifesto.txt` nasce. Trocar um perfil na BIOS custa
+# um reboot, e a pergunta que se responde depois dele nao e sobre ruido nem
+# sobre os blocos publicados da trilha.
+#
+# ELE NAO EXISTIA, e a ausencia teve consequencia concreta: o unico jeito de
+# rodar so a campanha de hardware era chamar `campanha.sh --so-hardware`
+# direto, o que PULA A ETAPA 1 -- a recompilacao e a procedencia da maquina.
+# Uma coleta assim mede os binarios que por acaso estavam em `build/`, com a
+# linha de procedencia apontando para o commit de hoje. O atalho foi usado em
+# 26/09/2026, e a coleta que saiu dele nao e publicavel por esse motivo.
+#
+# A ETAPA 1 NAO E PULADA POR NENHUM DOS DOIS RECORTES. E ela que reconstroi
+# antes de medir e grava o estado da maquina; sem ela o recorte deixa de ser
+# um recorte e vira outra coisa.
 SO_RUIDO=0
-if [ "${1:-}" = "--so-ruido" ]; then SO_RUIDO=1; shift; fi
+SO_HARDWARE=0
+RECORTE=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --so-ruido)     SO_RUIDO=1;    RECORTE="--so-ruido";    shift ;;
+        --so-hardware)  SO_HARDWARE=1; RECORTE="--so-hardware"; shift ;;
+        -*) echo "opcao desconhecida: $1" >&2; uso; exit 2 ;;
+        *)  break ;;
+    esac
+done
+# OS DOIS JUNTOS NAO SE SOMAM, SE CONTRADIZEM: um pede os passos de ruido e o
+# outro pede os de hardware, e a campanha executaria so o segundo em silencio.
+# Recusar e dizer qual recorte se quer e mais barato que descobrir depois que a
+# coleta nao tem o braco que se foi medir.
+if [ "$SO_RUIDO" -eq 1 ] && [ "$SO_HARDWARE" -eq 1 ]; then
+    echo "FALHA: --so-ruido e --so-hardware se excluem." >&2
+    echo "  O primeiro recorta nos passos de ruido, o segundo nos de hardware." >&2
+    exit 2
+fi
 
 CONFIG="${1:-}"
 if [ -z "$CONFIG" ]; then
@@ -260,10 +317,21 @@ rm -f "/tmp/run-all-build.$$.log"
 
 mkdir -p "$SAIDA_AMB"
 chown "$DONO" .ambiente-memoria 2>/dev/null   # o cache ja foi refeito ao derivar o nome
+# O RECORTE VAI NO ARQUIVO, e nao so na tela.
+#
+# Uma execucao recortada produz uma coleta com etapas faltando. Sem esta linha,
+# quem a encontrar daqui a um ano ve os bracos ausentes e nao consegue separar
+# "nao foi medido por escolha" de "falhou e ninguem viu" -- que e a mesma
+# ambiguidade que o `manifesto.txt` veio resolver uma camada abaixo.
 {
     echo "modo detectado : $MODO ($graficos processo(s) grafico(s))"
     echo "configuracao   : $CONFIG"
     echo "carimbo        : $CARIMBO"
+    if [ -n "$RECORTE" ]; then
+        echo "execucao       : RECORTADA por $RECORTE -- etapas 2 e 4 nao correram"
+    else
+        echo "execucao       : completa (quatro etapas)"
+    fi
     echo
 } > "$SAIDA_AMB/ambiente.txt"
 ./scripts/ambiente.sh >> "$SAIDA_AMB/ambiente.txt" 2>&1
@@ -286,6 +354,9 @@ echo
 echo "==> ETAPA 2/4  sonda atomic relaxed  ($(date +%T))"
 if [ "$SO_RUIDO" -eq 1 ]; then
     echo "    PULADA (--so-ruido): a sonda mede custo, nao ruido"
+elif [ "$SO_HARDWARE" -eq 1 ]; then
+    echo "    PULADA (--so-hardware): a sonda mede sincronizacao entre irmaos"
+    echo "            SMT, que nao depende do perfil de memoria"
 elif [ ! -x "$SONDA" ]; then
     echo "    PULADO: $SONDA ausente; rode ./scripts/build-all.sh"
 else
@@ -434,8 +505,10 @@ echo "==> ETAPA 3/4  campanha completa  ($(date +%T))"
 # O NOME VAI JA CARIMBADO. A campanha detecta o carimbo e nao aplica outro --
 # sem isso ela usaria o horario de QUANDO ELA comeca, que e minutos depois das
 # etapas anteriores, e a mesma execucao apareceria sob dois nomes.
-EXTRA=""
-[ "$SO_RUIDO" -eq 1 ] && EXTRA="--so-ruido"
+# O RECORTE ATRAVESSA INTEIRO. `$RECORTE` ja e "--so-ruido", "--so-hardware"
+# ou vazio, entao a campanha recebe exatamente o que esta etapa recebeu -- sem
+# uma segunda lista de flags para manter em sincronia com a primeira.
+EXTRA="$RECORTE"
 # shellcheck disable=SC2086
 ./ferramental/qualidade/campanha.sh "--$MODO" $EXTRA "$CARIMBO-$CONFIG"
 rc=$?
@@ -500,8 +573,9 @@ veredito_linha() {
 # --------------------------------------------------------------------------
 echo
 echo "==> ETAPA 4/4  blocos da trilha, com repeticoes  ($(date +%T))"
-if [ "$SO_RUIDO" -eq 1 ]; then
-    echo "    PULADA (--so-ruido)"
+if [ -n "$RECORTE" ]; then
+    echo "    PULADA ($RECORTE): os blocos publicados da trilha nao sao objeto"
+    echo "            de nenhum dos dois recortes"
     echo
     echo "=========================================================="
     # O `exit 0` AQUI DESCARTAVA O `rc` DA CAMPANHA, capturado vinte linhas
@@ -633,11 +707,20 @@ fi
 echo
 echo "=========================================================="
 veredito_linha
-echo
-echo "  Para voltar ao modo grafico: reinicie."
-echo "    sudo reboot"
-echo '  O grub-reboot e de BOOT UNICO -- a entrada de modo texto ja expirou,'
-echo "  e nao ha sessao grafica aqui inibindo o desligamento. Sem -i, sem"
-echo "  set-default: os dois so fazem falta no sentido contrario."
+# O EPILOGO SO VALE EM MODO TEXTO, e ate 26/09/2026 ele saia sempre.
+#
+# Em modo grafico ele ensinava a "voltar ao modo grafico" -- de onde a coleta
+# nunca saiu -- e afirmava que nao havia sessao grafica inibindo o
+# desligamento, com o compositor vivo e nomeado no cabecalho da mesma
+# execucao. Instrucao que contradiz a condicao medida na tela acima custa mais
+# que nao existir.
+if [ "$MODO" = "texto" ]; then
+    echo
+    echo "  Para voltar ao modo grafico: reinicie."
+    echo "    sudo reboot"
+    echo '  O grub-reboot e de BOOT UNICO -- a entrada de modo texto ja expirou,'
+    echo "  e nao ha sessao grafica aqui inibindo o desligamento. Sem -i, sem"
+    echo "  set-default: os dois so fazem falta no sentido contrario."
+fi
 echo "=========================================================="
 exit "$rc_final"

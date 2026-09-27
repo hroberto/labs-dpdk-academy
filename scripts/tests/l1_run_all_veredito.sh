@@ -25,8 +25,10 @@ raiz=$(cd "$(dirname "$0")/../.." && pwd)
 fonte="$raiz/ferramental/qualidade/run-all.sh"
 [ -r "$fonte" ] || { echo "FALHA: nao achei $fonte"; exit 1; }
 falhas=0
+total=0
 
 conferir() { # <descricao> <obtido> <esperado>
+    total=$((total + 1))
     if [ "$2" != "$3" ]; then
         echo "  FALHOU: $1 (esperado '$3', obtido '$2')"
         falhas=$((falhas + 1))
@@ -72,22 +74,45 @@ echo \$rc_final" 2>/dev/null)
     conferir "campanha rc=$1 agrega como $2" "$obtido" "$2"
 done
 
-# ---- 2. `--so-ruido` NAO descarta o resultado ---------------------------
-so_ruido=$(recorte_bloco 'ETAPA 4/4' 'if [ "$SO_RUIDO" -eq 1 ]; then')
-rc=0
-bash -c "SO_RUIDO=1; rc=42; rc_final=1
-$so_ruido" >/dev/null 2>&1 || rc=$?
-conferir "--so-ruido com campanha falhando devolve o erro" "$rc" "1"
+# ---- 2. NENHUM RECORTE descarta o resultado -----------------------------
+#
+# Eram dois caminhos curtos e viraram tres: sem flag, `--so-ruido` e
+# `--so-hardware`. O atalho da etapa 4 vale para os dois recortes, e o `rc` da
+# campanha tem de sobreviver a ele em ambos -- o defeito original existia so no
+# mais usado, que e exatamente onde ninguem olha.
+veredito_real=$(awk '/^veredito_linha\(\) \{/,/^\}/' "$fonte")
+recorte4=$(recorte_bloco 'ETAPA 4/4' 'if [ -n "$RECORTE" ]; then')
+[ -n "$recorte4" ] || { echo "  FALHOU: nao recortei o bloco da etapa 4"; falhas=$((falhas + 1)); }
 
-rc=0
-bash -c "SO_RUIDO=1; rc=0; rc_final=0
-$so_ruido" >/dev/null 2>&1 || rc=$?
-conferir "--so-ruido com campanha boa devolve 0" "$rc" "0"
+for r in --so-ruido --so-hardware; do
+    rc=0
+    saida=$(bash -c "RECORTE='$r'; rc=42; rc_final=1
+$veredito_real
+$recorte4" 2>&1) || rc=$?
+    conferir "$r com campanha falhando devolve o erro" "$rc" "1"
+    conferir "$r nao imprime CONCLUIDO quando falhou" \
+        "$(printf '%s' "$saida" | grep -c 'run-all CONCLUIDO')" "0"
+    # O MOTIVO DO PULO NOMEIA O RECORTE. Um "PULADA" generico deixaria o diario
+    # sem dizer QUAL escolha removeu a etapa, que e a informacao de que quem le
+    # a coleta depois precisa.
+    conferir "$r diz qual recorte pulou a etapa 4" \
+        "$(printf '%s' "$saida" | grep -c "PULADA ($r)")" "1"
 
-saida=$(bash -c "SO_RUIDO=1; rc=42; rc_final=1
-$so_ruido" 2>&1)
-conferir "e nao imprime CONCLUIDO quando falhou" \
-    "$(printf '%s' "$saida" | grep -c 'run-all CONCLUIDO')" "0"
+    rc=0
+    bash -c "RECORTE='$r'; rc=0; rc_final=0
+$veredito_real
+$recorte4" >/dev/null 2>&1 || rc=$?
+    conferir "$r com campanha boa devolve 0" "$rc" "0"
+done
+
+# E O CASO NEGATIVO: sem recorte, a etapa 4 NAO pode ser pulada. Sem esta
+# assercao, um `if true` no lugar da condicao passaria em tudo acima.
+saida=$(bash -c "RECORTE=''; rc=0; rc_final=0
+$veredito_real
+$recorte4
+echo SEGUIU_PARA_A_ETAPA_4" 2>&1)
+conferir "sem recorte a etapa 4 corre" \
+    "$(printf '%s' "$saida" | grep -c SEGUIU_PARA_A_ETAPA_4)" "1"
 
 # ---- 3. SIGTERM TERMINA o fluxo -----------------------------------------
 # O trap antigo restaurava o governor e devolvia o controle: `kill -TERM $$`
@@ -152,8 +177,74 @@ conferir "e o arquivo E promovido" \
 conferir "sem deixar parcial para tras" \
     "$([ -e "$tmp/saida-boa.txt.parcial" ] && echo sim || echo nao)" "nao"
 
+# ---- 5. o parsing aceita os dois recortes e recusa a contradicao --------
+#
+# `--so-hardware` nasceu em 26/09/2026 porque nao existia: rodar so a campanha
+# de hardware exigia chamar `campanha.sh` direto, o que PULA a etapa 1 -- a
+# recompilacao e a procedencia. O atalho foi usado, e a coleta que saiu dele
+# nao e publicavel.
+parsing=$(recorte_bloco 'SO_RUIDO=0' 'SO_RUIDO=0')
+[ -n "$parsing" ] || { echo "  FALHOU: nao recortei o parsing"; falhas=$((falhas + 1)); }
+
+analisar() { # <args...>  -> "<SO_RUIDO> <SO_HARDWARE> [<RECORTE>] <restante>"
+    bash -c "uso() { :; }
+$parsing
+echo \"\$SO_RUIDO \$SO_HARDWARE [\$RECORTE] \$*\"" bash "$@" 2>/dev/null
+}
+conferir "sem flag, nenhum recorte"          "$(analisar cfg)"                "0 0 [] cfg"
+conferir "--so-ruido marca o recorte"        "$(analisar --so-ruido cfg)"     "1 0 [--so-ruido] cfg"
+conferir "--so-hardware marca o recorte"     "$(analisar --so-hardware cfg)"  "0 1 [--so-hardware] cfg"
+conferir "e a configuracao sobrevive a flag" "$(analisar --so-hardware x-y)"  "0 1 [--so-hardware] x-y"
+
+rc=0; analisar --so-ruido --so-hardware >/dev/null 2>&1 || rc=$?
+conferir "os dois juntos sao recusados" "$rc" "2"
+rc=0; analisar --nao-existe >/dev/null 2>&1 || rc=$?
+conferir "opcao desconhecida e recusada" "$rc" "2"
+
+# ---- 6. a etapa 3 repassa o recorte para a campanha ---------------------
+#
+# COMPORTAMENTO, e nao texto: um stub no lugar da `campanha.sh` mostra os
+# argumentos que ela REALMENTE recebe. Uma segunda lista de flags aqui --
+# mantida a mao em sincronia com a do parsing -- e como o `--so-hardware`
+# ficou de fora por um mes.
+etapa3=$(recorte 'EXTRA="$RECORTE"' 'campanha.sh')
+tmp3=$(mktemp -d)
+mkdir -p "$tmp3/ferramental/qualidade"
+cat > "$tmp3/ferramental/qualidade/campanha.sh" <<'P'
+#!/bin/sh
+printf '[%s]' "$@"; echo
+P
+chmod +x "$tmp3/ferramental/qualidade/campanha.sh"
+repassa() { # <recorte> -> argumentos vistos pela campanha
+    ( cd "$tmp3" && bash -c "MODO=texto; RECORTE='$1'; CARIMBO=2026-01-01-0000; CONFIG=cfg
+$etapa3" 2>/dev/null )
+}
+conferir "sem recorte, a campanha nao recebe flag" \
+    "$(repassa '')"              "[--texto][2026-01-01-0000-cfg]"
+conferir "--so-ruido chega na campanha" \
+    "$(repassa --so-ruido)"      "[--texto][--so-ruido][2026-01-01-0000-cfg]"
+conferir "--so-hardware chega na campanha" \
+    "$(repassa --so-hardware)"   "[--texto][--so-hardware][2026-01-01-0000-cfg]"
+rm -rf "$tmp3"
+
+# ---- 7. o epilogo nao contradiz o modo medido --------------------------
+#
+# Ele ensinava a "voltar ao modo grafico" e afirmava nao haver sessao grafica
+# inibindo o desligamento -- com o compositor vivo e contado no cabecalho da
+# mesma execucao. Nao muda numero; corrompe o registro da condicao, que e o
+# que decide se duas coletas sao comparaveis.
+epilogo=$(recorte_bloco 'O EPILOGO SO VALE EM MODO TEXTO' 'if [ "$MODO" = "texto" ]; then')
+[ -n "$epilogo" ] || { echo "  FALHOU: nao recortei o epilogo"; falhas=$((falhas + 1)); }
+conferir "em modo texto o epilogo aparece" \
+    "$(bash -c "MODO=texto
+$epilogo" 2>&1 | grep -c 'voltar ao modo grafico')" "1"
+conferir "em modo grafico o epilogo NAO aparece" \
+    "$(bash -c "MODO=grafico
+$epilogo" 2>&1 | grep -c 'voltar ao modo grafico')" "0"
+
 if [ "$falhas" -gt 0 ]; then
     echo "  $falhas assercao(oes) falharam"
     exit 1
 fi
-echo "  ok: 15 assercoes; run-all so conclui se todas as etapas concluirem"
+echo "  ok: $total assercoes; run-all so conclui se todas as etapas concluirem,"
+echo "      e os dois recortes preservam a etapa 1 e o veredito"

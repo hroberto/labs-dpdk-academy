@@ -208,8 +208,47 @@ for m in $MODULOS; do
 done
 caso "SKIP em etapa fora da matriz reprova a coleta" 1
 
+# ---- a condicao DECLARADA segue a condicao MEDIDA -----------------------
+#
+# O `diario.txt` e versionado, e quem compara duas coletas le nele em que modo
+# cada uma correu. Ate 26/09/2026 a linha de abertura dizia "modo texto"
+# SEMPRE, e tres linhas abaixo o mesmo bloco imprimia `modo declarado` com o
+# valor certo: toda coleta grafica arquivada tem um diario que se contradiz na
+# segunda linha. O epilogo repetia o defeito, ensinando a "voltar ao modo
+# grafico" de onde a coleta nunca saiu.
+#
+# Nao muda numero nenhum. Corrompe o registro da condicao, que e o criterio de
+# comparabilidade -- e um numero certo sob condicao errada e pior que um numero
+# faltando, porque entra na comparacao sem levantar suspeita.
+conferir() { # <descricao> <obtido> <esperado>
+    if [ "$2" != "$3" ]; then
+        echo "  FALHOU: $1 (esperado '$3', obtido '$2')"
+        falhas=$((falhas + 1))
+    fi
+}
+
+linha_modo=$(grep 'echo "==> campanha em modo' "$fonte")
+[ -n "$linha_modo" ] || { echo "  FALHOU: nao achei a linha de abertura"; falhas=$((falhas + 1)); }
+for m in texto grafico; do
+    conferir "a abertura anuncia o modo $m" \
+        "$(bash -c "MODO=$m
+$linha_modo" 2>&1 | grep -c "campanha em modo $m")" "1"
+done
+
+epilogo=$(awk '/O EPILOGO SO VALE EM MODO TEXTO|MESMO DEFEITO, OUTRO LUGAR/ { dentro = 1 }
+               dentro { print }
+               dentro && /^fi$/ { exit }' "$fonte")
+[ -n "$epilogo" ] || { echo "  FALHOU: nao recortei o epilogo"; falhas=$((falhas + 1)); }
+conferir "em modo texto o epilogo aparece" \
+    "$(bash -c "MODO=texto
+$epilogo" 2>&1 | grep -c 'Para voltar ao modo grafico')" "1"
+conferir "em modo grafico o epilogo NAO aparece" \
+    "$(bash -c "MODO=grafico
+$epilogo" 2>&1 | grep -c 'Para voltar ao modo grafico')" "0"
+
 if [ "$falhas" -gt 0 ]; then
     echo "  $falhas assercao(oes) falharam"
     exit 1
 fi
-echo "  ok: 17 assercoes; completude por matriz E por estado registrado"
+echo "  ok: 21 assercoes; completude por matriz E por estado registrado,"
+echo "      e a condicao declarada segue a medida"
