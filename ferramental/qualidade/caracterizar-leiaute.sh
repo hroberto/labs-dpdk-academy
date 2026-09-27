@@ -128,12 +128,22 @@ if ! estado_git=$(sudo -u "$DONO" git status --porcelain --untracked-files=all 2
     echo "  Nao conseguir conferir nao e o mesmo que estar limpa." >&2
     exit 1
 fi
-sujeira=$(printf '%s\n' "$estado_git" | grep -vE '^\?\? docs/.*/historico/' || true)
+# `docs/` E `trilha/`, e nao so o primeiro. A primeira versao deste filtro
+# cobria apenas `docs/`, e a execucao de 20:27 foi bloqueada por milhares de
+# arquivos de coleta legitimos em
+# `trilha/01-fundamentos/02-mempool-ring/.../historico/`. O teste tinha a
+# MESMA cegueira: so exercitava `docs/`.
+#
+# Os dois raizes vao nomeados em vez de `.*/historico/`: se um terceiro
+# aparecer, o portao bloqueia e alguem decide -- que e a direcao segura.
+sujeira=$(printf '%s\n' "$estado_git" | grep -vE '^\?\? (docs|trilha)/.*/historico/' || true)
 if [ -n "$sujeira" ]; then
     echo "FALHA: a caracterizacao exige arvore git limpa." >&2
     printf '%s\n' "$sujeira" | sed 's/^/           /' >&2
-    echo "  O tamanho da string de procedencia entra no `.text`: um `-dirty`" >&2
-    echo "  no describe muda o binario, e com ele o instrumento medido." >&2
+    # SEM CRASES AQUI: dentro de aspas duplas elas sao substituicao de
+    # comando, e o shell tentaria executar `.text` e `-dirty`.
+    echo "  O tamanho da string de procedencia entra na secao .text: um" >&2
+    echo "  -dirty no describe muda o binario, e com ele o instrumento medido." >&2
     exit 1
 fi
 

@@ -244,6 +244,16 @@ saida=$(sujar 'mkdir -p "$tmp/arv/docs/01-fundamentos/medicoes/historico/x"
 conferir "coleta NOVA nao rastreada em historico NAO suja a arvore" \
     "$(printf '%s' "$saida" | grep -c 'arvore git limpa')" "0"
 
+# E `trilha/` TAMBEM TEM `historico/`. A primeira versao do filtro cobria so
+# `docs/`, e este teste tinha a MESMA cegueira -- exercitava apenas `docs/`,
+# entao a mutacao que removia `trilha` sobrevivia. A execucao de 20:27 foi
+# bloqueada por milhares de arquivos de coleta legitimos em
+# `trilha/01-fundamentos/02-mempool-ring/.../historico/`.
+saida=$(sujar 'mkdir -p "$tmp/arv/trilha/01-fundamentos/02-mempool-ring/historico/w"
+               echo dado > "$tmp/arv/trilha/01-fundamentos/02-mempool-ring/historico/w/r1.txt"')
+conferir "coleta nova em trilha/ tambem NAO suja a arvore" \
+    "$(printf '%s' "$saida" | grep -c 'arvore git limpa')" "0"
+
 # MAS ALTERAR EVIDENCIA JA ARQUIVADA E OUTRA COISA. A primeira versao filtrava
 # `/historico/` inteiro e ignorava modificacao e remocao de coleta versionada:
 # o portao dizia "limpo" enquanto o `git describe` responderia `-dirty`.
