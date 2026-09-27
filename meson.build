@@ -265,6 +265,20 @@ if python3.found()
                '--autoteste'],
        suite : ['l1', 'docs'], timeout : 60)
 
+  # O CLASSIFICADOR ENTRA NA BARRA PELO MESMO CRITERIO QUE TODO VERIFICADOR:
+  # tem autoteste, e o autoteste mata um mutante. Ele decide quais rotulos
+  # podem ser comparados entre artefatos diferentes, entao um defeito nele
+  # devolve a autorizacao que o `comparar-hardware.py` veio retirar.
+  #
+  # O caso que ele existe para nao errar e o terceiro do autoteste: quando a
+  # variacao entre execucoes do MESMO artefato engole o envelope entre
+  # alinhamentos, a resposta nao e "invariavel" -- e "nao consegui
+  # distinguir", e o rotulo fica fora da tabela.
+  test('docs - autoteste do classificador de leiaute', python3,
+       args : [meson.project_source_root() / 'ferramental/qualidade/classificar-leiaute.py',
+               '--autoteste'],
+       suite : ['l1', 'docs'], timeout : 60)
+
   test('docs - autoteste da leitura de condicao da coleta', python3,
        args : [meson.project_source_root() / 'ferramental/qualidade/condicao_coleta.py',
                '--autoteste'],

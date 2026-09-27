@@ -5,6 +5,7 @@
 #   sudo ./ferramental/qualidade/run-all.sh                  as quatro etapas
 #   sudo ./ferramental/qualidade/run-all.sh --so-ruido       so os passos de ruido
 #   sudo ./ferramental/qualidade/run-all.sh --so-hardware    so a campanha de hardware
+#   sudo ./ferramental/qualidade/run-all.sh --so-leiaute     so a caracterizacao
 #
 # OS DOIS RECORTES MANTEM A ETAPA 1. Ela recompila antes de medir e grava a
 # procedencia da maquina, e e por isso que nao ha motivo para chamar a
@@ -142,6 +143,8 @@ uso() {
     echo "  --so-hardware   etapas 1 e 3 (campanha de hardware), que e onde o" >&2
     echo "                  manifesto nasce. O resto nao depende do perfil de" >&2
     echo "                  memoria." >&2
+    echo "  --so-leiaute    etapas 1 e 5 (caracterizacao do instrumento). Exige" >&2
+    echo "                  modo texto; em modo grafico a etapa 5 e PULADA." >&2
     echo >&2
     echo "  A ETAPA 1 corre nos tres casos: ela recompila e grava a procedencia." >&2
     echo "  O modo -- texto ou grafico -- e detectado, nunca informado." >&2
@@ -177,11 +180,13 @@ uso() {
 # um recorte e vira outra coisa.
 SO_RUIDO=0
 SO_HARDWARE=0
+SO_LEIAUTE=0
 RECORTE=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --so-ruido)     SO_RUIDO=1;    RECORTE="--so-ruido";    shift ;;
         --so-hardware)  SO_HARDWARE=1; RECORTE="--so-hardware"; shift ;;
+        --so-leiaute)   SO_LEIAUTE=1;  RECORTE="--so-leiaute";  shift ;;
         -*) echo "opcao desconhecida: $1" >&2; uso; exit 2 ;;
         *)  break ;;
     esac
@@ -190,9 +195,10 @@ done
 # outro pede os de hardware, e a campanha executaria so o segundo em silencio.
 # Recusar e dizer qual recorte se quer e mais barato que descobrir depois que a
 # coleta nao tem o braco que se foi medir.
-if [ "$SO_RUIDO" -eq 1 ] && [ "$SO_HARDWARE" -eq 1 ]; then
-    echo "FALHA: --so-ruido e --so-hardware se excluem." >&2
-    echo "  O primeiro recorta nos passos de ruido, o segundo nos de hardware." >&2
+if [ $((SO_RUIDO + SO_HARDWARE + SO_LEIAUTE)) -gt 1 ]; then
+    echo "FALHA: os recortes se excluem; escolha um." >&2
+    echo "  --so-ruido recorta nos passos de ruido, --so-hardware na campanha de" >&2
+    echo "  hardware, --so-leiaute na caracterizacao do instrumento." >&2
     exit 2
 fi
 
@@ -229,6 +235,16 @@ DONO=${SUDO_USER:-$(stat -c %U "$RAIZ" 2>/dev/null || logname 2>/dev/null || ech
 # que e o segundo criterio natural de leitura.
 CARIMBO="$(date +%Y-%m-%d-%H%M)"
 SONDA=build/docs/01-fundamentos/medicoes/sonda-relaxed
+
+# OS PROGRAMAS DA ETAPA 5, nomeados aqui e nao descobertos por heuristica.
+#
+# A caracterizacao custa ~35 min para dois programas, e caracterizar tudo seria
+# pagar por rotulos que a §7 ja diz serem presos a latencia de memoria. A lista
+# comeca pelos dois que tem evidencia de sensibilidade: `custo-comunicacao`,
+# onde o envelope chegou a 19,65%, e `custo-mckenney`, que o `meson.build`
+# lista como insensivel e cuja medicao preliminar contradisse em duas celulas.
+# Programa novo entra aqui quando alguem tiver razao para suspeitar dele.
+LEIAUTE_PROGRAMAS="custo-comunicacao custo-mckenney"
 
 # O MODO E DETECTADO, NAO EXIGIDO -- e isso muda o que a coleta pode afirmar.
 #
@@ -292,7 +308,7 @@ echo "=========================================================="
 # --------------------------------------------------------------------------
 SAIDA_AMB="docs/01-fundamentos/medicoes/historico/$CARIMBO-$CONFIG-ambiente"
 echo
-echo "==> ETAPA 1/4  procedencia da maquina  ($(date +%T))"
+echo "==> ETAPA 1/5  procedencia da maquina  ($(date +%T))"
 
 # RECONSTRUIR ANTES DE MEDIR, E NAO SO CONFERIR QUE O BINARIO EXISTE.
 #
@@ -351,12 +367,15 @@ echo "    saida: $SAIDA_AMB"
 # --------------------------------------------------------------------------
 SAIDA_SONDA="docs/01-fundamentos/medicoes/historico/$CARIMBO-$CONFIG-sonda"
 echo
-echo "==> ETAPA 2/4  sonda atomic relaxed  ($(date +%T))"
+echo "==> ETAPA 2/5  sonda atomic relaxed  ($(date +%T))"
 if [ "$SO_RUIDO" -eq 1 ]; then
     echo "    PULADA (--so-ruido): a sonda mede custo, nao ruido"
 elif [ "$SO_HARDWARE" -eq 1 ]; then
     echo "    PULADA (--so-hardware): a sonda mede sincronizacao entre irmaos"
     echo "            SMT, que nao depende do perfil de memoria"
+elif [ "$SO_LEIAUTE" -eq 1 ]; then
+    echo "    PULADA (--so-leiaute): a sonda mede a maquina sob um artefato fixo,"
+    echo "            e a caracterizacao mede o artefato"
 elif [ ! -x "$SONDA" ]; then
     echo "    PULADO: $SONDA ausente; rode ./scripts/build-all.sh"
 else
@@ -507,7 +526,7 @@ fi
 # deste arquivo: os argumentos certos deixam de depender de memoria.
 # --------------------------------------------------------------------------
 echo
-echo "==> ETAPA 3/4  campanha completa  ($(date +%T))"
+echo "==> ETAPA 3/5  campanha completa  ($(date +%T))"
 # O MODO VAI DETECTADO, nao fixo. O GOVERNOR NAO VAI MAIS NA CHAMADA: desde
 # 25/09/2026 a `campanha.sh` o fixa por padrao e o restaura no fim, nos dois
 # modos -- em texto porque nada aquece a CPU, em grafico porque tira a unica
@@ -520,10 +539,19 @@ echo "==> ETAPA 3/4  campanha completa  ($(date +%T))"
 # O RECORTE ATRAVESSA INTEIRO. `$RECORTE` ja e "--so-ruido", "--so-hardware"
 # ou vazio, entao a campanha recebe exatamente o que esta etapa recebeu -- sem
 # uma segunda lista de flags para manter em sincronia com a primeira.
-EXTRA="$RECORTE"
-# shellcheck disable=SC2086
-./ferramental/qualidade/campanha.sh "--$MODO" $EXTRA "$CARIMBO-$CONFIG"
-rc=$?
+# `--so-leiaute` NAO ATRAVESSA: a `campanha.sh` nao conhece esse recorte, e
+# passa-lo faria ela recusar a opcao e devolver 2 -- que o agregado leria como
+# INCOMPLETA. A etapa 3 inteira e pulada, e `rc` fica 0 porque nada correu.
+if [ "$SO_LEIAUTE" -eq 1 ]; then
+    echo "    PULADA (--so-leiaute): a campanha mede a maquina sob um artefato"
+    echo "            fixo, e a caracterizacao mede o artefato"
+    rc=0
+else
+    EXTRA="$RECORTE"
+    # shellcheck disable=SC2086
+    ./ferramental/qualidade/campanha.sh "--$MODO" $EXTRA "$CARIMBO-$CONFIG"
+    rc=$?
+fi
 
 # O ESTADO AGREGADO, e nao `set -e`.
 #
@@ -584,20 +612,20 @@ veredito_linha() {
 # `verificar-blocos.py` acusa.
 # --------------------------------------------------------------------------
 echo
-echo "==> ETAPA 4/4  blocos da trilha, com repeticoes  ($(date +%T))"
+echo "==> ETAPA 4/5  blocos da trilha, com repeticoes  ($(date +%T))"
 if [ -n "$RECORTE" ]; then
     echo "    PULADA ($RECORTE): os blocos publicados da trilha nao sao objeto"
     echo "            de nenhum dos dois recortes"
-    echo
-    echo "=========================================================="
-    # O `exit 0` AQUI DESCARTAVA O `rc` DA CAMPANHA, capturado vinte linhas
-    # acima. Com `--so-ruido`, uma campanha que falhasse com 42 produzia um
-    # `run-all CONCLUIDO` e codigo 0 -- e era o unico caminho do script que
-    # fazia isso, justamente o mais curto e o mais usado para ensaio.
-    veredito_linha
-    echo "=========================================================="
-    exit "$rc_final"
-fi
+    # AQUI HAVIA UM `exit` ANTECIPADO, e ele tinha dois defeitos em sequencia.
+    #
+    # O primeiro era descartar o `rc` da campanha: com `--so-ruido`, uma
+    # campanha que falhasse com 42 produzia `run-all CONCLUIDO` e codigo 0.
+    #
+    # O segundo apareceu quando a caracterizacao virou a ETAPA 5: sair aqui
+    # PULARIA a etapa seguinte sob qualquer recorte -- inclusive sob
+    # `--so-leiaute`, cujo unico proposito e chegar nela. O veredito agora e
+    # unico, no fim do arquivo, e nenhum caminho o contorna.
+else
 T02=trilha/01-fundamentos/02-mempool-ring
 SAIDA_T02="$T02/historico/$CARIMBO-$CONFIG"
 SAIDA_CPP="$T02/alternativas/cpp23/historico/$CARIMBO-$CONFIG"
@@ -714,6 +742,43 @@ else
     chown -R "$DONO" "$SAIDA_T02" "$SAIDA_CPP"
     echo "    saida: $SAIDA_T02"
     echo "           $SAIDA_CPP"
+fi
+fi
+
+# --------------------------------------------------------------------------
+# ETAPA 5: a caracterizacao do INSTRUMENTO.
+#
+# POR QUE ELA ESTA AQUI, e nao num script a parte.
+#
+# O criterio deste arquivo nao e "mede a maquina" -- e "precisa da maquina
+# limpa". Esta etapa precisa MAIS que as outras: em 27/09/2026 ela correu com
+# sessao grafica viva e uma execucao perturbada em dez levou a faixa de
+# `lock, best case` a 84%, um valor de 3,79 entre nove de 2,04. A quantificacao
+# inteira foi descartada por isso.
+#
+# O QUE ELA MEDE. As outras etapas seguram o binario para ver a maquina; esta
+# segura a maquina para ver o binario. Compila o mesmo fonte em N alinhamentos
+# e pergunta, por rotulo, se a diferenca entre artefatos se separa da variacao
+# entre execucoes. O resultado e a entrada do `comparar-hardware.py`, que sem
+# ela responde `identificabilidade nao estabelecida` para tudo.
+#
+# EM MODO GRAFICO ELA PULA, e declara. A resolucao que ela exige nao existe com
+# um compositor vivo, e medir assim daria um numero que PARECERIA valido.
+# --------------------------------------------------------------------------
+echo
+echo "==> ETAPA 5/5  caracterizacao do instrumento  ($(date +%T))"
+if [ "$SO_RUIDO" -eq 1 ] || [ "$SO_HARDWARE" -eq 1 ]; then
+    echo "    PULADA ($RECORTE): a caracterizacao mede o artefato, e estes"
+    echo "            recortes medem a maquina"
+elif [ "$MODO" != "texto" ]; then
+    echo "    PULADA: exige modo texto, e ha $graficos processo(s) grafico(s)."
+    echo "            A faixa entre execucoes fica ilegivel com compositor vivo,"
+    echo "            e o numero pareceria valido. Reinicie em multi-user.target."
+    marcar_incompleta "caracterizacao exige modo texto"
+else
+    ./ferramental/qualidade/caracterizar-leiaute.sh \
+        --repeticoes "${LEIAUTE_REPETICOES:-20}" $LEIAUTE_PROGRAMAS \
+        && echo "    ok" || marcar_falha "caracterizacao saiu com erro"
 fi
 
 echo
