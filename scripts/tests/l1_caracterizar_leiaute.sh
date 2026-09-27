@@ -46,7 +46,12 @@ montar() { # <graficos> <uid> <build-all devolve> <cria build/>
     cp "$alvo" "$tmp/arv/ferramental/qualidade/"
     cp "$raiz/ferramental/qualidade/identidade-artefato.sh" "$tmp/arv/ferramental/qualidade/"
     printf '#!/bin/sh\nexit %s\n' "$3" > "$tmp/arv/scripts/build-all.sh"
-    [ "$4" = "sim" ] && { mkdir -p "$tmp/arv/build"; echo '[]' > "$tmp/arv/build/compile_commands.json"; }
+    # O ALVO E O BUILD QUE A CAMPANHA MEDE, e nao `build`. A caracterizacao
+    # passou a derivar de `build-precommit` porque e dali que o
+    # `campanha-hardware.sh` executa: derivar de outro produziria artefatos de
+    # outra familia, e a classificacao nao valeria para os rotulos coletados.
+    [ "$4" = "sim" ] && { mkdir -p "$tmp/arv/build-precommit"
+                          echo '[]' > "$tmp/arv/build-precommit/compile_commands.json"; }
     # O `build-san` SEMPRE existe nesta arvore: e o cenario que interessa.
     echo '[{"file":"x.c","command":"cc -fsanitize=address -fno-omit-frame-pointer -c x.c","directory":"."}]' \
         > "$tmp/arv/build-san/compile_commands.json"
@@ -91,7 +96,11 @@ montar 0 0 0 nao
 saida=$(rodar); rc=$?
 conferir "sem build normal, recusa"      "$rc" "1"
 conferir "e nomeia o arquivo que falta"  \
-    "$(printf '%s' "$saida" | grep -c 'build/compile_commands.json')" "1"
+    "$(printf '%s' "$saida" | grep -c 'build-precommit/compile_commands.json')" "1"
+# `build-san` EXISTE NA ARVORE DE MENTIRA de proposito: e a tentacao. Ele e
+# configurado com `-Db_sanitize=address,undefined` e passa
+# `-fno-omit-frame-pointer`, que muda alocacao de registradores e leiaute --
+# a variavel sob estudo.
 conferir "e NAO cai no build-san"        \
     "$(printf '%s' "$saida" | grep -c 'build-san')" "0"
 

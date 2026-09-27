@@ -104,8 +104,16 @@ fi
 # "recente" descrevendo outra coisa. `build-all.sh` e no-op quando nada mudou,
 # entao reconstruir custa segundos e fecha o caso inteiro. Chamado sozinho ou
 # pela ETAPA 5 do `run-all`, o caminho e o mesmo.
-echo "==> reconstruindo o build normal (no-op se nada mudou)"
-if ! sudo -u "$DONO" -H ./scripts/build-all.sh build > /tmp/caracterizar-build.$$.log 2>&1; then
+# O BUILD ALVO E O QUE A CAMPANHA MEDE, e nao um qualquer.
+#
+# `campanha-hardware.sh` mede binarios de `build-precommit`. Caracterizar a
+# partir de `build` produziria artefatos de OUTRA familia, e a classificacao
+# resultante nao valeria para os rotulos que a campanha coleta -- que e
+# exatamente a inferencia que o `comparar-hardware.py` recusa quando o
+# `text_sha256` difere.
+BUILD_ALVO=${DPDK_ACADEMY_BUILD:-build-precommit}
+echo "==> reconstruindo o build normal (no-op se nada mudou): $BUILD_ALVO"
+if ! sudo -u "$DONO" -H ./scripts/build-all.sh "$BUILD_ALVO" > /tmp/caracterizar-build.$$.log 2>&1; then
     echo "FALHA: a compilacao nao passou. A caracterizacao NAO comeca." >&2
     tail -20 /tmp/caracterizar-build.$$.log >&2
     rm -f /tmp/caracterizar-build.$$.log
@@ -123,7 +131,7 @@ rm -f /tmp/caracterizar-build.$$.log
 # O `-fno-omit-frame-pointer` sozinho ja muda alocacao de registradores e
 # leiaute -- que e A VARIAVEL SOB ESTUDO. Caracterizar a partir dali mediria o
 # efeito do sanitizador e chamaria de sensibilidade ao leiaute.
-CC_JSON="build/compile_commands.json"
+CC_JSON="$BUILD_ALVO/compile_commands.json"
 [ -f "$CC_JSON" ] || { echo "FALHA: $CC_JSON nao existe mesmo apos reconstruir." >&2; exit 1; }
 
 CARIMBO="$(date +%Y-%m-%d-%H%M)"
@@ -171,33 +179,53 @@ echo "==> governor: $GOV_ANTES -> performance (restaurado no fim)"
 ./scripts/ambiente.sh >> "$SAIDA/ambiente.txt" 2>&1
 
 # ---- CONSTRUIR AS VARIANTES --------------------------------------------
-flags_do_programa() { # <programa> -> flags do meson, sem -falign-loops
-    python3 - "$CC_JSON" "$1" <<'PYF'
-import json, re, sys
+# REPRODUZIR O COMANDO DO MESON, E NAO REMONTA-LO A MAO.
+#
+# A versao anterior extraia as flags e reconstruia a invocacao com
+# `cc -I<medicoes> $flags`. Isso perdia os OUTROS `-I` que o meson passa --
+# entre eles o do diretorio de build, onde `academy_version.h` e gerado. O
+# `statistics.h` o inclui sob `__has_include`, entao o artefato compilava SEM
+# a linha de procedencia e ficava com outro `.text`:
+#
+#     com o cabecalho : eaf9abfa...   <- o que a campanha mede
+#     sem o cabecalho : 394f847c...   <- o que a caracterizacao media
+#
+# Dois instrumentos, e a campanha media um enquanto a caracterizacao
+# caracterizava o outro. Substituir so `-falign-loops` e a saida, mantendo
+# todo o resto do comando arquivado, reproduz o binario de producao byte a
+# byte -- e o portao abaixo exige exatamente isso.
+comando_de() { # <programa> <alinhamento> <saida>  -> `cd <dir> && cc ...`
+    python3 - "$CC_JSON" "$1" "$2" "$3" <<'PYCMD'
+import json, re, shlex, sys
 cc = json.load(open(sys.argv[1]))
-alvo = sys.argv[2]
+alvo, al, saida = sys.argv[2], sys.argv[3], sys.argv[4]
 for e in cc:
-    base = re.sub(r'\.[^.]+$', '', e.get('file', '').split('/')[-1])
-    if base == alvo:
-        fora = []
-        for x in e.get('command', '').split():
-            if not x.startswith('-'):
-                continue
-            if x.startswith(('-I', '-MD', '-MQ', '-MF', '-o', '-falign-loops')):
-                continue
-            if x == '-c':
-                continue
-            fora.append(x)
-        print(' '.join(fora))
-        raise SystemExit
+    if re.sub(r'\.[^.]+$', '', e.get('file', '').split('/')[-1]) != alvo:
+        continue
+    fora, pula = [], False
+    for x in shlex.split(e.get('command', '')):
+        if pula:
+            pula = False
+            continue
+        if x == '-c':
+            continue
+        if x in ('-o', '-MQ', '-MF'):
+            pula = True
+            continue
+        if x.startswith('-MD'):
+            continue
+        if x.startswith('-falign-loops='):
+            fora.append('-falign-loops=' + al)
+            continue
+        fora.append(x)
+    fora += ['-o', saida, '-lm']
+    print('cd %s && %s' % (shlex.quote(e.get('directory', '.')),
+                           ' '.join(shlex.quote(a) for a in fora)))
+    raise SystemExit
 raise SystemExit("sem entrada para %s" % alvo)
-PYF
+PYCMD
 }
 fonte_do_programa() { # <programa> -> caminho ABSOLUTO do .c
-    # O `file` do `compile_commands.json` e relativo ao `directory` (o diretorio
-    # de build), e sai como `../docs/...`. Este script roda de `$RAIZ`, entao
-    # usa-lo cru resolveria para fora da arvore -- em silencio, porque `cc`
-    # diria apenas "arquivo nao encontrado" e a variante seria marcada FAIL.
     python3 - "$CC_JSON" "$1" <<'PYF'
 import json, os, re, sys
 cc = json.load(open(sys.argv[1]))
@@ -210,33 +238,73 @@ raise SystemExit("sem fonte para %s" % alvo)
 PYF
 }
 
+# O ALINHAMENTO DO PROJETO, que e o ponto de ancoragem do portao abaixo.
+AL_PRODUCAO=$(grep -oE "falign-loops=[0-9]+" "$CC_JSON" | head -1 | cut -d= -f2)
+[ -n "$AL_PRODUCAO" ] || { echo "FALHA: nao li o -falign-loops do build." >&2; exit 1; }
+echo "==> alinhamento de producao: $AL_PRODUCAO"
+
+# A PROCEDENCIA DA ARVORE, dita e nao adivinhada. E a mesma string que o
+# `vcs_tag` do meson grava no `academy_version.h`, entao o campo do artefato
+# passa a concordar com a linha `origin:` que o programa imprime.
+ORIGEM_FONTE=$(sudo -u "$DONO" git describe --always --dirty --tags 2>/dev/null || echo nao-disponivel)
+echo "==> procedencia da arvore: $ORIGEM_FONTE"
+
 BINARIOS=""
 for prog in $PROGRAMAS; do
-    fonte=$(fonte_do_programa "$prog") || { echo "FALHA: $prog nao esta no compile_commands.json" >&2; exit 1; }
-    flags=$(flags_do_programa "$prog")
-    inc=$(dirname "$fonte")
+    fonte=$(fonte_do_programa "$prog") || { echo "FALHA: $prog nao esta no $CC_JSON" >&2; exit 1; }
     # A PROCEDENCIA DO FONTE, por programa. E ela que diz, depois, se a
     # classificacao envelheceu: rotulo caracterizado contra um fonte que
     # mudou nao autoriza mais comparacao nenhuma.
     commit_fonte=$(sudo -u "$DONO" git log -1 --format=%H -- "$fonte" 2>/dev/null || echo desconhecido)
-    echo "# FONTE $prog"          >> "$MANIFESTO"
+    echo "# FONTE $prog"            >> "$MANIFESTO"
     echo "#   path=${fonte#$RAIZ/}" >> "$MANIFESTO"
     echo "#   commit=$commit_fonte" >> "$MANIFESTO"
-    echo "#   flags_base=$flags"    >> "$MANIFESTO"
     for al in $ALINHAMENTOS; do
-        bin="$SAIDA/artefatos/$prog.al$al"
-        # shellcheck disable=SC2086
-        if cc -I"$inc" $flags -falign-loops="$al" "$fonte" -o "$bin" -lm 2>"$SAIDA/artefatos/$prog.al$al.erro"; then
-            rm -f "$SAIDA/artefatos/$prog.al$al.erro"
-            identidade_artefato "$bin"
+        bin="$RAIZ/$SAIDA/artefatos/$prog.al$al"
+        erro="$SAIDA/artefatos/$prog.al$al.erro"
+        if ( eval "$(comando_de "$prog" "$al" "$bin")" ) 2>"$erro"; then
+            rm -f "$erro"
+            identidade_artefato "$bin" \
+                "$(comando_de "$prog" "$al" "$bin" | sed 's/^cd [^&]*&& //')" \
+                "$ORIGEM_FONTE"
             BINARIOS="$BINARIOS $prog:$al"
             echo "    construido: $prog -falign-loops=$al"
         else
             printf '%-40s %-7s %s\n' "$prog.al$al" "FAIL" "build" >> "$MANIFESTO"
             echo "    FALHA ao construir $prog -falign-loops=$al" >&2
-            sed 's/^/        /' "$SAIDA/artefatos/$prog.al$al.erro" >&2
+            sed 's/^/        /' "$erro" >&2
         fi
     done
+
+    # O PORTAO QUE TERIA PEGO O DEFEITO DE 27/09/2026 NA HORA.
+    #
+    # No alinhamento de producao, o artefato da caracterizacao tem de ser o
+    # MESMO que a campanha mede -- mesmo `.text`, byte a byte. Se nao for,
+    # alguma coisa alem do alinhamento variou, e a classificacao resultante
+    # nao valeria para os rotulos que a campanha coleta.
+    #
+    # Naquele dia variou: o comando era remontado a mao e perdia o `-I` do
+    # diretorio de build, onde `academy_version.h` e gerado. Os artefatos
+    # compilaram sem a linha de procedencia, com outro `.text`, e a
+    # caracterizacao descreveu um instrumento que ninguem mede.
+    prod=$(printf '%s' "$CC_JSON" | sed 's|/compile_commands.json||')
+    prod_bin=$(find "$prod" -type f -name "$prog" -perm -u+x 2>/dev/null | head -1)
+    meu="$RAIZ/$SAIDA/artefatos/$prog.al$AL_PRODUCAO"
+    if [ -n "$prod_bin" ] && [ -f "$meu" ]; then
+        a=$(_sha_secao "$prod_bin" .text)
+        b=$(_sha_secao "$meu" .text)
+        if [ "$a" = "$b" ]; then
+            echo "    ancora: $prog.al$AL_PRODUCAO reproduz o binario de producao"
+        else
+            echo "FALHA: $prog no alinhamento de producao NAO reproduz o binario medido." >&2
+            echo "  producao      : ${a:0:16}  ($prod_bin)" >&2
+            echo "  caracterizacao: ${b:0:16}" >&2
+            echo "  Algo alem de -falign-loops variou; a classificacao nao valeria." >&2
+            exit 1
+        fi
+    else
+        echo "    AVISO: nao achei o binario de producao de $prog para ancorar" >&2
+    fi
 done
 [ -n "$BINARIOS" ] || { echo "FALHA: nenhum artefato construido." >&2; exit 1; }
 

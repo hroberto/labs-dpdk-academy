@@ -81,7 +81,18 @@ PYFLAGS
     echo "nao-disponivel"
 }
 ARTEFATOS_VISTOS=""
-identidade_artefato() { # <programa>  -> bloco `# ARTIFACT` no manifesto, uma vez por binario
+identidade_artefato() { # <programa> [<flags>] [<origem>]  -> bloco `# ARTIFACT`
+    #
+    # AS FLAGS PODEM VIR DE QUEM CHAMA, e a razao veio de uma coleta real.
+    #
+    # `_flags_de` sobe do diretorio do binario ate achar um
+    # `compile_commands.json`. Isso funciona para os binarios do `build/`, e
+    # NAO funciona para artefatos que vivem dentro da propria coleta: a
+    # caracterizacao de 27/09/2026 gravou `compile_flags=nao-disponivel` nos
+    # oito blocos -- justamente o campo que dizia qual alinhamento produziu
+    # cada um, que era a variavel do experimento.
+    #
+    # Quem constroi o artefato sabe as flags. Quando souber, passa.
     local real orig
     real=$(readlink -f -- "$1" 2>/dev/null) || return 0
     [ -n "$real" ] && [ -f "$real" ] || return 0
@@ -90,12 +101,30 @@ identidade_artefato() { # <programa>  -> bloco `# ARTIFACT` no manifesto, uma ve
     # O COMENTARIO NAO QUEBRA O CONTRATO DE TRES COLUNAS. Os consumidores
     # casam por `$1 == <celula>` ou `$2 == PASS|SKIP|FAIL`; um `#` na primeira
     # coluna nunca produz nenhum dos dois. O cabecalho ja usava comentario.
-    # A TAG EXATA TAMBEM CONTA. O padrao anterior exigia `-N-gSHA`, entao um
-    # binario construido exatamente sobre `v0.09.00` -- que e o proximo destino
-    # deste repositorio -- sairia como `nao-disponivel`. Aceita tag pura,
-    # `git describe` pos-tag, e o sufixo `-dirty` em qualquer das duas.
-    orig=$(strings -a "$real" 2>/dev/null \
-           | grep -m1 -E '^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+-g[0-9a-f]+)?(-dirty)?$' || true)
+    # O `v` E OBRIGATORIO, e a licao custou uma caracterizacao inteira.
+    #
+    # O padrao original exigia `-N-gSHA`, e um binario construido exatamente
+    # sobre `v0.09.00` sairia como `nao-disponivel`. Ao aceitar tag pura eu
+    # deixei o `v` opcional -- e `^[0-9]+\.[0-9]+\.[0-9]+$` casa a VERSAO DO
+    # COMPILADOR. Como `strings | grep -m1` devolve a primeira ocorrencia, os
+    # oito artefatos da caracterizacao de 27/09/2026 gravaram
+    #
+    #     source_origin=15.2.0
+    #
+    # que e o GCC, num campo que existe para dizer de qual FONTE o programa
+    # veio. As tags deste repositorio sao `v0.08.00`; exigir o `v` recusa a
+    # versao do compilador sem recusar nenhuma tag real.
+    # QUEM SABE, DIZ. `strings | grep` e heuristica sobre o conteudo do ELF, e
+    # heuristica erra: ela ja devolveu `15.2.0`, a versao do GCC, num campo que
+    # existe para dizer de qual FONTE o programa veio. Tanto o meson quanto o
+    # caracterizador conhecem a procedencia; quando conhecem, passam. A busca
+    # por strings fica como ultimo recurso diagnostico, nunca como autoridade.
+    if [ -n "${3:-}" ]; then
+        orig=$3
+    else
+        orig=$(strings -a "$real" 2>/dev/null \
+               | grep -m1 -E '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+-g[0-9a-f]+)?(-dirty)?$' || true)
+    fi
     {
         echo "# ARTIFACT $(basename "$real")"
         echo "#   path=${real#$RAIZ/}"
@@ -113,6 +142,6 @@ identidade_artefato() { # <programa>  -> bloco `# ARTIFACT` no manifesto, uma ve
         echo "#   build_id=$(_secao "$real" .note.gnu.build-id \
                              | od -An -tx1 -j16 -v 2>/dev/null | tr -d ' \n')"
         echo "#   compiler=$(_secao "$real" .comment | tr '\0' '\n' | grep -m1 -iE 'gcc|clang' || echo nao-disponivel)"
-        echo "#   compile_flags=$(_flags_de "$real")"
+        echo "#   compile_flags=${2:-$(_flags_de "$real")}"
     } >> "$MANIFESTO"
 }

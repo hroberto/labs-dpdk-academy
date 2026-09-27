@@ -297,6 +297,45 @@ conferir "em modo grafico o epilogo NAO aparece" \
     "$(bash -c "MODO=grafico
 $epilogo" 2>&1 | grep -c 'voltar ao modo grafico')" "0"
 
+# ---- 8. o refresh do cache de memoria nao pode falhar CALADO ----------
+#
+# A linha era `--cachear-memoria >/dev/null 2>&1 && chown ...`. O `&&`
+# curto-circuita, ninguem le o codigo, e o script segue com o cache ANTERIOR
+# -- nomeando a coleta com a configuracao de memoria que a maquina tinha
+# antes. E o erro que a derivacao do nome existe para impedir, e o portao de
+# root logo acima o descreve: ele fecha a falta de privilegio, e `dmidecode`
+# ausente produzia o mesmo desfecho passando por ele.
+refresh=$(recorte_bloco 'O RESULTADO DO REFRESH E CONFERIDO' 'if ./scripts/ambiente.sh --cachear-memoria')
+[ -n "$refresh" ] || { echo "  FALHOU: nao recortei o bloco do refresh"; falhas=$((falhas + 1)); }
+
+tmpr=$(mktemp -d)
+mkdir -p "$tmpr/scripts"
+executar_refresh() { # <rc do ambiente.sh> <argumentos> -> saida e codigo
+    printf '#!/bin/sh\nexit %s\n' "$1" > "$tmpr/scripts/ambiente.sh"
+    chmod +x "$tmpr/scripts/ambiente.sh"
+    shift
+    ( cd "$tmpr" && bash -c "
+$refresh
+echo SEGUIU" bash "$@" 2>&1 )
+}
+# REFRESH OK: segue, com ou sem nome na linha de comando.
+conferir "refresh bem-sucedido nao interrompe" \
+    "$(executar_refresh 0 | grep -c SEGUIU)" "1"
+# REFRESH FALHOU E O NOME VEM DELE: aborta, em vez de nomear com dado velho.
+rc=0; executar_refresh 1 >/dev/null 2>&1 || rc=$?
+conferir "refresh falho sem nome explicito aborta" "$rc" "1"
+conferir "e diz que o nome sai do cache" \
+    "$(executar_refresh 1 | grep -c 'nome da coleta')" "1"
+conferir "e nao segue" \
+    "$(executar_refresh 1 | grep -c SEGUIU)" "0"
+# REFRESH FALHOU MAS O NOME VEIO DA LINHA: avisa e segue -- a derivacao nao e
+# usada, e o portao do `campanha-hardware.sh` ainda confere o cache.
+conferir "refresh falho COM nome explicito segue" \
+    "$(executar_refresh 1 cfg-explicita | grep -c SEGUIU)" "1"
+conferir "mas avisa" \
+    "$(executar_refresh 1 cfg-explicita | grep -c AVISO)" "1"
+rm -rf "$tmpr"
+
 if [ "$falhas" -gt 0 ]; then
     echo "  $falhas assercao(oes) falharam"
     exit 1

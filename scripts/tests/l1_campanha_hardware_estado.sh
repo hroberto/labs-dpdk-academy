@@ -437,6 +437,50 @@ conferir "nenhuma linha de identidade conta como celula PASS" \
 conferir "nem como FAIL" "$(contar_estado FAIL)" "0"
 conferir "e o parser posicional ignora os comentarios" \
     "$(awk '$1 !~ /^#/ && $1 != "CELL" { n++ } END { print n+0 }' "$MANIFESTO")" "0"
+# AS FLAGS PODEM VIR DE QUEM CHAMA, e sem isso o campo mente por omissao.
+#
+# `_flags_de` sobe do diretorio do binario ate achar `compile_commands.json`.
+# Artefato que vive DENTRO de uma coleta nao tem nenhum acima, e a
+# caracterizacao de 27/09/2026 gravou `compile_flags=nao-disponivel` nos oito
+# blocos -- no unico campo que dizia qual alinhamento produziu cada um.
+zerar_manifesto; ARTEFATOS_VISTOS=""
+identidade_artefato ./mediu "-O2 -falign-loops=32"
+conferir "as flags de quem chama sao gravadas" \
+    "$(grep -c '^#   compile_flags=-O2 -falign-loops=32$' "$MANIFESTO")" "1"
+conferir "e nao sobra o 'nao-disponivel' da sondagem" \
+    "$(grep -c '^#   compile_flags=nao-disponivel$' "$MANIFESTO")" "0"
+# `source_origin` NAO PODE CASAR A VERSAO DO COMPILADOR.
+#
+# O padrao aceitava `X.Y.Z` sem o `v`, e `strings | grep -m1` devolve a
+# PRIMEIRA ocorrencia: os oito artefatos da caracterizacao de 27/09/2026
+# gravaram `source_origin=15.2.0`, que e o GCC, num campo que existe para
+# dizer de qual fonte o programa veio.
+zerar_manifesto; ARTEFATOS_VISTOS=""
+# O TOKEN VAI SOZINHO NA LINHA, que e como `ACADEMY_COMMIT` aparece num
+# binario: `strings` quebra por sequencia imprimivel, entao `echo 15.2.0`
+# vira a string "echo 15.2.0" e um regex ancorado nao casaria -- a assercao
+# passaria sem exercitar nada.
+printf '15.2.0\nGCC: (Ubuntu 15.2.0) 15.2.0\n' > mentiroso
+identidade_artefato ./mentiroso
+conferir "a versao do compilador nao vira procedencia da fonte" \
+    "$(grep -c '^#   source_origin=15.2.0$' "$MANIFESTO")" "0"
+conferir "e o campo diz que nao ha, em vez de mentir" \
+    "$(grep -c '^#   source_origin=nao-disponivel$' "$MANIFESTO")" "1"
+# E A TAG REAL CONTINUA PASSANDO, inclusive a forma exata sem `-N-gSHA` --
+# que e o que um binario construido sobre `v0.09.00` vai trazer.
+zerar_manifesto; ARTEFATOS_VISTOS=""
+printf 'v0.09.00\n' > comtag
+identidade_artefato ./comtag
+conferir "tag exata e aceita como procedencia" \
+    "$(grep -c '^#   source_origin=v0.09.00$' "$MANIFESTO")" "1"
+
+# SEM ARGUMENTO, A SONDAGEM CONTINUA: o `campanha-hardware.sh` mede binarios
+# do `build/`, onde `_flags_de` acha o que precisa.
+zerar_manifesto; ARTEFATOS_VISTOS=""
+identidade_artefato ./mediu
+conferir "sem argumento, volta a sondar" \
+    "$(grep -c '^#   compile_flags=' "$MANIFESTO")" "1"
+
 # E O CASO NEGATIVO: caminho que nao existe nao produz bloco nenhum. Sem esta
 # assercao, uma funcao que escrevesse cabecalho sempre passaria em tudo acima.
 zerar_manifesto; ARTEFATOS_VISTOS=""

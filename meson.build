@@ -503,6 +503,16 @@ test('scripts - L1 (o tarball do DPDK e conferido)', bash,
 # O `run-all` esta acima da campanha e tinha os mesmos caminhos de falso
 # sucesso que ela: `--so-ruido` descartava o resultado, SIGTERM nao terminava,
 # e a etapa 4 criava arquivos sem conferir retorno.
+# O CONTROLE NEGATIVO DA CARACTERIZACAO. Em 27/09/2026 a ETAPA 5 correu 40
+# minutos em maquina dedicada, com 160 de 160 PASS, e caracterizou o
+# instrumento ERRADO: o comando era remontado a mao e perdia o `-I` do
+# diretorio de build, onde `academy_version.h` e gerado. No alinhamento de
+# producao a receita tem de convergir para o binario que a campanha mede --
+# byte a byte na `.text` --, e o teste prova os dois lados do controle.
+test('scripts - L1 (a receita converge para o instrumento de producao)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_ancora_producao.sh'],
+     suite : ['l1', 'scripts'], timeout : 120)
+
 # A CARACTERIZACAO SO RESPONDE SE VARIAR UMA COISA, e cada portao dela fecha
 # um jeito de varrer uma segunda variavel para dentro sem aviso. O pior era o
 # fallback para `build-san`: configurado com `-Db_sanitize=address,undefined`,
