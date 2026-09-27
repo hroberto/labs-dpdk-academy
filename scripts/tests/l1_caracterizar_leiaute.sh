@@ -45,6 +45,7 @@ montar() { # <graficos> <uid> <build-all devolve> <cria build/>
              "$tmp/arv/docs/01-fundamentos/medicoes/historico" "$tmp/arv/build-san"
     cp "$alvo" "$tmp/arv/ferramental/qualidade/"
     cp "$raiz/ferramental/qualidade/identidade-artefato.sh" "$tmp/arv/ferramental/qualidade/"
+    cp "$raiz/ferramental/qualidade/receita-build.sh" "$tmp/arv/ferramental/qualidade/"
     printf '#!/bin/sh\nexit %s\n' "$3" > "$tmp/arv/scripts/build-all.sh"
     # O ALVO E O BUILD QUE A CAMPANHA MEDE, e nao `build`. A caracterizacao
     # passou a derivar de `build-precommit` porque e dali que o
@@ -112,6 +113,73 @@ montar 0 0 0 sim
 saida=$(rodar)
 conferir "reconstroi mesmo com o json presente" \
     "$(printf '%s' "$saida" | grep -c 'reconstruindo o build normal')" "1"
+
+# ---- 6. SEM ANCORA, ZERO MEDICOES ---------------------------------------
+#
+# No alinhamento de producao a variante tem de reproduzir o `.text` do binario
+# que a campanha mede. A primeira versao do portao imprimia AVISO e seguia
+# quando faltava um dos lados, e aprovava quando `_sha_secao` devolvia
+# `nao-disponivel` dos DOIS -- a igualdade era satisfeita pela sentinela.
+#
+# Tres caminhos fail-open, no portao que existe para fechar fail-open.
+montar_ancora() { # <cria binario de producao> <cc falha no al64>
+    montar 0 0 0 sim
+    printf '[{"directory":"%s","file":"../x.c","command":"cc -falign-loops=64 -c ../x.c -o x.o"}]\n' \
+        "$tmp/arv/build-precommit" > "$tmp/arv/build-precommit/compile_commands.json"
+    echo 'int main(void){return 0;}' > "$tmp/arv/x.c"
+    [ "$1" = "sim" ] && { printf 'producao\n' > "$tmp/arv/build-precommit/x"; chmod +x "$tmp/arv/build-precommit/x"; }
+    # `cc` de mentira: cria a saida pedida, exceto quando mandado falhar.
+    cat > "$tmp/bin/cc" <<CCFIM
+#!/bin/sh
+falha_al=$2
+for a in "\$@"; do
+    case "\$a" in -falign-loops=*) al=\${a#*=} ;; esac
+done
+[ "\$falha_al" = "sim" ] && [ "\$al" = "64" ] && exit 1
+prox=0
+for a in "\$@"; do
+    [ "\$prox" = 1 ] && { echo variante > "\$a"; chmod +x "\$a"; exit 0; }
+    [ "\$a" = "-o" ] && prox=1
+done
+exit 0
+CCFIM
+    # `sudo` de mentira: tira `-u <quem>` e `-H`, e executa o resto.
+    cat > "$tmp/bin/sudo" <<'SUFIM'
+#!/bin/sh
+while [ $# -gt 0 ]; do
+    case "$1" in -u) shift 2 ;; -H|-n) shift ;; *) break ;; esac
+done
+exec "$@"
+SUFIM
+    chmod +x "$tmp/bin/cc" "$tmp/bin/sudo"
+}
+rodar_x() { PATH="$tmp/bin:$PATH" bash "$tmp/arv/ferramental/qualidade/caracterizar-leiaute.sh" \
+                --repeticoes 1 --alinhamentos "64" x 2>&1; }
+
+# 6a. BINARIO DE PRODUCAO AUSENTE -> aborta, e nao avisa.
+montar_ancora nao nao
+saida=$(rodar_x); rc=$?
+conferir "sem binario de producao, aborta"       "$rc" "1"
+conferir "e diz que nao ha o que ancorar" \
+    "$(printf '%s' "$saida" | grep -c 'ancorar')" "1"
+conferir "e NAO degrada para aviso" \
+    "$(printf '%s' "$saida" | grep -c 'AVISO')" "0"
+
+# 6b. A VARIANTE DO ALINHAMENTO DE PRODUCAO NAO CONSTRUIU -> aborta.
+montar_ancora sim sim
+saida=$(rodar_x); rc=$?
+conferir "variante de producao ausente, aborta"  "$rc" "1"
+conferir "e nomeia a variante que falta" \
+    "$(printf '%s' "$saida" | grep -c 'nao foi construida')" "1"
+
+# 6c. A SENTINELA NAO PODE SATISFAZER A IGUALDADE. Os dois lados sao arquivos
+#     nao-ELF: `_sha_secao` devolve `nao-disponivel` para ambos, e comparar
+#     duas sentinelas aprovaria a ancora sem comparar nada.
+montar_ancora sim nao
+saida=$(rodar_x); rc=$?
+conferir "dois lados sem .text nao aprovam a ancora" "$rc" "1"
+conferir "e diz que nao leu a secao" \
+    "$(printf '%s' "$saida" | grep -c 'nao li a secao')" "1"
 
 if [ "$falhas" -gt 0 ]; then
     echo "  $falhas assercao(oes) falharam"

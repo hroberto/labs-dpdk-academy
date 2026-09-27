@@ -44,9 +44,16 @@ BASE=$(dirname "$CC_JSON")
 prod=$(find "$BASE" -type f -name "$PROG" -perm -u+x 2>/dev/null | head -1)
 [ -n "$prod" ] || { echo "PULADO: $PROG nao construido em $BASE"; exit 77; }
 
+# CARREGA, NAO EXTRAI. A primeira versao deste teste fazia
+# `eval "$(sed -n '/^comando_de() {/,/^}/p' ...)"` -- exatamente a classe que o
+# `PADROES.md` proibiu na manha do mesmo dia em que este arquivo nasceu. Hoje
+# a funcao e autocontida; amanha pode ganhar um auxiliar, e o teste voltaria a
+# exercitar um grafo mutilado sem saber.
 . "$raiz/ferramental/qualidade/identidade-artefato.sh"
-eval "$(sed -n '/^comando_de() {/,/^}/p' "$fonte")"
-declare -F comando_de >/dev/null || { echo "FALHA: nao extrai comando_de()"; exit 1; }
+. "$raiz/ferramental/qualidade/receita-build.sh"
+for f in comando_de fonte_do_programa _sha_secao; do
+    declare -F "$f" >/dev/null || { echo "FALHA: $f() nao foi carregada"; exit 1; }
+done
 
 falhas=0
 total=0

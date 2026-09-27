@@ -179,64 +179,10 @@ echo "==> governor: $GOV_ANTES -> performance (restaurado no fim)"
 ./scripts/ambiente.sh >> "$SAIDA/ambiente.txt" 2>&1
 
 # ---- CONSTRUIR AS VARIANTES --------------------------------------------
-# REPRODUZIR O COMANDO DO MESON, E NAO REMONTA-LO A MAO.
-#
-# A versao anterior extraia as flags e reconstruia a invocacao com
-# `cc -I<medicoes> $flags`. Isso perdia os OUTROS `-I` que o meson passa --
-# entre eles o do diretorio de build, onde `academy_version.h` e gerado. O
-# `statistics.h` o inclui sob `__has_include`, entao o artefato compilava SEM
-# a linha de procedencia e ficava com outro `.text`:
-#
-#     com o cabecalho : eaf9abfa...   <- o que a campanha mede
-#     sem o cabecalho : 394f847c...   <- o que a caracterizacao media
-#
-# Dois instrumentos, e a campanha media um enquanto a caracterizacao
-# caracterizava o outro. Substituir so `-falign-loops` e a saida, mantendo
-# todo o resto do comando arquivado, reproduz o binario de producao byte a
-# byte -- e o portao abaixo exige exatamente isso.
-comando_de() { # <programa> <alinhamento> <saida>  -> `cd <dir> && cc ...`
-    python3 - "$CC_JSON" "$1" "$2" "$3" <<'PYCMD'
-import json, re, shlex, sys
-cc = json.load(open(sys.argv[1]))
-alvo, al, saida = sys.argv[2], sys.argv[3], sys.argv[4]
-for e in cc:
-    if re.sub(r'\.[^.]+$', '', e.get('file', '').split('/')[-1]) != alvo:
-        continue
-    fora, pula = [], False
-    for x in shlex.split(e.get('command', '')):
-        if pula:
-            pula = False
-            continue
-        if x == '-c':
-            continue
-        if x in ('-o', '-MQ', '-MF'):
-            pula = True
-            continue
-        if x.startswith('-MD'):
-            continue
-        if x.startswith('-falign-loops='):
-            fora.append('-falign-loops=' + al)
-            continue
-        fora.append(x)
-    fora += ['-o', saida, '-lm']
-    print('cd %s && %s' % (shlex.quote(e.get('directory', '.')),
-                           ' '.join(shlex.quote(a) for a in fora)))
-    raise SystemExit
-raise SystemExit("sem entrada para %s" % alvo)
-PYCMD
-}
-fonte_do_programa() { # <programa> -> caminho ABSOLUTO do .c
-    python3 - "$CC_JSON" "$1" <<'PYF'
-import json, os, re, sys
-cc = json.load(open(sys.argv[1]))
-alvo = sys.argv[2]
-for e in cc:
-    if re.sub(r'\.[^.]+$', '', e.get('file', '').split('/')[-1]) == alvo:
-        print(os.path.realpath(os.path.join(e.get('directory', '.'), e['file'])))
-        raise SystemExit
-raise SystemExit("sem fonte para %s" % alvo)
-PYF
-}
+# A RECEITA VEM DE UM ARQUIVO CARREGADO, e nao de um trecho daqui: o
+# `l1_ancora_producao.sh` carrega o mesmo, e para de reconstruir a funcao por
+# `sed`. A razao esta no cabecalho dele.
+. "$RAIZ/ferramental/qualidade/receita-build.sh"
 
 # O ALINHAMENTO DO PROJETO, que e o ponto de ancoragem do portao abaixo.
 AL_PRODUCAO=$(grep -oE "falign-loops=[0-9]+" "$CC_JSON" | head -1 | cut -d= -f2)
@@ -287,23 +233,42 @@ for prog in $PROGRAMAS; do
     # diretorio de build, onde `academy_version.h` e gerado. Os artefatos
     # compilaram sem a linha de procedencia, com outro `.text`, e a
     # caracterizacao descreveu um instrumento que ninguem mede.
+    # SEM ANCORA, ZERO MEDICOES. Nao ha desfecho intermediario aqui.
+    #
+    # A primeira versao imprimia AVISO e seguia quando faltava um dos lados --
+    # o que e degradar o portao a informacao. E `_sha_secao` devolve
+    # `nao-disponivel` quando nao ha secao: com os dois lados assim, a
+    # igualdade era satisfeita pela SENTINELA e a ancora aprovava sem comparar
+    # coisa nenhuma. Os dois sao fail-open no portao que existe para fechar
+    # fail-open.
     prod=$(printf '%s' "$CC_JSON" | sed 's|/compile_commands.json||')
     prod_bin=$(find "$prod" -type f -name "$prog" -perm -u+x 2>/dev/null | head -1)
     meu="$RAIZ/$SAIDA/artefatos/$prog.al$AL_PRODUCAO"
-    if [ -n "$prod_bin" ] && [ -f "$meu" ]; then
-        a=$(_sha_secao "$prod_bin" .text)
-        b=$(_sha_secao "$meu" .text)
-        if [ "$a" = "$b" ]; then
-            echo "    ancora: $prog.al$AL_PRODUCAO reproduz o binario de producao"
-        else
-            echo "FALHA: $prog no alinhamento de producao NAO reproduz o binario medido." >&2
-            echo "  producao      : ${a:0:16}  ($prod_bin)" >&2
-            echo "  caracterizacao: ${b:0:16}" >&2
-            echo "  Algo alem de -falign-loops variou; a classificacao nao valeria." >&2
-            exit 1
-        fi
+    [ -n "$prod_bin" ] || {
+        echo "FALHA: nao achei o binario de producao de $prog em $prod." >&2
+        echo "  Sem o instrumento de referencia nao ha o que ancorar." >&2
+        exit 1; }
+    [ -f "$meu" ] || {
+        echo "FALHA: a variante $prog.al$AL_PRODUCAO nao foi construida." >&2
+        echo "  E ela que ancora a caracterizacao no instrumento medido." >&2
+        exit 1; }
+    a=$(_sha_secao "$prod_bin" .text)
+    b=$(_sha_secao "$meu" .text)
+    # O VALOR TEM DE ESTAR NO DOMINIO ANTES DE SER COMPARADO.
+    for h in "$a" "$b"; do
+        printf '%s' "$h" | grep -qE '^[0-9a-f]{64}$' || {
+            echo "FALHA: nao li a secao .text para ancorar $prog (obtive '$h')." >&2
+            echo "  Comparar sentinelas aprovaria a ancora sem comparar nada." >&2
+            exit 1; }
+    done
+    if [ "$a" = "$b" ]; then
+        echo "    ancora: $prog.al$AL_PRODUCAO reproduz o binario de producao"
     else
-        echo "    AVISO: nao achei o binario de producao de $prog para ancorar" >&2
+        echo "FALHA: $prog no alinhamento de producao NAO reproduz o binario medido." >&2
+        echo "  producao      : ${a:0:16}  ($prod_bin)" >&2
+        echo "  caracterizacao: ${b:0:16}" >&2
+        echo "  Algo alem de -falign-loops variou; a classificacao nao valeria." >&2
+        exit 1
     fi
 done
 [ -n "$BINARIOS" ] || { echo "FALHA: nenhum artefato construido." >&2; exit 1; }
