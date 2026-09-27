@@ -92,7 +92,62 @@ if [ "$graficos" -ne 0 ]; then
     exit 1
 fi
 
-# ---- PORTAO 3: RECONSTRUIR ANTES DE LER AS FLAGS ------------------------
+# ---- PORTAO 3: ARVORE LIMPA ---------------------------------------------
+#
+# O `PADROES.md` §1 diz que binario de arvore suja nao e procedencia. Aqui isso
+# NAO E FORMALIDADE: em 27/09/2026 um arquivo removido deixou o `git describe`
+# em `-dirty`, seis caracteres a mais, e o `.text` do binario mudou -- porque
+# o tamanho da string de procedencia desloca o `.rodata` e os deslocamentos
+# entram no codigo. A sujeira alterou o INSTRUMENTO, que e a variavel sob
+# estudo.
+#
+# `--untracked-files=all` E NAO SO O `--dirty` DO DESCRIBE. O `git describe`
+# ignora arquivo nao rastreado, e um `.h` solto no diretorio de fontes entra
+# na compilacao sem aparecer ali. Foi um arquivo solto -- varrido para a
+# arvore por um `git add -A` descuidado -- que originou este portao.
+#
+# A EXCECAO DE `historico/` E SO PARA ARQUIVO NOVO NAO RASTREADO.
+#
+# A primeira versao filtrava `/historico/` inteiro, e com isso ignorava
+# tambem coleta ja versionada que tivesse sido MODIFICADA ou REMOVIDA -- o
+# portao diria "limpo" enquanto o `git describe` responderia `-dirty`. Dois
+# estados diferentes tratados como um.
+#
+# A excecao vale porque coleta NOVA e saida de medicao e nunca entra em
+# caminho de inclusao; sem ela a segunda campanha seria bloqueada pelos
+# arquivos que a primeira produziu -- sao 4248 nesta arvore contra 1 fora.
+# Alterar evidencia ja arquivada e outra coisa, e bloqueia.
+#
+# E `git status` QUE FALHA NAO E ARVORE LIMPA. A versao anterior tinha
+# `2>/dev/null ... || true`: sem repositorio, sem permissao ou com o indice
+# corrompido, o portao respondia "limpo" -- que e o fail-open semantico que
+# este projeto acabou de nomear, dentro do portao escrito para aplica-lo.
+if ! estado_git=$(sudo -u "$DONO" git status --porcelain --untracked-files=all 2>&1); then
+    echo "FALHA: nao consegui verificar o estado da arvore git." >&2
+    printf '%s\n' "$estado_git" | sed 's/^/           /' >&2
+    echo "  Nao conseguir conferir nao e o mesmo que estar limpa." >&2
+    exit 1
+fi
+# `docs/` E `trilha/`, e nao so o primeiro. A primeira versao deste filtro
+# cobria apenas `docs/`, e a execucao de 20:27 foi bloqueada por milhares de
+# arquivos de coleta legitimos em
+# `trilha/01-fundamentos/02-mempool-ring/.../historico/`. O teste tinha a
+# MESMA cegueira: so exercitava `docs/`.
+#
+# Os dois raizes vao nomeados em vez de `.*/historico/`: se um terceiro
+# aparecer, o portao bloqueia e alguem decide -- que e a direcao segura.
+sujeira=$(printf '%s\n' "$estado_git" | grep -vE '^\?\? (docs|trilha)/.*/historico/' || true)
+if [ -n "$sujeira" ]; then
+    echo "FALHA: a caracterizacao exige arvore git limpa." >&2
+    printf '%s\n' "$sujeira" | sed 's/^/           /' >&2
+    # SEM CRASES AQUI: dentro de aspas duplas elas sao substituicao de
+    # comando, e o shell tentaria executar `.text` e `-dirty`.
+    echo "  O tamanho da string de procedencia entra na secao .text: um" >&2
+    echo "  -dirty no describe muda o binario, e com ele o instrumento medido." >&2
+    exit 1
+fi
+
+# ---- PORTAO 4: RECONSTRUIR ANTES DE LER AS FLAGS ------------------------
 #
 # O contrato desta etapa e simples e precisa continuar simples:
 #

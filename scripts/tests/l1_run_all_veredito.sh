@@ -297,6 +297,32 @@ conferir "em modo grafico o epilogo NAO aparece" \
     "$(bash -c "MODO=grafico
 $epilogo" 2>&1 | grep -c 'voltar ao modo grafico')" "0"
 
+# ---- 7b. o MOTIVO sai no veredito, e nao so no stderr do momento -------
+#
+# Em 27/09/2026 uma execucao terminou com `run-all NAO CONCLUIDO` e nenhuma
+# razao no registro: os marcadores escrevem em stderr, a narrativa vai para
+# stdout, e quem capturou um dos dois recebeu o veredito sem a causa. Um
+# relatorio que diz "algo falhou" e nao diz o que obriga a repetir uma
+# execucao de horas para descobrir.
+marcadores=$(awk '/^MOTIVOS=""/,/^}/' "$fonte")
+vl=$(awk '/^veredito_linha\(\) \{/,/^\}/' "$fonte")
+saida=$(bash -c "rc=1; rc_final=0
+$marcadores
+$vl
+marcar_falha 'a caracterizacao saiu com erro'
+veredito_linha" 2>/dev/null)
+conferir "o motivo aparece no veredito, em stdout" \
+    "$(printf '%s' "$saida" | grep -c 'a caracterizacao saiu com erro')" "1"
+conferir "sob o rotulo que diz o que ele e" \
+    "$(printf '%s' "$saida" | grep -c 'o que nao concluiu')" "1"
+# E SEM MOTIVO NENHUM o veredito nao inventa cabecalho vazio.
+saida=$(bash -c "rc=0; rc_final=0
+$marcadores
+$vl
+veredito_linha" 2>/dev/null)
+conferir "sem motivos, o veredito nao imprime o cabecalho" \
+    "$(printf '%s' "$saida" | grep -c 'o que nao concluiu')" "0"
+
 # ---- 8. o refresh do cache de memoria nao pode falhar CALADO ----------
 #
 # A linha era `--cachear-memoria >/dev/null 2>&1 && chown ...`. O `&&`

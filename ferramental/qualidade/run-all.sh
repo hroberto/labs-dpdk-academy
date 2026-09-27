@@ -591,12 +591,27 @@ fi
 # 2 significa INCOMPLETA (pre-requisito ausente), como no resto do projeto;
 # 1 significa que algo correu e falhou. Falha ganha de incompleta.
 rc_final=0
+# O MOTIVO ENTRA NO VEREDITO, e nao so no stderr do momento.
+#
+# Em 27/09/2026 uma execucao terminou com `run-all NAO CONCLUIDO` e NENHUMA
+# razao no registro: `marcar_falha` e os portoes escrevem em stderr, a
+# narrativa vai para stdout, e quem capturou um dos dois recebeu o veredito
+# sem a causa. Um relatorio que diz "algo falhou" e nao diz o que obriga a
+# repetir uma execucao de horas para descobrir.
+#
+# As mensagens ficam acumuladas e saem no veredito, no MESMO fluxo da
+# narrativa. O stderr continua recebendo a sua copia, para quem le ao vivo.
+MOTIVOS=""
 marcar_falha() { # <mensagem>
     echo "    FALHA: $1" >&2
+    MOTIVOS="$MOTIVOS
+    FALHA: $1"
     rc_final=1
 }
 marcar_incompleta() { # <mensagem>
     echo "    INCOMPLETA: $1" >&2
+    MOTIVOS="$MOTIVOS
+    INCOMPLETA: $1"
     [ "$rc_final" -eq 0 ] && rc_final=2
     return 0
 }
@@ -613,6 +628,7 @@ esac
 # errado -- o teste leu `rc=2` como veredito quando era erro de sintaxe do
 # recorte. O veredito e um so; imprimi-lo em dois lugares era o convite.
 veredito_linha() {
+    [ -z "$MOTIVOS" ] || { echo "  o que nao concluiu:"; printf '%s\n' "$MOTIVOS" | sed '/^$/d'; }
     case "$rc_final" in
         0) echo "  run-all CONCLUIDO  $(date -Is)   (campanha rc=$rc)" ;;
         2) echo "  run-all INCOMPLETO  $(date -Is)   (campanha rc=$rc)"

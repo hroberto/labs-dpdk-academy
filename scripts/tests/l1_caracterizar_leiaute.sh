@@ -60,13 +60,34 @@ montar() { # <graficos> <uid> <build-all devolve> <cria build/>
     chmod +x "$tmp/arv/scripts"/*.sh
     printf '#!/bin/sh\necho %s\n' "$2" > "$tmp/bin/id"
     printf '#!/bin/sh\necho %s\n' "$1" > "$tmp/bin/pgrep"
+    # `sudo` DE MENTIRA EM TODO CENARIO, e nao so nos da ancora.
+    #
+    # O `sudo` real reseta o `PATH` por `secure_path`, entao um stub de `git`
+    # nunca era alcancado -- e, pior, os cenarios dependiam de credencial em
+    # cache para funcionar: a suite passava ou nao conforme o operador tivesse
+    # rodado `sudo` nos ultimos minutos.
+    cat > "$tmp/bin/sudo" <<'SUFIM'
+#!/bin/sh
+while [ $# -gt 0 ]; do
+    case "$1" in -u) shift 2 ;; -H|-n) shift ;; *) break ;; esac
+done
+exec "$@"
+SUFIM
     chmod +x "$tmp/bin"/*
+}
+# A ARVORE DE MENTIRA E UM REPOSITORIO, porque o portao da arvore limpa
+# pergunta ao git. Congelar e o ULTIMO passo de cada cenario: o que for criado
+# depois disto e sujeira de proposito.
+congelar_git() {
+    ( cd "$tmp/arv" && { [ -d .git ] || git init -q; }
+      git -c user.email=t@t -c user.name=t add -A
+      git -c user.email=t@t -c user.name=t commit -qm cenario ) >/dev/null 2>&1 || :
 }
 rodar() { PATH="$tmp/bin:$PATH" bash "$tmp/arv/ferramental/qualidade/caracterizar-leiaute.sh" \
               --repeticoes 1 custo-comunicacao 2>&1; }
 
 # ---- 1. sem root nao caracteriza ---------------------------------------
-montar 0 1000 0 sim
+montar 0 1000 0 sim; congelar_git
 saida=$(rodar); rc=$?
 conferir "sem root recusa"            "$rc" "1"
 conferir "e diz que precisa de sudo"  "$(printf '%s' "$saida" | grep -c sudo)" "1"
@@ -74,14 +95,14 @@ conferir "e diz que precisa de sudo"  "$(printf '%s' "$saida" | grep -c sudo)" "
 # ---- 2. sessao grafica viva nao caracteriza ----------------------------
 # A condicao e o objeto da medicao: com compositor vivo a faixa entre
 # execucoes mede a sessao, e nao o binario.
-montar 2 0 0 sim
+montar 2 0 0 sim; congelar_git
 saida=$(rodar); rc=$?
 conferir "sessao grafica recusa"          "$rc" "1"
 conferir "e manda reiniciar em modo texto" \
     "$(printf '%s' "$saida" | grep -c 'modo texto')" "1"
 
 # ---- 3. build que nao compila nao caracteriza --------------------------
-montar 0 0 1 sim
+montar 0 0 1 sim; congelar_git
 saida=$(rodar); rc=$?
 conferir "build quebrado recusa" "$rc" "1"
 conferir "e diz que a caracterizacao nao comeca" \
@@ -93,7 +114,7 @@ conferir "e diz que a caracterizacao nao comeca" \
 # Com `build/` ausente, a caracterizacao leria flags com
 # `-fsanitize=address,undefined -fno-omit-frame-pointer` e mediria o efeito do
 # sanitizador chamando de leiaute.
-montar 0 0 0 nao
+montar 0 0 0 nao; congelar_git
 saida=$(rodar); rc=$?
 conferir "sem build normal, recusa"      "$rc" "1"
 conferir "e nomeia o arquivo que falta"  \
@@ -109,7 +130,7 @@ conferir "e NAO cai no build-san"        \
 # Mesmo com `build/compile_commands.json` presente, o script reconstroi antes
 # de ler as flags: mudanca no `meson.build` altera as flags sem tocar em
 # nenhum `.c`, e conferir a data do arquivo deixaria isso passar.
-montar 0 0 0 sim
+montar 0 0 0 sim; congelar_git
 saida=$(rodar)
 conferir "reconstroi mesmo com o json presente" \
     "$(printf '%s' "$saida" | grep -c 'reconstruindo o build normal')" "1"
@@ -143,15 +164,8 @@ for a in "\$@"; do
 done
 exit 0
 CCFIM
-    # `sudo` de mentira: tira `-u <quem>` e `-H`, e executa o resto.
-    cat > "$tmp/bin/sudo" <<'SUFIM'
-#!/bin/sh
-while [ $# -gt 0 ]; do
-    case "$1" in -u) shift 2 ;; -H|-n) shift ;; *) break ;; esac
-done
-exec "$@"
-SUFIM
-    chmod +x "$tmp/bin/cc" "$tmp/bin/sudo"
+    chmod +x "$tmp/bin/cc"
+    congelar_git
 }
 rodar_x() { PATH="$tmp/bin:$PATH" bash "$tmp/arv/ferramental/qualidade/caracterizar-leiaute.sh" \
                 --repeticoes 1 --alinhamentos "64" x 2>&1; }
@@ -172,6 +186,7 @@ conferir "e NAO degrada para aviso" \
 montar_ancora sim nao
 mkdir -p "$tmp/arv/build-precommit/sub"
 printf 'outro\n' > "$tmp/arv/build-precommit/sub/x"; chmod +x "$tmp/arv/build-precommit/sub/x"
+congelar_git
 saida=$(rodar_x); rc=$?
 conferir "dois binarios homonimos abortam"       "$rc" "1"
 conferir "e os dois sao listados"                \
@@ -192,6 +207,88 @@ saida=$(rodar_x); rc=$?
 conferir "dois lados sem .text nao aprovam a ancora" "$rc" "1"
 conferir "e diz que nao leu a secao" \
     "$(printf '%s' "$saida" | grep -c 'nao li a secao')" "1"
+
+# ---- 7. ARVORE SUJA NAO CARACTERIZA -------------------------------------
+#
+# O `PADROES.md` §1 diz que binario de arvore suja nao e procedencia, e aqui
+# isso nao e formalidade: o tamanho da string do `git describe` desloca o
+# `.rodata`, e os deslocamentos entram no `.text`. Um `-dirty` -- seis
+# caracteres -- muda o instrumento sob estudo.
+#
+# E o portao olha NAO RASTREADO tambem: `git describe --dirty` o ignora, e um
+# `.h` solto no diretorio de fontes entra na compilacao sem aparecer ali.
+sujar() { montar 0 0 0 sim; congelar_git; eval "$1"; rodar 2>&1; }
+
+saida=$(sujar ':'); rc=$?
+conferir "arvore limpa nao e barrada pelo portao 3" \
+    "$(printf '%s' "$saida" | grep -c 'arvore git limpa')" "0"
+
+saida=$(sujar 'echo alterado >> "$tmp/arv/scripts/ambiente.sh"'); rc=$?
+conferir "arquivo rastreado MODIFICADO aborta"  "$rc" "1"
+conferir "e a sujeira vai listada" \
+    "$(printf '%s' "$saida" | grep -c 'scripts/ambiente.sh')" "1"
+
+saida=$(sujar 'rm -f "$tmp/arv/scripts/ambiente.sh"'); rc=$?
+conferir "arquivo rastreado REMOVIDO aborta"    "$rc" "1"
+
+saida=$(sujar 'echo solto > "$tmp/arv/ferramental/qualidade/solto.h"'); rc=$?
+conferir "arquivo NAO RASTREADO aborta"         "$rc" "1"
+conferir "e ele e nomeado"                      \
+    "$(printf '%s' "$saida" | grep -c 'solto.h')" "1"
+
+# A EXCECAO DECLARADA: coleta NOVA e saida de medicao, nunca entra em caminho
+# de inclusao. Sem ela, a segunda campanha seria barrada pelo que a primeira
+# produziu -- sao milhares de arquivos.
+saida=$(sujar 'mkdir -p "$tmp/arv/docs/01-fundamentos/medicoes/historico/x"
+               echo dado > "$tmp/arv/docs/01-fundamentos/medicoes/historico/x/r1.txt"')
+conferir "coleta NOVA nao rastreada em historico NAO suja a arvore" \
+    "$(printf '%s' "$saida" | grep -c 'arvore git limpa')" "0"
+
+# E `trilha/` TAMBEM TEM `historico/`. A primeira versao do filtro cobria so
+# `docs/`, e este teste tinha a MESMA cegueira -- exercitava apenas `docs/`,
+# entao a mutacao que removia `trilha` sobrevivia. A execucao de 20:27 foi
+# bloqueada por milhares de arquivos de coleta legitimos em
+# `trilha/01-fundamentos/02-mempool-ring/.../historico/`.
+saida=$(sujar 'mkdir -p "$tmp/arv/trilha/01-fundamentos/02-mempool-ring/historico/w"
+               echo dado > "$tmp/arv/trilha/01-fundamentos/02-mempool-ring/historico/w/r1.txt"')
+conferir "coleta nova em trilha/ tambem NAO suja a arvore" \
+    "$(printf '%s' "$saida" | grep -c 'arvore git limpa')" "0"
+
+# MAS ALTERAR EVIDENCIA JA ARQUIVADA E OUTRA COISA. A primeira versao filtrava
+# `/historico/` inteiro e ignorava modificacao e remocao de coleta versionada:
+# o portao dizia "limpo" enquanto o `git describe` responderia `-dirty`.
+montar 0 0 0 sim
+mkdir -p "$tmp/arv/docs/01-fundamentos/medicoes/historico/y"
+echo original > "$tmp/arv/docs/01-fundamentos/medicoes/historico/y/r1.txt"
+congelar_git
+echo alterado >> "$tmp/arv/docs/01-fundamentos/medicoes/historico/y/r1.txt"
+saida=$(rodar 2>&1); rc=$?
+conferir "coleta JA VERSIONADA modificada aborta" "$rc" "1"
+conferir "e ela e nomeada" \
+    "$(printf '%s' "$saida" | grep -c 'historico/y/r1.txt')" "1"
+
+montar 0 0 0 sim
+mkdir -p "$tmp/arv/docs/01-fundamentos/medicoes/historico/z"
+echo original > "$tmp/arv/docs/01-fundamentos/medicoes/historico/z/r1.txt"
+congelar_git
+rm -f "$tmp/arv/docs/01-fundamentos/medicoes/historico/z/r1.txt"
+rc=0; rodar >/dev/null 2>&1 || rc=$?
+conferir "coleta JA VERSIONADA removida aborta"   "$rc" "1"
+
+# E `git status` QUE FALHA NAO E ARVORE LIMPA. Era `2>/dev/null ... || true`:
+# sem repositorio, sem permissao ou com o indice corrompido, o portao
+# respondia "limpo" -- o fail-open semantico dentro do portao escrito para
+# aplica-lo.
+montar 0 0 0 sim; congelar_git
+printf '#!/bin/sh\necho "fatal: not a git repository" >&2\nexit 128\n' > "$tmp/bin/git"
+chmod +x "$tmp/bin/git"
+saida=$(rodar 2>&1); rc=$?
+rm -f "$tmp/bin/git"
+conferir "git status falhando aborta"             "$rc" "1"
+conferir "e diz que nao conseguiu conferir" \
+    "$(printf '%s' "$saida" | grep -c 'nao consegui verificar')" "1"
+conferir "e NAO afirma que a arvore esta limpa" \
+    "$(printf '%s' "$saida" | grep -c 'arvore git limpa')" "0"
 
 if [ "$falhas" -gt 0 ]; then
     echo "  $falhas assercao(oes) falharam"

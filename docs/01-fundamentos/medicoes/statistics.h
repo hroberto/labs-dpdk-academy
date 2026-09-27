@@ -578,6 +578,45 @@ static STAT_MAYBE_UNUSED void print_row(const char *rotulo, struct statistics e)
 #define ACADEMY_COMMIT "sem-git"
 #endif
 
+/* A PROCEDENCIA OCUPA ESPACO FIXO, e a razao e que ela estava deslocando o
+ * CODIGO.
+ *
+ * Medido em 27/09/2026, compilando o mesmo fonte com as mesmas flags e so
+ * trocando a string do `git describe`:
+ *
+ *   mesmo comprimento, conteudo diferente  ->  `.text` IDENTICO
+ *   comprimento diferente                  ->  `.text` diferente
+ *
+ * A causa e o endereçamento relativo ao PC: mudar o tamanho de um literal
+ * desloca os objetos seguintes no `.rodata`, e cada referencia a eles carrega
+ * o deslocamento DENTRO do `.text`. O efeito nao e teorico -- foi assim que um
+ * `-dirty` no `git describe`, seis caracteres a mais, produziu um binario com
+ * `.text` diferente do mesmo commit sem sujeira.
+ *
+ * Isso importa porque o `text_sha256` do manifesto existe para identificar o
+ * INSTRUMENTO. Se ele muda quando o contador de commits passa de dois para
+ * tres digitos, ou quando a arvore fica suja, o portao de comparacao entre
+ * artefatos recusa por uma razao que nao e nem a maquina nem o codigo.
+ *
+ * Um array de tamanho fixo ocupa o mesmo espaco seja qual for o literal. O
+ * conteudo continua inteiro no `.rodata` -- nada se perde da procedencia --,
+ * e o codigo para de se mover.
+ *
+ * O `_Static_assert` existe para que uma tag futura grande demais quebre a
+ * COMPILACAO, e nao trunque a procedencia em silencio. */
+enum { ACADEMY_COMMIT_CAP = 64 };
+/* ESTE CABECALHO E COMPARTILHADO COM C++ -- o `test_l1_statistics.cpp` o
+ * inclui --, e `_Static_assert` e C11. Em C++ a forma e `static_assert`, e a
+ * compilacao do teste foi quem acusou. */
+#if defined(__cplusplus)
+static_assert(sizeof(ACADEMY_COMMIT) <= ACADEMY_COMMIT_CAP,
+              "ACADEMY_COMMIT excede o campo de procedencia");
+#else
+_Static_assert(sizeof(ACADEMY_COMMIT) <= ACADEMY_COMMIT_CAP,
+               "ACADEMY_COMMIT excede o campo de procedencia");
+#endif
+static STAT_MAYBE_UNUSED const char academy_commit[ACADEMY_COMMIT_CAP] = ACADEMY_COMMIT;
+
 /* A versao do DPDK entra na procedencia porque ela e VARIAVEL EXPERIMENTAL em
  * estudo que compara releases: sem ela, dois bracos de campanha ficam
  * indistinguiveis no arquivo. Programas sem DPDK devolvem string vazia, e a
@@ -625,7 +664,7 @@ static STAT_MAYBE_UNUSED void print_provenance(const char *programa)
         strftime(quando, sizeof(quando), "%Y-%m-%dT%H:%M:%S%z", tmv);
 
     printf("  origin: %s @ %s  |  %s %s %s  |  gcc %s  |  %s%s\n\n",
-           programa, ACADEMY_COMMIT, u.nodename, u.sysname, u.release, __VERSION__, quando,
+           programa, academy_commit, u.nodename, u.sysname, u.release, __VERSION__, quando,
            academy_dpdk_versao());
 }
 
