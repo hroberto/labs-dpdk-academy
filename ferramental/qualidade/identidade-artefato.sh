@@ -46,6 +46,35 @@ _secao() { # <binario> <secao>  -> conteudo bruto, ou nada
     cat "$t" 2>/dev/null
     rm -f "${t:?}"
 }
+# O DOMINIO DA PROCEDENCIA DA FONTE, num lugar so.
+#
+# Tres casos, e o terceiro e o que fecha a porta:
+#
+#   v0.09.00                      tag exata
+#   v0.08.00-36-gb07a8f94         `git describe` pos-tag
+#   b07a8f94 / 40 hex             SHA cru, de `--always` sem tag
+#   qualquer um deles + `-dirty`  arvore suja, preservado de proposito
+#   o resto                       nao-disponivel
+#
+# `15.2.0` fica de fora porque nao tem `v`, e foi ele que os oito artefatos de
+# 27/09/2026 gravaram: a versao do GCC, num campo que diz de qual FONTE o
+# programa veio.
+# REGEX, E NAO GLOB DO `case`. A primeira versao usava
+# `v[0-9]*.[0-9]*.[0-9]*`, e o `*` final casa QUALQUER sufixo: `v0.09.00-lixo`
+# entrava. A alternativa `-dirty` ali era decorativa, e nenhuma mutacao a
+# distinguia -- sinal de que o padrao nao estava fazendo o trabalho.
+#
+# E e o MESMO regex que a busca por strings usa, num lugar so: dois caminhos
+# com dois dominios divergiriam em silencio.
+_ORIGEM_RE='^(v[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+-g[0-9a-f]+)?|[0-9a-f]{7,40})(-dirty)?$'
+_origem_valida() { # <candidato>  -> o valor, ou nao-disponivel
+    if printf '%s' "$1" | grep -qE "$_ORIGEM_RE"; then
+        printf '%s' "$1"
+    else
+        printf 'nao-disponivel'
+    fi
+}
+
 _sha_secao() { # <binario> <secao>  -> sha256 da secao, ou nao-disponivel
     local t saida; t=$(mktemp)
     objcopy --dump-section "$2=$t" "$1" /dev/null 2>/dev/null
@@ -120,10 +149,14 @@ identidade_artefato() { # <programa> [<flags>] [<origem>]  -> bloco `# ARTIFACT`
     # caracterizador conhecem a procedencia; quando conhecem, passam. A busca
     # por strings fica como ultimo recurso diagnostico, nunca como autoridade.
     if [ -n "${3:-}" ]; then
-        orig=$3
+        # VALOR EXPLICITO TAMBEM PASSA PELO DOMINIO. Confiar em quem chama sem
+        # conferir apenas move a heuristica de lugar: um `git describe` que
+        # falhou devolve string de erro, e grava-la seria a mesma mentira que
+        # `15.2.0` era. Ausente ou invalido vira `nao-disponivel` -- nunca uma
+        # segunda tentativa de adivinhar.
+        orig=$(_origem_valida "$3")
     else
-        orig=$(strings -a "$real" 2>/dev/null \
-               | grep -m1 -E '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+-g[0-9a-f]+)?(-dirty)?$' || true)
+        orig=$(strings -a "$real" 2>/dev/null | grep -m1 -E "$_ORIGEM_RE" || true)
     fi
     {
         echo "# ARTIFACT $(basename "$real")"

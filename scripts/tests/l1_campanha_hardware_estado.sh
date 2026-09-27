@@ -44,7 +44,7 @@ ARTEFATOS_VISTOS=""
 . "$raiz/ferramental/qualidade/identidade-artefato.sh"
 
 for f in rodar veredito_hw contar_estado registrar coletar_estado_maquina corre_feed \
-         identidade_artefato _secao _sha_secao _flags_de; do
+         identidade_artefato _secao _sha_secao _flags_de _origem_valida; do
     declare -F "$f" >/dev/null || { echo "FALHA: nao extrai $f() de campanha-hardware.sh"; exit 1; }
 done
 
@@ -473,6 +473,37 @@ printf 'v0.09.00\n' > comtag
 identidade_artefato ./comtag
 conferir "tag exata e aceita como procedencia" \
     "$(grep -c '^#   source_origin=v0.09.00$' "$MANIFESTO")" "1"
+
+# O DOMINIO DA PROCEDENCIA, tres casos e o resto.
+#
+# Confiar no valor explicito sem conferir so moveria a heuristica de lugar: um
+# `git describe` que falha devolve "fatal: not a git repository", e grava-lo
+# seria a mesma mentira que `15.2.0` era.
+# `v0.09.00-dirty` ESTA NA LISTA de proposito: e a combinacao tag-pura +
+# arvore-suja, e sem ela a mutacao que remove `-dirty` daquele padrao
+# sobrevive -- os outros casos sujos casam pelo padrao do `git describe`.
+for par in "v0.09.00|v0.09.00" \
+           "v0.09.00-dirty|v0.09.00-dirty" \
+           "v0.09.00-lixo|nao-disponivel" \
+           "v0.08.00-36-gb07a8f94|v0.08.00-36-gb07a8f94" \
+           "v0.08.00-36-gb07a8f94-dirty|v0.08.00-36-gb07a8f94-dirty" \
+           "b07a8f94|b07a8f94" \
+           "b07a8f94-dirty|b07a8f94-dirty" \
+           "15.2.0|nao-disponivel" \
+           "2.39|nao-disponivel" \
+           "fatal: not a git repository|nao-disponivel" \
+           "GCC 15.2.0|nao-disponivel"; do
+    conferir "procedencia '${par%%|*}'" "$(_origem_valida "${par%%|*}")" "${par##*|}"
+done
+# E O CAMINHO INTEIRO: o valor de quem chama chega ao manifesto, ja filtrado.
+zerar_manifesto; ARTEFATOS_VISTOS=""
+identidade_artefato ./mediu "" "v0.09.00"
+conferir "a procedencia de quem chama e gravada" \
+    "$(grep -c '^#   source_origin=v0.09.00$' "$MANIFESTO")" "1"
+zerar_manifesto; ARTEFATOS_VISTOS=""
+identidade_artefato ./mediu "" "fatal: not a git repository"
+conferir "e lixo de quem chama vira ausencia, nao e gravado" \
+    "$(grep -c '^#   source_origin=nao-disponivel$' "$MANIFESTO")" "1"
 
 # SEM ARGUMENTO, A SONDAGEM CONTINUA: o `campanha-hardware.sh` mede binarios
 # do `build/`, onde `_flags_de` acha o que precisa.
