@@ -103,6 +103,89 @@ def classificar(por_alinhamento):
     return None, repro, envelope, faixa
 
 
+def ancoras(diretorio, build):
+    """{programa: text_sha256 do instrumento ancorado}, ou {} se nao der.
+
+    A CLASSIFICACAO VALE PARA UM INSTRUMENTO, E NAO PARA UM COMMIT. A mudanca
+    do `statistics.h` em 27/09/2026 alterou o `.text` de todos os programas sem
+    tocar em nenhum `.c`: uma classificacao presa ao commit do fonte
+    continuaria autorizando comparacao entre dois binarios diferentes.
+
+    A autoridade e o `text_sha256` da variante que reproduziu byte a byte o
+    binario de producao -- a ancora. Duas fontes, nesta ordem:
+
+      1. o bloco `# ANCORA` do manifesto, gravado no momento da medicao;
+      2. o casamento contra o binario de producao ainda presente no build.
+
+    A segunda existe para coletas anteriores ao registro. Ela NAO adivinha:
+    procura o artefato cujo `.text` e identico ao de producao, e exige
+    exatamente um. Zero ou mais de um, devolve vazio e a classificacao e
+    recusada -- porque sem ancora a linha do TSV nao diz a que instrumento ela
+    se refere.
+    """
+    man = os.path.join(str(diretorio).rstrip("/"), "manifesto.txt")
+    fora, atual = {}, None
+    try:
+        with io.open(man, encoding="utf-8", errors="replace") as fh:
+            for linha in fh:
+                m = re.match(r"^#\s*ANCORA\s+(\S+)", linha)
+                if m:
+                    atual = m.group(1)
+                    continue
+                m = re.match(r"^#\s+text_sha256=([0-9a-f]{64})\s*$", linha)
+                if m and atual:
+                    fora[atual] = m.group(1)
+                    atual = None
+    except OSError:
+        pass
+    if fora:
+        return fora
+    # Sem registro: casar contra o binario de producao, se ele ainda existir.
+    artefatos = {}
+    atual = None
+    try:
+        with io.open(man, encoding="utf-8", errors="replace") as fh:
+            for linha in fh:
+                m = re.match(r"^#\s*ARTIFACT\s+(\S+)", linha)
+                if m:
+                    atual = m.group(1)
+                    continue
+                m = re.match(r"^#\s+text_sha256=([0-9a-f]{64})\s*$", linha)
+                if m and atual:
+                    artefatos[atual] = m.group(1)
+                    atual = None
+    except OSError:
+        return {}
+    for nome, sha in list(artefatos.items()):
+        prog = nome.rsplit(".al", 1)[0]
+        alvo = os.path.join(build, "docs")
+        achados = []
+        for raiz, _, arqs in os.walk(build):
+            if prog in arqs:
+                achados.append(os.path.join(raiz, prog))
+        if len(achados) != 1:
+            continue
+        if _sha_texto(achados[0]) == sha:
+            fora[prog] = sha
+    return fora
+
+
+def _sha_texto(binario):
+    """sha256 da secao `.text`, lida pelos bytes. Vazio se nao der."""
+    import subprocess
+    import tempfile
+    with tempfile.NamedTemporaryFile() as t:
+        r = subprocess.run(["objcopy", "--dump-section", ".text=" + t.name, binario,
+                            os.devnull], capture_output=True)
+        if r.returncode != 0:
+            return ""
+        dados = io.open(t.name, "rb").read()
+    if not dados:
+        return ""
+    import hashlib
+    return hashlib.sha256(dados).hexdigest()
+
+
 def fontes(diretorio):
     """{programa: commit} dos blocos `# FONTE` do manifesto."""
     man = os.path.join(diretorio, "manifesto.txt")
@@ -122,13 +205,24 @@ def fontes(diretorio):
     return fora
 
 
-def principal(diretorio, tsv):
+def principal(diretorio, tsv, build):
     dados = ler(diretorio)
     if not dados:
         print("  nada reconhecido em %s/saidas" % diretorio)
         return 1
     fnt = fontes(diretorio)
+    anc = ancoras(diretorio, build)
     evidencia = os.path.basename(str(diretorio).rstrip("/"))
+    # SEM ANCORA NAO HA LINHA. A classificacao autoriza ou proibe comparacao
+    # entre INSTRUMENTOS; uma linha que nao diz a qual instrumento se refere
+    # autorizaria qualquer um.
+    faltando = sorted({p for (p, _) in dados} - set(anc))
+    if faltando:
+        print("  SEM ANCORA para: %s" % ", ".join(faltando))
+        print("  A classificacao amarra rotulo a INSTRUMENTO, e a ancora e o")
+        print("  `text_sha256` da variante que reproduziu o binario de producao.")
+        print("  Sem ela a linha do TSV nao diz a que binario se refere.")
+        return 1
     linhas, indeterminados = [], 0
     if not tsv:
         print("  %-46s %8s %8s %8s  %s" % ("rotulo", "repro%", "envel%", "faixa%", "classe"))
@@ -140,8 +234,11 @@ def principal(diretorio, tsv):
             print("  %-46s %s %s %s  %s" % (rotulo[:46], fmt(repro), fmt(env), fmt(faixa),
                                             classe or "(indeterminado)"))
         if classe:
-            linhas.append("%s\t%s\t%s\t%s" % (rotulo, classe, evidencia,
-                                              fnt.get(prog, "desconhecido")))
+            # A ANCORA E A AUTORIDADE OPERACIONAL; o `source_origin` fica como
+            # procedencia humana, para quem le.
+            linhas.append("%s\t%s\t%s\t%s\t%s" % (rotulo, classe, evidencia,
+                                                  anc[prog],
+                                                  fnt.get(prog, "desconhecido")))
         else:
             indeterminados += 1
     if tsv:
@@ -212,4 +309,5 @@ if __name__ == "__main__":
     if not args:
         print(__doc__)
         sys.exit(2)
-    sys.exit(principal(args[0], "--tsv" in sys.argv))
+    build = os.environ.get("DPDK_ACADEMY_BUILD", "build-precommit")
+    sys.exit(principal(args[0], "--tsv" in sys.argv, build))
