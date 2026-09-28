@@ -335,6 +335,18 @@ for prog in $PROGRAMAS; do
     done
     if [ "$a" = "$b" ]; then
         echo "    ancora: $prog.al$AL_PRODUCAO reproduz o binario de producao"
+        # A ANCORA VAI PARA O MANIFESTO, e nao so para a tela.
+        #
+        # E ela que amarra a classificacao ao INSTRUMENTO. O commit do fonte
+        # nao basta: a mudanca do `statistics.h` em 27/09/2026 alterou o
+        # `.text` de todos os programas sem tocar em nenhum `.c`, e uma
+        # classificacao presa ao commit continuaria autorizando comparacao
+        # entre dois instrumentos diferentes.
+        {
+            echo "# ANCORA $prog"
+            echo "#   alinhamento=$AL_PRODUCAO"
+            echo "#   text_sha256=$a"
+        } >> "$MANIFESTO"
     else
         echo "FALHA: $prog no alinhamento de producao NAO reproduz o binario medido." >&2
         echo "  producao      : ${a:0:16}  ($prod_bin)" >&2

@@ -288,15 +288,20 @@ def programa_do_rotulo(rotulo):
     return rotulo.split(":", 1)[0].strip() if ":" in rotulo else None
 
 
-def classificacao_leiaute():
+def classificacao_leiaute(caminho=None):
     """{rotulo: INVARIAVEL|SENSIVEL|DOMINADO} do arquivo declarado.
 
     AUSENTE NAO E INVARIAVEL. Um rotulo que nao esta na lista nao foi
     caracterizado, e a resposta honesta sobre ele e "identificabilidade nao
     estabelecida" -- nem permissao, nem proibicao.
     """
-    caminho = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                           "sensibilidade-leiaute.tsv")
+    # O CAMINHO E INJETAVEL PARA O TESTE, e a razao nao e conveniencia: sem
+    # isso o autoteste passava o dicionario ja montado e a LEITURA do arquivo
+    # nunca era exercitada -- a mutacao que voltava a ler o formato de tres
+    # colunas sobrevivia.
+    if caminho is None:
+        caminho = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "sensibilidade-leiaute.tsv")
     fora = {}
     try:
         with io.open(caminho, encoding="utf-8") as fh:
@@ -304,8 +309,15 @@ def classificacao_leiaute():
                 if linha.startswith("#") or not linha.strip():
                     continue
                 partes = linha.rstrip("\n").split("\t")
-                if len(partes) >= 2:
-                    fora[partes[0]] = partes[1].strip().upper()
+                # A CHAVE E (ROTULO, INSTRUMENTO), e nao o rotulo sozinho.
+                #
+                # A classificacao vale para o binario que a produziu. A mudanca
+                # do `statistics.h` em 27/09/2026 alterou o `.text` de todos os
+                # programas sem tocar em nenhum `.c`: uma linha presa so ao
+                # rotulo continuaria autorizando comparacao entre instrumentos
+                # diferentes -- o fail-open que a quarta coluna veio fechar.
+                if len(partes) >= 4 and sha_texto_valido(partes[3]):
+                    fora[(partes[0], sha_texto_valido(partes[3]))] = partes[1].strip().upper()
     except OSError:
         pass
     return fora
@@ -365,11 +377,20 @@ def estado_de_comparacao(rotulo, art_base, art_novo, classes):
         return SEM_IDENTIDADE
     if a == b:
         return COMPARAVEL
-    classe = classes.get(rotulo)
-    if classe == "INVARIAVEL":
-        return COMPARAVEL
-    if classe in ("SENSIVEL", "DOMINADO"):
+    # A ASSIMETRIA E O CORACAO DA REGRA.
+    #
+    # `SENSIVEL` e uma PROIBICAO: basta um dos dois instrumentos estar marcado
+    # para o portao fechar, porque a diferenca observada ja pode ser do
+    # leiaute de um deles.
+    #
+    # `INVARIAVEL` e uma AUTORIZACAO: exige evidencia para OS DOIS. Saber que
+    # o rotulo nao se move no instrumento A nao diz nada sobre o B, e abrir o
+    # portao com meia evidencia seria autorizar pelo que nao se mediu.
+    ca, cb = classes.get((rotulo, a)), classes.get((rotulo, b))
+    if "SENSIVEL" in (ca, cb) or "DOMINADO" in (ca, cb):
         return NAO_COMPARAVEL
+    if ca == "INVARIAVEL" and cb == "INVARIAVEL":
+        return COMPARAVEL
     return NAO_ESTABELECIDO
 
 
@@ -574,13 +595,61 @@ def autoteste():
              estado_de_comparacao("prog: x", ab, ab, {}), COMPARAVEL)
         caso(16, "artefato diferente e rotulo nao caracterizado -> nao estabelecido",
              estado_de_comparacao("prog: x", ab, an, {}), NAO_ESTABELECIDO)
-        caso(17, "artefato diferente e rotulo SENSIVEL -> nao comparavel",
-             estado_de_comparacao("prog: x", ab, an, {"prog: x": "SENSIVEL"}), NAO_COMPARAVEL)
-        caso(18, "artefato diferente e rotulo DOMINADO -> nao comparavel",
-             estado_de_comparacao("prog: x", ab, an, {"prog: x": "DOMINADO"}), NAO_COMPARAVEL)
-        # A PERMISSAO SO VEM DE CARACTERIZACAO, e por isso ela e explicita.
-        caso(19, "artefato diferente e rotulo INVARIAVEL -> comparavel",
-             estado_de_comparacao("prog: x", ab, an, {"prog: x": "INVARIAVEL"}), COMPARAVEL)
+        # 17 a 19c. A ASSIMETRIA ENTRE PROIBIR E AUTORIZAR.
+        #
+        # `SENSIVEL` e proibicao: um lado marcado basta, porque a diferenca
+        # observada ja pode ser do leiaute daquele instrumento.
+        #
+        # `INVARIAVEL` e autorizacao: exige os DOIS. Saber que o rotulo nao se
+        # move no instrumento A nao diz nada sobre o B, e abrir o portao com
+        # meia evidencia seria autorizar pelo que nao se mediu.
+        caso(17, "SENSIVEL so no lado base ja proibe",
+             estado_de_comparacao("prog: x", ab, an, {("prog: x", SHA_A): "SENSIVEL"}),
+             NAO_COMPARAVEL)
+        caso(171, "SENSIVEL so no lado novo tambem proibe",
+             estado_de_comparacao("prog: x", ab, an, {("prog: x", SHA_B): "SENSIVEL"}),
+             NAO_COMPARAVEL)
+        caso(18, "DOMINADO em um lado proibe",
+             estado_de_comparacao("prog: x", ab, an, {("prog: x", SHA_B): "DOMINADO"}),
+             NAO_COMPARAVEL)
+        caso(19, "INVARIAVEL nos DOIS lados autoriza",
+             estado_de_comparacao("prog: x", ab, an,
+                                  {("prog: x", SHA_A): "INVARIAVEL",
+                                   ("prog: x", SHA_B): "INVARIAVEL"}),
+             COMPARAVEL)
+        caso(191, "INVARIAVEL em um lado so NAO autoriza",
+             estado_de_comparacao("prog: x", ab, an, {("prog: x", SHA_A): "INVARIAVEL"}),
+             NAO_ESTABELECIDO)
+        # E A CLASSIFICACAO E DO INSTRUMENTO: a mesma classe sob OUTRO hash nao
+        # vale para estes. Foi a mudanca do `statistics.h` que provou a
+        # necessidade -- `.text` de todos os programas mudou sem nenhum `.c`.
+        # 193 a 196. A LEITURA DO TSV, e nao so a decisao sobre um dicionario
+        #     ja montado. Sem exercitar o arquivo, a mutacao que volta a ler o
+        #     formato de tres colunas -- sem ancora -- sobrevive.
+        tsv = os.path.join(str(base), "classes.tsv")
+        with io.open(tsv, "w", encoding="utf-8") as fh:
+            fh.write("# comentario ignorado\n\n")
+            fh.write("prog: x\tINVARIAVEL\tcol-2045\t%s\tv0.0.0\n" % SHA_A)
+            fh.write("prog: y\tSENSIVEL\tcol-2045\t%s\n" % SHA_B)
+            fh.write("prog: z\tINVARIAVEL\tcol-2045\tnao-e-hash\tv0.0.0\n")
+            fh.write("prog: w\tINVARIAVEL\n")
+        lido = classificacao_leiaute(tsv)
+        caso(193, "a linha de cinco colunas vira (rotulo, ancora)",
+             lido.get(("prog: x", SHA_A)), "INVARIAVEL")
+        caso(194, "quatro colunas bastam: a ancora e a quarta",
+             lido.get(("prog: y", SHA_B)), "SENSIVEL")
+        # SEM ANCORA VALIDA NAO ENTRA. Uma linha que nao diz a que instrumento
+        # se refere autorizaria qualquer um.
+        caso(195, "ancora fora do dominio nao entra",
+             any(k[0] == "prog: z" for k in lido), False)
+        caso(196, "formato antigo de duas colunas nao entra",
+             any(k[0] == "prog: w" for k in lido), False)
+
+        caso(192, "INVARIAVEL de outro instrumento nao autoriza",
+             estado_de_comparacao("prog: x", ab, an,
+                                  {("prog: x", "c" * 64): "INVARIAVEL",
+                                   ("prog: x", "d" * 64): "INVARIAVEL"}),
+             NAO_ESTABELECIDO)
         # AUSENCIA DE IDENTIDADE NAO E IDENTIDADE IGUAL: coleta velha nao
         # registra artefato, e dizer "comparavel" ali seria inventar a garantia.
         caso(20, "sem bloco ARTIFACT -> sem identidade",

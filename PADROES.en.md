@@ -51,9 +51,14 @@ appendix to it.
 
 - **Median with dispersion**, not mean. And the high-dispersion seal is there to
   be read: where it appears, a single run does not support a conclusion.
-- **Ratios hold up better than absolutes** in sub-nanosecond measurement,
-  because code layout moves the absolute without touching the measured loop.
-  "Holds up better" is not "is stable".
+- **Ratios are not intrinsically more resistant to layout.** They cancel a
+  perturbation only when it is common to both terms. When numerator and
+  denominator travel distinct code paths, a ratio may **inherit — or amplify**
+  — the sensitivity of one of them. This section used to claim the opposite,
+  and the measurement of 2026-09-27 undid it: the `with/without SMT sibling`
+  ratio, which module 01 publishes as 2.29×, shows **0.00% variation across
+  runs of the same binary and 19.65% across alignments** — while its numerator
+  does not move at all. It is less robust than the very term above it.
 - **Pre-registration with a refutation criterion** before measuring. A
   prediction evaluated after the result becomes interpretation.
 - **Negative control** whenever the intervention could move everything. If

@@ -1,0 +1,233 @@
+# manifesto da caracterizacao de leiaute 2026-09-27-2045
+# STATUS: PASS (mediu), SKIP (pre-requisito ausente), FAIL (correu e reprovou)
+CELL                                     STATUS  RC
+# FONTE custo-comunicacao
+#   path=docs/01-fundamentos/medicoes/custo-comunicacao.c
+#   commit=69ddeb8921e70259093378106511fad3a8697e27
+# ARTIFACT custo-comunicacao.al16
+#   path=docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-comunicacao.al16
+#   source_origin=v0.08.00-46-g86793f5c
+#   binary_sha256=eb4d5562ba501f8deca4dcda0dbd0425af9120754a15c05d3e5cbc7c3fd1e751
+#   text_sha256=794020c3b83b9dff35be973621b115a0120799dddec44cb29caa63c4e7ed06a8
+#   build_id=d2fd4185b707ea19035104c860a44cede26e463f
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=/usr/bin/ccache cc -Idocs/01-fundamentos/medicoes/custo-comunicacao.p -Idocs/01-fundamentos/medicoes -I../docs/01-fundamentos/medicoes -fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -pthread -falign-loops=16 ../docs/01-fundamentos/medicoes/custo-comunicacao.c -o /home/henrique/workspaces/labs_dpdk_academy/docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-comunicacao.al16 -lm
+# ARTIFACT custo-comunicacao.al32
+#   path=docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-comunicacao.al32
+#   source_origin=v0.08.00-46-g86793f5c
+#   binary_sha256=2e8a0a2f136ccdeeb25de9e6392c46c74a02b70940699990a3a334522cb16953
+#   text_sha256=9db1d229f723a73f1737ff9353ffaf71dd5ed44a0b8ae1d32dc5a2bdda089e83
+#   build_id=bd14ff073e1f79ad50c4d187556404350223435d
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=/usr/bin/ccache cc -Idocs/01-fundamentos/medicoes/custo-comunicacao.p -Idocs/01-fundamentos/medicoes -I../docs/01-fundamentos/medicoes -fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -pthread -falign-loops=32 ../docs/01-fundamentos/medicoes/custo-comunicacao.c -o /home/henrique/workspaces/labs_dpdk_academy/docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-comunicacao.al32 -lm
+# ARTIFACT custo-comunicacao.al64
+#   path=docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-comunicacao.al64
+#   source_origin=v0.08.00-46-g86793f5c
+#   binary_sha256=b252347e4ad1bde9945535934e0a7be09b2c8e4ac686ec1630e3ea09ba3036f5
+#   text_sha256=ff0a1e84f819ac61bf78a86e9b7ec539e128e2453bbc8a6a1193ebe04685c059
+#   build_id=52fc7353ca0b8c28d4b175ed72a752dae34a13ab
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=/usr/bin/ccache cc -Idocs/01-fundamentos/medicoes/custo-comunicacao.p -Idocs/01-fundamentos/medicoes -I../docs/01-fundamentos/medicoes -fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -pthread -falign-loops=64 ../docs/01-fundamentos/medicoes/custo-comunicacao.c -o /home/henrique/workspaces/labs_dpdk_academy/docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-comunicacao.al64 -lm
+# ARTIFACT custo-comunicacao.al128
+#   path=docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-comunicacao.al128
+#   source_origin=v0.08.00-46-g86793f5c
+#   binary_sha256=17a4ea97e233aa8dd5da31c3fb7254bc21ba8ecda3b2723520bf99a68c347935
+#   text_sha256=50bb2f50ce1e826afd6fdb680bea6549b7f5b00843239a4786cdb84093adc56d
+#   build_id=d3bd3e2106cc7b097348c6fc0ae3d3f9c8ec6c25
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=/usr/bin/ccache cc -Idocs/01-fundamentos/medicoes/custo-comunicacao.p -Idocs/01-fundamentos/medicoes -I../docs/01-fundamentos/medicoes -fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -pthread -falign-loops=128 ../docs/01-fundamentos/medicoes/custo-comunicacao.c -o /home/henrique/workspaces/labs_dpdk_academy/docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-comunicacao.al128 -lm
+# FONTE custo-mckenney
+#   path=docs/01-fundamentos/medicoes/custo-mckenney.c
+#   commit=69ddeb8921e70259093378106511fad3a8697e27
+# ARTIFACT custo-mckenney.al16
+#   path=docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-mckenney.al16
+#   source_origin=v0.08.00-46-g86793f5c
+#   binary_sha256=93ace09d6ba905adc89a0466ccd3fb9454bf7c2d128718b9ce893c6771d25dc7
+#   text_sha256=2c4d265134bb483df80756de92e7464e9264a4890ae07b0373eb16f720e011cd
+#   build_id=c3a96d1e66c4f9056eae8eee12cdaf7c4a5f675c
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=/usr/bin/ccache cc -Idocs/01-fundamentos/medicoes/custo-mckenney.p -Idocs/01-fundamentos/medicoes -I../docs/01-fundamentos/medicoes -fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -pthread -falign-loops=16 ../docs/01-fundamentos/medicoes/custo-mckenney.c -o /home/henrique/workspaces/labs_dpdk_academy/docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-mckenney.al16 -lm
+# ARTIFACT custo-mckenney.al32
+#   path=docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-mckenney.al32
+#   source_origin=v0.08.00-46-g86793f5c
+#   binary_sha256=2e44b1e0f70cc69545524e077f8a76c6c033a85e08ab8e25b51279cdbf3e8c72
+#   text_sha256=586a81595cac12097eab1e9ee635282c275e94791c8478f809888dfd5fe08d9c
+#   build_id=87cf5e5a70bbbd8ee41ef10c2fb7ec459ab9319c
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=/usr/bin/ccache cc -Idocs/01-fundamentos/medicoes/custo-mckenney.p -Idocs/01-fundamentos/medicoes -I../docs/01-fundamentos/medicoes -fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -pthread -falign-loops=32 ../docs/01-fundamentos/medicoes/custo-mckenney.c -o /home/henrique/workspaces/labs_dpdk_academy/docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-mckenney.al32 -lm
+# ARTIFACT custo-mckenney.al64
+#   path=docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-mckenney.al64
+#   source_origin=v0.08.00-46-g86793f5c
+#   binary_sha256=81ecfc1e2f0d1dc49d52cda6ee54ef6c24f39acde95ec4fbeebe32bde8a523c2
+#   text_sha256=9a27a1e3f6589faacb32da98652532cf9ffbafab0d6b5a19b759e0d00f516def
+#   build_id=b25d4ef460b1691dd5956dca378780274fd0aad1
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=/usr/bin/ccache cc -Idocs/01-fundamentos/medicoes/custo-mckenney.p -Idocs/01-fundamentos/medicoes -I../docs/01-fundamentos/medicoes -fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -pthread -falign-loops=64 ../docs/01-fundamentos/medicoes/custo-mckenney.c -o /home/henrique/workspaces/labs_dpdk_academy/docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-mckenney.al64 -lm
+# ARTIFACT custo-mckenney.al128
+#   path=docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-mckenney.al128
+#   source_origin=v0.08.00-46-g86793f5c
+#   binary_sha256=0f19cd9e121996834a31fe6c1ae75826d4674b2e13819182fa07feea9d8928bc
+#   text_sha256=dac3033d2a8d6b26db144b73d9b7f606183729407d26b93a33136cabcfee2598
+#   build_id=dc02a08992acb8005cece8335d2d1f23e1d074ec
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=/usr/bin/ccache cc -Idocs/01-fundamentos/medicoes/custo-mckenney.p -Idocs/01-fundamentos/medicoes -I../docs/01-fundamentos/medicoes -fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -pthread -falign-loops=128 ../docs/01-fundamentos/medicoes/custo-mckenney.c -o /home/henrique/workspaces/labs_dpdk_academy/docs/01-fundamentos/medicoes/historico/2026-09-27-2045-leiaute/artefatos/custo-mckenney.al128 -lm
+r1-al16-custo-comunicacao.txt            PASS    0
+r1-al32-custo-comunicacao.txt            PASS    0
+r1-al64-custo-comunicacao.txt            PASS    0
+r1-al128-custo-comunicacao.txt           PASS    0
+r1-al16-custo-mckenney.txt               PASS    0
+r1-al32-custo-mckenney.txt               PASS    0
+r1-al64-custo-mckenney.txt               PASS    0
+r1-al128-custo-mckenney.txt              PASS    0
+r2-al128-custo-mckenney.txt              PASS    0
+r2-al64-custo-mckenney.txt               PASS    0
+r2-al32-custo-mckenney.txt               PASS    0
+r2-al16-custo-mckenney.txt               PASS    0
+r2-al128-custo-comunicacao.txt           PASS    0
+r2-al64-custo-comunicacao.txt            PASS    0
+r2-al32-custo-comunicacao.txt            PASS    0
+r2-al16-custo-comunicacao.txt            PASS    0
+r3-al16-custo-comunicacao.txt            PASS    0
+r3-al32-custo-comunicacao.txt            PASS    0
+r3-al64-custo-comunicacao.txt            PASS    0
+r3-al128-custo-comunicacao.txt           PASS    0
+r3-al16-custo-mckenney.txt               PASS    0
+r3-al32-custo-mckenney.txt               PASS    0
+r3-al64-custo-mckenney.txt               PASS    0
+r3-al128-custo-mckenney.txt              PASS    0
+r4-al128-custo-mckenney.txt              PASS    0
+r4-al64-custo-mckenney.txt               PASS    0
+r4-al32-custo-mckenney.txt               PASS    0
+r4-al16-custo-mckenney.txt               PASS    0
+r4-al128-custo-comunicacao.txt           PASS    0
+r4-al64-custo-comunicacao.txt            PASS    0
+r4-al32-custo-comunicacao.txt            PASS    0
+r4-al16-custo-comunicacao.txt            PASS    0
+r5-al16-custo-comunicacao.txt            PASS    0
+r5-al32-custo-comunicacao.txt            PASS    0
+r5-al64-custo-comunicacao.txt            PASS    0
+r5-al128-custo-comunicacao.txt           PASS    0
+r5-al16-custo-mckenney.txt               PASS    0
+r5-al32-custo-mckenney.txt               PASS    0
+r5-al64-custo-mckenney.txt               PASS    0
+r5-al128-custo-mckenney.txt              PASS    0
+r6-al128-custo-mckenney.txt              PASS    0
+r6-al64-custo-mckenney.txt               PASS    0
+r6-al32-custo-mckenney.txt               PASS    0
+r6-al16-custo-mckenney.txt               PASS    0
+r6-al128-custo-comunicacao.txt           PASS    0
+r6-al64-custo-comunicacao.txt            PASS    0
+r6-al32-custo-comunicacao.txt            PASS    0
+r6-al16-custo-comunicacao.txt            PASS    0
+r7-al16-custo-comunicacao.txt            PASS    0
+r7-al32-custo-comunicacao.txt            PASS    0
+r7-al64-custo-comunicacao.txt            PASS    0
+r7-al128-custo-comunicacao.txt           PASS    0
+r7-al16-custo-mckenney.txt               PASS    0
+r7-al32-custo-mckenney.txt               PASS    0
+r7-al64-custo-mckenney.txt               PASS    0
+r7-al128-custo-mckenney.txt              PASS    0
+r8-al128-custo-mckenney.txt              PASS    0
+r8-al64-custo-mckenney.txt               PASS    0
+r8-al32-custo-mckenney.txt               PASS    0
+r8-al16-custo-mckenney.txt               PASS    0
+r8-al128-custo-comunicacao.txt           PASS    0
+r8-al64-custo-comunicacao.txt            PASS    0
+r8-al32-custo-comunicacao.txt            PASS    0
+r8-al16-custo-comunicacao.txt            PASS    0
+r9-al16-custo-comunicacao.txt            PASS    0
+r9-al32-custo-comunicacao.txt            PASS    0
+r9-al64-custo-comunicacao.txt            PASS    0
+r9-al128-custo-comunicacao.txt           PASS    0
+r9-al16-custo-mckenney.txt               PASS    0
+r9-al32-custo-mckenney.txt               PASS    0
+r9-al64-custo-mckenney.txt               PASS    0
+r9-al128-custo-mckenney.txt              PASS    0
+r10-al128-custo-mckenney.txt             PASS    0
+r10-al64-custo-mckenney.txt              PASS    0
+r10-al32-custo-mckenney.txt              PASS    0
+r10-al16-custo-mckenney.txt              PASS    0
+r10-al128-custo-comunicacao.txt          PASS    0
+r10-al64-custo-comunicacao.txt           PASS    0
+r10-al32-custo-comunicacao.txt           PASS    0
+r10-al16-custo-comunicacao.txt           PASS    0
+r11-al16-custo-comunicacao.txt           PASS    0
+r11-al32-custo-comunicacao.txt           PASS    0
+r11-al64-custo-comunicacao.txt           PASS    0
+r11-al128-custo-comunicacao.txt          PASS    0
+r11-al16-custo-mckenney.txt              PASS    0
+r11-al32-custo-mckenney.txt              PASS    0
+r11-al64-custo-mckenney.txt              PASS    0
+r11-al128-custo-mckenney.txt             PASS    0
+r12-al128-custo-mckenney.txt             PASS    0
+r12-al64-custo-mckenney.txt              PASS    0
+r12-al32-custo-mckenney.txt              PASS    0
+r12-al16-custo-mckenney.txt              PASS    0
+r12-al128-custo-comunicacao.txt          PASS    0
+r12-al64-custo-comunicacao.txt           PASS    0
+r12-al32-custo-comunicacao.txt           PASS    0
+r12-al16-custo-comunicacao.txt           PASS    0
+r13-al16-custo-comunicacao.txt           PASS    0
+r13-al32-custo-comunicacao.txt           PASS    0
+r13-al64-custo-comunicacao.txt           PASS    0
+r13-al128-custo-comunicacao.txt          PASS    0
+r13-al16-custo-mckenney.txt              PASS    0
+r13-al32-custo-mckenney.txt              PASS    0
+r13-al64-custo-mckenney.txt              PASS    0
+r13-al128-custo-mckenney.txt             PASS    0
+r14-al128-custo-mckenney.txt             PASS    0
+r14-al64-custo-mckenney.txt              PASS    0
+r14-al32-custo-mckenney.txt              PASS    0
+r14-al16-custo-mckenney.txt              PASS    0
+r14-al128-custo-comunicacao.txt          PASS    0
+r14-al64-custo-comunicacao.txt           PASS    0
+r14-al32-custo-comunicacao.txt           PASS    0
+r14-al16-custo-comunicacao.txt           PASS    0
+r15-al16-custo-comunicacao.txt           PASS    0
+r15-al32-custo-comunicacao.txt           PASS    0
+r15-al64-custo-comunicacao.txt           PASS    0
+r15-al128-custo-comunicacao.txt          PASS    0
+r15-al16-custo-mckenney.txt              PASS    0
+r15-al32-custo-mckenney.txt              PASS    0
+r15-al64-custo-mckenney.txt              PASS    0
+r15-al128-custo-mckenney.txt             PASS    0
+r16-al128-custo-mckenney.txt             PASS    0
+r16-al64-custo-mckenney.txt              PASS    0
+r16-al32-custo-mckenney.txt              PASS    0
+r16-al16-custo-mckenney.txt              PASS    0
+r16-al128-custo-comunicacao.txt          PASS    0
+r16-al64-custo-comunicacao.txt           PASS    0
+r16-al32-custo-comunicacao.txt           PASS    0
+r16-al16-custo-comunicacao.txt           PASS    0
+r17-al16-custo-comunicacao.txt           PASS    0
+r17-al32-custo-comunicacao.txt           PASS    0
+r17-al64-custo-comunicacao.txt           PASS    0
+r17-al128-custo-comunicacao.txt          PASS    0
+r17-al16-custo-mckenney.txt              PASS    0
+r17-al32-custo-mckenney.txt              PASS    0
+r17-al64-custo-mckenney.txt              PASS    0
+r17-al128-custo-mckenney.txt             PASS    0
+r18-al128-custo-mckenney.txt             PASS    0
+r18-al64-custo-mckenney.txt              PASS    0
+r18-al32-custo-mckenney.txt              PASS    0
+r18-al16-custo-mckenney.txt              PASS    0
+r18-al128-custo-comunicacao.txt          PASS    0
+r18-al64-custo-comunicacao.txt           PASS    0
+r18-al32-custo-comunicacao.txt           PASS    0
+r18-al16-custo-comunicacao.txt           PASS    0
+r19-al16-custo-comunicacao.txt           PASS    0
+r19-al32-custo-comunicacao.txt           PASS    0
+r19-al64-custo-comunicacao.txt           PASS    0
+r19-al128-custo-comunicacao.txt          PASS    0
+r19-al16-custo-mckenney.txt              PASS    0
+r19-al32-custo-mckenney.txt              PASS    0
+r19-al64-custo-mckenney.txt              PASS    0
+r19-al128-custo-mckenney.txt             PASS    0
+r20-al128-custo-mckenney.txt             PASS    0
+r20-al64-custo-mckenney.txt              PASS    0
+r20-al32-custo-mckenney.txt              PASS    0
+r20-al16-custo-mckenney.txt              PASS    0
+r20-al128-custo-comunicacao.txt          PASS    0
+r20-al64-custo-comunicacao.txt           PASS    0
+r20-al32-custo-comunicacao.txt           PASS    0
+r20-al16-custo-comunicacao.txt           PASS    0

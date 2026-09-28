@@ -50,9 +50,14 @@ apêndice dele.
 
 - **Mediana com dispersão**, não média. E o selo de dispersão alta é para ser
   lido: onde ele aparece, uma execução isolada não sustenta conclusão.
-- **Razões resistem melhor que absolutos** em medição sub-nanossegundo, porque
-  o leiaute de código move o absoluto sem tocar no laço medido. "Resiste
-  melhor" não é "é estável".
+- **Razões não são intrinsecamente mais resistentes ao leiaute.** Elas só
+  cancelam uma perturbação quando ela é comum aos dois termos. Quando
+  numerador e denominador percorrem caminhos de código distintos, a razão pode
+  **herdar — ou amplificar** — a sensibilidade de um deles. Esta seção afirmava
+  o contrário, e a medição de 27/09/2026 desfez: a razão `with/without SMT
+  sibling`, que o módulo 01 publica como 2,29×, tem **0,00% de variação entre
+  execuções do mesmo binário e 19,65% entre alinhamentos** — enquanto o seu
+  numerador não se move nada. Ela é menos robusta que o próprio termo de cima.
 - **Pré-registro com critério de refutação** antes de medir. Previsão avaliada
   depois do resultado vira interpretação.
 - **Controle negativo** sempre que a intervenção puder mover tudo. Se mexer numa

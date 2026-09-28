@@ -137,9 +137,26 @@ endif
 #
 #   INSENSIVEIS -- as faixas coincidem
 #     custo-espera        chama pthread_*: as cinco linhas concordam
-#     custo-mckenney      2,05 / 20,8 / 89,9 nos tres alinhamentos
 #     custo-traducao      preso a latencia da memoria (~95 ns)
 #     efeito-cache        a coluna `dependente`, em todos os niveis
+#
+#   CORRIGIDO EM 27/09/2026: `custo-mckenney` ESTAVA nesta lista, como
+#   "2,05 / 20,8 / 89,9 nos tres alinhamentos". A caracterizacao sob protocolo
+#   -- maquina dedicada, modo texto, 20 execucoes por artefato, quatro
+#   alinhamentos -- mostrou que DUAS das seis celulas se movem:
+#
+#     CAS with miss, same L3 domain    envelope 5,76%   reprodutibilidade 0,42%
+#     plain miss, same L3 domain       envelope 1,29%   reprodutibilidade 0,57%
+#
+#   E A PROPRIEDADE NAO E DO EXECUTAVEL, E DA CELULA. No mesmo programa, as
+#   celulas que atravessam dominios L3 ficam imoveis -- 0,02% e 0,04% -- e as
+#   que ficam dentro do mesmo L3 se movem. Classificar por programa inteiro
+#   apagava essa fronteira, que e justamente a regra fisica escrita abaixo.
+#
+#   A classificacao por rotulo vive agora em
+#   `ferramental/qualidade/sensibilidade-leiaute.tsv`, amarrada ao
+#   `text_sha256` do instrumento que a produziu -- porque ela vale para um
+#   binario, e nao para um commit.
 #
 #   REPROVADO NO TESTE -- parecia sensivel e nao e
 #     custo-syscall       a chamada de funcao de referencia dava 0,92 com -O2 e
@@ -152,6 +169,9 @@ endif
 #
 # A regra que sobrevive: laco de poucos ciclos limitado pelo front-end sofre;
 # laco dominado por chamada, travessia do kernel ou espera de memoria, nao.
+# A caracterizacao de 27/09/2026 a confirmou com a fronteira medida: no
+# `custo-mckenney`, `OTHER L3 domain` fica em 0,02% e `same L3 domain` vai a
+# 5,76%. O que muda e que ela vale por CELULA, e nao por programa.
 #
 # A flag entra em TODOS de proposito, e nao so nos sensiveis. Aplicar so onde
 # hoje importa exige que alguem lembre da lista ao escrever o decimo programa --
@@ -162,6 +182,13 @@ endif
 # NAO e afinacao de desempenho. E o que faz duas compilacoes do mesmo fonte
 # devolverem o mesmo numero -- e, onde nem isso basta, e o que deixa a parte
 # que NAO se resolve assim visivel, como no custo-syscall.
+#
+# E FIXAR A FLAG NAO BASTA, o que so ficou claro em 27/09/2026. Ela estabiliza
+# a compilacao de um fonte que nao mudou; nao protege contra o codigo em volta
+# se mover. Trocar o `pthread_barrier_t` por uma largada `inline` deslocou o
+# laco quente do `custo-comunicacao` e moveu a vazao agregada em 7% -- com a
+# flag fixa o tempo todo. O portao contra isso e o `text_sha256` do manifesto,
+# e nao esta flag.
 alinhamento = ['-falign-loops=64']
 
 # PROVENIENCIA: o commit entra no binario NA HORA DO BUILD.

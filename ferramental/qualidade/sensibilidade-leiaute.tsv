@@ -12,20 +12,60 @@
 # se move; o denominador sim, e a razao herda a sensibilidade inteira -- razao
 # so cancela leiaute quando numerador e denominador saem do MESMO laco.
 #
-# ESTE ARQUIVO ESTA VAZIO DE PROPOSITO. Aquela caracterizacao correu em modo
-# grafico, com a maquina em uso e com comandos de analise em paralelo -- fora
-# do protocolo que este projeto exige de massa de validacao. Ela sustenta a
-# EXISTENCIA do fenomeno, e nao a classificacao de nenhum rotulo.
+# AS LINHAS ABAIXO VIERAM DA TERCEIRA TENTATIVA, e as duas primeiras estao
+# arquivadas como nao classificaveis, cada uma com a causa medida:
 #
-# Preenche-lo com aqueles numeros seria fundar a regra nova numa medicao que a
-# regra antiga reprovaria. As linhas entram depois de uma campanha em maquina
-# dedicada, e a coluna `evidencia` aponta para a coleta que as produziu.
+#   2026-09-27-1527  o comando era remontado a mao e perdia o `-I` do
+#                    diretorio de build; os artefatos compilaram sem o
+#                    `academy_version.h` e mediram outro instrumento
+#   2026-09-27-1935  a arvore estava suja, e o `-dirty` no describe -- seis
+#                    caracteres -- deslocou o `.rodata` e mudou o `.text`
 #
-# FORMATO: <rotulo><TAB><classe><TAB><evidencia>
+# A terceira passou por tres controles antes de medir: arvore limpa, a variante
+# do alinhamento de producao reproduzindo byte a byte o binario da campanha, e
+# a procedencia em espaco fixo para que o `.text` pare de responder ao tamanho
+# do `git describe`.
 #
-#   INVARIAVEL   caracterizado e estavel; comparar entre artefatos e permitido
-#   SENSIVEL     envelope de leiaute acima do piso; nao comparar entre artefatos
-#   DOMINADO     o sinal do efeito depende do leiaute; nao comparar, nunca
+# FORMATO
+#
+#   <rotulo> <TAB> <classe> <TAB> <evidencia> <TAB> <ancora> <TAB> <origem>
+#
+#   classe     INVARIAVEL, SENSIVEL ou DOMINADO
+#   evidencia  a coleta que produziu a linha
+#   ancora     `text_sha256` do INSTRUMENTO caracterizado -- a autoridade
+#   origem     o commit do fonte daquele programa, procedencia para quem le
+#
+# A ANCORA E A CHAVE, junto do rotulo. A classificacao vale para o binario que
+# a produziu, e nao para um commit: a mudanca do `statistics.h` em 27/09/2026
+# alterou o `.text` de todos os programas sem tocar em nenhum `.c`. Uma linha
+# presa so ao rotulo continuaria autorizando comparacao entre instrumentos
+# diferentes.
+#
+# COMO O `comparar-hardware.py` CONSOME, e a assimetria e o ponto:
+#
+#   mesmo `text_sha256` dos dois lados     comparavel, sem consultar esta tabela
+#   SENSIVEL ou DOMINADO em UM dos lados   NAO COMPARAVEL
+#   INVARIAVEL nos DOIS lados              comparavel
+#   qualquer outro caso                    identificabilidade nao estabelecida
+#
+# `SENSIVEL` e PROIBICAO: um lado basta, porque a diferenca observada ja pode
+# ser do leiaute daquele instrumento. `INVARIAVEL` e AUTORIZACAO: exige os
+# dois, porque saber que o rotulo nao se move em A nao diz nada sobre B.
 #
 # Rotulo AUSENTE daqui nao e o mesmo que INVARIAVEL: e `identificabilidade nao
 # estabelecida`, e o `comparar-hardware.py` trata os dois de forma diferente.
+custo-comunicacao: 1 thread  on 1 physical core (cpu 0)	SENSIVEL	2026-09-27-2045-leiaute	ff0a1e84f819ac61bf78a86e9b7ec539e128e2453bbc8a6a1193ebe04685c059	69ddeb8921e70259093378106511fad3a8697e27
+custo-comunicacao: 2 threads on 2 SMT siblings (cpu 0,12)	INVARIAVEL	2026-09-27-2045-leiaute	ff0a1e84f819ac61bf78a86e9b7ec539e128e2453bbc8a6a1193ebe04685c059	69ddeb8921e70259093378106511fad3a8697e27
+custo-comunicacao: 2 threads on 2 physical cores (cpu 0,2)	SENSIVEL	2026-09-27-2045-leiaute	ff0a1e84f819ac61bf78a86e9b7ec539e128e2453bbc8a6a1193ebe04685c059	69ddeb8921e70259093378106511fad3a8697e27
+custo-comunicacao: BETWEEN domains (cpu 0 <-> 6)	INVARIAVEL	2026-09-27-2045-leiaute	ff0a1e84f819ac61bf78a86e9b7ec539e128e2453bbc8a6a1193ebe04685c059	69ddeb8921e70259093378106511fad3a8697e27
+custo-comunicacao: RATIO between/within (paired)	SENSIVEL	2026-09-27-2045-leiaute	ff0a1e84f819ac61bf78a86e9b7ec539e128e2453bbc8a6a1193ebe04685c059	69ddeb8921e70259093378106511fad3a8697e27
+custo-comunicacao: RATIO with/without SMT sibling (paired)	SENSIVEL	2026-09-27-2045-leiaute	ff0a1e84f819ac61bf78a86e9b7ec539e128e2453bbc8a6a1193ebe04685c059	69ddeb8921e70259093378106511fad3a8697e27
+custo-comunicacao: loop alone on the core	SENSIVEL	2026-09-27-2045-leiaute	ff0a1e84f819ac61bf78a86e9b7ec539e128e2453bbc8a6a1193ebe04685c059	69ddeb8921e70259093378106511fad3a8697e27
+custo-comunicacao: neighbour on SMT sibling (cpu 12)	INVARIAVEL	2026-09-27-2045-leiaute	ff0a1e84f819ac61bf78a86e9b7ec539e128e2453bbc8a6a1193ebe04685c059	69ddeb8921e70259093378106511fad3a8697e27
+custo-comunicacao: neighbour on physical core (cpu 2)	SENSIVEL	2026-09-27-2045-leiaute	ff0a1e84f819ac61bf78a86e9b7ec539e128e2453bbc8a6a1193ebe04685c059	69ddeb8921e70259093378106511fad3a8697e27
+custo-comunicacao: within domain 0 (cpu 0 <-> 2)	SENSIVEL	2026-09-27-2045-leiaute	ff0a1e84f819ac61bf78a86e9b7ec539e128e2453bbc8a6a1193ebe04685c059	69ddeb8921e70259093378106511fad3a8697e27
+custo-mckenney: CAS with miss, OTHER L3 domain	INVARIAVEL	2026-09-27-2045-leiaute	9a27a1e3f6589faacb32da98652532cf9ffbafab0d6b5a19b759e0d00f516def	69ddeb8921e70259093378106511fad3a8697e27
+custo-mckenney: CAS with miss, same L3 domain	SENSIVEL	2026-09-27-2045-leiaute	9a27a1e3f6589faacb32da98652532cf9ffbafab0d6b5a19b759e0d00f516def	69ddeb8921e70259093378106511fad3a8697e27
+custo-mckenney: CAS, best case	INVARIAVEL	2026-09-27-2045-leiaute	9a27a1e3f6589faacb32da98652532cf9ffbafab0d6b5a19b759e0d00f516def	69ddeb8921e70259093378106511fad3a8697e27
+custo-mckenney: plain miss, OTHER L3 domain	INVARIAVEL	2026-09-27-2045-leiaute	9a27a1e3f6589faacb32da98652532cf9ffbafab0d6b5a19b759e0d00f516def	69ddeb8921e70259093378106511fad3a8697e27
+custo-mckenney: plain miss, same L3 domain	SENSIVEL	2026-09-27-2045-leiaute	9a27a1e3f6589faacb32da98652532cf9ffbafab0d6b5a19b759e0d00f516def	69ddeb8921e70259093378106511fad3a8697e27
