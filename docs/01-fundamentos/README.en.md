@@ -2715,10 +2715,10 @@ distribution is in the [code](medicoes/rajada-nasdaq.c).
   arrival       ring(n)      loss  peak occ.   p99(us)
   -----------   -------  --------  --------  --------
   cadenced          512    0.000%         1       0.7
-  burst             512   26.585%       512     376.4
-  burst            1024   21.679%      1024     752.0
-  burst            4096    6.341%      4096    3005.7
-  burst           32768    0.000%     21262    6974.9
+  burst             512   26.561%       512     375.8
+  burst            1024   21.656%      1024     751.0
+  burst            4096    6.328%      4096    3001.6
+  burst           32768    0.000%     21246    6959.8
 ```
 
 **The prediction holds.** With 512 descriptors the loss is 26.6%; the 4,096 ring
@@ -2756,9 +2756,9 @@ Submitting the same traffic to both, at equivalent depth:
 ```
   path                             queue     loss       drain
   ------------------------------  ------  -------  ----------
-  descriptor ring                   8192   1.089%   1,363,015 packets/s
-  UDP socket (recv one at a time)   8738   1.174%   1,191,880 packets/s
-  UDP socket (recvmmsg batches)     8738   1.166%   1,196,001 packets/s
+  descriptor ring                   8192   1.085%   1,364,888 packets/s
+  UDP socket (recv one at a time)   8738   1.174%   1,191,729 packets/s
+  UDP socket (recvmmsg batches)     8738   1.163%   1,197,567 packets/s
 ```
 
 **Same queue, same burst, and the socket loses more** — the entire difference is

@@ -1,0 +1,135 @@
+==> campanha em modo texto  2026-09-26T21:51:06-03:00
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-26-2150-expo6000-canal-duplo
+    modo declarado   : texto
+    governor fixado  : sim (era powersave)
+    alvo padrao      : graphical.target
+    graphical ativo  : inactive
+    processos grafico: 0
+    governor cpu2    : performance
+    C3 disable cpu2  : 0
+    cmdline          : BOOT_IMAGE=/boot/vmlinuz-7.0.0-34-generic root=UUID=bdd65119-6069-4cc3-898a-7e0a0beba60b ro quiet splash amd_iommu=on iommu=pt crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M systemd.unit=multi-user.target
+    kernel           : 7.0.0-34-generic
+    uptime           : up 2 minutes
+    memoria          : avail 26,68 GiB, swap em uso 0,00 GiB
+    carga            : 0.77 0.27 0.10
+
+==> 1/6 osnoise hist, 10 min na CPU 2  (21:51:06)
+    ok
+    over:         0 
+    count:    43588 
+    min:          1 
+    avg:       2.10 
+    max:         22 
+
+==> 2/6 campanha de isolamento, 4 celulas x 5 repeticoes  (22:01:07)
+==> campanha de isolamento: CPU 2 (irmao SMT 14), outra CPU 4
+    4 celulas x 5 repeticoes x 30s
+    repeticao 1 de 5 concluida
+    repeticao 2 de 5 concluida
+    repeticao 3 de 5 concluida
+    repeticao 4 de 5 concluida
+    repeticao 5 de 5 concluida
+==> 20 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-26-2150-expo6000-canal-duplo/isolamento/isolamento.csv
+    ok
+
+==> 3/6 campanha de tempo do mempool  (22:11:07)
+==> campanha B4-tempo: 2 versoes x 2 topologias
+    x 10 tamanhos de cache x 21 repeticoes
+    prefixos SEM RTE_LIBRTE_MEMPOOL_STATS, metrica em ns/pacote
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-26-2150-expo6000-canal-duplo/mempool-tempo/mempool-tempo.csv
+    repeticao 1 de 21 concluida
+    repeticao 2 de 21 concluida
+    repeticao 3 de 21 concluida
+    repeticao 4 de 21 concluida
+    repeticao 5 de 21 concluida
+    repeticao 6 de 21 concluida
+    repeticao 7 de 21 concluida
+    repeticao 8 de 21 concluida
+    repeticao 9 de 21 concluida
+    repeticao 10 de 21 concluida
+    repeticao 11 de 21 concluida
+    repeticao 12 de 21 concluida
+    repeticao 13 de 21 concluida
+    repeticao 14 de 21 concluida
+    repeticao 15 de 21 concluida
+    repeticao 16 de 21 concluida
+    repeticao 17 de 21 concluida
+    repeticao 18 de 21 concluida
+    repeticao 19 de 21 concluida
+    repeticao 20 de 21 concluida
+    repeticao 21 de 21 concluida
+==> 840 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-26-2150-expo6000-canal-duplo/mempool-tempo/mempool-tempo.csv
+    ok
+
+==> 4/6 campanha de miss do mempool  (22:12:58)
+==> campanha B4: 2 versoes x 2 topologias
+    x 9 tamanhos de cache x 6 repeticoes
+    saida: trilha/03-performance/03-isolamento-cpu/historico/2026-09-26-2150-expo6000-canal-duplo/mempool-cache/mempool-cache.csv
+    repeticao 1 de 6 concluida
+    repeticao 2 de 6 concluida
+    repeticao 3 de 6 concluida
+    repeticao 4 de 6 concluida
+    repeticao 5 de 6 concluida
+    repeticao 6 de 6 concluida
+==> 240 execucoes registradas em trilha/03-performance/03-isolamento-cpu/historico/2026-09-26-2150-expo6000-canal-duplo/mempool-cache/mempool-cache.csv
+    ok
+
+==> 5/6 campanha de hardware, 6 repeticoes dos tres modulos  (22:13:30)
+    referencia para comparar: 2026-09-25-1720-expo6000-canal-duplo
+    hugepage do feed: /mnt/huge-academia (efemera, desmontada no fim)
+CONCLUIDA -> docs/01-fundamentos/medicoes/historico/2026-09-26-2150-expo6000-canal-duplo
+          -> docs/02-runtime-dpdk/medicoes/historico/2026-09-26-2150-expo6000-canal-duplo
+          -> docs/03-mempool-ring-mbuf/medicoes/historico/2026-09-26-2150-expo6000-canal-duplo
+Comparar:  ./ferramental/qualidade/comparar-hardware.py docs/01-fundamentos/medicoes/historico/{outra,2026-09-26-2150-expo6000-canal-duplo}
+    ok
+    feed: 12 arquivos, completo
+    hugepage do feed desmontada
+
+==> 6/6 revisao dos dados do projeto  (22:45:39)
+    rotulos marcados (deslocamento acima da amplitude historica do rotulo): 7
+        custo-comunicacao: 1 thread  on 1 physical core (cpu 0)                  1853.200        1980.700    +6.9%  (amp   0.5%)  <<<
+        custo-comunicacao: 2 threads on 2 physical cores (cpu 0,2)               3695.600        3951.300    +6.9%  (amp   0.5%)  <<<
+        custo-espera: atomic + busy wait (does not sleep)                          17.910          18.880    +5.4%  (amp   1.8%)  <<<
+        custo-mckenney: lock, best case                                             2.030           2.080    +2.5%  (amp   0.5%)  <<<
+        custo-traducao.seq32mb: 4 KB pages                                          1.210           1.190    -1.7%  (amp   0.8%)  <<<
+        custo-traducao.seq8mb: 2 MB hugepages                                       0.900           0.933    +3.7%  (amp   0.8%)  <<<
+        custo-traducao.seq8mb: DIFFERENCE attributable to translation               0.044           0.005   -88.6%  (amp  43.6%)  <<<
+    dos 7 marcados, 0 sao mudanca de codigo declarada
+    PREVISAO REFUTADA (7 nao explicados, previa-se no maximo 3)
+      SEM REGUA: 93 rotulo(s) sem amplitude historica -- nao foram julgados, e nenhuma marca acima cobre eles
+      SEM REGUA: 6 rotulo(s) sem amplitude historica -- nao foram julgados, e nenhuma marca acima cobre eles
+      188 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+      11 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+      3 rotulo(s); mediana das medianas, execucao de aquecimento descartada
+    comparacao completa em trilha/03-performance/03-isolamento-cpu/historico/2026-09-26-2150-expo6000-canal-duplo/comparacao.txt
+
+    portao de qualidade:
+        [aviso] 33 numero(s) arredondados SEM CLASSIFICACAO (triagem: --arredondados)
+        [aviso] envelhecimento: 49 linha(s) publicada(s) com mediana diferente da coleta atual
+        [ok]    build limpo, zero avisos
+        [FALHA] suíte falhou (tetos da CI)
+        2 aviso(s) — não bloqueiam
+    FALHA (portao de qualidade saiu com 1)
+
+==> CONCLUIDA  2026-09-26T22:46:48-03:00
+
+    O que ficou em trilha/03-performance/03-isolamento-cpu/historico/2026-09-26-2150-expo6000-canal-duplo:
+      ambiente.txt      estado da maquina antes de medir
+      osnoise-hist.txt  distribuicao de ruido, dez minutos
+      isolamento/       20 celulas do stall_probe
+      mempool-tempo/    ns por pacote, prefixos sem estatisticas
+      mempool-cache/    idas ao anel, mesma condicao do tempo
+      comparacao.txt    o que se moveu contra a coleta com sessao grafica
+      portao.txt        portao de qualidade completo
+
+    A campanha de hardware ficou nos historicos dos tres modulos,
+    sob 2026-09-26-2150-expo6000-canal-duplo.
+
+    Para voltar ao modo grafico:
+      sudo systemctl set-default graphical.target && sudo reboot
+      (aqui e modo texto: nao ha sessao grafica inibindo, entao -i nao
+       faz falta. O set-default SIM: ele e persistente.)
+
+==> CAMPANHA COM FALHA: 1 passo(s) correram e falharam e 0 pulado(s) por pre-requisito
+    A coleta em trilha/03-performance/03-isolamento-cpu/historico/2026-09-26-2150-expo6000-canal-duplo NAO esta completa.
+==> governor restaurado para powersave

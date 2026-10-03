@@ -1,0 +1,7 @@
+modo detectado  : texto
+cpu             : 0 (irmao SMT 12)
+amostras        : 20000 por condicao
+governor inicial: powersave
+processos grafic: 0
+kernel          : 7.0.0-34-generic
+cmdline         : BOOT_IMAGE=/boot/vmlinuz-7.0.0-34-generic root=UUID=bdd65119-6069-4cc3-898a-7e0a0beba60b ro quiet splash amd_iommu=on iommu=pt crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M systemd.unit=multi-user.target
