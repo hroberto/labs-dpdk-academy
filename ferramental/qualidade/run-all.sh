@@ -98,6 +98,14 @@ cd "$RAIZ" || exit 1
 # pela porta dos fundos.
 [ "$(id -u)" -eq 0 ] || { echo "FALHA: rode com sudo." >&2; exit 1; }
 
+# A biblioteca vem DEPOIS do portao de root, porque o portao acima diz que vem
+# antes de tudo e invariante declarado que o proprio arquivo viola para de ser
+# invariante. Ela so define funcoes -- mas a ordem e o contrato.
+#
+# E a mesma que a `campanha.sh` carrega: teste e producao leem o hardware pelo
+# mesmo codigo, e nao por dois trechos que divergem.
+. "$RAIZ/ferramental/qualidade/identidade-maquina.sh"
+
 # O NOME DA COLETA E DERIVADO DO HARDWARE, e o argumento vira opcional.
 #
 # Ate aqui o nome era digitado, e foi assim que uma coleta JEDEC 4800 nasceu
@@ -454,6 +462,13 @@ else
         echo "processos grafic: $graficos"
         echo "kernel          : $(uname -r)"
         echo "cmdline         : $(cat /proc/cmdline)"
+        # O HARDWARE TAMBEM VAI AQUI, e nao so no `ambiente.txt` da campanha.
+        # A `condicao_coleta` sabe cair na coleta IRMA do isolamento pelo nome
+        # do diretorio -- mas so se a campanha de isolamento tiver corrido.
+        # Sob `--so-leiaute` ela nao corre, e a coleta ficaria sem declarar o
+        # que a maquina era.
+        echo "hardware pci    : $(impressao_pci) ($(conta_pci) dispositivos)"
+        echo "rede pci        : $(resumo_rede)"
         [ "$MODO" = "grafico" ] && echo "RESSALVA        : carga no irmao SMT nao e zero;" \
             "o contrafactual da condicao 3 nao vale neste modo"
     } > "$SAIDA_SONDA/ambiente.txt"

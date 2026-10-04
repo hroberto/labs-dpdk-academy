@@ -310,6 +310,11 @@ set -u
 RAIZ="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$RAIZ"
 
+# A IDENTIDADE DO HARDWARE VEM DE UM ARQUIVO CARREGADO, e nao de um trecho aqui
+# dentro, pela mesma razao que o `identidade-artefato.sh`: teste e producao
+# carregam o MESMO codigo, e o grafo de dependencias e o mesmo por construcao.
+. "$RAIZ/ferramental/qualidade/identidade-maquina.sh"
+
 # `--continuar` retoma uma coleta parcial em vez de exigir tudo de novo. Ele
 # existe porque a primeira execucao perdeu os passos 2 e 3 por falta de
 # permissao, e repetir os dez minutos de osnoise que JA deram certo seria
@@ -635,6 +640,18 @@ echo "    saida: ${SAIDA#$RAIZ/}"
          END{printf "memoria          : avail %.2f GiB, swap em uso %.2f GiB\n",
              a["MemAvailable:"]/1048576,(a["SwapTotal:"]-a["SwapFree:"])/1048576}' /proc/meminfo
     echo "carga            : $(cut -d' ' -f1-3 /proc/loadavg)"
+    # O HARDWARE VAI PARA O ARQUIVO, e ate 03/10/2026 nao ia.
+    #
+    # Naquele dia uma ConnectX-4 Lx entrou na maquina, e nenhuma das dez
+    # coletas arquivadas registrava dispositivo PCI algum: a pergunta "a placa
+    # estava aqui?" teve de ser respondida pelo journal de uma maquina viva.
+    # Pior, o `consolidar-isolamento.py` filtra por sessao grafica e nada mais,
+    # e somaria uma coleta nova as dez de setembro -- maquina com placa com
+    # maquina sem placa, numa mediana so.
+    #
+    # A impressao diz QUE o hardware mudou; o resumo de rede diz O QUE mudou.
+    echo "hardware pci     : $(impressao_pci) ($(conta_pci) dispositivos)"
+    echo "rede pci         : $(resumo_rede)"
 } > "$SAIDA/ambiente.txt"
 sed 's/^/    /' "$SAIDA/ambiente.txt"
 

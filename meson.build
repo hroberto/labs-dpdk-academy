@@ -513,6 +513,16 @@ test('scripts - L1 (a receita converge para o instrumento de producao)', bash,
      args : [meson.project_source_root() / 'scripts/tests/l1_ancora_producao.sh'],
      suite : ['l1', 'scripts'], timeout : 120)
 
+# A IDENTIDADE DO HARDWARE, pelo mesmo motivo que a do artefato: em 03/10/2026
+# uma ConnectX-4 Lx entrou na maquina e nenhuma das dez coletas arquivadas
+# registrava dispositivo PCI algum -- a pergunta "a placa estava aqui?" teve de
+# ser respondida pelo journal de uma maquina viva. O teste usa um sysfs de
+# mentira, porque a pergunta e se a impressao MUDA quando o hardware muda, e
+# isso nao se testa lendo a maquina em que o teste corre.
+test('scripts - L1 (a impressao de hardware muda com a placa)', bash,
+     args : [meson.project_source_root() / 'scripts/tests/l1_identidade_maquina.sh'],
+     suite : ['l1', 'scripts'], timeout : 60)
+
 # A CARACTERIZACAO SO RESPONDE SE VARIAR UMA COISA, e cada portao dela fecha
 # um jeito de varrer uma segunda variavel para dentro sem aviso. O pior era o
 # fallback para `build-san`: configurado com `-Db_sanitize=address,undefined`,

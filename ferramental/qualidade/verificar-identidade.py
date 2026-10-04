@@ -47,7 +47,19 @@ import re
 import subprocess
 import sys
 
-PERMITIDOS = re.compile(r"^(?:[\w.+-]+@users\.noreply\.github\.com|noreply@github\.com)$")
+# O COLCHETE ESTA NA CLASSE PORQUE LOGIN DE BOT TEM COLCHETE.
+#
+# Em 03/10/2026 o merge de um PR do dependabot reprovou este portao com
+# `49699333+dependabot[bot]@users.noreply.github.com`. O dominio e o MESMO que
+# a lista ja permite -- `users.noreply.github.com`, que por construcao nao
+# pertence a pessoa nenhuma --, e o que recusava era `[\w.+-]+` nao casar `[`
+# nem `]`. Erro de classe de caractere, nao de politica.
+#
+# A alternativa era reescrever historia ja publicada por causa do endereco de
+# um bot, o que e desproporcional -- e a politica que importa, "endereco PESSOAL
+# nao entra", continua inteira: o dominio permitido nao mudou.
+PERMITIDOS = re.compile(
+    r"^(?:[\w.+\[\]-]+@users\.noreply\.github\.com|noreply@github\.com)$")
 # `tagger`/`author`/`committer` gravam `Nome <email> timestamp fuso`.
 CAMPO = re.compile(r"^(author|committer|tagger) .*<([^>]*)>", re.M)
 
@@ -72,6 +84,16 @@ EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 NAO_PESSOAL = re.compile(
     r"^(?:noreply|no-reply)@"            # qualquer noreply é, por definição, de ninguém
     r"|^git@"                            # `git@host:dono/repo` -- URL SSH
+    # O RODAPE DO DEPENDABOT CITA O SUPORTE DO GITHUB. Endereco institucional
+    # publicado, escrito pela automacao do proprio GitHub no corpo do PR, e nao
+    # de pessoa alguma. A excecao e NOMINAL de proposito: liberar o dominio
+    # `github.com` inteiro deixaria passar a conta de uma PESSOA nele, e conta
+    # de pessoa nesse dominio e endereco de gente como qualquer outro.
+    #
+    # E o endereco nao se escreve aqui, nem como exemplo: a varredura de
+    # CONTEUDO le este arquivo, e a primeira versao deste comentario foi
+    # acusada por ele mesmo.
+    r"|^support@github\.com$"
     r"|@[\w.-]*\bnoreply\.[\w.-]+$"    # users.noreply.github.com e parentes
     r"|@(?:example|exemplo)\.(?:com|org|net)$"   # RFC 2606: reservados para texto
     r"|@[\w-]+\.(?:invalid|test|localhost)$")
@@ -235,6 +257,33 @@ def autoteste():
     subprocess.run(["git", "-C", d, "add", "-A"], capture_output=True)
     subprocess.run(["git", "-C", d, "commit", "-q", "-m", "x"], env=amb, capture_output=True)
     caso(8, "endereço de exemplo (RFC 2606) acusado", d, 0)
+
+    # 9 a 12. O LOGIN DE BOT, e a fronteira que ele nao move.
+    #
+    # O endereco do dependabot tem colchete no local-part e o dominio
+    # permitido. Antes de 03/10/2026 ele reprovava, e a reprovacao pedia
+    # reescrever historia publicada por causa do endereco de um robo.
+    caso(9, "noreply de bot, com colchete, acusado",
+         repo_com("49699333+dependabot[bot]@users.noreply.github.com"), 0)
+    # E A FRONTEIRA FICA ONDE ESTAVA: o colchete nao e passe livre, o DOMINIO e.
+    caso(10, "colchete em dominio NAO permitido passa",
+         repo_com("alguem[bot]@example.com"), 1)
+    # O suporte do GitHub no corpo da mensagem, que e o rodape que a automacao
+    # escreve. A excecao e nominal: outro endereco no mesmo dominio acusa.
+    #
+    # OS DOIS VAO EM PEDACOS, pela mesma razao que o `PESSOAL` acima -- e esta
+    # nao e precaucao teorica: a primeira versao destes casos escreveu os dois
+    # inteiros e a varredura de conteudo DESTE arquivo acusou o segundo.
+    SUPORTE = "support" + "@" + "github" + "." + "com"
+    GENTE = "pessoa" + "@" + "github" + "." + "com"
+    d = repo_com(NOREPLY)
+    subprocess.run(["git", "-C", d, "commit", "-q", "--allow-empty", "-m",
+                    "contate " + SUPORTE], env=amb, capture_output=True)
+    caso(11, "suporte institucional no corpo acusado", d, 0)
+    d = repo_com(NOREPLY)
+    subprocess.run(["git", "-C", d, "commit", "-q", "--allow-empty", "-m",
+                    "contate " + GENTE], env=amb, capture_output=True)
+    caso(12, "outro endereco no mesmo dominio passa", d, 1)
 
     print(f"\n  autoteste: {falhas} assercao(oes) falharam")
     return falhas
