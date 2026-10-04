@@ -323,6 +323,41 @@ veredito_linha" 2>/dev/null)
 conferir "sem motivos, o veredito nao imprime o cabecalho" \
     "$(printf '%s' "$saida" | grep -c 'o que nao concluiu')" "0"
 
+# ---- 7c. a coleta registra o DESFECHO, e nao so o que foi pedido -------
+#
+# A linha `execucao` e escrita na ETAPA 1 e dizia `completa (cinco etapas)`.
+# A campanha de 27/09/2026 gravou isso e so quatro correram -- a quinta foi
+# recusada pelo portao de arvore limpa. Quem lesse o `ambiente.txt` depois
+# herdava a INTENCAO no lugar do resultado.
+desfecho=$(awk '/^# O DESFECHO VAI PARA O ARQUIVO/,/^fi$/' "$fonte")
+[ -n "$desfecho" ] || { echo "  FALHOU: nao recortei o bloco do desfecho"; falhas=$((falhas + 1)); }
+tmpd=$(mktemp -d)
+rodar_desfecho() { # <rc_final> <motivos> -> o que foi gravado
+    rm -rf "$tmpd/amb"; mkdir -p "$tmpd/amb"; : > "$tmpd/amb/ambiente.txt"
+    bash -c "SAIDA_AMB='$tmpd/amb'; rc_final=$1; MOTIVOS='$2'; DONO=\$(id -un)
+$desfecho" >/dev/null 2>&1
+    cat "$tmpd/amb/ambiente.txt"
+}
+conferir "rc 0 grava CONCLUIDA" \
+    "$(rodar_desfecho 0 '' | grep -c 'conclusao.*: CONCLUIDA')" "1"
+conferir "rc 2 grava INCOMPLETA" \
+    "$(rodar_desfecho 2 '' | grep -c 'conclusao.*: INCOMPLETA')" "1"
+conferir "rc 1 grava NAO CONCLUIDA" \
+    "$(rodar_desfecho 1 '' | grep -c 'conclusao.*: NAO CONCLUIDA')" "1"
+# E O MOTIVO VAI JUNTO, porque "nao concluiu" sem dizer o que obriga a repetir
+# a execucao para descobrir.
+conferir "o motivo acompanha o desfecho" \
+    "$(rodar_desfecho 1 '    FALHA: a caracterizacao saiu com erro' | grep -c 'caracterizacao saiu com erro')" "1"
+conferir "e sem motivo nao inventa linha" \
+    "$(rodar_desfecho 0 '' | grep -c FALHA)" "0"
+rm -rf "$tmpd"
+# E A LINHA DA ETAPA 1 FICA NO TEMPO DO PEDIDO. Os dois ramos dizem `PEDIDA`
+# porque nenhum deles sabe, aos tres segundos de execucao, o que vai concluir.
+conferir "os dois ramos de execucao dizem PEDIDA" \
+    "$(grep -c 'echo "execucao       : PEDIDA' "$fonte")" "2"
+conferir "e nenhum afirma conclusao na etapa 1" \
+    "$(grep -cE 'echo "execucao +: (completa|CONCLUIDA)' "$fonte")" "0"
+
 # ---- 8. o refresh do cache de memoria nao pode falhar CALADO ----------
 #
 # A linha era `--cachear-memoria >/dev/null 2>&1 && chown ...`. O `&&`

@@ -371,10 +371,19 @@ chown "$DONO" .ambiente-memoria 2>/dev/null   # o cache ja foi refeito ao deriva
     # correram", e sob `--so-leiaute` quem nao corre sao 2, 3 e 4. Cada etapa
     # ja declara o proprio `PULADA` no diario, com o motivo; aqui basta dizer
     # QUE houve recorte e qual.
+    # E ESTA LINHA DIZ O QUE FOI PEDIDO, nao o que concluiu.
+    #
+    # Ela dizia `completa (cinco etapas)` e e escrita AQUI, na etapa 1. A
+    # campanha de 27/09/2026 gravou isso e so quatro etapas correram -- a
+    # quinta foi recusada pelo portao de arvore limpa. Quem lesse o arquivo
+    # depois acreditaria em cinco.
+    #
+    # O desfecho e outra pergunta, e so se sabe no fim: ele e acrescentado
+    # como `conclusao` pelo veredito.
     if [ -n "$RECORTE" ]; then
-        echo "execucao       : RECORTADA por $RECORTE"
+        echo "execucao       : PEDIDA com recorte $RECORTE"
     else
-        echo "execucao       : completa (cinco etapas)"
+        echo "execucao       : PEDIDA completa (as cinco etapas)"
     fi
     echo
 } > "$SAIDA_AMB/ambiente.txt"
@@ -844,4 +853,22 @@ if [ "$MODO" = "texto" ]; then
     echo "  set-default: os dois so fazem falta no sentido contrario."
 fi
 echo "=========================================================="
+
+# O DESFECHO VAI PARA O ARQUIVO, e nao so para a tela.
+#
+# A linha `execucao` da etapa 1 diz o que foi PEDIDO. Sem esta, a coleta nunca
+# registra o que de fato concluiu, e quem a ler daqui a um ano herda a
+# intencao no lugar do resultado -- que e o defeito que a campanha de
+# 27/09/2026 produziu, com `completa (cinco etapas)` sobre quatro.
+if [ -d "$SAIDA_AMB" ]; then
+    {
+        case "$rc_final" in
+            0) echo "conclusao      : CONCLUIDA" ;;
+            2) echo "conclusao      : INCOMPLETA -- etapa pulada por pre-requisito ausente" ;;
+            *) echo "conclusao      : NAO CONCLUIDA -- alguma etapa correu e falhou" ;;
+        esac
+        printf '%s\n' "$MOTIVOS" | sed '/^$/d;s/^ */                 /'
+    } >> "$SAIDA_AMB/ambiente.txt"
+    chown "$DONO" "$SAIDA_AMB/ambiente.txt" 2>/dev/null || :
+fi
 exit "$rc_final"
