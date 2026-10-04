@@ -355,7 +355,8 @@ as cita sem poder mostrá-las. A condição foi medida de novo **duas vezes**, c
 `2026-09-25-2346-expo6000-canal-duplo` e
 `2026-09-27-0853-expo6000-canal-duplo`. A primeira existe para responder um
 [pré-registro do módulo 01][prereg] sobre outra grandeza; as duas servem aqui
-como braço, e por isso cada uma é uma coluna.
+como braço, e por isso **cada uma é uma coluna** — a última linha da tabela diz
+por que elas não se somam.
 
 | | modo texto | 2346 6000 2c gráfico | 0853 6000 2c gráfico |
 |---|---:|---:|---:|
@@ -363,6 +364,7 @@ como braço, e por isso cada uma é uma coluna.
 | maior parada, mediana | 21,9 µs | 26,4 µs | 17,3 µs |
 | acima da janela de 34,4 µs | 15/200 | **5/20** | **1/20** |
 | maior observada | 55,7 µs | **784,1 µs** | **439,4 µs** |
+| máquina ligada há | 0 min a 48 min | 4 h 37 min | 1 min |
 
 **O que se repete nas duas é a cauda, e não a mediana.** As vinte execuções de
 2346 dão quinze entre 17,4 e 31,8 µs e depois 86,7, 360,4, 494,9, 749,0 e
@@ -373,12 +375,28 @@ texto, cuja maior parada é de 55,7 µs. **O modo alto volta nas duas.**
 
 > **E a mediana não sustenta mais a afirmação que esta seção publicava.** Até
 > 27/09/2026 ela dizia *"a diferença nas medianas é de 20% (`p = 0,008`)"*,
-> sobre a única coleta gráfica então arquivada. A segunda coleta gráfica declara
-> a **mesma** condição — modo gráfico, dois processos, *governor* `performance`
-> — e tem mediana de **17,3 µs**, abaixo de todas as dez coletas de modo texto.
-> Juntas, as duas dão **−7,0%** contra o modo texto, com `p = 0,14`: o sinal
-> inverte e o teste não decide. A diferença de 20% era de uma coleta, não da
-> condição, e está retratada aqui. O que a condição move é a **cauda**.
+> sobre a única coleta gráfica então arquivada. A segunda declara a **mesma**
+> condição — modo gráfico, dois processos, *governor* `performance` — e tem
+> mediana de **17,3 µs**, abaixo de todas as dez coletas de modo texto. Juntas,
+> as duas dão **−7,0%** contra o modo texto, com `p = 0,14`: o sinal inverte e
+> o teste não decide.
+>
+> **E a diferença de 20% estava confundida com o tempo de máquina ligada.** As
+> dez coletas de modo texto correm de 0 a 2 minutos depois do boot — a de 23:08
+> é a única em 48 min. A coleta gráfica que deu mediana alta correu com **4 h
+> 37 min** de máquina ligada; a que deu mediana baixa, com **1 min**, que é o
+> protocolo das de texto. A comparação maçã-com-maçã é a segunda, e nela a
+> mediana **não se eleva**.
+>
+> Isso não é detalhe de procedimento: o mecanismo que a §6.6 identifica é o
+> *power gating* da GPU, e ele depende de a GPU ficar **ociosa**. Um minuto
+> depois do boot, com a área de trabalho subindo, ela não está. A diferença de
+> 20% era de uma coleta e de uma condição que a declaração não registrava, e
+> está retratada aqui.
+>
+> O que sobrevive às duas é a **cauda** — e ela aparece inclusive na coleta de
+> uptime baixo, cuja única diferença declarada contra as de modo texto é a
+> sessão gráfica.
 > <!-- retratado: 0,008 0.008 -->
 
 **A coleta C, de 23/09, dava quinze no modo baixo e 5/20 acima da janela, com

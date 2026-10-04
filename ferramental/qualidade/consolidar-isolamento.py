@@ -388,7 +388,7 @@ def virgula(v, en, casas=1):
     return t if en else t.replace(".", ",")
 
 
-def bloco_grafico(dt, dg, en=False):
+def bloco_grafico(dt, dg, en=False, raiz=None):
     """O modo texto contra cada coleta COM sessao grafica, como a §6.1.1 publica.
 
     POR QUE ELE VIROU PROGRAMA
@@ -411,7 +411,19 @@ def bloco_grafico(dt, dg, en=False):
     maior parada em 200 execucoes de modo texto. Por isso o negrito esta nas
     duas ultimas linhas, e nao na mediana -- a mediana deixou de carregar
     argumento quando a segunda coleta entrou.
+
+    E O UPTIME E UMA LINHA DA TABELA, porque e ele que explica a discordancia.
+    As dez coletas de modo texto correm de 0 a 2 minutos depois do boot, menos
+    uma de 48; a coleta grafica de mediana alta correu com 4 h 37 min de
+    maquina ligada, e a de mediana baixa com 1 minuto -- o mesmo protocolo das
+    de texto. O mecanismo que a §6.6 identifica e o *power gating* da GPU, que
+    depende de a GPU ficar OCIOSA, e um minuto depois do boot ela nao esta.
+
+    Sem a raiz do historico o uptime nao se le, e a tabela nao se monta: ela
+    afirmaria comparabilidade que ninguem conferiu.
     """
+    if raiz is None:
+        raise SystemExit("bloco_grafico: sem a raiz do historico nao se le o uptime")
     # SEM BRACO NAO HA TABELA. Sem esta recusa a funcao emitia um cabecalho de
     # uma coluna e linhas de celula vazia -- tabela publicavel, sem dado
     # dentro. Quem decide o que fazer com a ausencia e `conferir`, que a reporta
@@ -425,6 +437,23 @@ def bloco_grafico(dt, dg, en=False):
     acima = lambda v: len([x for x in v if x > jan])
     cole = "collections" if en else "coletas"
     gr = "graphical" if en else "gráfico"
+
+    def ligada(coletas):
+        """`up 4 hours, 37 minutes` -> `4 h 37 min`, ou a faixa de um conjunto.
+
+        NAO APURAVEL quando alguma coleta nao declara: a faixa de um
+        subconjunto apresentada como a do conjunto e pior que a ausencia.
+        """
+        vs = [condicao_coleta.uptime_minutos(os.path.join(raiz, c)) for c in coletas]
+        if any(v is None for v in vs):
+            return "nao declarado"
+        def um(m):
+            if m < 60:
+                return "%d min" % m
+            return "%d h %02d min" % (m // 60, m % 60)
+        if min(vs) == max(vs):
+            return um(min(vs))
+        return "%s %s %s" % (um(min(vs)), "to" if en else "a", um(max(vs)))
     linhas = [
         "| | %s | %s |" % ("text mode" if en else "modo texto",
                            " | ".join("%s %s" % (rotulo_curto(c), gr) for c in cols)),
@@ -443,6 +472,9 @@ def bloco_grafico(dt, dg, en=False):
         "| %s | %s µs | %s |"
         % ("max observed" if en else "maior observada", virgula(vt[-1], en),
            " | ".join("**%s µs**" % virgula(v[-1], en) for v in vg)),
+        "| %s | %s | %s |"
+        % ("machine up for" if en else "máquina ligada há",
+           ligada(sorted(dt)), " | ".join(ligada([c]) for c in cols)),
     ]
     return "\n".join(linhas)
 
@@ -526,7 +558,7 @@ def conferir(raiz):
             continue
         novo = (bloco_estados(dados, en) if "--estados" in args else
                 bloco_tlb(dados, en) if "--tlb" in args else
-                bloco_grafico(dados, graficas, en) if "--grafico" in args else
+                bloco_grafico(dados, graficas, en, h) if "--grafico" in args else
                 bloco_celulas(dados, en)).split("\n")
         texto = open(os.path.join(raiz, arquivo), encoding="utf-8").read()
         if "\n".join(novo) in texto:
@@ -645,7 +677,7 @@ def autoteste():
     # deles ja entrou num consolidador deste projeto por copia.
     caso(19, "milhar em portugues usa o espaco comum",
          [ord(c) for c in milhar(37940, False)], [51, 55, 32, 57, 52, 48])
-    caso(20, "milhar em ingles usa virgula", milhar(37940, True), "37,940")
+    caso(41, "milhar em ingles usa virgula", milhar(37940, True), "37,940")
     caso(7, "o ingles usa ponto decimal",
          bloco_celulas(dados, True).splitlines()[2].split("|")[3].strip(), "24.0 µs")
 
@@ -676,19 +708,19 @@ def autoteste():
     # ZIP NAO ACUSA O QUE FALTA, e o portao passava calado sobre uma tabela
     # que perdeu linhas: compare o prefixo e a resposta e "o que esta la esta
     # certo?", que nao e a pergunta.
-    caso(13, "linha regenerada que o documento nao publica aparece",
+    caso(36, "linha regenerada que o documento nao publica aparece",
          linhas_a_mais(["a", "b", "c"], ["a"]), ["b", "c"])
-    caso(14, "e documento em dia nao acusa nada",
+    caso(37, "e documento em dia nao acusa nada",
          linhas_a_mais(["a", "b"], ["a", "b"]), [])
     # A vazia do fim e do RECORTE, nao do bloco: o corpo termina em `\n` antes
     # da cerca. Contar com ela acusaria toda tabela em dia.
-    caso(15, "vazia no fim do recorte nao conta como linha",
+    caso(38, "vazia no fim do recorte nao conta como linha",
          linhas_a_mais(["a", "b"], ["a", "b", ""]), [])
-    caso(16, "e nem no lado regenerado",
+    caso(39, "e nem no lado regenerado",
          linhas_a_mais(["a", "b", ""], ["a", "b"]), [])
     # Documento com MAIS linhas que o historico e outra coisa -- a comparacao
     # linha por linha ja acusa, e aqui nao se inventa linha negativa.
-    caso(17, "documento mais longo nao devolve linha",
+    caso(40, "documento mais longo nao devolve linha",
          linhas_a_mais(["a"], ["a", "b"]), [])
 
     # 22 a 28. O BRACO GRAFICO: UMA COLUNA POR COLETA, e nao uma agregada.
@@ -697,9 +729,15 @@ def autoteste():
     # havia uma coleta grafica. Com duas, a mediana agregada -- 20,4 us -- nao
     # descreve nenhuma das duas, que dao 26,4 e 17,3. Agregar aqui esconderia
     # exatamente o que a tabela existe para mostrar.
-    graf = {"2026-09-25-2346-expo6000-canal-duplo": {"P0": [ex(26000), ex(784000)]},
-            "2026-09-27-0853-expo6000-canal-duplo": {"P0": [ex(17000), ex(439000)]}}
-    gl = bloco_grafico(dados, graf).splitlines()
+    # NOMES FABRICADOS, e nao os reais: `uptime_minutos` cai na coleta IRMA do
+    # isolamento pelo NOME do diretorio, e com os nomes reais a fixture lia
+    # dado de verdade em vez de exercitar a ausencia.
+    graf = {"2099-01-02-2346-expo6000-canal-duplo": {"P0": [ex(26000), ex(784000)]},
+            "2099-01-03-0853-expo6000-canal-duplo": {"P0": [ex(17000), ex(439000)]}}
+    # A RAIZ E ONDE O UPTIME VIVE. Sem coleta em disco ele sai como
+    # `nao declarado`, que e o terceiro estado -- e e isso que os casos abaixo
+    # exercitam, porque a tabela precisa dizer "nao sei" sem travar.
+    gl = bloco_grafico(dados, graf, False, "/inexistente").splitlines()
     caso(22, "quatro celulas: o rotulo, o modo texto e as duas graficas",
          len(gl[0].split("|")) - 2, 4)
     caso(23, "e cada coluna traz a propria mediana",
@@ -707,8 +745,20 @@ def autoteste():
          ["23,0 µs", "405,0 µs", "228,0 µs"])
     # A CAUDA E O QUE A TABELA DESTACA, e nao a mediana: a mediana deixou de
     # carregar argumento quando a segunda coleta entrou com sinal invertido.
-    caso(24, "o negrito esta nas duas ultimas linhas",
-         [gl[i].count("**") for i in (2, 3, 4, 5)], [0, 0, 4, 4])
+    caso(24, "o negrito esta nas linhas da cauda, e nao na mediana",
+         [gl[i].count("**") for i in (2, 3, 4, 5, 6)], [0, 0, 4, 4, 0])
+    # O UPTIME E A LINHA QUE EXPLICA A DISCORDANCIA, e sem coleta em disco ele
+    # e `nao declarado` -- nao zero, que afirmaria "acabou de ligar".
+    caso(42, "sem o ambiente em disco, o uptime diz que nao sabe",
+         [c.strip() for c in gl[6].split("|")[2:5]],
+         ["nao declarado"] * 3)
+    # E SEM A RAIZ A TABELA NAO SE MONTA: ela afirmaria comparabilidade que
+    # ninguem conferiu.
+    try:
+        bloco_grafico(dados, graf)
+        caso(43, "sem raiz a tabela nao se monta", "passou", "SystemExit")
+    except SystemExit:
+        caso(43, "sem raiz a tabela nao se monta", "SystemExit", "SystemExit")
     caso(25, "e a linha da janela conta por coleta, nao somada",
          [c.strip() for c in gl[4].split("|")[2:5]], ["1/6", "**1/2**", "**1/2**"])
     # SEM BRACO NAO HA TABELA, e a ausencia nao e "em dia". Antes desta
@@ -716,7 +766,7 @@ def autoteste():
     # tabela publicavel sem dado dentro, que e a forma de falso verde que este
     # repositorio passou o dia caçando.
     try:
-        bloco_grafico(dados, {})
+        bloco_grafico(dados, {}, False, "/inexistente")
         caso(26, "braco vazio aborta em vez de emitir tabela vazia",
              "passou", "SystemExit")
     except SystemExit:
@@ -805,7 +855,7 @@ if __name__ == "__main__":
             print("nenhuma coleta COM sessao grafica em %s" % args[0],
                   file=sys.stderr)
             sys.exit(1)
-        print(bloco_grafico(dados, graficas, en))
+        print(bloco_grafico(dados, graficas, en, args[0]))
     elif "--escalares" in sys.argv:
         tudo = escalares(dados)
         # O braco grafico entra SE EXISTIR, e a ausencia dele aparece como tal:

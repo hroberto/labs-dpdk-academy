@@ -357,7 +357,8 @@ again **twice**, from a **clean tree**, on the current kernel and with the
 *governor* pinned — collections `2026-09-25-2346-expo6000-canal-duplo` and
 `2026-09-27-0853-expo6000-canal-duplo`. The first exists to answer a
 [pre-registration in module 01][prereg] about another quantity; both serve here
-as an arm, and that is why each one is a column.
+as an arm, and that is why **each one is a column** — the table's last row says
+why they do not add up.
 
 | | text mode | 2346 6000 2c graphical | 0853 6000 2c graphical |
 |---|---:|---:|---:|
@@ -365,6 +366,7 @@ as an arm, and that is why each one is a column.
 | max stall, median | 21.9 µs | 26.4 µs | 17.3 µs |
 | above the 34.4 µs window | 15/200 | **5/20** | **1/20** |
 | max observed | 55.7 µs | **784.1 µs** | **439.4 µs** |
+| machine up for | 0 min to 48 min | 4 h 37 min | 1 min |
 
 **What repeats across both is the tail, not the median.** The twenty runs of
 2346 give fifteen between 17.4 and 31.8 µs and then 86.7, 360.4, 494.9, 749.0
@@ -375,13 +377,28 @@ whose largest stall is 55.7 µs. **The high mode comes back in both.**
 
 > **And the median no longer supports the claim this section used to publish.**
 > Until 27/09/2026 it said *"the difference in medians is 20% (`p = 0.008`)"*,
-> over the only graphical collection archived at the time. The second graphical
-> collection declares the **same** condition — graphical mode, two processes,
-> *governor* `performance` — and has a median of **17.3 µs**, below all ten
-> text-mode collections. Together the two give **−7.0%** against text mode, at
-> `p = 0.14`: the sign flips and the test does not decide. The 20% difference
-> belonged to one collection, not to the condition, and is retracted here. What
-> the condition moves is the **tail**.
+> over the only graphical collection archived at the time. The second declares
+> the **same** condition — graphical mode, two processes, *governor*
+> `performance` — and has a median of **17.3 µs**, below all ten text-mode
+> collections. Together the two give **−7.0%** against text mode, at `p = 0.14`:
+> the sign flips and the test does not decide.
+>
+> **And the 20% difference was confounded with how long the machine had been
+> up.** The ten text-mode collections run 0 to 2 minutes after boot — the 23:08
+> one is the only exception, at 48 min. The graphical collection with the high
+> median ran after **4 h 37 min** of uptime; the one with the low median after
+> **1 min**, which is the text-mode protocol. The apples-to-apples comparison is
+> the second, and in it the median **does not rise**.
+>
+> This is not a procedural detail: the mechanism §6.6 identifies is the GPU's
+> power gating, and it depends on the GPU going **idle**. One minute after boot,
+> with the desktop coming up, it is not. The 20% difference belonged to one
+> collection and to a condition the declaration did not record, and is retracted
+> here.
+>
+> What survives both is the **tail** — and it appears even in the low-uptime
+> collection, whose only declared difference against the text-mode ones is the
+> graphical session.
 > <!-- retratado: 0,008 0.008 -->
 
 **Collection C, from 23/09, gave fifteen in the low mode and 5/20 above the
