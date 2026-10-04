@@ -7,23 +7,25 @@ A §6 publicava a coleta `C`, de 23/09/2026 -- uma das dez removidas em
 `1e925358` ao adotar o protocolo de modo texto. Aquele commit declarou o estado
 que criava: *"os numeros publicados no topico descrevem coletas que nao estao
 arquivadas aqui ate as quatro celulas serem medidas"*. As quatro celulas foram
-medidas sete vezes desde entao, e a §6 continuou citando a coleta que ninguem
+medidas dez vezes desde entao, e a §6 continuou citando a coleta que ninguem
 consegue abrir.
 
 O desencontro nao era so de procedencia. A coleta C publicava maior parada de
 752,9 us e cinco das vinte execucoes acima da janela de 512 descritores; nas
-sete coletas arquivadas -- 140 execucoes -- a maior parada observada e de
-55,7 us e a contagem acima da janela e de 1 a 2 em 20. O modo alto que a §6.1
+dez coletas arquivadas -- 200 execucoes -- a maior parada observada e de
+55,7 us e a contagem acima da janela e de 0 a 3 em 20. O modo alto que a §6.1
 descrevia como bimodalidade nao aparece em nenhuma delas, o que e exatamente o
 que a §6.6 conclui: ele era a sessao grafica.
 
 O QUE ELE DECIDE, E POR QUE
 
-  - agrega as SETE coletas de modo texto, e nao uma. Aqui a agregacao e o
-    resultado, nao uma conveniencia: uma coleta de cinco execucoes por celula
-    nao separa medianas que distam 2 us, e foi essa falta de poder que deixou a
-    §6.5 sem veredito. Com 35 execucoes por celula a comparacao passa a ter o
-    que decidir;
+  - agrega TODAS as coletas de modo texto -- dez, hoje --, e nao uma. Aqui a
+    agregacao e o resultado, nao uma conveniencia: uma coleta de cinco
+    execucoes por celula nao separa medianas que distam 2 us, e foi essa falta
+    de poder que deixou a §6.5 sem veredito. Com 50 execucoes por celula a
+    comparacao passa a ter o que decidir. O numero de coletas NAO aparece em
+    nenhuma constante: ele sai da contagem, e por isso esta frase e a unica
+    coisa aqui que envelhece;
   - descarta nada por aquecimento: a campanha de isolamento nao tem `r0`, e as
     cinco repeticoes de cada celula correm em ordem permutada, que e o desenho
     que dispensa o descarte;
@@ -37,7 +39,7 @@ O QUE ELE DECIDE, E POR QUE
     por uma execucao;
   - a comparacao entre celulas sai por POSTO tambem (Mann-Whitney), e pela
     mesma razao. O p que ele devolve e por aproximacao normal SEM correcao de
-    continuidade, o que e adequado com 35 contra 35 e seria grosseiro com
+    continuidade, o que e adequado com 50 contra 50 e seria grosseiro com
     amostras pequenas -- e esta dito aqui porque e uma limitacao do numero,
     nao um detalhe de implementacao.
 
@@ -51,14 +53,14 @@ isso.
 
 O MODO `--conferir` E O PORTAO
 
-Ter o programa nao e o mesmo que o documento usar o programa. As tres tabelas
+Ter o programa nao e o mesmo que o documento usar o programa. As quatro tabelas
 consolidadas nao tem a forma de nenhum `printf` arquivado -- sao tabelas
 Markdown --, e por isso caem fora do escopo do `verificar-blocos.py`, como o
-cabecalho daquele verificador declara. `--conferir` regenera as tres a partir
+cabecalho daquele verificador declara. `--conferir` regenera as quatro a partir
 do historico e compara com o publicado, nos dois idiomas. Ele FALHA quando uma
 coleta nova move a mediana sem que alguem republique: e o sinal, nao o defeito.
 
-    uso:  consolidar-isolamento.py <dir-do-historico> [--celulas|--estados|--tlb|--escalares] [--en]
+    uso:  consolidar-isolamento.py <dir> [--celulas|--estados|--tlb|--grafico|--escalares] [--en]
           consolidar-isolamento.py --conferir
           consolidar-isolamento.py --autoteste
 """
@@ -89,19 +91,30 @@ IRQ = re.compile(r"^  ([A-Z]{3})\s+(\d+)\s*$")
 JANELA = re.compile(r"^   512 descriptors: ([\d.]+) us")
 
 
-def ler(raiz, so_texto=True):
+def ler(raiz, condicao="texto"):
     """-> {coleta: {celula: [execucao, ...]}}, cada execucao um dict de campos.
 
-    `so_texto` FILTRA POR CONDICAO, e o padrao e True porque a §6 publica as
-    coletas sem sessao grafica. Em 25/09/2026, com a primeira coleta grafica
-    arquivada, a versao sem filtro passou a AGREGAR as duas condicoes numa
-    tabela so -- oito coletas e 160 execucoes onde a §6 diz sete e 140. Mediana
-    entre condicoes diferentes nao e mediana de nada.
+    `condicao` FILTRA, e o padrao e "texto" porque a §6 publica as coletas sem
+    sessao grafica. Em 25/09/2026, com a primeira coleta grafica arquivada, a
+    versao sem filtro passou a AGREGAR as duas condicoes numa tabela so -- oito
+    coletas e 160 execucoes onde a §6 diz sete e 140. Mediana entre condicoes
+    diferentes nao e mediana de nada.
+
+    SAO TRES CONDICOES, e nao duas, porque a coleta pode nao declarar a sua:
+    `e_texto` devolve None nesse caso. "texto" aceita o nao declarado -- o
+    historico anterior ao campo e todo de modo texto e descartar em silencio
+    faria a referencia saltar --, e "grafica" exige a declaracao, porque uma
+    coleta que nao diz ter sessao grafica nao serve de braco grafico.
     """
+    if condicao not in ("texto", "grafica", "todas"):
+        raise SystemExit("condicao desconhecida: %r" % condicao)
     saida = {}
     for d in sorted(glob.glob(os.path.join(raiz, "*", "isolamento"))):
         coleta = os.path.basename(os.path.dirname(d))
-        if so_texto and condicao_coleta.e_texto(os.path.dirname(d)) is False:
+        e_texto = condicao_coleta.e_texto(os.path.dirname(d))
+        if condicao == "texto" and e_texto is False:
+            continue
+        if condicao == "grafica" and e_texto is not False:
             continue
         for chave, _, _ in CELULAS:
             for f in sorted(glob.glob(os.path.join(d, chave + ".r[1-9]*.txt"))):
@@ -139,6 +152,18 @@ def janela(dados):
 def milhar(v, en):
     """37940 -> `37 940` em portugues, `37,940` em ingles, como o topico publica."""
     return "{:,}".format(int(v)).replace(",", "," if en else chr(32))
+
+
+def faixa_pct(vs):
+    """A amplitude de `vs` como fracao do MENOR, que e como a §6.2 a publica.
+
+    Sobre o menor, e nao sobre a media: a frase diz "1 335 contagens sobre
+    38 mil", e os 38 mil sao o piso da faixa. Trocar o denominador em silencio
+    mudaria o numero publicado sem mudar a medida.
+    """
+    if not vs:
+        return None
+    return 100.0 * (max(vs) - min(vs)) / min(vs)
 
 
 def mediana_irq(execs, nome):
@@ -312,6 +337,9 @@ def escalares(dados):
     p5 = execucoes(dados, "P5-irmao")
     # As trocas involuntarias por segundo: a sonda corre 30 s em cada execucao.
     taxa = sorted(e["preempcoes"] / 30.0 for e in todas)
+    medianas_tlb = [mediana_irq(dados[c].get("P0+ipi-thread", []), "TLB")
+                    for c in sorted(dados) if dados[c].get("P0+ipi-thread")]
+    tlb_execucoes = [e["irq"].get("TLB", 0) for e in tr]
     return {
         "coletas": len(dados),
         "execucoes": len(todas),
@@ -330,6 +358,15 @@ def escalares(dados):
         "paradas-thread": round(statistics.median([e["paradas"] for e in tr])),
         "tlb-thread": mediana_irq(tr, "TLB"),
         "tlb-proc": mediana_irq(pr, "TLB"),
+        # A FAIXA DO TLB ENTRE COLETAS era `1 335 contagens -- 3,5%`, calculado
+        # a mao sobre as sete coletas de entao. Numero citado na prosa e sem
+        # produtor envelhece calado: tres coletas entraram e ele nao se moveu.
+        "tlb-thread-coletas-min": min(medianas_tlb) if medianas_tlb else None,
+        "tlb-thread-coletas-max": max(medianas_tlb) if medianas_tlb else None,
+        "tlb-thread-entre-coletas-pct": faixa_pct(medianas_tlb),
+        "tlb-thread-entre-execucoes-pct": faixa_pct(tlb_execucoes),
+        "tlb-proc-max": max(e["irq"].get("TLB", 0) for e in pr) if pr else None,
+        "maior-parada-fator": v[-1] / v[0],
         "preempcoes-por-s-min": taxa[0],
         "preempcoes-por-s-max": taxa[-1],
         "rho-preempcao-parada": spearman([e["preempcoes"] for e in todas],
@@ -345,6 +382,128 @@ def escalares(dados):
     }
 
 
+def virgula(v, en, casas=1):
+    """21.9465 -> `21,9` em portugues, `21.9` em ingles."""
+    t = "%.*f" % (casas, v)
+    return t if en else t.replace(".", ",")
+
+
+def bloco_grafico(dt, dg, en=False, raiz=None):
+    """O modo texto contra cada coleta COM sessao grafica, como a §6.1.1 publica.
+
+    POR QUE ELE VIROU PROGRAMA
+
+    Esta tabela foi calculada A MAO uma vez, em 26/09/2026, e publicada com
+    `140 (7 coletas)` do lado do texto e uma unica coluna grafica. Tres coletas
+    de texto e uma segunda coleta grafica entraram no historico depois, e a
+    tabela continuou dizendo sete e uma -- sem portao que acusasse, porque ela
+    nao era gerada por nada.
+
+    POR QUE UMA COLUNA POR COLETA GRAFICA, E NAO UMA COLUNA AGREGADA
+
+    As duas coletas graficas arquivadas declaram a MESMA condicao -- modo
+    grafico, dois processos, governor `performance` -- e discordam em 9 us na
+    mediana: 26,4 us em 25/09-2346 e 17,3 us em 27/09-0853. A mediana das duas
+    juntas da 20,4 us, que nao descreve nenhuma delas. Agregar aqui esconderia
+    exatamente o que a tabela existe para mostrar.
+
+    O que se repete nas duas e a CAUDA: 784,1 e 439,4 us, contra 55,7 us como
+    maior parada em 200 execucoes de modo texto. Por isso o negrito esta nas
+    duas ultimas linhas, e nao na mediana -- a mediana deixou de carregar
+    argumento quando a segunda coleta entrou.
+
+    E O UPTIME E UMA LINHA DA TABELA, porque e ele que explica a discordancia.
+    As dez coletas de modo texto correm de 0 a 2 minutos depois do boot, menos
+    uma de 48; a coleta grafica de mediana alta correu com 4 h 37 min de
+    maquina ligada, e a de mediana baixa com 1 minuto -- o mesmo protocolo das
+    de texto. O mecanismo que a §6.6 identifica e o *power gating* da GPU, que
+    depende de a GPU ficar OCIOSA, e um minuto depois do boot ela nao esta.
+
+    Sem a raiz do historico o uptime nao se le, e a tabela nao se monta: ela
+    afirmaria comparabilidade que ninguem conferiu.
+    """
+    if raiz is None:
+        raise SystemExit("bloco_grafico: sem a raiz do historico nao se le o uptime")
+    # SEM BRACO NAO HA TABELA. Sem esta recusa a funcao emitia um cabecalho de
+    # uma coluna e linhas de celula vazia -- tabela publicavel, sem dado
+    # dentro. Quem decide o que fazer com a ausencia e `conferir`, que a reporta
+    # como NAO APURAVEL; aqui ela nao pode virar saida.
+    if not dg:
+        raise SystemExit("bloco_grafico: nenhuma coleta com sessao grafica")
+    jan = janela(dt)
+    vt = sorted(e["maior"] / 1000 for e in execucoes(dt))
+    cols = sorted(dg)
+    vg = [sorted(e["maior"] / 1000 for e in execucoes({c: dg[c]})) for c in cols]
+    acima = lambda v: len([x for x in v if x > jan])
+    cole = "collections" if en else "coletas"
+    gr = "graphical" if en else "gráfico"
+
+    def ligada(coletas):
+        """`up 4 hours, 37 minutes` -> `4 h 37 min`, ou a faixa de um conjunto.
+
+        NAO APURAVEL quando alguma coleta nao declara: a faixa de um
+        subconjunto apresentada como a do conjunto e pior que a ausencia.
+        """
+        vs = [condicao_coleta.uptime_minutos(os.path.join(raiz, c)) for c in coletas]
+        if any(v is None for v in vs):
+            return "nao declarado"
+        def um(m):
+            if m < 60:
+                return "%d min" % m
+            return "%d h %02d min" % (m // 60, m % 60)
+        if min(vs) == max(vs):
+            return um(min(vs))
+        return "%s %s %s" % (um(min(vs)), "to" if en else "a", um(max(vs)))
+    linhas = [
+        "| | %s | %s |" % ("text mode" if en else "modo texto",
+                           " | ".join("%s %s" % (rotulo_curto(c), gr) for c in cols)),
+        "|---|---:|" + "---:|" * len(cols),
+        "| %s | %d (%d %s) | %s |"
+        % ("runs" if en else "execuções", len(vt), len(dt), cole,
+           " | ".join(str(len(v)) for v in vg)),
+        "| %s | %s µs | %s |"
+        % ("max stall, median" if en else "maior parada, mediana",
+           virgula(statistics.median(vt), en),
+           " | ".join("%s µs" % virgula(statistics.median(v), en) for v in vg)),
+        "| %s | %d/%d | %s |"
+        % (("above the %s µs window" if en else "acima da janela de %s µs")
+           % virgula(jan, en), acima(vt), len(vt),
+           " | ".join("**%d/%d**" % (acima(v), len(v)) for v in vg)),
+        "| %s | %s µs | %s |"
+        % ("max observed" if en else "maior observada", virgula(vt[-1], en),
+           " | ".join("**%s µs**" % virgula(v[-1], en) for v in vg)),
+        "| %s | %s | %s |"
+        % ("machine up for" if en else "máquina ligada há",
+           ligada(sorted(dt)), " | ".join(ligada([c]) for c in cols)),
+    ]
+    return "\n".join(linhas)
+
+
+def escalares_grafico(dt, dg):
+    """Os numeros da §6.1.1 que a prosa cita fora da tabela.
+
+    A comparacao AGREGADA continua saindo aqui, e nao na tabela, porque ela e
+    o que REFUTA a diferenca de mediana que a §6.1.1 publicava: com as duas
+    coletas graficas juntas o sinal inverte e o p nao decide. Numero que
+    derruba afirmacao publicada precisa ter produtor tanto quanto o que a
+    sustenta.
+    """
+    vt = [e["maior"] for e in execucoes(dt)]
+    vg = [e["maior"] for e in execucoes(dg)]
+    medianas = [statistics.median([e["maior"] / 1000 for e in execucoes({c: dg[c]})])
+                for c in sorted(dg)]
+    mt, mg = statistics.median(vt), statistics.median(vg)
+    return {
+        "grafico-coletas": len(dg),
+        "grafico-execucoes": len(vg),
+        "grafico-mediana-min": min(medianas),
+        "grafico-mediana-max": max(medianas),
+        "grafico-max": max(vg) / 1000,
+        "grafico-vs-texto-pct": 100.0 * (mg - mt) / mt,
+        "grafico-vs-texto-p": mann_whitney(vt, vg)[2],
+    }
+
+
 # Onde cada tabela consolidada e publicada. O bloco e localizado pelo proprio
 # CABECALHO, e nao por numero de linha: numero de linha envelhece a cada
 # paragrafo inserido, e um portao que envelhece deixa de ser portao.
@@ -353,19 +512,53 @@ PUBLICADOS = [((), "trilha/03-performance/03-isolamento-cpu/README.md"),
               (("--estados",), "trilha/03-performance/03-isolamento-cpu/README.md"),
               (("--estados", "--en"), "trilha/03-performance/03-isolamento-cpu/README.en.md"),
               (("--tlb",), "trilha/03-performance/03-isolamento-cpu/README.md"),
-              (("--tlb", "--en"), "trilha/03-performance/03-isolamento-cpu/README.en.md")]
+              (("--tlb", "--en"), "trilha/03-performance/03-isolamento-cpu/README.en.md"),
+              (("--grafico",), "trilha/03-performance/03-isolamento-cpu/README.md"),
+              (("--grafico", "--en"), "trilha/03-performance/03-isolamento-cpu/README.en.md")]
+
+
+def linhas_a_mais(esperadas, publicadas):
+    """As linhas regeneradas que o documento nao publica.
+
+    ZIP NAO ACUSA O QUE FALTA -- ele para na sequencia mais curta. A tabela de
+    coletas do topico de isolamento publicava SETE coletas com dez no
+    historico; as sete batiam linha por linha e o portao passava calado sobre
+    tres coletas inteiras. Comparar o prefixo responde "o que esta la esta
+    certo?", e a pergunta do portao e "o documento publica a coleta?".
+
+    O comprimento se compara sem as linhas vazias do fim, porque o recorte do
+    bloco carrega uma: o corpo termina em `\n` antes da cerca.
+    """
+    def sem_vazias_no_fim(seq):
+        fim = len(seq)
+        while fim and not seq[fim - 1].strip():
+            fim -= 1
+        return seq[:fim]
+    esperadas, publicadas = sem_vazias_no_fim(esperadas), sem_vazias_no_fim(publicadas)
+    return esperadas[len(publicadas):]
 
 
 def conferir(raiz):
-    dados = ler(os.path.join(raiz, "trilha/03-performance/03-isolamento-cpu/historico"))
+    h = os.path.join(raiz, "trilha/03-performance/03-isolamento-cpu/historico")
+    dados = ler(h)
     if not dados:
         print("  nenhuma coleta com isolamento/ no historico do topico")
         return 1
+    # A TABELA DO BRACO GRAFICO SO SE CONFERE SE HOUVER BRACO. Sem coleta
+    # grafica arquivada nao ha o que regenerar, e tratar isso como "em dia"
+    # seria dar por conferido o que nao foi olhado.
+    graficas = ler(h, "grafica")
     problemas = 0
     for args, arquivo in PUBLICADOS:
         en = "--en" in args
+        if "--grafico" in args and not graficas:
+            print("  %s: NAO APURAVEL -- nenhuma coleta grafica no historico,"
+                  " a tabela da secao 6.1.1 nao foi conferida" % arquivo)
+            problemas += 1
+            continue
         novo = (bloco_estados(dados, en) if "--estados" in args else
                 bloco_tlb(dados, en) if "--tlb" in args else
+                bloco_grafico(dados, graficas, en, h) if "--grafico" in args else
                 bloco_celulas(dados, en)).split("\n")
         texto = open(os.path.join(raiz, arquivo), encoding="utf-8").read()
         if "\n".join(novo) in texto:
@@ -382,6 +575,14 @@ def conferir(raiz):
                       "\n      %s" % (arquivo, esperada, tem))
                 problemas += 1
                 break
+        else:
+            faltando = linhas_a_mais(novo[1:], atual)
+            if faltando:
+                print("  %s: o historico da %d linha(s) que o documento nao"
+                      " publica:" % (arquivo, len(faltando)))
+                for l in faltando:
+                    print("      %s" % l)
+                problemas += 1
     print("\n  %d tabela(s) consolidada(s) conferida(s) contra %d coleta(s)"
           " / %d execucao(oes); %d divergencia(s)"
           % (len(PUBLICADOS), len(dados), len(execucoes(dados)), problemas))
@@ -476,7 +677,7 @@ def autoteste():
     # deles ja entrou num consolidador deste projeto por copia.
     caso(19, "milhar em portugues usa o espaco comum",
          [ord(c) for c in milhar(37940, False)], [51, 55, 32, 57, 52, 48])
-    caso(20, "milhar em ingles usa virgula", milhar(37940, True), "37,940")
+    caso(41, "milhar em ingles usa virgula", milhar(37940, True), "37,940")
     caso(7, "o ingles usa ponto decimal",
          bloco_celulas(dados, True).splitlines()[2].split("|")[3].strip(), "24.0 µs")
 
@@ -504,6 +705,127 @@ def autoteste():
     except SystemExit:
         caso(12, "janela divergente aborta", "SystemExit", "SystemExit")
 
+    # ZIP NAO ACUSA O QUE FALTA, e o portao passava calado sobre uma tabela
+    # que perdeu linhas: compare o prefixo e a resposta e "o que esta la esta
+    # certo?", que nao e a pergunta.
+    caso(36, "linha regenerada que o documento nao publica aparece",
+         linhas_a_mais(["a", "b", "c"], ["a"]), ["b", "c"])
+    caso(37, "e documento em dia nao acusa nada",
+         linhas_a_mais(["a", "b"], ["a", "b"]), [])
+    # A vazia do fim e do RECORTE, nao do bloco: o corpo termina em `\n` antes
+    # da cerca. Contar com ela acusaria toda tabela em dia.
+    caso(38, "vazia no fim do recorte nao conta como linha",
+         linhas_a_mais(["a", "b"], ["a", "b", ""]), [])
+    caso(39, "e nem no lado regenerado",
+         linhas_a_mais(["a", "b", ""], ["a", "b"]), [])
+    # Documento com MAIS linhas que o historico e outra coisa -- a comparacao
+    # linha por linha ja acusa, e aqui nao se inventa linha negativa.
+    caso(40, "documento mais longo nao devolve linha",
+         linhas_a_mais(["a"], ["a", "b"]), [])
+
+    # 22 a 28. O BRACO GRAFICO: UMA COLUNA POR COLETA, e nao uma agregada.
+    #
+    # A versao publicada ate 27/09/2026 tinha uma coluna grafica so, porque so
+    # havia uma coleta grafica. Com duas, a mediana agregada -- 20,4 us -- nao
+    # descreve nenhuma das duas, que dao 26,4 e 17,3. Agregar aqui esconderia
+    # exatamente o que a tabela existe para mostrar.
+    # NOMES FABRICADOS, e nao os reais: `uptime_minutos` cai na coleta IRMA do
+    # isolamento pelo NOME do diretorio, e com os nomes reais a fixture lia
+    # dado de verdade em vez de exercitar a ausencia.
+    graf = {"2099-01-02-2346-expo6000-canal-duplo": {"P0": [ex(26000), ex(784000)]},
+            "2099-01-03-0853-expo6000-canal-duplo": {"P0": [ex(17000), ex(439000)]}}
+    # A RAIZ E ONDE O UPTIME VIVE. Sem coleta em disco ele sai como
+    # `nao declarado`, que e o terceiro estado -- e e isso que os casos abaixo
+    # exercitam, porque a tabela precisa dizer "nao sei" sem travar.
+    gl = bloco_grafico(dados, graf, False, "/inexistente").splitlines()
+    caso(22, "quatro celulas: o rotulo, o modo texto e as duas graficas",
+         len(gl[0].split("|")) - 2, 4)
+    caso(23, "e cada coluna traz a propria mediana",
+         [c.strip() for c in gl[3].split("|")[2:5]],
+         ["23,0 µs", "405,0 µs", "228,0 µs"])
+    # A CAUDA E O QUE A TABELA DESTACA, e nao a mediana: a mediana deixou de
+    # carregar argumento quando a segunda coleta entrou com sinal invertido.
+    caso(24, "o negrito esta nas linhas da cauda, e nao na mediana",
+         [gl[i].count("**") for i in (2, 3, 4, 5, 6)], [0, 0, 4, 4, 0])
+    # O UPTIME E A LINHA QUE EXPLICA A DISCORDANCIA, e sem coleta em disco ele
+    # e `nao declarado` -- nao zero, que afirmaria "acabou de ligar".
+    caso(42, "sem o ambiente em disco, o uptime diz que nao sabe",
+         [c.strip() for c in gl[6].split("|")[2:5]],
+         ["nao declarado"] * 3)
+    # E SEM A RAIZ A TABELA NAO SE MONTA: ela afirmaria comparabilidade que
+    # ninguem conferiu.
+    try:
+        bloco_grafico(dados, graf)
+        caso(43, "sem raiz a tabela nao se monta", "passou", "SystemExit")
+    except SystemExit:
+        caso(43, "sem raiz a tabela nao se monta", "SystemExit", "SystemExit")
+    caso(25, "e a linha da janela conta por coleta, nao somada",
+         [c.strip() for c in gl[4].split("|")[2:5]], ["1/6", "**1/2**", "**1/2**"])
+    # SEM BRACO NAO HA TABELA, e a ausencia nao e "em dia". Antes desta
+    # recusa a funcao devolvia cabecalho de uma coluna e celulas vazias: uma
+    # tabela publicavel sem dado dentro, que e a forma de falso verde que este
+    # repositorio passou o dia caçando.
+    try:
+        bloco_grafico(dados, {}, False, "/inexistente")
+        caso(26, "braco vazio aborta em vez de emitir tabela vazia",
+             "passou", "SystemExit")
+    except SystemExit:
+        caso(26, "braco vazio aborta em vez de emitir tabela vazia",
+             "SystemExit", "SystemExit")
+    # A COMPARACAO AGREGADA SAI NOS ESCALARES, porque e ela que REFUTA a
+    # diferenca de mediana que a secao publicava.
+    esc = escalares_grafico(dados, graf)
+    caso(27, "os escalares separam a mediana menor da maior",
+         (round(esc["grafico-mediana-min"], 1), round(esc["grafico-mediana-max"], 1)),
+         (228.0, 405.0))
+    caso(28, "e contam as coletas graficas", esc["grafico-coletas"], 2)
+
+    # 29 a 31. A CONDICAO DE LEITURA TEM TRES VALORES, e a quarta e recusada.
+    #
+    # `so_texto=True/False` era binario e nao tinha onde dizer "so as
+    # graficas". A quarta condicao nao cai em nenhum ramo em silencio.
+    try:
+        ler("/inexistente", "qualquer-coisa")
+        caso(29, "condicao desconhecida aborta", "passou", "SystemExit")
+    except SystemExit:
+        caso(29, "condicao desconhecida aborta", "SystemExit", "SystemExit")
+    caso(30, "e as tres conhecidas nao abortam",
+         [ler("/inexistente", c) for c in ("texto", "grafica", "todas")], [{}, {}, {}])
+    caso(31, "o padrao e modo texto", ler("/inexistente"), {})
+
+    # 32 a 35. O FILTRO SOBRE AS TRES CONDICOES REAIS, com coleta em disco.
+    #
+    # "grafica" EXIGE A DECLARACAO. Com `e_texto is True` no lugar de
+    # `is not False`, a coleta que nao declara entraria no braco grafico -- e
+    # todo o historico anterior a 25/09/2026 nao declara. O braco mediria a
+    # condicao errada e nada acusaria; os casos abaixo sao o que distingue as
+    # duas versoes.
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        def coleta(nome, graficos):
+            d = os.path.join(tmp, nome, "isolamento")
+            os.makedirs(d)
+            with open(os.path.join(d, "P0.r1.txt"), "w") as f:
+                f.write("stall probe: threshold 2000 ns\nmax stall: 21000 ns\n"
+                        "   512 descriptors: 34.4 us\n")
+            if graficos is not None:
+                with open(os.path.join(tmp, nome, "ambiente.txt"), "w") as f:
+                    f.write("  sessao grafica ....... %d processo(s)\n" % graficos)
+        # Nomes fora do historico real: `processos_graficos` cai na coleta IRMA
+        # pelo NOME do diretorio, e um nome real traria a condicao de la.
+        coleta("2099-01-01-0000-fixture-texto", 0)
+        coleta("2099-01-02-0000-fixture-grafica", 2)
+        coleta("2099-01-03-0000-fixture-sem-declaracao", None)
+        caso(32, "texto leva a declarada sem sessao e a nao declarada",
+             sorted(ler(tmp, "texto")),
+             ["2099-01-01-0000-fixture-texto",
+              "2099-01-03-0000-fixture-sem-declaracao"])
+        caso(33, "grafica leva SO a que declara sessao",
+             sorted(ler(tmp, "grafica")), ["2099-01-02-0000-fixture-grafica"])
+        caso(34, "e a nao declarada nunca entra no braco grafico",
+             "2099-01-03-0000-fixture-sem-declaracao" in ler(tmp, "grafica"), False)
+        caso(35, "todas leva as tres", len(ler(tmp, "todas")), 3)
+
     print("\n  autoteste: %d assercao(oes) falharam" % falhas)
     return falhas
 
@@ -523,12 +845,24 @@ if __name__ == "__main__":
         print("nenhuma coleta com isolamento/ em %s" % args[0], file=sys.stderr)
         sys.exit(1)
     en = "--en" in sys.argv
+    graficas = ler(args[0], "grafica")
     if "--estados" in sys.argv:
         print(bloco_estados(dados, en))
     elif "--tlb" in sys.argv:
         print(bloco_tlb(dados, en))
+    elif "--grafico" in sys.argv:
+        if not graficas:
+            print("nenhuma coleta COM sessao grafica em %s" % args[0],
+                  file=sys.stderr)
+            sys.exit(1)
+        print(bloco_grafico(dados, graficas, en, args[0]))
     elif "--escalares" in sys.argv:
-        for k, v in escalares(dados).items():
+        tudo = escalares(dados)
+        # O braco grafico entra SE EXISTIR, e a ausencia dele aparece como tal:
+        # escalar que falta calado faz a prosa citar o numero de outra amostra.
+        tudo.update(escalares_grafico(dados, graficas) if graficas else
+                    {"grafico-coletas": 0})
+        for k, v in tudo.items():
             print("%-24s %s" % (k, ("%.4f" % v) if isinstance(v, float) else v))
     else:
         print(bloco_celulas(dados, en))

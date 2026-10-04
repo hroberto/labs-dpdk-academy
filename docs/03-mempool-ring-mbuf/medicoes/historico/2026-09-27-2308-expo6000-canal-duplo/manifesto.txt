@@ -1,0 +1,347 @@
+# manifesto da coleta 2026-09-27-2308-expo6000-canal-duplo -- estado com que cada celula terminou
+# STATUS: PASS (mediu), SKIP (pre-requisito ausente), FAIL (correu e reprovou)
+CELL                                     STATUS  RC
+# ARTIFACT ambiente.sh
+#   path=scripts/ambiente.sh
+#   source_origin=nao-disponivel
+#   binary_sha256=218b0cd857b2135d9e11a27a863087dfb56addb2ea0a1d53350579770cb1fcc8
+#   text_sha256=nao-disponivel
+#   build_id=
+#   compiler=nao-disponivel
+#   compile_flags=nao-disponivel
+ambiente.txt                             PASS    0
+# ARTIFACT custo-syscall
+#   path=build-precommit/docs/01-fundamentos/medicoes/custo-syscall
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=3c2a572070152298ca9d50e9d094abf27cd2b92bd86b2896ccec9657f28405c5
+#   text_sha256=db6408e4e340a9fede457cf28b71fdfb706f51964f22f57e5761017752be64f0
+#   build_id=02001db21e8a114c091fca0a992758b10c2c73e4
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -falign-loops=64 -c
+custo-syscall.r0.txt                     PASS    0
+# ARTIFACT custo-comunicacao
+#   path=build-precommit/docs/01-fundamentos/medicoes/custo-comunicacao
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=3cf8d3a693c5c6ecccb5950e4404b65f5e07ee80ccd0332f2da1c4f0e653de7c
+#   text_sha256=ff0a1e84f819ac61bf78a86e9b7ec539e128e2453bbc8a6a1193ebe04685c059
+#   build_id=55e6cdc1cd7459d4cb20415c47b6896f34bcf451
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -pthread -falign-loops=64 -c
+custo-comunicacao.r0.txt                 PASS    0
+# ARTIFACT custo-mckenney
+#   path=build-precommit/docs/01-fundamentos/medicoes/custo-mckenney
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=3aaab21e259bb86ede775b5de815f7fa231c23f9ed89a4d52e8e8337aaceeec6
+#   text_sha256=9a27a1e3f6589faacb32da98652532cf9ffbafab0d6b5a19b759e0d00f516def
+#   build_id=f23577129f5be90add3246e8cc266cdadbeb5353
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -pthread -falign-loops=64 -c
+custo-mckenney.r0.txt                    PASS    0
+# ARTIFACT efeito-cache
+#   path=build-precommit/docs/01-fundamentos/medicoes/efeito-cache
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=b12da6f887dfe882d5fa39197765b8c2e70a6556b824cc76af21fc8084a5e8c3
+#   text_sha256=1a4abf8bbf5d537d3fb292769b4851d466d624be142519dd4031b9a3fd20cf1e
+#   build_id=42c3adcbcf2a69cffbbe186d27a90e8924200212
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -falign-loops=64 -c
+efeito-cache.r0.txt                      PASS    0
+# ARTIFACT custo-espera
+#   path=build-precommit/docs/01-fundamentos/medicoes/custo-espera
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=7cce4f0edf0092281c318a6ca44191ae0b73b9c73201d7c77db1b28215c02721
+#   text_sha256=914ed2433eb4a8da8c0d62d73522023f2a576f5be2e8ff683909be52f2344573
+#   build_id=d014e2ca20a2ff5dee4daf4937c661696d791b6b
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -pthread -falign-loops=64 -c
+custo-espera.r0.txt                      PASS    0
+# ARTIFACT custo-paralelismo
+#   path=build-precommit/docs/01-fundamentos/medicoes/custo-paralelismo
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=d0aa8680534e4738880b5fdaadf3c5a796a647f6f25e4b1a9a4f467fb3973ce2
+#   text_sha256=cc943a8aa64c684453cccf5638c23607818813c5338ea6e5963f70bf0e2173d8
+#   build_id=9bfc080a3ac0179c12867f5fe3fe4cbe431d89fa
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -pthread -falign-loops=64 -c
+custo-paralelismo.r0.txt                 PASS    0
+# ARTIFACT custo-traducao
+#   path=build-precommit/docs/01-fundamentos/medicoes/custo-traducao
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=68079559162a5844c3196f0db8ae11997836c363170844dfe2e58773cb03c8e9
+#   text_sha256=9d6e0ff699423e68a8db5a830e919f5f6a1749c9a9e45600ad489a1b85c36cb7
+#   build_id=5c58f306bcc4827ce044c60ce57b08fe54ac129d
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -falign-loops=64 -c
+custo-traducao.r0.txt                    PASS    0
+# ARTIFACT orcamento-estourado
+#   path=build-precommit/docs/01-fundamentos/medicoes/orcamento-estourado
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=f5291680822f4dbf38abdcde3f2c2db63faa7cc7905f292d4818771c56e5c949
+#   text_sha256=94440ea6de7bad63aa7fcd3fcc057cb95bb65b781201118d2374048e652dfa8e
+#   build_id=d65358ad894c5b157776ea40f43e546e261d1cb8
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -falign-loops=64 -c
+orcamento-estourado.r0.txt               PASS    0
+# ARTIFACT rajada-nasdaq
+#   path=build-precommit/docs/01-fundamentos/medicoes/rajada-nasdaq
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=d9c9bb2d7e85347c35569c3806e51b88890b91db6db7dab250d7b8fed033c17a
+#   text_sha256=b7bd42a20a99f6587bc75533a1eba56dac840c80d452dd6b32b311e05741e498
+#   build_id=1409fbb477f383a5bff88d2dbe185ac783666312
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -falign-loops=64 -c
+rajada-nasdaq.r0.txt                     PASS    0
+# ARTIFACT tlb-real
+#   path=build-precommit/docs/01-fundamentos/medicoes/tlb-real
+#   source_origin=nao-disponivel
+#   binary_sha256=a6f2110bf316c8a8f7aa0f5cf8794ec14523d067389baf1be84289439313eeac
+#   text_sha256=25b78c32e6b57184e7a9747643ee437c7b50bc98746ef61faf06bab1d4493ae6
+#   build_id=b50ffcf84844df775d3af02663b951a91917f5d9
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -c
+tlb-real.r0.txt                          PASS    0
+custo-traducao.regiao8mb.r0.txt          PASS    0
+custo-traducao.regiao16mb.r0.txt         PASS    0
+custo-traducao.regiao32mb.r0.txt         PASS    0
+custo-traducao.regiao64mb.r0.txt         PASS    0
+custo-traducao.seq8mb.r0.txt             PASS    0
+custo-traducao.seq16mb.r0.txt            PASS    0
+custo-traducao.seq32mb.r0.txt            PASS    0
+custo-traducao.seq64mb.r0.txt            PASS    0
+custo-traducao.seq512mb.r0.txt           PASS    0
+# ARTIFACT custo-init
+#   path=build-precommit/docs/02-runtime-dpdk/medicoes/custo-init
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=dfd60b8bf85afbc53c2335be4275c6a3e5e2d2e18785067c07e18092075022e8
+#   text_sha256=281ba49a5bc0a67b8f00c2f25a461aeeca5596c71f492e8a37d6013935468ad7
+#   build_id=db8150eb94ffaeb7c32d713099619e668b49f855
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -include -march=corei7 -mrtm -c
+custo-init.in-memory.r0.txt              PASS    0
+custo-init.no-huge.r0.txt                PASS    0
+custo-init.in-memory-no-pci.r0.txt       PASS    0
+custo-init.no-huge-no-pci.r0.txt         PASS    0
+custo-init.4lcores.r0.txt                PASS    0
+# ARTIFACT estado-lcore
+#   path=build-precommit/docs/02-runtime-dpdk/medicoes/estado-lcore
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=c1afb0e3887f65f18be69691cc09e0a162d217100126abb69e4aa5719344e5fb
+#   text_sha256=9833e2f56a59f545794446d09023da70840664d7884bec09ef2cd2064ef35d9a
+#   build_id=aa57e715c699a152837c21d5cb00dd88e5d0e8b8
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -include -march=corei7 -mrtm -c
+estado-lcore.r0.txt                      PASS    0
+estado-lcore.lcores.r0.txt               PASS    0
+# ARTIFACT custo-alocacao
+#   path=build-precommit/docs/03-mempool-ring-mbuf/medicoes/custo-alocacao
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=20ea3d32fa074a6fe4a8c9f16be7f9f8ff7c789c807d7821727410472bd5ec87
+#   text_sha256=0c40a3b8a79a498f2b6189d825537af7cabd7d889e43a0b6ee9e4de592d10516
+#   build_id=ee29887cede43031ccd48b58d0479ace05df5c4f
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -pthread -include -march=corei7 -mrtm -c
+custo-alocacao.r0.txt                    PASS    0
+# ARTIFACT anatomia-mbuf
+#   path=build-precommit/docs/03-mempool-ring-mbuf/medicoes/anatomia-mbuf
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=27331eb5a1439307b0daec081e2520b41bfb2a16c517609bb874ca1d03b48851
+#   text_sha256=d8a39287645b9fb4b8287b439d2ca7405f696de6ccd60d04e6ca9382f239ac63
+#   build_id=4384e2a3824a3b01ae7debd985bd83ba44ab32d2
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -include -march=corei7 -mrtm -c
+anatomia-mbuf.r0.txt                     PASS    0
+# ARTIFACT custo-anel
+#   path=build-precommit/docs/03-mempool-ring-mbuf/medicoes/custo-anel
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=ef8ab50759b9bf39519122d09892eedc615c19288cb5ed0e5a3a279a841f95fe
+#   text_sha256=0ff34e9a93dc9725bb5b6f6b52c60e9679e68bc583e6ce7c92ee8bf00c0c7618
+#   build_id=beb5cadce78b20b502977e2b1541e1797991c033
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -include -march=corei7 -mrtm -c
+custo-anel.r0.txt                        PASS    0
+# ARTIFACT pool-esgotado
+#   path=build-precommit/docs/03-mempool-ring-mbuf/medicoes/pool-esgotado
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=13b473c3873f6d24a5303cd6a770f86cd1ee4a2cf73b4f864bb26c6baedad1ea
+#   text_sha256=a56a473f70f1045d578fb20eef548e96c7bf219fd13295ade5f1b584be4767b6
+#   build_id=19d9e145b8a44da66dfcc1026e11e870bb6428a9
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -include -march=corei7 -mrtm -c
+pool-esgotado.r0.txt                     PASS    0
+# ARTIFACT custo-contencao
+#   path=build-precommit/docs/03-mempool-ring-mbuf/medicoes/custo-contencao
+#   source_origin=v0.08.00-48-gc26c678b
+#   binary_sha256=08c4341aed3bc0e41d9fe4b3162235a103ffbc99befe3abaf5465282b9dc5453
+#   text_sha256=f96b42f8afaea72bd208825c544af8cf427a43adac693f00af160b45b35befb0
+#   build_id=b963f2b9bb80a37f293926553b29589947bcc121
+#   compiler=GCC: (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+#   compile_flags=-fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c11 -O2 -g -pthread -include -march=corei7 -mrtm -c
+custo-contencao.r0.txt                   PASS    0
+feed-primario.r0.txt                     PASS    0
+feed-secundario.r0.txt                   PASS    0
+custo-syscall.r1.txt                     PASS    0
+custo-comunicacao.r1.txt                 PASS    0
+custo-mckenney.r1.txt                    PASS    0
+efeito-cache.r1.txt                      PASS    0
+custo-espera.r1.txt                      PASS    0
+custo-paralelismo.r1.txt                 PASS    0
+custo-traducao.r1.txt                    PASS    0
+orcamento-estourado.r1.txt               PASS    0
+rajada-nasdaq.r1.txt                     PASS    0
+tlb-real.r1.txt                          PASS    0
+custo-traducao.regiao8mb.r1.txt          PASS    0
+custo-traducao.regiao16mb.r1.txt         PASS    0
+custo-traducao.regiao32mb.r1.txt         PASS    0
+custo-traducao.regiao64mb.r1.txt         PASS    0
+custo-traducao.seq8mb.r1.txt             PASS    0
+custo-traducao.seq16mb.r1.txt            PASS    0
+custo-traducao.seq32mb.r1.txt            PASS    0
+custo-traducao.seq64mb.r1.txt            PASS    0
+custo-traducao.seq512mb.r1.txt           PASS    0
+custo-init.in-memory.r1.txt              PASS    0
+custo-init.no-huge.r1.txt                PASS    0
+custo-init.in-memory-no-pci.r1.txt       PASS    0
+custo-init.no-huge-no-pci.r1.txt         PASS    0
+custo-init.4lcores.r1.txt                PASS    0
+estado-lcore.r1.txt                      PASS    0
+estado-lcore.lcores.r1.txt               PASS    0
+custo-alocacao.r1.txt                    PASS    0
+anatomia-mbuf.r1.txt                     PASS    0
+custo-anel.r1.txt                        PASS    0
+pool-esgotado.r1.txt                     PASS    0
+custo-contencao.r1.txt                   PASS    0
+feed-primario.r1.txt                     PASS    0
+feed-secundario.r1.txt                   PASS    0
+custo-syscall.r2.txt                     PASS    0
+custo-comunicacao.r2.txt                 PASS    0
+custo-mckenney.r2.txt                    PASS    0
+efeito-cache.r2.txt                      PASS    0
+custo-espera.r2.txt                      PASS    0
+custo-paralelismo.r2.txt                 PASS    0
+custo-traducao.r2.txt                    PASS    0
+orcamento-estourado.r2.txt               PASS    0
+rajada-nasdaq.r2.txt                     PASS    0
+tlb-real.r2.txt                          PASS    0
+custo-traducao.regiao8mb.r2.txt          PASS    0
+custo-traducao.regiao16mb.r2.txt         PASS    0
+custo-traducao.regiao32mb.r2.txt         PASS    0
+custo-traducao.regiao64mb.r2.txt         PASS    0
+custo-traducao.seq8mb.r2.txt             PASS    0
+custo-traducao.seq16mb.r2.txt            PASS    0
+custo-traducao.seq32mb.r2.txt            PASS    0
+custo-traducao.seq64mb.r2.txt            PASS    0
+custo-traducao.seq512mb.r2.txt           PASS    0
+custo-init.in-memory.r2.txt              PASS    0
+custo-init.no-huge.r2.txt                PASS    0
+custo-init.in-memory-no-pci.r2.txt       PASS    0
+custo-init.no-huge-no-pci.r2.txt         PASS    0
+custo-init.4lcores.r2.txt                PASS    0
+estado-lcore.r2.txt                      PASS    0
+estado-lcore.lcores.r2.txt               PASS    0
+custo-alocacao.r2.txt                    PASS    0
+anatomia-mbuf.r2.txt                     PASS    0
+custo-anel.r2.txt                        PASS    0
+pool-esgotado.r2.txt                     PASS    0
+custo-contencao.r2.txt                   PASS    0
+feed-primario.r2.txt                     PASS    0
+feed-secundario.r2.txt                   PASS    0
+custo-syscall.r3.txt                     PASS    0
+custo-comunicacao.r3.txt                 PASS    0
+custo-mckenney.r3.txt                    PASS    0
+efeito-cache.r3.txt                      PASS    0
+custo-espera.r3.txt                      PASS    0
+custo-paralelismo.r3.txt                 PASS    0
+custo-traducao.r3.txt                    PASS    0
+orcamento-estourado.r3.txt               PASS    0
+rajada-nasdaq.r3.txt                     PASS    0
+tlb-real.r3.txt                          PASS    0
+custo-traducao.regiao8mb.r3.txt          PASS    0
+custo-traducao.regiao16mb.r3.txt         PASS    0
+custo-traducao.regiao32mb.r3.txt         PASS    0
+custo-traducao.regiao64mb.r3.txt         PASS    0
+custo-traducao.seq8mb.r3.txt             PASS    0
+custo-traducao.seq16mb.r3.txt            PASS    0
+custo-traducao.seq32mb.r3.txt            PASS    0
+custo-traducao.seq64mb.r3.txt            PASS    0
+custo-traducao.seq512mb.r3.txt           PASS    0
+custo-init.in-memory.r3.txt              PASS    0
+custo-init.no-huge.r3.txt                PASS    0
+custo-init.in-memory-no-pci.r3.txt       PASS    0
+custo-init.no-huge-no-pci.r3.txt         PASS    0
+custo-init.4lcores.r3.txt                PASS    0
+estado-lcore.r3.txt                      PASS    0
+estado-lcore.lcores.r3.txt               PASS    0
+custo-alocacao.r3.txt                    PASS    0
+anatomia-mbuf.r3.txt                     PASS    0
+custo-anel.r3.txt                        PASS    0
+pool-esgotado.r3.txt                     PASS    0
+custo-contencao.r3.txt                   PASS    0
+feed-primario.r3.txt                     PASS    0
+feed-secundario.r3.txt                   PASS    0
+custo-syscall.r4.txt                     PASS    0
+custo-comunicacao.r4.txt                 PASS    0
+custo-mckenney.r4.txt                    PASS    0
+efeito-cache.r4.txt                      PASS    0
+custo-espera.r4.txt                      PASS    0
+custo-paralelismo.r4.txt                 PASS    0
+custo-traducao.r4.txt                    PASS    0
+orcamento-estourado.r4.txt               PASS    0
+rajada-nasdaq.r4.txt                     PASS    0
+tlb-real.r4.txt                          PASS    0
+custo-traducao.regiao8mb.r4.txt          PASS    0
+custo-traducao.regiao16mb.r4.txt         PASS    0
+custo-traducao.regiao32mb.r4.txt         PASS    0
+custo-traducao.regiao64mb.r4.txt         PASS    0
+custo-traducao.seq8mb.r4.txt             PASS    0
+custo-traducao.seq16mb.r4.txt            PASS    0
+custo-traducao.seq32mb.r4.txt            PASS    0
+custo-traducao.seq64mb.r4.txt            PASS    0
+custo-traducao.seq512mb.r4.txt           PASS    0
+custo-init.in-memory.r4.txt              PASS    0
+custo-init.no-huge.r4.txt                PASS    0
+custo-init.in-memory-no-pci.r4.txt       PASS    0
+custo-init.no-huge-no-pci.r4.txt         PASS    0
+custo-init.4lcores.r4.txt                PASS    0
+estado-lcore.r4.txt                      PASS    0
+estado-lcore.lcores.r4.txt               PASS    0
+custo-alocacao.r4.txt                    PASS    0
+anatomia-mbuf.r4.txt                     PASS    0
+custo-anel.r4.txt                        PASS    0
+pool-esgotado.r4.txt                     PASS    0
+custo-contencao.r4.txt                   PASS    0
+feed-primario.r4.txt                     PASS    0
+feed-secundario.r4.txt                   PASS    0
+custo-syscall.r5.txt                     PASS    0
+custo-comunicacao.r5.txt                 PASS    0
+custo-mckenney.r5.txt                    PASS    0
+efeito-cache.r5.txt                      PASS    0
+custo-espera.r5.txt                      PASS    0
+custo-paralelismo.r5.txt                 PASS    0
+custo-traducao.r5.txt                    PASS    0
+orcamento-estourado.r5.txt               PASS    0
+rajada-nasdaq.r5.txt                     PASS    0
+tlb-real.r5.txt                          PASS    0
+custo-traducao.regiao8mb.r5.txt          PASS    0
+custo-traducao.regiao16mb.r5.txt         PASS    0
+custo-traducao.regiao32mb.r5.txt         PASS    0
+custo-traducao.regiao64mb.r5.txt         PASS    0
+custo-traducao.seq8mb.r5.txt             PASS    0
+custo-traducao.seq16mb.r5.txt            PASS    0
+custo-traducao.seq32mb.r5.txt            PASS    0
+custo-traducao.seq64mb.r5.txt            PASS    0
+custo-traducao.seq512mb.r5.txt           PASS    0
+custo-init.in-memory.r5.txt              PASS    0
+custo-init.no-huge.r5.txt                PASS    0
+custo-init.in-memory-no-pci.r5.txt       PASS    0
+custo-init.no-huge-no-pci.r5.txt         PASS    0
+custo-init.4lcores.r5.txt                PASS    0
+estado-lcore.r5.txt                      PASS    0
+estado-lcore.lcores.r5.txt               PASS    0
+custo-alocacao.r5.txt                    PASS    0
+anatomia-mbuf.r5.txt                     PASS    0
+custo-anel.r5.txt                        PASS    0
+pool-esgotado.r5.txt                     PASS    0
+custo-contencao.r5.txt                   PASS    0
+feed-primario.r5.txt                     PASS    0
+feed-secundario.r5.txt                   PASS    0
+teste-estado-maquina.txt                 PASS    0

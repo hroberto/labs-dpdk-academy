@@ -1,0 +1,7 @@
+--- 01-fundamentos ---
+  nada reconhecido em docs/01-fundamentos/medicoes/historico/2026-09-27-2307-. (0 arquivo(s) .txt)
+  a campanha pode estar em curso: r1 em diante e que contam, r0 e aquecimento
+--- 02-runtime-dpdk ---
+  sem par para comparar (falta 2026-09-27-2307-.)
+--- 03-mempool-ring-mbuf ---
+  sem par para comparar (falta 2026-09-27-2307-.)

@@ -2750,10 +2750,10 @@ tempo**. A distribuição exata está no
   chegada       anel(n)     perda  ocup.max   p99(us)
   -----------   -------  --------  --------  --------
   cadenciada        512    0.000%         1       0.7
-  rajada            512   26.585%       512     376.4
-  rajada           1024   21.679%      1024     752.0
-  rajada           4096    6.341%      4096    3005.7
-  rajada          32768    0.000%     21262    6974.9
+  rajada            512   26.561%       512     375.8
+  rajada           1024   21.656%      1024     751.0
+  rajada           4096    6.328%      4096    3001.6
+  rajada          32768    0.000%     21246    6959.8
 ```
 
 **A previsão se sustenta.** Com 512 descritores a perda é de 26,6%; o anel de
@@ -2792,9 +2792,9 @@ Submetendo o mesmo tráfego aos dois, com profundidade equivalente:
 ```
   caminho                          fila    perda    drenagem
   ------------------------------  -----  -------  ----------
-  anel de descritores              8192   1.089%   1 363 015 pacotes/s
-  socket UDP (recv um a um)        8738   1.174%   1 191 880 pacotes/s
-  socket UDP (recvmmsg em lote)    8738   1.166%   1 196 001 pacotes/s
+  anel de descritores              8192   1.085%   1 364 888 pacotes/s
+  socket UDP (recv um a um)        8738   1.174%   1 191 729 pacotes/s
+  socket UDP (recvmmsg em lote)    8738   1.163%   1 197 567 pacotes/s
 ```
 
 **Mesma fila, mesma rajada, e o socket perde mais** — a diferença inteira é a

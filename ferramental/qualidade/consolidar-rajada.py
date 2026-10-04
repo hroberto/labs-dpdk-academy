@@ -250,6 +250,27 @@ def referencia(raiz):
     return os.path.join(base, cand[-1]) if cand else None
 
 
+def linhas_a_mais(esperadas, publicadas):
+    """As linhas regeneradas que o documento nao publica.
+
+    ZIP NAO ACUSA O QUE FALTA -- ele para na sequencia mais curta. A tabela de
+    coletas do topico de isolamento publicava SETE coletas com dez no
+    historico; as sete batiam linha por linha e o portao passava calado sobre
+    tres coletas inteiras. Comparar o prefixo responde "o que esta la esta
+    certo?", e a pergunta do portao e "o documento publica a coleta?".
+
+    O comprimento se compara sem as linhas vazias do fim, porque o recorte do
+    bloco carrega uma: o corpo termina em `\n` antes da cerca.
+    """
+    def sem_vazias_no_fim(seq):
+        fim = len(seq)
+        while fim and not seq[fim - 1].strip():
+            fim -= 1
+        return seq[:fim]
+    esperadas, publicadas = sem_vazias_no_fim(esperadas), sem_vazias_no_fim(publicadas)
+    return esperadas[len(publicadas):]
+
+
 def conferir(raiz):
     """Compara o publicado com o regenerado; devolve o numero de divergencias."""
     dir_ref = referencia(raiz)
@@ -282,6 +303,15 @@ def conferir(raiz):
                                       esperada, tem))
                 problemas += 1
                 break
+        else:
+            faltando = linhas_a_mais(novo[1:], atual)
+            if faltando:
+                print("  %s: a coleta %s da %d linha(s) que o documento nao"
+                      " publica:" % (arquivo, os.path.basename(dir_ref),
+                                     len(faltando)))
+                for l in faltando:
+                    print("      %s" % l)
+                problemas += 1
     print("\n  %d bloco(s) consolidado(s) conferido(s) contra %s (%s);"
           " %d divergencia(s)"
           % (len(PUBLICADOS), os.path.basename(dir_ref), escolhida, problemas))
@@ -365,6 +395,24 @@ def autoteste():
 
     # 15. Coleta sem a secao pedida nao vira linha inventada.
     caso(15, "linha ausente nao aparece", len(bloco_resumo({}).splitlines()), 2)
+
+    # ZIP NAO ACUSA O QUE FALTA, e o portao passava calado sobre uma tabela
+    # que perdeu linhas: compare o prefixo e a resposta e "o que esta la esta
+    # certo?", que nao e a pergunta.
+    caso(16, "linha regenerada que o documento nao publica aparece",
+         linhas_a_mais(["a", "b", "c"], ["a"]), ["b", "c"])
+    caso(17, "e documento em dia nao acusa nada",
+         linhas_a_mais(["a", "b"], ["a", "b"]), [])
+    # A vazia do fim e do RECORTE, nao do bloco: o corpo termina em `\n` antes
+    # da cerca. Contar com ela acusaria toda tabela em dia.
+    caso(18, "vazia no fim do recorte nao conta como linha",
+         linhas_a_mais(["a", "b"], ["a", "b", ""]), [])
+    caso(19, "e nem no lado regenerado",
+         linhas_a_mais(["a", "b", ""], ["a", "b"]), [])
+    # Documento com MAIS linhas que o historico e outra coisa -- a comparacao
+    # linha por linha ja acusa, e aqui nao se inventa linha negativa.
+    caso(20, "documento mais longo nao devolve linha",
+         linhas_a_mais(["a"], ["a", "b"]), [])
 
     print("\n  autoteste: %d assercao(oes) falharam" % falhas)
     return falhas

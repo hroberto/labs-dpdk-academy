@@ -66,6 +66,53 @@ def processos_graficos(diretorio):
     return _ler(ISOLAMENTO / d.name / "ambiente.txt", CAMPO_ISO)
 
 
+# `uptime           : up 4 hours, 37 minutes`
+CAMPO_UPTIME = re.compile(r"^\s*uptime\s*:?\s*\.*\s*up (.+?)\s*$", re.M)
+_UNIDADES = (("day", 1440), ("hour", 60), ("minute", 1), ("week", 10080))
+
+
+def uptime_minutos(diretorio):
+    """Quantos minutos a maquina estava ligada, ou None se nao esta declarado.
+
+    POR QUE O UPTIME E CONDICAO, E NAO CURIOSIDADE
+
+    Em 03/10/2026, ao dar programa a tabela do braco grafico do topico de
+    isolamento, as duas coletas graficas discordaram em 9 us na mediana
+    declarando a MESMA condicao. O `ambiente.txt` guardava a diferenca que a
+    declaracao nao captura: `up 4 hours, 37 minutes` numa, `up 1 minute` na
+    outra -- e TODAS as dez coletas de modo texto correm de 0 a 2 minutos
+    depois do boot.
+
+    Isso importa porque o mecanismo que a §6.6 identifica e o *power gating* da
+    GPU, que depende de a GPU ficar OCIOSA. Um minuto depois do boot, com a
+    area de trabalho subindo, ela nao esta. A coleta de uptime alto nao e
+    comparavel as de texto pelo protocolo de coleta; a de uptime baixo e.
+
+    DEVOLVE None, E NAO ZERO, quando nao acha. Zero seria "acabou de ligar",
+    que e uma afirmacao -- e inferir condicao e o defeito que este modulo
+    corrige.
+    """
+    import pathlib as _p
+    for caminho in (_p.Path(diretorio) / "ambiente.txt",
+                    ISOLAMENTO / _p.Path(diretorio).name / "ambiente.txt"):
+        try:
+            texto = _p.Path(caminho).read_text(errors="replace")
+        except OSError:
+            continue
+        m = CAMPO_UPTIME.search(texto)
+        if m is None:
+            continue
+        total, achou = 0, False
+        for n, peso in _UNIDADES:
+            u = re.search(r"(\d+)\s+" + n, m.group(1))
+            if u:
+                total += int(u.group(1)) * peso
+                achou = True
+        if achou:
+            return total
+    return None
+
+
 def e_texto(diretorio):
     """True (sem sessao grafica), False (com), ou None (nao declarado)."""
     n = processos_graficos(diretorio)
@@ -171,6 +218,27 @@ def autoteste():
                  e_texto(base / "so-irma"), False)
         finally:
             ISOLAMENTO = antes
+
+        # 12 a 18. O UPTIME, nas formas que o `uptime -p` emite.
+        #
+        # Ele e condicao: as duas coletas graficas do topico de isolamento
+        # discordam em 9 us na mediana declarando a MESMA condicao, e o que
+        # difere entre elas e `up 4 hours, 37 minutes` contra `up 1 minute`.
+        up = lambda t: uptime_minutos(coleta("up-" + t.replace(" ", "-")
+                                             .replace(",", ""),
+                                             "uptime           : up %s\n" % t))
+        caso(12, "horas e minutos somam", up("4 hours, 37 minutes"), 277)
+        caso(13, "minuto no singular", up("1 minute"), 1)
+        caso(14, "zero minuto e zero, nao None", up("0 minutes"), 0)
+        caso(15, "dia entra na conta", up("1 day, 2 hours, 3 minutes"), 1563)
+        caso(16, "hora sozinha", up("2 hours"), 120)
+        # SEM O CAMPO E None, E NAO ZERO. Zero seria "acabou de ligar", que e
+        # uma afirmacao; e foi inferir condicao ausente que este modulo veio
+        # corrigir.
+        caso(17, "ambiente sem uptime -> None",
+             uptime_minutos(coleta("sem-uptime", "governor: performance\n")), None)
+        caso(18, "unidade desconhecida -> None",
+             up("3 fortnights"), None)
 
     print("\n  autoteste: %d assercao(oes) falharam" % falhas)
     return falhas

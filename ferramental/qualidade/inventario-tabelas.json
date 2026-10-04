@@ -274,14 +274,14 @@
       "linha": 2749,
       "secao": "O experimento",
       "tipo": "bloco_numerico",
-      "sha256": "175478f45b8a88eb4f2200656ec95b1f561eb98a88335074b5798881c3d3360e"
+      "sha256": "41b26b51603efdaf9aa65bd243b00fe56ac4c3acc3bb1b6067b6927afe3d567a"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
       "linha": 2792,
       "secao": "E o caminho convencional de socket",
       "tipo": "bloco_numerico",
-      "sha256": "7a56e0f3c3631a23cf2428dc70e8dc3c5fe23faf6c57ac720a14d596a2e34155"
+      "sha256": "dddb1e7d3fc324e2aae851da43be5d9bfe69ad48b3b618c6442939578667eb23"
     },
     {
       "arquivo": "docs/01-fundamentos/README.md",
