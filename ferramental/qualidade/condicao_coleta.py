@@ -113,6 +113,39 @@ def uptime_minutos(diretorio):
     return None
 
 
+# `hardware pci     : ce9d4ee16f03 (47 dispositivos)`
+CAMPO_HW = re.compile(r"^\s*hardware pci\s*:?\s*\.*\s*([0-9a-f]{12})\b", re.M)
+
+
+def impressao_hardware(diretorio):
+    """A impressao PCI da maquina que correu a coleta, ou None se nao declarada.
+
+    POR QUE ELA PRECISA SER LIDA AQUI
+
+    Em 03/10/2026 uma ConnectX-4 Lx entrou na maquina. O `consolidar-isolamento`
+    filtra as coletas por sessao grafica e nada mais -- uma coleta nova entraria
+    nas tabelas da §6 junto com as dez de setembro, maquina com placa somada a
+    maquina sem placa. O campo existe desde aquele dia; as dez de setembro NAO
+    o declaram, e por isso o valor ausente e None e nao uma string qualquer:
+    quem agrega decide o que fazer com a ausencia, e o que nao pode e tratar
+    "nao declarado" como "igual ao meu".
+
+    `nao-disponivel` tambem volta None: e o que a `impressao_pci` grava quando
+    nao conseguiu ler o sysfs, e nao conseguir ler nao e um hardware.
+    """
+    import pathlib as _p
+    for caminho in (_p.Path(diretorio) / "ambiente.txt",
+                    ISOLAMENTO / _p.Path(diretorio).name / "ambiente.txt"):
+        try:
+            texto = _p.Path(caminho).read_text(errors="replace")
+        except OSError:
+            continue
+        m = CAMPO_HW.search(texto)
+        if m:
+            return m.group(1)
+    return None
+
+
 def e_texto(diretorio):
     """True (sem sessao grafica), False (com), ou None (nao declarado)."""
     n = processos_graficos(diretorio)
@@ -239,6 +272,31 @@ def autoteste():
              uptime_minutos(coleta("sem-uptime", "governor: performance\n")), None)
         caso(18, "unidade desconhecida -> None",
              up("3 fortnights"), None)
+
+        # 19 a 24. A IMPRESSAO DE HARDWARE, nos tres estados.
+        #
+        # Ela existe desde 03/10/2026, quando uma ConnectX-4 Lx entrou na
+        # maquina e o `consolidar-isolamento` -- que filtra por sessao grafica
+        # e nada mais -- somaria uma coleta nova as dez de setembro.
+        hw = lambda t: impressao_hardware(coleta("hw-" + str(abs(hash(t)) % 10**8), t))
+        caso(19, "le a impressao de 12 digitos",
+             hw("hardware pci     : ce9d4ee16f03 (47 dispositivos)\n"),
+             "ce9d4ee16f03")
+        caso(20, "ambiente sem o campo -> None",
+             hw("governor: performance\n"), None)
+        # `nao-disponivel` E AUSENCIA, e nao um hardware. E o que a
+        # `impressao_pci` grava quando nao conseguiu ler o sysfs; aceitar como
+        # era faria duas maquinas ilegiveis agregarem como se fossem a mesma.
+        caso(21, "nao-disponivel -> None",
+             hw("hardware pci     : nao-disponivel (nao-disponivel dispositivos)\n"),
+             None)
+        # HASH CURTO OU LONGO NAO CASA. Doze digitos e o formato; aceitar outro
+        # comprimento deixaria passar campo truncado como era valida.
+        caso(22, "onze digitos nao casa", hw("hardware pci     : ce9d4ee16f0\n"), None)
+        caso(23, "treze digitos nao casa, e nao casa o prefixo",
+             hw("hardware pci     : ce9d4ee16f03a\n"), None)
+        caso(24, "campo com outro nome nao casa",
+             hw("hardware xyz     : ce9d4ee16f03\n"), None)
 
     print("\n  autoteste: %d assercao(oes) falharam" % falhas)
     return falhas

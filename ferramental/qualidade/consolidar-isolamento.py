@@ -91,7 +91,7 @@ IRQ = re.compile(r"^  ([A-Z]{3})\s+(\d+)\s*$")
 JANELA = re.compile(r"^   512 descriptors: ([\d.]+) us")
 
 
-def ler(raiz, condicao="texto"):
+def _ler_cru(raiz, condicao="texto"):
     """-> {coleta: {celula: [execucao, ...]}}, cada execucao um dict de campos.
 
     `condicao` FILTRA, e o padrao e "texto" porque a §6 publica as coletas sem
@@ -133,6 +133,67 @@ def ler(raiz, condicao="texto"):
                 if "maior" in e:
                     saida.setdefault(coleta, {}).setdefault(chave, []).append(e)
     return saida
+
+
+def eras(raiz, condicao="texto"):
+    """-> (dados da era mais recente, coletas fora dela, {coleta: impressao}).
+
+    POR QUE AGREGAR POR CONDICAO NAO BASTA
+
+    Ate 03/10/2026 o filtro era sessao grafica e nada mais. Naquele dia uma
+    ConnectX-4 Lx entrou na maquina -- `mlx5` aparece zero vez no log do kernel
+    dos sete boots de 27/09 e quinze vezes no de 03/10 --, e uma coleta nova
+    entraria nas tabelas da §6 junto com as dez de setembro. Maquina com placa
+    somada a maquina sem placa, numa mediana so.
+
+    E a mesma classe do defeito que tirou nove coletas do historico em
+    24/09/2026: "os diretorios colidiam no nome e um deles carregava a
+    configuracao de memoria errada". O nome da configuracao descreve MEMORIA
+    (`expo6000-canal-duplo`) e nao diz nada sobre o barramento.
+
+    A ERA ESCOLHIDA E A DA COLETA MAIS RECENTE, e as outras ficam de fora com o
+    motivo impresso. Nao e escolha silenciosa: quem consome e o `--conferir`,
+    que vai acusar divergencia contra o documento publicado na hora em que a
+    era mudar -- e a divergencia e a decisao humana sendo pedida, do mesmo jeito
+    que uma coleta nova pede republicacao.
+
+    AS DEZ DE SETEMBRO NAO DECLARAM, e None e uma era como outra: elas
+    continuam agregando entre si, e nao regridem. O que elas nao fazem mais e
+    agregar com uma coleta que declara.
+    """
+    dados = _ler_cru(raiz, condicao)
+    impressoes = {c: condicao_coleta.impressao_hardware(os.path.join(raiz, c))
+                  for c in dados}
+    grupos = {}
+    for c, imp in impressoes.items():
+        grupos.setdefault(imp, []).append(c)
+    if len(grupos) <= 1:
+        return dados, [], impressoes
+    # O nome da coleta comeca pelo carimbo de data, e por isso `max` sobre os
+    # nomes e cronologico -- o mesmo criterio que a `referencia()` da rajada usa.
+    era = impressoes[max(dados)]
+    fora = sorted(c for c in dados if impressoes[c] != era)
+    return {c: v for c, v in dados.items() if impressoes[c] == era}, fora, impressoes
+
+
+def relato_de_eras(fora, impressoes):
+    """As linhas que explicam o que ficou fora, ou nada se nada ficou."""
+    if not fora:
+        return []
+    nome = lambda i: i if i else "nao declarada"
+    era = nome(impressoes[max(set(impressoes) - set(fora))])
+    linhas = ["  ERAS DE HARDWARE DIFERENTES no historico: agreguei so a era"
+              " %s, da coleta mais recente," % era,
+              "  e deixei %d coleta(s) fora. Mediana entre hardwares diferentes"
+              " nao e mediana de nada." % len(fora)]
+    for c in fora:
+        linhas.append("    fora: %s  (era %s)" % (c, nome(impressoes[c])))
+    return linhas
+
+
+def ler(raiz, condicao="texto"):
+    """A era mais recente, so. Quem precisa saber o que ficou fora chama `eras`."""
+    return eras(raiz, condicao)[0]
 
 
 def execucoes(dados, celula=None):
@@ -540,7 +601,13 @@ def linhas_a_mais(esperadas, publicadas):
 
 def conferir(raiz):
     h = os.path.join(raiz, "trilha/03-performance/03-isolamento-cpu/historico")
-    dados = ler(h)
+    dados, fora, impressoes = eras(h)
+    # O RELATO VAI PARA O STDOUT, e a razao e a que este repositorio pagou em
+    # 27/09/2026: o `marcar_falha` escrevia o motivo no stderr, quem rodou viu
+    # "NAO CONCLUIDO" sem razao nenhuma, e repetiu horas de campanha para
+    # descobrir. Informacao de portao vive onde o portao fala.
+    for l in relato_de_eras(fora, impressoes):
+        print(l)
     if not dados:
         print("  nenhuma coleta com isolamento/ no historico do topico")
         return 1
@@ -826,6 +893,46 @@ def autoteste():
              "2099-01-03-0000-fixture-sem-declaracao" in ler(tmp, "grafica"), False)
         caso(35, "todas leva as tres", len(ler(tmp, "todas")), 3)
 
+        # 44 a 51. AS ERAS DE HARDWARE.
+        #
+        # O caso que importa e o que AINDA NAO EXISTE no historico: uma coleta
+        # feita depois de 03/10/2026, que declara a impressao PCI, ao lado das
+        # dez de setembro, que nao declaram. Sem fixture nao ha como exercitar
+        # isso -- e foi exatamente a agregacao silenciosa das duas que motivou
+        # o portao.
+        def com_hw(nome, impressao=None, maior=21000):
+            d = os.path.join(tmp, "eras", nome, "isolamento")
+            os.makedirs(d, exist_ok=True)
+            with open(os.path.join(d, "P0.r1.txt"), "w") as f:
+                f.write("stall probe: threshold 2000 ns\nmax stall: %d ns\n"
+                        "   512 descriptors: 34.4 us\n" % maior)
+            linhas = ["  sessao grafica ....... 0 processo(s)\n"]
+            if impressao:
+                linhas.append("hardware pci     : %s (47 dispositivos)\n" % impressao)
+            with open(os.path.join(tmp, "eras", nome, "ambiente.txt"), "w") as f:
+                f.writelines(linhas)
+        e = os.path.join(tmp, "eras")
+        com_hw("2026-09-24-0955-setembro-a", None, 21000)
+        com_hw("2026-09-25-1720-setembro-b", None, 22000)
+        caso(44, "era unica (nao declarada) agrega tudo", len(ler(e)), 2)
+        caso(45, "e nada fica fora", eras(e)[1], [])
+        # A coleta NOVA declara, e nao pode ser somada as duas de setembro.
+        com_hw("2026-10-05-1200-outubro-com-placa", "ce9d4ee16f03", 17000)
+        dados_era, fora, imps = eras(e)
+        caso(46, "a era escolhida e a da coleta mais recente",
+             sorted(dados_era), ["2026-10-05-1200-outubro-com-placa"])
+        caso(47, "e as duas de setembro ficam fora, nomeadas",
+             fora, ["2026-09-24-0955-setembro-a", "2026-09-25-1720-setembro-b"])
+        # O RELATO E A DECISAO SENDO PEDIDA. Sem ele a escolha de era seria
+        # silenciosa, que e o defeito trocado de lugar.
+        rel = "\n".join(relato_de_eras(fora, imps))
+        caso(48, "o relato nomeia a era agregada", "ce9d4ee16f03" in rel, True)
+        caso(49, "e diz quantas ficaram fora", "2 coleta(s) fora" in rel, True)
+        caso(50, "e nomeia cada uma das que ficaram",
+             all(c in rel for c in fora), True)
+        caso(51, "sem exclusao nao ha relato",
+             relato_de_eras([], imps), [])
+
     print("\n  autoteste: %d assercao(oes) falharam" % falhas)
     return falhas
 
@@ -846,6 +953,10 @@ if __name__ == "__main__":
         sys.exit(1)
     en = "--en" in sys.argv
     graficas = ler(args[0], "grafica")
+    # Aqui o relato vai para o STDERR porque o stdout e a TABELA: nota no meio
+    # de bloco publicavel vira linha de tabela na republicacao seguinte.
+    for l in relato_de_eras(*eras(args[0])[1:]):
+        print(l, file=sys.stderr)
     if "--estados" in sys.argv:
         print(bloco_estados(dados, en))
     elif "--tlb" in sys.argv:
