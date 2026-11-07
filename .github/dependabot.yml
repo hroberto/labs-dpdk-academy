@@ -63,8 +63,9 @@ updates:
     # A protecao contra merge de major sem revisao nao mora aqui, e sim em:
     #
     #   1. PR e PROPOSTA -- nada entra na main sem merge deliberado;
-    #   2. `ferramental/qualidade/pre-commit.sh` avisa quando o SHA fixado deixa de ser o topo
-    #      do major declarado no workflow, que e exatamente o caso do PR #1;
+    #   2. `ferramental/qualidade/pre-commit.sh`, executado pela CI no proprio PR,
+    #      REPROVA quando o SHA fixado nao pertence ao major declarado no
+    #      workflow, que e exatamente o caso do PR #1;
     #   3. a `main` exige assinatura verificada e recusa force push.
     #
     # Ruido de um PR raro se fecha em um clique. Correcao de seguranca que nao
