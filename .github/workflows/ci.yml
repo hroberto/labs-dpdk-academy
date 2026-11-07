@@ -102,7 +102,15 @@ jobs:
       # nesta etapa, antes de `meson setup`, sem dizer qual suite quebrou. Com
       # --rapido esta etapa confere sintaxe, consistencia, segredos, documentacao
       # e assinatura; medir o codigo e das etapas nomeadas.
+      #
+      # GH_TOKEN e o que faz a protecao numero 2 existir aqui. Sem ele o `gh` do
+      # runner nao esta autenticado e o portao de versao do SHA nao tem como
+      # resolver a tag. Com `contents: read`, o token so le, e ler tag de acao
+      # publica e tudo o que o portao faz. Na CI, nao conseguir verificar e
+      # FALHA, e nao aviso.
       - name: Consistencia do projeto (regras do pre-commit)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: ./ferramental/qualidade/pre-commit.sh --rapido
 
       # GTest vem do subprojeto do Meson (subprojects/gtest.wrap), com hash fixo.
@@ -253,8 +261,8 @@ jobs:
 
       - name: Cache do DPDK ${{ matrix.versao }}
         id: cache-dpdk
-        # Fixada por SHA, como a do checkout. Corresponde a v4; para atualizar:
-        #   gh api repos/actions/cache/git/ref/tags/v4 --jq '.object.sha'
+        # Fixada por SHA, como a do checkout. Corresponde a v6; para atualizar:
+        #   gh api repos/actions/cache/git/ref/tags/v6 --jq '.object.sha'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/opt/dpdk-${{ matrix.versao }}

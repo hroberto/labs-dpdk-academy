@@ -140,10 +140,26 @@ if [ -f .github/workflows/ci.yml ]; then
     # levando actions/checkout de v4 para v7 -- tres versoes maiores de salto --
     # e a verificacao acima aprovaria, porque continua sendo um SHA valido.
     #
-    # Esta checagem resolve o SHA de volta para a tag e compara com o major que
-    # o workflow declara no comentario ao lado do pin. E AVISO, nao falha:
-    # depende de rede e de `gh`, e um pre-commit que exige os dois nao roda em
-    # aviao nem em maquina de terceiros.
+    # Esta checagem resolve a tag do major que o workflow declara no comentario
+    # ao lado do pin e situa o SHA fixado em relacao a ela:
+    #
+    #   identical         -> ok
+    #   behind            -> aviso: o SHA e ancestral da tag, o major andou e
+    #                        o pin envelheceu dentro dele. Nao e defeito do
+    #                        repositorio, e falhar aqui poria a CI vermelha num
+    #                        dia em que ninguem tocou no codigo.
+    #   ahead / diverged  -> FALHA: o SHA nao pertence ao major declarado, e o
+    #                        comentario mente sobre a versao em uso. E o caso do
+    #                        PR do Dependabot que troca o SHA sem trocar a linha.
+    #
+    # NAO VERIFICAR E FALHA NA CI, e aviso so na maquina local. Aqui fora a
+    # checagem depende de rede e de `gh`, e um pre-commit que exige os dois nao
+    # roda em aviao. Na CI os dois existem -- o workflow entrega o GH_TOKEN --,
+    # e um aviso de "nao verifiquei" la e verificador ausente com cara de
+    # verificador que passou.
+    nao_verificado() {
+        if [ -n "${CI:-}${GITHUB_ACTIONS:-}" ]; then falha "$1"; else aviso "$1"; fi
+    }
     if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
         # O MAJOR VEM DO COMENTARIO MAIS PROXIMO ACIMA DO PIN, e nao do
         # primeiro do arquivo.
@@ -158,14 +174,27 @@ if [ -f .github/workflows/ci.yml ]; then
             [ -n "$major" ] || { aviso "pin de $acao sem 'Corresponde a vN' num comentario acima"; continue; }
             esperado=$(timeout 20 gh api "repos/$acao/git/ref/tags/$major" --jq '.object.sha' 2>/dev/null || echo "")
             if [ -z "$esperado" ]; then
-                aviso "nao consegui resolver $acao@$major (offline?)"
-            elif [ "$esperado" = "$sha" ]; then
-                ok "$acao fixada em $major (SHA confere com a tag)"
-            else
-                aviso "$acao: o SHA fixado NAO e mais o topo de $major"
-                printf '          fixado:  %s\n          %s hoje: %s\n' "$sha" "$major" "$esperado"
-                printf '          Se veio de um PR do Dependabot, confira se e salto de major.\n'
+                nao_verificado "nao consegui resolver $acao@$major (offline?)"
+                continue
             fi
+            if [ "$esperado" = "$sha" ]; then
+                ok "$acao fixada em $major (SHA confere com a tag)"
+                continue
+            fi
+            relacao=$(timeout 20 gh api "repos/$acao/compare/$esperado...$sha" --jq '.status' 2>/dev/null || echo "")
+            case "$relacao" in
+                identical)
+                    ok "$acao fixada em $major (SHA confere com a tag)" ;;
+                behind)
+                    aviso "$acao: o SHA fixado e de $major, mas nao e mais o topo dele"
+                    printf '          fixado:  %s\n          %s hoje: %s\n' "$sha" "$major" "$esperado" ;;
+                ahead|diverged)
+                    falha "$acao: o SHA fixado NAO pertence a $major, que o comentario declara"
+                    printf '          fixado:  %s\n          %s hoje: %s\n' "$sha" "$major" "$esperado"
+                    printf '          Corrija o "Corresponde a vN" acima do pin para o major real.\n' ;;
+                *)
+                    nao_verificado "nao consegui situar o SHA de $acao em relacao a $major" ;;
+            esac
         done < <(awk '
             /^[[:space:]]*#.*Corresponde a v[0-9]+/ { match($0, /v[0-9]+/); m = substr($0, RSTART, RLENGTH) }
             match($0, /uses: [a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+@[0-9a-f]{40}/) {
@@ -173,7 +202,7 @@ if [ -f .github/workflows/ci.yml ]; then
                 split(t, p, "@"); print p[1], p[2], m; m = "" }
         ' .github/workflows/ci.yml)
     else
-        aviso "gh ausente ou nao autenticado: versao do SHA fixado nao verificada"
+        nao_verificado "gh ausente ou nao autenticado: versao do SHA fixado nao verificada"
     fi
 fi
 
